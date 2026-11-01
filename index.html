@@ -58,6 +58,15 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--amber);outline-
 .res b{font-size:15px;font-weight:500}
 .res .cap{font-size:11px;color:var(--faint);font-weight:400}
 .res b.full{color:var(--amber)}
+.res>div{flex-wrap:wrap}
+.res small.rt{flex-basis:100%;margin-left:0;color:var(--dim);font-size:11px}
+.res small.rt.neg{color:var(--red)}
+.surv{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;font-size:12px}
+.surv b{font-size:14px;font-weight:500}
+.surv span{color:var(--dim)}
+.surv em{font-style:normal;margin-left:auto;color:var(--dim)}
+.surv.warn b,.surv.warn em{color:var(--red)}
+.tx .tt{color:var(--dim)}
 .res small{font-size:11px;margin-left:auto;white-space:nowrap}
 .pos{color:var(--green)} .neg{color:var(--red)}
 .now{position:relative;overflow:hidden;border:1px solid var(--line);border-radius:4px;padding:7px 9px;display:flex;justify-content:space-between;gap:10px;align-items:center;min-height:34px}
@@ -220,9 +229,10 @@ input[type=range]{width:100%;accent-color:var(--amber)}
     </div>
     <div class="meter"><span class="lbl" style="min-width:0;text-align:left">Age</span><div class="bar"><i id="b-age"></i></div><span id="t-age" class="num"></span></div>
     <div class="meter"><span class="lbl" style="min-width:0;text-align:left">Health</span><div class="bar hp"><i id="b-hp"></i></div><span id="t-hp" class="num"></span></div>
+    <div class="surv" id="surv"><span class="lbl">Time left</span><b id="s-left" class="num"></b><span id="s-real" class="num"></span><em id="s-why"></em></div>
     <div class="res">
-      <div><span class="lbl">Rations</span><b id="t-rat" class="num"></b><small id="t-ratr" class="num"></small></div>
-      <div><span class="lbl">Salvage</span><b id="t-sal" class="num"></b><small id="t-salr" class="num"></small></div>
+      <div><span class="lbl">Rations</span><b id="t-rat" class="num"></b><small id="t-ratr" class="num"></small><small id="t-ratt" class="rt num"></small></div>
+      <div><span class="lbl">Salvage</span><b id="t-sal" class="num"></b><small id="t-salr" class="num"></small><small id="t-salt" class="rt num"></small></div>
     </div>
     <div class="now" id="now"><div class="nf" id="n-fill"></div><span id="n-name"></span><span id="n-eta" class="num"></span></div>
   </div>
@@ -547,6 +557,48 @@ function fmtDays(d){
   if (d < 365) return Math.ceil(d) + ' d';
   return (d/365).toFixed(1) + ' y';
 }
+// Real time it takes for a number of in-game days to pass at the chosen speed
+function realSecs(days){ return days / (DPS * S.set.speed * (S.set.boost && S.bank > 0 ? 2 : 1)); }
+function fmtReal(sec){
+  if (!isFinite(sec)) return '\u221e';
+  sec = Math.max(0, Math.ceil(sec));
+  const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
+  return h ? h + ':' + String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0') : m + ':' + String(s).padStart(2, '0');
+}
+const both = days => isFinite(days) ? fmtDays(days) + ' \u00b7 ' + fmtReal(realSecs(days)) : '\u221e';
+// Net ration and salvage change per day if task t is the one being worked
+function rates(t){
+  let rr = M.pRat - 1, sr = M.pSal;
+  if (t && t.kind === 'job' && t.prod) {
+    const sp = speedOf(t);
+    if (t.prod.rations) rr += t.prod.rations * sp;
+    if (t.prod.salvage) sr += t.prod.salvage * sp;
+  }
+  return {rr, sr};
+}
+function storeEta(val, cap, rate){
+  if (rate > 1e-9) return val >= cap - 0.01 ? {txt:'full', days:0} : {txt:'full in', days:(cap - val) / rate};
+  if (rate < -1e-9) return val <= 0.01 ? {txt:'empty', days:0} : {txt:'empty in', days:val / -rate};
+  return {txt:'steady', days:Infinity};
+}
+// How long the clone lives if the current task keeps going: old age, starvation or injuries
+function survival(){
+  const L = S.life, cur = L.cur ? T[L.cur] : null;
+  const lifeLeft = lifeDays() - L.day;
+  const net = rates(cur).rr;
+  const haz = cur && cur.haz ? Math.min(hazDmg(cur), MAX_DRAIN) : 0;
+  const tFood = net < 0 ? L.rations / -net : Infinity;
+  let t = Infinity, why = '';
+  if (haz > 0) {
+    const d1 = L.hp / haz;
+    if (d1 <= tFood) { t = d1; why = 'injuries'; }
+    else { t = tFood + (L.hp - haz * tFood) / MAX_DRAIN; why = 'starvation'; }
+  } else if (isFinite(tFood)) {
+    t = tFood + Math.min(M.maxHp, L.hp + M.regen * tFood) / MAX_DRAIN; why = 'starvation';
+  }
+  if (t >= lifeLeft) { t = lifeLeft; why = 'old age'; }
+  return {t, why};
+}
 function fmtSecs(s){
   s = Math.floor(s);
   if (s < 60) return s + 's';
@@ -826,7 +878,7 @@ function renderTasks(){
         h += `<div class="task job${L.job === t.id ? ' fb' : ''}" data-id="${t.id}">
           <button class="tm" data-do="${t.id}"><div class="tf"></div>
             <div class="th"><span class="tn">${esc(t.name)}</span><span class="te num" data-r="${res}"></span></div>
-            <div class="tx">${chips(t)}${t.haz ? '<span class="haz">▲ hazard</span>' : ''}${!t.prod ? '<span>skill training only</span>' : ''}</div>
+            <div class="tx">${chips(t)}${t.haz ? '<span class="haz">▲ hazard</span>' : ''}${!t.prod ? '<span>skill training only</span>' : '<span class="tt num"></span>'}</div>
           </button></div>`;
       });
     }
@@ -852,7 +904,7 @@ function renderTasks(){
   });
   $('#v-tasks').innerHTML = h;
   refs = [...document.querySelectorAll('#v-tasks .task[data-id]')].map(el => ({
-    el, t:T[el.dataset.id], f:el.querySelector('.tf'), e:el.querySelector('.te'), rp:el.querySelector('.rp')
+    el, t:T[el.dataset.id], f:el.querySelector('.tf'), e:el.querySelector('.te'), rp:el.querySelector('.rp'), tt:el.querySelector('.tt')
   }));
 }
 function updateTasks(){
@@ -865,12 +917,17 @@ function updateTasks(){
       const p = (L.prog[t.id] || 0) / t.days;
       r.f.style.width = (p * 100).toFixed(1) + '%';
       const left = (t.days * (t.reps - (L.done[t.id] || 0)) - (L.prog[t.id] || 0)) / sp;
-      r.e.textContent = fmtDays(left);
+      r.e.textContent = both(left);
       if (r.rp) r.rp.textContent = (L.done[t.id] || 0) + '/' + t.reps;
     } else {
       if (t.prod) {
         const res = t.prod.rations ? 'rations' : 'salvage';
         r.e.textContent = '+' + fmt(t.prod[res] * sp) + ' ' + res + '/d';
+        if (r.tt) {
+          const rt = rates(t), isR = res === 'rations';
+          const e = storeEta(isR ? L.rations : L.salvage, isR ? M.ratCap : M.salCap, isR ? rt.rr : rt.sr);
+          r.tt.textContent = e.txt === 'full' ? 'storage full' : e.txt === 'steady' ? 'storage steady' : 'storage ' + e.txt + ' ' + both(e.days);
+        }
       } else {
         r.e.textContent = '×' + fmt(sp) + ' speed';
       }
@@ -895,16 +952,23 @@ function updateHud(){
   $('#b-hp').style.width = Math.max(0, L.hp / M.maxHp * 100) + '%';
   $('#t-hp').textContent = Math.ceil(L.hp) + ' / ' + M.maxHp;
   const cur = L.cur ? T[L.cur] : null;
-  let rr = M.pRat - 1, sr = M.pSal;
-  if (cur && cur.kind === 'job' && cur.prod) {
-    const sp = speedOf(cur);
-    if (cur.prod.rations) rr += cur.prod.rations * sp;
-    if (cur.prod.salvage) sr += cur.prod.salvage * sp;
+  const {rr, sr} = rates(cur);
+  const sv = survival(), surv = $('#surv');
+  if (L.dead) { $('#s-left').textContent = '0'; $('#s-real').textContent = ''; $('#s-why').textContent = 'dead'; }
+  else {
+    $('#s-left').textContent = fmtDays(sv.t);
+    $('#s-real').textContent = fmtReal(realSecs(sv.t)) + ' real' + (cur ? '' : ' once working');
+    $('#s-why').textContent = 'by ' + sv.why;
   }
-  $('#t-rat').innerHTML = fmt(L.rations) + '<span class="cap">/' + fmt(M.ratCap) + '</span>';
+  surv.classList.toggle('warn', !L.dead && sv.why !== 'old age');
+  const re = storeEta(L.rations, M.ratCap, rr), se = storeEta(L.salvage, M.salCap, sr);
+  $('#t-ratt').textContent = re.txt === 'full' ? 'storage full' : re.txt === 'empty' ? 'empty: starving' : re.txt === 'steady' ? '' : re.txt + ' ' + both(re.days);
+  $('#t-ratt').classList.toggle('neg', re.txt === 'empty in' || re.txt === 'empty');
+  $('#t-salt').textContent = se.txt === 'full' ? 'storage full' : se.txt === 'steady' ? '' : se.txt + ' ' + both(se.days);
+  $('#t-rat').innerHTML = fmt(L.rations) + '<span class="cap">/' + Math.round(M.ratCap) + '</span>';
   $('#t-rat').classList.toggle('full', L.rations >= M.ratCap - 0.01);
   const ra = $('#t-ratr'); ra.textContent = (rr >= 0 ? '+' : '−') + fmt(Math.abs(rr)) + '/d'; ra.className = 'num ' + (rr >= 0 ? 'pos' : 'neg');
-  $('#t-sal').innerHTML = fmt(L.salvage) + '<span class="cap">/' + fmt(M.salCap) + '</span>';
+  $('#t-sal').innerHTML = fmt(L.salvage) + '<span class="cap">/' + Math.round(M.salCap) + '</span>';
   $('#t-sal').classList.toggle('full', L.salvage >= M.salCap - 0.01);
   const sa = $('#t-salr'); sa.textContent = sr > 0 ? '+' + fmt(sr) + '/d' : ''; sa.className = 'num pos';
   const now = $('#now');
@@ -919,7 +983,7 @@ function updateHud(){
     if (cur.kind === 'act') {
       const sp = speedOf(cur);
       $('#n-fill').style.width = ((L.prog[cur.id] || 0) / cur.days * 100).toFixed(1) + '%';
-      $('#n-eta').textContent = fmtDays((cur.days - (L.prog[cur.id] || 0)) / sp);
+      $('#n-eta').textContent = both((cur.days - (L.prog[cur.id] || 0)) / sp);
     } else { $('#n-fill').style.width = '100%'; $('#n-eta').textContent = 'job'; }
   }
   renderSpeed();
