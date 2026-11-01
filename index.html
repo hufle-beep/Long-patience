@@ -80,6 +80,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--amber);outline-
 .tx .tt{color:var(--dim)}
 .eat{flex-basis:100%;margin-top:4px;font-size:12px;padding:5px 8px;border:1px solid var(--green);color:var(--green);border-radius:4px;text-align:center}
 .eat:disabled{border-color:var(--line);color:var(--faint);cursor:default}
+.res .fq{display:block;font-size:11px;color:var(--green);font-family:var(--f-mono);font-weight:400;margin-top:2px}
 .res small{font-size:11px;margin-left:auto;white-space:nowrap}
 .pos{color:var(--green)} .neg{color:var(--red)}
 .now{position:relative;overflow:hidden;border:1px solid var(--line);border-radius:4px;padding:7px 9px;display:flex;justify-content:space-between;gap:10px;align-items:center;min-height:34px}
@@ -381,7 +382,16 @@ const MAX_DRAIN = 1.2;     // most health a clone can lose per day: a full bar l
 // A meal restores the hunger of one cooldown plus the old resting regeneration.
 // Food deeper in the ship is better: each section past the first makes meals restore 12% more.
 const MEAL_SEC = 0;
-function mealHp(){ return (HUNGER + M.regen) * MEAL_CD * (1 + MEAL_SEC * ((S.life.sec || 1) - 1)); }
+// Food quality: each section's food heals more (see FOOD_Q). Rations share one store, which keeps
+// the average quality of what is in it, so older food still works as a fallback, just weaker.
+const FOOD_Q = {1:1, 2:1.5, 3:2, 4:2.6, 5:3.2};
+function addRations(a, q){
+  const L = S.life; if (a <= 0) return;
+  const have = Math.max(0, L.rations);
+  L.ratQ = have + a > 0 ? (have * (L.ratQ || 1) + a * q) / (have + a) : q;
+  L.rations += a;
+}
+function mealHp(){ return (HUNGER + M.regen) * MEAL_CD * (S.life.ratQ || 1); }
 const START_AGE = 14;
 
 const SKILLS = [
@@ -563,7 +573,7 @@ function mods(){
 const xpNeed = l => 152.6 * Math.pow(1.61051, l);
 // Neural echo: every point of XP a skill has ever gained, in any clone, adds to a flat speed
 // multiplier for that skill: x(1 + sqrt(total XP / ECHO_XP)). Diminishing returns, never resets.
-const ECHO_XP = 2800;
+const ECHO_XP = 3300;
 const echoSpeed = s => 1 + Math.sqrt(((S.xpTot && S.xpTot[s]) || 0) / ECHO_XP);
 const isDone = id => (S.life.done[id] || 0) >= T[id].reps;
 const available = t => t.z === (S.life.sec || 1) && t.req.every(isDone);
@@ -678,7 +688,7 @@ function finish(t){
   }
   const r = t.reward || {};
   if (r.salvage) L.salvage += r.salvage;
-  if (r.rations) L.rations += r.rations;
+  if (r.rations) addRations(r.rations, FOOD_Q[t.z]);
   if (!L.order.includes(t.id)) L.order.push(t.id);
   if (complete(t)) {
     L.queue = L.queue.filter(x => x !== t.id);
@@ -733,14 +743,14 @@ function step(dt){
         L.cyc[t.id] -= n;
         const before = L.bat[t.id] || 0; L.bat[t.id] = before + n;
         if (before < JOB_PRAC_BATCHES && L.bat[t.id] >= JOB_PRAC_BATCHES) addPractice(t);
-        if (t.prod) { if (t.prod.rations) L.rations += t.prod.rations * JOB_CYCLE * n; if (t.prod.salvage) L.salvage += t.prod.salvage * JOB_CYCLE * n; }
+        if (t.prod) { if (t.prod.rations) addRations(t.prod.rations * JOB_CYCLE * n, FOOD_Q[t.z]); if (t.prod.salvage) L.salvage += t.prod.salvage * JOB_CYCLE * n; }
       }
     } else {
       L.prog[t.id] = (L.prog[t.id] || 0) + sp * dt;
       if (L.prog[t.id] >= t.days) { L.prog[t.id] = 0; finish(t); }
     }
   }
-  L.rations += M.pRat * dt;
+  if (M.pRat) addRations(M.pRat * dt, 1);
   L.salvage += M.pSal * dt;
   clampRes();
   // Health drains all the time; hazards add to it. Meals put some back.
@@ -1382,10 +1392,11 @@ function updateTasks(){
         const res = t.prod.rations ? 'rations' : 'salvage';
         const batch = t.prod[res] * JOB_CYCLE;
         r.e.textContent = jobFast(sp) ? 'continuous \u00b7 +' + fmt(perDay(t.prod[res] * sp)) + '/d' : '+' + fmt(batch) + ' ' + res + ' every ' + fmtDays(JOB_CYCLE / sp);
+        if (r.tt && res === 'rations') r.tt.dataset.q = FOOD_Q[t.z];
         if (r.tt) {
           const rt = rates(t), isR = res === 'rations';
           const e = storeEta(isR ? L.rations : L.salvage, isR ? M.ratCap : M.salCap, isR ? rt.rr : rt.sr);
-          r.tt.textContent = e.txt === 'full' ? 'storage full' : e.txt === 'steady' ? 'storage steady' : 'storage ' + e.txt + ' ' + both(e.days);
+          r.tt.textContent = (res === 'rations' ? 'food \u00d7' + FOOD_Q[t.z] + ' \u00b7 ' : '') + (e.txt === 'full' ? 'storage full' : e.txt === 'steady' ? 'storage steady' : 'storage ' + e.txt + ' ' + both(e.days));
         }
       } else {
         r.e.textContent = '×' + fmt(sp) + ' speed';
@@ -1436,7 +1447,7 @@ function updateHud(){
   $('#t-ratt').textContent = re.txt === 'full' ? 'storage full' : re.txt === 'empty' ? 'empty: starving' : re.txt === 'steady' ? '' : re.txt + ' ' + both(re.days);
   $('#t-ratt').classList.toggle('neg', re.txt === 'empty in' || re.txt === 'empty');
   $('#t-salt').textContent = se.txt === 'full' ? 'storage full' : se.txt === 'steady' ? '' : se.txt + ' ' + both(se.days);
-  $('#t-rat').innerHTML = fmt(L.rations) + '<span class="cap">/' + Math.round(M.ratCap) + '</span>';
+  $('#t-rat').innerHTML = fmt(L.rations) + '<span class="cap">/' + Math.round(M.ratCap) + '</span>' + (L.rations >= 0.05 ? '<span class="fq">food \u00d7' + (L.ratQ || 1).toFixed(1) + '</span>' : '');
   $('#t-rat').classList.toggle('full', L.rations >= M.ratCap - 0.01);
   const ra = $('#t-ratr'); ra.textContent = (rr >= 0 ? '+' : '−') + fmt(perDay(Math.abs(rr))) + '/d'; ra.className = 'num ' + (rr >= 0 ? 'pos' : 'neg');
   const eb = $('#eatb'), mealLeft = L.meal || 0;
@@ -1736,7 +1747,7 @@ function showIntro(){
       <li><b>Training</b> sessions build skills faster (+50% XP), but each can be done only 4 times per life.</li>
       <li>Each automated task has a <b>priority</b> (P1\u2013P5, tap to change). P1 runs first.</li>
       <li><b>Jobs</b> repeat forever and make rations or salvage. The last job you tapped runs whenever the queue is empty.</li>
-      <li>Health drains all the time. Your clone eats <b>2 rations a day</b>, one meal every 12 hours, and each meal restores some health. <b>Strain</b> makes the drain grow, faster and faster as the clone ages; rests halve it and Resolve slows it a little. Each ship section has one rest per life that halves it. Every day a clone survives adds 0.8 max health to all later clones, up to a base of 500. Clones have no fixed lifespan: strain decides how long they last. You wake with no food. Run out of rations and you starve. Storage is limited, so you can\u2019t stockpile much.</li>
+      <li>Health drains all the time. Your clone eats <b>2 rations a day</b>, one meal every 12 hours, and each meal restores some health. Food from deeper sections is richer (\u00d71.5 in the ring up to \u00d73.2 at the drive); stored food keeps its average quality, so older food still works, just weaker. <b>Strain</b> makes the drain grow, faster and faster as the clone ages; rests halve it and Resolve slows it a little. Each ship section has one rest per life that halves it. Every day a clone survives adds 0.8 max health to all later clones, up to a base of 500. Clones have no fixed lifespan: strain decides how long they last. You wake with no food. Run out of rations and you starve. Storage is limited, so you can\u2019t stockpile much.</li>
       <li>Time only moves while your clone is working. With nothing to do, the clock stops.</li>
       <li>When a clone dies, skill levels reset but their <b>echo</b> speeds up learning in every future clone.</li>
       <li><b>Pause</b> any time with the button at the top (or the space bar on a computer). <b>☰</b> opens the menu with save slots; the game waits while it is open. Time spent away is stored as a <b>+2×</b> boost you can switch on in the header.</li>
