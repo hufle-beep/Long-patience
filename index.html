@@ -433,7 +433,7 @@ const TEMPLATE_MIN = 6, TEMPLATE_MAX = 14, TEMPLATE_STEP = 1;
 function templateYears(){ return Math.min(TEMPLATE_MAX, TEMPLATE_MIN + TEMPLATE_STEP * (S.gen - 1)); }
 function mods(){
   const L = S.life, P = S.perks;
-  const m = {sk:{}, xpSk:{}, spd:1, xp:1, haz:1, maxHp:100, pRat:0, pSal:0, life:templateYears(), regen:0.05, ratCap:10, salCap:25};
+  const m = {sk:{}, xpSk:{}, spd:1, xp:1, haz:1, maxHp:100 + Math.floor(S.vit || 0), pRat:0, pSal:0, life:templateYears(), regen:0.05, ratCap:10, salCap:25};
   SKILLS.forEach(k => { m.sk[k.id] = 1; m.xpSk[k.id] = 1; });
   const ap = e => {
     if (!e) return;
@@ -550,6 +550,9 @@ function die(cause){
   const L = S.life; L.dead = true; L.cause = cause; L.cur = null;
   const age = L.day / TPD;
   SKILLS.forEach(k => { if (L.lv[k.id] > S.echo[k.id]) S.echo[k.id] = L.lv[k.id]; });
+  // Hardened genome: every full day a clone survives adds 1 max health to all later clones.
+  L.vitGain = Math.floor(L.day / TPD);
+  S.vit = (S.vit || 0) + L.vitGain;
   S.stats.deaths++; S.stats.daysLived += L.day;
   if (age > (S.stats.bestDays || 0)) S.stats.bestDays = age;
   HOOK.die();
@@ -1371,6 +1374,7 @@ function renderArchive(force){
   h += `<div class="stats">
     <div><b>${S.gen}</b><span>Clones decanted</span></div>
     <div><b>${st.bestDays ? st.bestDays.toFixed(1) : '—'}</b><span>Longest life (days)</span></div>
+    <div><b>+${Math.floor(S.vit || 0)}</b><span>Max health from hardened genome</span></div>
     <div><b>${Object.values(S.echo).reduce((a,b)=>a+b,0)}</b><span>Total echo levels</span></div>
     <div><b>${S.won ? 'Clone ' + S.winGen : 'Not yet'}</b><span>Drive ignited</span></div></div>`;
   h += '<div class="panel set"><span class="h2">Settings</span>';
@@ -1434,7 +1438,7 @@ function showIntro(){
       <li><b>Tap a task</b> to work on it now. <b>+</b> adds an action to the queue.</li>
       <li>Finish an action in 10 different lives, or work a job for 10 batches in 10 different lives, and an <b>AUTO</b> switch appears so it runs by itself.</li>
       <li><b>Jobs</b> repeat forever and make rations or salvage. The last job you tapped runs whenever the queue is empty.</li>
-      <li>Health drains all the time. Your clone eats about <b>4 rations a day</b>, one meal every 6 hours, and each meal restores some health. <b>Strain</b> makes the drain grow steadily; rest to halve it. You wake with no food. Run out of rations and you starve. Storage is limited, so you can\u2019t stockpile much.</li>
+      <li>Health drains all the time. Your clone eats about <b>4 rations a day</b>, one meal every 6 hours, and each meal restores some health. <b>Strain</b> makes the drain grow steadily; rest to halve it. Every day a clone survives adds 1 max health to all later clones. You wake with no food. Run out of rations and you starve. Storage is limited, so you can\u2019t stockpile much.</li>
       <li>Bodies age. In the last quarter of a clone\u2019s life, all work slows down. The first clones are unstable and die young; each new one lives a few days longer.</li>
       <li>Time only moves while your clone is working. With nothing to do, the clock stops.</li>
       <li>When a clone dies, skill levels reset but their <b>echo</b> speeds up learning in every future clone.</li>
@@ -1452,6 +1456,7 @@ function showDeath(){
   }).join('');
   showModal(`<h2>Clone ${S.gen} terminated</h2>
     <p>${esc(L.cause)}.</p><p class="d">Lived ${age.toFixed(1)} days · ${L.order.length} actions completed</p>
+    <p class="d">Hardened genome: <span class="up">+${L.vitGain || 0} max health</span> for every future clone (now ${100 + Math.floor(S.vit || 0)}).</p>
     <table class="dt">${rows}</table>
     ${templateYears() < TEMPLATE_MAX ? `<p class="d">The clone template is still unstable. Clone ${S.gen + 1} will live about ${Math.round((Math.min(TEMPLATE_MAX, templateYears() + TEMPLATE_STEP) + (M.life - templateYears())) * 365 / TPD)} days.</p>` : ''}
     ${S.perks.engram && S.set.replay ? '<p class="d">The engram recorder will queue this clone’s actions for the next one.</p>' : ''}
