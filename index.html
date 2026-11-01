@@ -513,7 +513,7 @@ function newLife(s){
   return L;
 }
 function defaultState(){
-  const s = {v:1, rv:3, sv:2, pv:2, vv:2, gen:1, prio:{}, ever:{}, prac:{}, auto:{}, echo:{}, perks:{}, seen:{}, logged:{}, log:[], lastOrder:[], lastJob:null,
+  const s = {v:1, rv:3, sv:2, pv:2, vv:3, gen:1, prio:{}, ever:{}, prac:{}, auto:{}, echo:{}, perks:{}, seen:{}, logged:{}, log:[], lastOrder:[], lastJob:null,
     set:{speed:1, autoFood:true, autoEat:true, foodDays:5, replay:true, boost:false},
     stats:{bestAge:0, deaths:0, daysLived:0}, won:false, winGen:0, bank:0, saved:Date.now(), intro:false};
   SKILLS.forEach(k => s.echo[k.id] = 0);
@@ -660,8 +660,8 @@ function die(cause){
   const L = S.life; L.dead = true; L.cause = cause; L.cur = null;
   const age = L.day / TPD;
   SKILLS.forEach(k => { if (L.lv[k.id] > S.echo[k.id]) S.echo[k.id] = L.lv[k.id]; });
-  // Hardened genome: every full day a clone survives adds 0.5 max health to all later clones.
-  L.vitGain = Math.floor(L.day / TPD) * 0.5;
+  // Hardened genome: every full day a clone survives adds 0.25 max health to all later clones.
+  L.vitGain = Math.floor(L.day / TPD) * 0.25;
   S.vit = (S.vit || 0) + L.vitGain;
   S.stats.deaths++; S.stats.daysLived += L.day;
   if (age > (S.stats.bestDays || 0)) S.stats.bestDays = age;
@@ -1064,8 +1064,9 @@ function mergeState(raw){
   s.set = Object.assign(defaultState().set, raw.set || {});
   s.stats = Object.assign(defaultState().stats, raw.stats || {});
   if (!s.prac) s.prac = {}; if (!s.auto) s.auto = {}; if (!s.prio) s.prio = {};
-  if (!raw.vv) s.vit = (s.vit || 0) / 2;   // genome bonus halved in v2
-  s.vv = 2;
+  if (!raw.vv) s.vit = (s.vit || 0) / 4;   // genome bonus quartered (v3)
+  else if (raw.vv < 3) s.vit = (s.vit || 0) / 2;
+  s.vv = 3;
   if (s.life && !s.life.sec) s.life.sec = 1 + ['hatch','lift','secdeck','warden'].filter(id => s.life.done && s.life.done[id]).length;
   if (!s.ever) { s.ever = {}; TASKS.forEach(t => { if (t.kind !== 'job' && ((s.logged || {})[t.id] || (s.prac || {})[t.id] || (s.life && s.life.done && s.life.done[t.id]))) s.ever[t.id] = 1; }); }
   if (!raw.pv) {   // v2 practice: counted in lives (acts kept as-is, job days become at most 1 life)
@@ -1661,7 +1662,7 @@ function showIntro(){
       <li><b>Training</b> sessions build skills faster (+50% XP), but each can be done only 4 times per life.</li>
       <li>Each automated task has a <b>priority</b> (P1\u2013P5, tap to change). P1 runs first.</li>
       <li><b>Jobs</b> repeat forever and make rations or salvage. The last job you tapped runs whenever the queue is empty.</li>
-      <li>Health drains all the time. Your clone eats about <b>4 rations a day</b>, one meal every 6 hours, and each meal restores some health. <b>Strain</b> makes the drain grow steadily. Each ship section has one rest per life that halves it. Every day a clone survives adds half a point of max health to all later clones. You wake with no food. Run out of rations and you starve. Storage is limited, so you can\u2019t stockpile much.</li>
+      <li>Health drains all the time. Your clone eats about <b>4 rations a day</b>, one meal every 6 hours, and each meal restores some health. <b>Strain</b> makes the drain grow steadily. Each ship section has one rest per life that halves it. Every day a clone survives adds a quarter point of max health to all later clones. You wake with no food. Run out of rations and you starve. Storage is limited, so you can\u2019t stockpile much.</li>
       <li>Bodies age. In the last quarter of a clone\u2019s life, all work slows down. The first clones are unstable and die young; each new one lives a few days longer.</li>
       <li>Time only moves while your clone is working. With nothing to do, the clock stops.</li>
       <li>When a clone dies, skill levels reset but their <b>echo</b> speeds up learning in every future clone.</li>
