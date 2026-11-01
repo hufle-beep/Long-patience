@@ -43,29 +43,29 @@
  },
  "won": false,
  "winGen": 0,
- "bank": 348.28020000000004,
- "saved": 1793545228460,
+ "bank": 824.9623,
+ "saved": 1793545906385,
  "intro": true,
  "life": {
-  "day": 0,
+  "day": 942.774000000012,
   "hp": 100,
-  "rations": 20,
-  "salvage": 0,
+  "rations": 50,
+  "salvage": 100,
   "lv": {
-   "eng": 0,
-   "bio": 0,
+   "eng": 6,
+   "bio": 13,
    "cbt": 0,
    "hak": 0,
    "nav": 0,
    "res": 0
   },
   "xp": {
-   "eng": 0,
-   "bio": 0,
+   "eng": 39.82375000000014,
+   "bio": 84.87919640172473,
    "cbt": 0,
    "hak": 0,
    "nav": 0,
-   "res": 0
+   "res": 12.112999999999985
   },
   "echo0": {
    "eng": 0,
@@ -75,14 +75,20 @@
    "nav": 0,
    "res": 0
   },
-  "done": {},
-  "prog": {},
-  "job": null,
+  "done": {
+   "wake": 1
+  },
+  "prog": {
+   "wake": 0
+  },
+  "job": "algae",
   "queue": [],
   "owned": {},
-  "order": [],
+  "order": [
+   "wake"
+  ],
   "foraging": false,
-  "cur": null,
+  "cur": "algae",
   "dead": false,
   "cause": ""
  }
