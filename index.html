@@ -263,8 +263,8 @@ input[type=range]{width:100%;accent-color:var(--amber)}
 
 <script id="logic">
 /* ===== Game data and rules (no DOM) ===== */
-const DPS = 10;            // in-game days per real second at 1x
-const MAX_DRAIN = 0.08;    // most health a clone can lose per day: 100 HP lasts at least 125 s at 1x
+const DPS = 4;             // in-game days per real second at 1x
+const MAX_DRAIN = 0.08;    // most health a clone can lose per day: 100 HP lasts at least ~5 min at 1x
 const START_AGE = 14;
 
 const SKILLS = [
@@ -380,7 +380,7 @@ const ITEMS = [
 const IT = {}; ITEMS.forEach(i => IT[i.id] = i);
 
 let S, M;
-const HOOK = {log(){}, perk(){}, die(){}, win(){}, change(){}};
+const HOOK = {log(){}, perk(){}, die(){}, win(){}, change(){}, stopped(){}};
 
 function newLife(s){
   const p = s.perks;
@@ -449,8 +449,19 @@ function active(){
     }
   } else L.foraging = false;
   for (const id of L.queue) { const t = T[id]; if (available(t) && !complete(t)) return t; }
-  if (L.job && available(T[L.job])) return T[L.job];
+  if (L.job && available(T[L.job])) {
+    const j = T[L.job];
+    if (jobFull(j)) { L.job = null; HOOK.stopped(j); return null; }   // storage full: unselect and stop the clock
+    return j;
+  }
   return null;
+}
+function jobFull(t){
+  if (!t.prod) return false;
+  const L = S.life;
+  if (t.prod.rations) return L.rations >= M.ratCap - 0.01;
+  if (t.prod.salvage) return L.salvage >= M.salCap - 0.01;
+  return false;
 }
 function gainXp(s, a){
   const L = S.life; L.xp[s] += a;
@@ -812,6 +823,7 @@ HOOK.log = (title, text) => {
 };
 HOOK.perk = p => { toast('Archive record: ' + p.name, true); if (tab !== 'archive') newPerk = true; archKey = ''; };
 HOOK.change = () => { taskKey = ''; gearKey = ''; };
+HOOK.stopped = j => { taskKey = ''; toast((j.prod.rations ? 'Ration' : 'Salvage') + ' storage full. Stopped \u201c' + j.name + '\u201d; time is stopped.'); };
 HOOK.die = () => { save(); showDeath(); };
 HOOK.win = () => { save(); showWin(); };
 
@@ -1183,6 +1195,7 @@ document.addEventListener('click', e => {
   if (d.do) {
     const t = T[d.do];
     if (t.kind === 'job') {
+      if (jobFull(t)) { toast('Storage is full. Spend or use some first.'); return; }
       L.job = t.id; L.foraging = false;
       const q = L.queue.some(id => available(T[id]) && !complete(T[id]));
       if (q) toast('Set as fallback job. It runs once the queue is empty.');
