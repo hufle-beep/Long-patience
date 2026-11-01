@@ -43,7 +43,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--amber);outline-
 .spd button{font-family:var(--f-mono);font-size:12px;padding:5px 9px;border:1px solid var(--line);border-radius:4px;color:var(--dim)}
 .spd button.on{color:var(--bg);background:var(--amber);border-color:var(--amber)}
 .spd button.mus{font-size:14px;padding:3px 9px;color:var(--faint);text-decoration:line-through}
-.spd button.mus.on{color:var(--cyan);border-color:var(--cyan-soft);text-decoration:none}
+.spd button.mus.on{color:var(--cyan);border-color:var(--cyan-soft);background:none;text-decoration:none}
 .vol{display:grid;grid-template-columns:auto 1fr 34px;gap:10px;align-items:center}
 .vol b{font-size:12px;text-align:right;font-weight:500}
 .mpanel{background:var(--panel2)}
@@ -70,6 +70,9 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--amber);outline-
 .surv b{font-size:14px;font-weight:500}
 .surv span{color:var(--dim)}
 .surv em{font-style:normal;margin-left:auto;color:var(--dim)}
+.surv .strain{flex-basis:100%;color:var(--dim)}
+.surv .strain.hi{color:var(--red)}
+.task.rest .tm{border-style:dashed}
 .surv.warn b,.surv.warn em{color:var(--red)}
 .tx .tt{color:var(--dim)}
 .eat{flex-basis:100%;margin-top:4px;font-size:12px;padding:5px 8px;border:1px solid var(--green);color:var(--green);border-radius:4px;text-align:center}
@@ -242,7 +245,7 @@ input[type=range]{width:100%;accent-color:var(--amber)}
     </div>
     <div class="meter"><span class="lbl" style="min-width:0;text-align:left">Life</span><div class="bar"><i id="b-age"></i></div><span id="t-age" class="num"></span></div>
     <div class="meter"><span class="lbl" style="min-width:0;text-align:left">Health</span><div class="bar hp"><i id="b-hp"></i></div><span id="t-hp" class="num"></span></div>
-    <div class="surv" id="surv"><span class="lbl">Time left</span><b id="s-left" class="num"></b><span id="s-real" class="num"></span><em id="s-why"></em></div>
+    <div class="surv" id="surv"><span class="lbl">Time left</span><b id="s-left" class="num"></b><span id="s-real" class="num"></span><em id="s-why"></em><span id="s-strain" class="num strain"></span></div>
     <div class="res">
       <div><span class="lbl">Rations</span><b id="t-rat" class="num"></b><small id="t-ratr" class="num"></small><small id="t-ratt" class="rt num"></small><button id="eatb" class="eat num" data-eat>Eat</button></div>
       <div><span class="lbl">Salvage</span><b id="t-sal" class="num"></b><small id="t-salr" class="num"></small><small id="t-salt" class="rt num"></small></div>
@@ -283,8 +286,11 @@ const TPD = 80;
 const JOB_CYCLE = 8;       // in-game days of base work per job batch
 const MEAL_CD = 20;        // ticks between meals: one ration every 6 hours, 4 a day
 const EAT = 1 / MEAL_CD;   // average rations eaten per tick (used for estimates)
-const HUNGER = 0.15;       // health lost per day, always, while time runs
-const MAX_DRAIN = 0.2;     // most health a clone can lose per day: a full bar lasts at least ~2 min at 1x
+const HUNGER = 0.15;       // base health lost per tick, always, while time runs
+// Strain: the body wears down. The hunger drain is multiplied by strain, which climbs
+// steadily (+1 every STRAIN_RAMP ticks = 5 days). Rest actions halve it again.
+const STRAIN_RAMP = 400, AUTO_REST_AT = 1.8;
+const MAX_DRAIN = 1.2;     // most health a clone can lose per day: a full bar lasts at least ~2 min at 1x
 // A meal restores the hunger of one cooldown plus the old resting regeneration.
 function mealHp(){ return (HUNGER + M.regen) * MEAL_CD; }
 const START_AGE = 14;
@@ -316,6 +322,7 @@ const TASKS = [
   {id:'scrap', z:1, kind:'job', name:'Strip wall panels', sk:['eng'], prod:{salvage:0.075}, req:['wake']},
   {id:'search', z:1, kind:'act', name:'Search the vat bay', sk:['eng'], days:60, req:['wake'], reward:{salvage:3, rations:2}, perk:'decant',
     log:'Forty-one vats. Forty are dry and cracked. Yours was the only one still warm. Someone kept the clone line running.'},
+  {id:'rest', z:1, kind:'rest', name:'Sleep in the drained vat', sk:['res'], days:200, req:['wake']},
   {id:'drill', z:1, kind:'job', name:'Pressure drills in the airlock', sk:['res','cbt'], req:['search']},
   {id:'terminal', z:1, kind:'act', name:'Wake the bay terminal', sk:['hak'], days:140, req:['search'], perk:'survival',
     log:'BAY LOG: Colony vessel LONG PATIENCE, 212 years out. Crew response: none. Clone protocol K active: decant a replacement on death, retain the neural echo.'},
@@ -330,6 +337,7 @@ const TASKS = [
   {id:'irrigation', z:2, kind:'act', name:'Restore the irrigation pumps', sk:['eng','bio'], days:420, lifeEff:{ratCap:20}, req:['mapring'],
     log:'Water moves through the pipes again. The dead beds might grow something besides mould.'},
   {id:'hydro', z:2, kind:'job', name:'Tend hydroponic beds', sk:['bio'], prod:{rations:0.13}, req:['irrigation']},
+  {id:'scrub', z:2, kind:'rest', name:'Run a medbay blood scrub', sk:['bio','res'], days:40, req:['medbay']},
   {id:'medbay', z:2, kind:'act', name:'Reach the abandoned medbay', sk:['cbt','res'], days:380, haz:0.15, req:['mapring'], reward:{heal:true}, perk:'medrec',
     log:'The medbay is intact. Every patient record stops on the same day.'},
   {id:'genelog', z:2, kind:'act', name:'Decrypt the gene-sequencer logs', sk:['hak','bio'], days:650, req:['medbay'], perk:'telomere',
@@ -402,12 +410,12 @@ const ITEMS = [
 const IT = {}; ITEMS.forEach(i => IT[i.id] = i);
 
 let S, M;
-const HOOK = {log(){}, perk(){}, die(){}, win(){}, change(){}, stopped(){}, practiced(){}, done(){}};
+const HOOK = {log(){}, perk(){}, die(){}, win(){}, change(){}, stopped(){}, practiced(){}, done(){}, rested(){}};
 
 function newLife(s){
   const p = s.perks;
   const L = {day:0, hp:100, rations:p.decant?6:0, salvage:p.decant?4:0, lv:{}, xp:{}, echo0:{},
-    done:{}, prog:{}, cyc:{}, bat:{}, meal:0, job:null, queue:[], owned:{}, order:[], foraging:false, cur:null, dead:false, cause:''};
+    done:{}, prog:{}, cyc:{}, bat:{}, meal:0, strain:1, job:null, queue:[], owned:{}, order:[], foraging:false, cur:null, dead:false, cause:''};
   SKILLS.forEach(k => { L.lv[k.id] = 0; L.xp[k.id] = 0; L.echo0[k.id] = s.echo[k.id] || 0; });
   return L;
 }
@@ -475,6 +483,7 @@ function active(){
       if (L.foraging) return food;
     }
   } else L.foraging = false;
+  if ((L.strain || 1) >= AUTO_REST_AT) { const r = TASKS.find(t => t.kind === 'rest' && isAuto(t) && available(t)); if (r) return r; }
   for (const id of L.queue) { const t = T[id]; if (available(t) && !complete(t)) return t; }
   // automated actions run on their own, in ship order, once the queue is done
   for (const t of TASKS) if (t.kind === 'act' && isAuto(t) && available(t) && !complete(t)) return t;
@@ -493,7 +502,7 @@ function active(){
 // Practice is counted in lives: an action counts once per life when finished; a job counts once per
 // life after JOB_PRAC_BATCHES batches in that life. AUTO_LIVES practised lives unlock automation.
 // can be automated.
-const AUTO_LIVES = 5, JOB_PRAC_BATCHES = 10;
+const AUTO_LIVES = 10, JOB_PRAC_BATCHES = 10;
 function practiced(t){ return (S.prac[t.id] || 0) >= AUTO_LIVES; }
 function addPractice(t){ S.prac[t.id] = (S.prac[t.id] || 0) + 1; if (S.prac[t.id] === AUTO_LIVES) HOOK.practiced(t); }
 function isAuto(t){ return !!S.auto[t.id] && practiced(t); }
@@ -513,6 +522,13 @@ function gainXp(s, a){
 function finish(t){
   const L = S.life;
   L.done[t.id] = (L.done[t.id] || 0) + 1;
+  if (t.kind === 'rest') {
+    L.strain = Math.max(1, (L.strain || 1) / 2);
+    L.queue = L.queue.filter(x => x !== t.id);
+    if (L.done[t.id] === 1) addPractice(t);
+    HOOK.rested(t); HOOK.change();
+    return;
+  }
   const r = t.reward || {};
   if (r.salvage) L.salvage += r.salvage;
   if (r.rations) L.rations += r.rations;
@@ -565,7 +581,8 @@ function step(dt){
   L.salvage += M.pSal * dt;
   clampRes();
   // Health drains all the time; hazards add to it. Meals put some back.
-  const drain = Math.min(HUNGER + (t && t.haz ? hazDmg(t) : 0), MAX_DRAIN);
+  L.strain = (L.strain || 1) + dt / STRAIN_RAMP;
+  const drain = Math.min(HUNGER * L.strain + (t && t.haz ? hazDmg(t) : 0), MAX_DRAIN);
   L.hp -= drain * dt;
   L.meal = Math.max(0, (L.meal || 0) - dt);
   if (S.set.autoEat && L.meal <= 0 && L.rations >= 1 && L.hp <= M.maxHp - mealHp() / 2) eat();
@@ -826,17 +843,20 @@ function storeEta(val, cap, rate){
 function survival(){
   const L = S.life, cur = L.cur ? T[L.cur] : null;
   const lifeLeft = lifeDays() - L.day;
-  const net = rates(cur).rr;
-  const hazed = !!(cur && cur.haz);
-  const starveRate = Math.min(HUNGER + (hazed ? hazDmg(cur) : 0), MAX_DRAIN);
-  const fedRate = starveRate - (S.set.autoEat ? mealHp() / MEAL_CD : 0);   // >0: losing health even while eating
-  const tFood = L.rations < 1 && !(net > 0) ? 0 : (net < 0 ? L.rations / -net : Infinity);
-  let t = Infinity, why = '';
-  if (fedRate > 0 && L.hp / fedRate <= tFood) { t = L.hp / fedRate; why = hazed ? 'injuries' : 'exhaustion'; }
-  else if (isFinite(tFood)) {
-    const hp2 = Math.min(M.maxHp, L.hp - fedRate * tFood);
-    t = tFood + hp2 / starveRate; why = 'starvation';
+  // Step forward assuming the current task keeps running and no rest is taken.
+  const net = rates(cur).rr + EAT;           // rations gained per tick before eating
+  const haz = cur && cur.haz ? hazDmg(cur) : 0;
+  let hp = L.hp, rat = L.rations, strain = L.strain || 1, meal = L.meal || 0, t = 0, why = '';
+  const dt = 5, eatOn = S.set.autoEat, mh = mealHp();
+  while (t < lifeLeft) {
+    strain += dt / STRAIN_RAMP;
+    hp -= Math.min(HUNGER * strain + haz, MAX_DRAIN) * dt;
+    rat = Math.min(M.ratCap, rat + net * dt); meal -= dt;
+    if (eatOn && meal <= 0 && rat >= 1 && hp <= M.maxHp - mh / 2) { rat -= 1; hp = Math.min(M.maxHp, hp + mh); meal = MEAL_CD; }
+    t += dt;
+    if (hp <= 0) { why = haz ? 'injuries' : rat < 1 ? 'starvation' : 'strain'; break; }
   }
+  if (!why) t = Infinity;
   if (t >= lifeLeft) { t = lifeLeft; why = 'old age'; }
   return {t, why};
 }
@@ -1071,6 +1091,7 @@ HOOK.log = (title, text) => {
   logKey = '';
 };
 HOOK.done = t => sfx('complete');
+HOOK.rested = t => { sfx('eat'); toast('Rested. Strain halved to \u00d7' + (S.life.strain || 1).toFixed(2) + '.'); };
 HOOK.perk = p => { sfx('perk'); toast('Archive record: ' + p.name, true); if (tab !== 'archive') newPerk = true; archKey = ''; };
 HOOK.change = () => { taskKey = ''; gearKey = ''; };
 HOOK.practiced = t => { sfx('perk'); taskKey = ''; toast('Practised: \u201c' + t.name + '\u201d can now be automated (tap AUTO).', true); };
@@ -1135,9 +1156,10 @@ function renderTasks(){
     const zt = TASKS.filter(t => t.z === z.id);
     const jobs = zt.filter(t => t.kind === 'job' && vis.includes(t.id));
     const acts = zt.filter(t => t.kind === 'act' && vis.includes(t.id));
+    const rests = zt.filter(t => t.kind === 'rest' && vis.includes(t.id));
     const lk = zt.filter(t => locked.includes(t.id));
     const cleared = zt.filter(t => complete(t)).length;
-    if (!jobs.length && !acts.length && !lk.length && !cleared) return;
+    if (!jobs.length && !acts.length && !rests.length && !lk.length && !cleared) return;
     h += `<section class="zone"><header class="zh"><h2>${z.name}</h2><span>${z.sub}</span>${cleared ? `<em>${cleared} done</em>` : ''}</header>`;
     if (jobs.length) {
       h += '<div class="sub">Jobs · repeat</div>';
@@ -1148,6 +1170,18 @@ function renderTasks(){
             <div class="th"><span class="tn">${esc(t.name)}</span><span class="te num" data-r="${res}"></span></div>
             <div class="tx">${chips(t)}${t.haz ? '<span class="haz">▲ hazard</span>' : ''}${!t.prod ? '<span>skill training only</span>' : '<span class="tt num"></span>'}${practiced(t) ? '' : '<span class="pr num"></span>'}</div>
           </button>${autoBtn(t)}</div>`;
+      });
+    }
+    if (rests.length) {
+      h += '<div class="sub">Recovery · repeatable · halves strain</div>';
+      rests.forEach(t => {
+        const qi = L.queue.indexOf(t.id);
+        h += `<div class="task act rest" data-id="${t.id}">
+          <button class="tm" data-do="${t.id}"><div class="tf"></div>
+            <div class="th"><span class="tn">${esc(t.name)}</span><span class="te num"></span></div>
+            <div class="tx">${chips(t)}<span>strain \u00f72</span>${practiced(t) ? `<span>auto at strain \u00d7${AUTO_REST_AT}</span>` : `<span class="num">practice ${S.prac[t.id] || 0}/${AUTO_LIVES} lives</span>`}</div>
+          </button>
+          <div class="side"><button class="tq${qi >= 0 ? ' in' : ''}" data-q="${t.id}" aria-label="${qi >= 0 ? 'Queued' : 'Add to queue'}">${qi >= 0 ? '#' + (qi+1) : '+'}</button>${autoBtn(t)}</div></div>`;
       });
     }
     if (acts.length) {
@@ -1181,10 +1215,10 @@ function updateTasks(){
     const t = r.t, on = L.cur === t.id;
     r.el.classList.toggle('on', on);
     const sp = speedOf(t);
-    if (t.kind === 'act') {
+    if (t.kind !== 'job') {
       const p = (L.prog[t.id] || 0) / t.days;
       r.f.style.width = (p * 100).toFixed(1) + '%';
-      const left = (t.days * (t.reps - (L.done[t.id] || 0)) - (L.prog[t.id] || 0)) / sp;
+      const left = t.kind === 'rest' ? (t.days - (L.prog[t.id] || 0)) / sp : (t.days * (t.reps - (L.done[t.id] || 0)) - (L.prog[t.id] || 0)) / sp;
       r.e.textContent = both(left);
       if (r.rp) r.rp.textContent = (L.done[t.id] || 0) + '/' + t.reps;
     } else {
@@ -1237,6 +1271,9 @@ function updateHud(){
     $('#s-real').textContent = fmtReal(realSecs(sv.t)) + ' real' + (cur ? '' : ' once working');
     $('#s-why').textContent = 'by ' + sv.why;
   }
+  const st = L.strain || 1, se2 = $('#s-strain');
+  se2.textContent = 'strain \u00d7' + st.toFixed(2);
+  se2.classList.toggle('hi', st >= 1.6);
   surv.classList.toggle('warn', !L.dead && sv.why !== 'old age');
   const re = storeEta(L.rations, M.ratCap, rr), se = storeEta(L.salvage, M.salCap, sr);
   $('#t-ratt').textContent = re.txt === 'full' ? 'storage full' : re.txt === 'empty' ? 'empty: starving' : re.txt === 'steady' ? '' : re.txt + ' ' + both(re.days);
@@ -1261,7 +1298,7 @@ function updateHud(){
   else if (!cur) { $('#n-name').textContent = 'Time stopped. Pick a task below.'; $('#n-eta').textContent = ''; $('#n-fill').style.width = '0'; }
   else {
     $('#n-name').textContent = (L.foraging ? 'Foraging: ' : '') + cur.name;
-    if (cur.kind === 'act') {
+    if (cur.kind !== 'job') {
       const sp = speedOf(cur);
       $('#n-fill').style.width = ((L.prog[cur.id] || 0) / cur.days * 100).toFixed(1) + '%';
       $('#n-eta').textContent = both((cur.days - (L.prog[cur.id] || 0)) / sp);
@@ -1395,9 +1432,9 @@ function showIntro(){
     <p>You are K-7, clone stock aboard a colony ship that stopped answering long ago. Each body lasts a few years. What you learn echoes into the next one.</p>
     <ul>
       <li><b>Tap a task</b> to work on it now. <b>+</b> adds an action to the queue.</li>
-      <li>Finish an action in 5 different lives, or work a job for 10 batches in 5 different lives, and an <b>AUTO</b> switch appears so it runs by itself.</li>
+      <li>Finish an action in 10 different lives, or work a job for 10 batches in 10 different lives, and an <b>AUTO</b> switch appears so it runs by itself.</li>
       <li><b>Jobs</b> repeat forever and make rations or salvage. The last job you tapped runs whenever the queue is empty.</li>
-      <li>Health drains all the time. Your clone eats about <b>4 rations a day</b>, one meal every 6 hours, and each meal restores some health. You wake with no food. Run out of rations and you starve. Storage is limited, so you can\u2019t stockpile much.</li>
+      <li>Health drains all the time. Your clone eats about <b>4 rations a day</b>, one meal every 6 hours, and each meal restores some health. <b>Strain</b> makes the drain grow steadily; rest to halve it. You wake with no food. Run out of rations and you starve. Storage is limited, so you can\u2019t stockpile much.</li>
       <li>Bodies age. In the last quarter of a clone\u2019s life, all work slows down. The first clones are unstable and die young; each new one lives a few days longer.</li>
       <li>Time only moves while your clone is working. With nothing to do, the clock stops.</li>
       <li>When a clone dies, skill levels reset but their <b>echo</b> speeds up learning in every future clone.</li>
