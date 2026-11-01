@@ -468,7 +468,7 @@ const TRAIN_CAP = 4, TRAIN_XP = 1.5;
 const T = {}; TASKS.forEach(t => { T[t.id] = t; t.reps = t.kind === 'train' ? TRAIN_CAP : (t.reps || 1); if (t.days) t.days = Math.round(t.days * ZDAYS[t.z]); });
 
 const PERKS = [
-  {id:'decant',   name:'Decant cache',          from:1, desc:'New clones wake with a stash of 6 rations and 4 salvage.'},
+  {id:'decant',   name:'Decant cache',          from:1, desc:'New clones wake with a stash of 2 rations.'},
   {id:'survival', name:'Survival subroutine',   from:1, desc:'Unlocks auto-forage: your clone works the best food job whenever rations run low.'},
   {id:'muscle',   name:'Muscle memory',         from:1, desc:'+15% skill XP.', eff:{xp:1.15}},
   {id:'chitin',   name:'Chitin lore',           from:1, desc:'Hazard damage −10%.', eff:{haz:0.9}},
@@ -505,7 +505,7 @@ const HOOK = {log(){}, perk(){}, die(){}, win(){}, change(){}, stopped(){}, prac
 
 function newLife(s){
   const p = s.perks;
-  const L = {day:0, hp:100, rations:p.decant?6:0, salvage:p.decant?4:0, lv:{}, xp:{}, echo0:{},
+  const L = {day:0, hp:100, rations:p.decant?2:0, salvage:0, lv:{}, xp:{}, echo0:{},
     done:{}, prog:{}, cyc:{}, bat:{}, meal:0, strain:1, sec:1, job:null, queue:[], owned:{}, order:[], foraging:false, cur:null, dead:false, cause:''};
   SKILLS.forEach(k => { L.lv[k.id] = 0; L.xp[k.id] = 0; L.echo0[k.id] = s.echo[k.id] || 0; });
   return L;
