@@ -116,9 +116,10 @@ main .wrap{display:grid;gap:18px}
 .star{color:var(--amber)}
 .task.job .tm{background:var(--panel2)}
 .task.on .tm{border-color:var(--amber)}
-.task.on.job .tm .tf{width:100%!important;background:repeating-linear-gradient(115deg,var(--amber-soft) 0 14px,transparent 14px 28px);background-size:200% 100%;animation:slide 2.4s linear infinite}
+.task.job .tm .tf{background:var(--amber-soft)}
+.task.job:not(.on) .tm .tf{opacity:.45}
+.tf.fast,.nf.fast{width:100%!important;opacity:.6}
 .task.fb .tn::after{content:" · fallback";color:var(--faint);font-size:11px;font-weight:400}
-@keyframes slide{to{background-position:-60px 0}}
 .tq{flex:0 0 44px;border:1px solid var(--line);border-radius:5px;font-family:var(--f-mono);font-size:18px;color:var(--dim)}
 .tq.in{color:var(--amber);border-color:var(--amber);font-size:12px}
 .task.lock .tm{opacity:.45;cursor:default;border-style:dashed}
@@ -264,6 +265,7 @@ input[type=range]{width:100%;accent-color:var(--amber)}
 <script id="logic">
 /* ===== Game data and rules (no DOM) ===== */
 const DPS = 4;             // in-game days per real second at 1x
+const JOB_CYCLE = 8;       // in-game days of base work per job batch
 const EAT = 0.125;         // rations eaten per day: one ration feeds a clone for 8 days
 const MAX_DRAIN = 0.08;    // most health a clone can lose per day: 100 HP lasts at least ~5 min at 1x
 const START_AGE = 14;
@@ -386,7 +388,7 @@ const HOOK = {log(){}, perk(){}, die(){}, win(){}, change(){}, stopped(){}};
 function newLife(s){
   const p = s.perks;
   const L = {day:0, hp:100, rations:10 + (p.decant?15:0), salvage:p.decant?15:0, lv:{}, xp:{}, echo0:{},
-    done:{}, prog:{}, job:null, queue:[], owned:{}, order:[], foraging:false, cur:null, dead:false, cause:''};
+    done:{}, prog:{}, cyc:{}, job:null, queue:[], owned:{}, order:[], foraging:false, cur:null, dead:false, cause:''};
   SKILLS.forEach(k => { L.lv[k.id] = 0; L.xp[k.id] = 0; L.echo0[k.id] = s.echo[k.id] || 0; });
   return L;
 }
@@ -503,7 +505,13 @@ function step(dt){
     const sp = speedOf(t);
     t.sk.forEach(s => gainXp(s, xpRate(t, s) * dt));
     if (t.kind === 'job') {
-      if (t.prod) { if (t.prod.rations) L.rations += t.prod.rations * sp * dt; if (t.prod.salvage) L.salvage += t.prod.salvage * sp * dt; }
+      // Jobs work in batches: the bar fills over JOB_CYCLE days of work, then delivers and empties.
+      L.cyc[t.id] = (L.cyc[t.id] || 0) + sp * dt / JOB_CYCLE;
+      const n = Math.floor(L.cyc[t.id]);
+      if (n > 0) {
+        L.cyc[t.id] -= n;
+        if (t.prod) { if (t.prod.rations) L.rations += t.prod.rations * JOB_CYCLE * n; if (t.prod.salvage) L.salvage += t.prod.salvage * JOB_CYCLE * n; }
+      }
     } else {
       L.prog[t.id] = (L.prog[t.id] || 0) + sp * dt;
       if (L.prog[t.id] >= t.days) { L.prog[t.id] = 0; finish(t); }
@@ -762,7 +770,7 @@ function mergeState(raw){
   s.sv = 2;
   SKILLS.forEach(k => { if (s.echo[k.id] == null) s.echo[k.id] = 0; });
   const L = s.life;
-  ['done','prog','owned','lv','xp','echo0'].forEach(k => { if (!L[k]) L[k] = {}; });
+  ['done','prog','cyc','owned','lv','xp','echo0'].forEach(k => { if (!L[k]) L[k] = {}; });
   SKILLS.forEach(k => { if (L.lv[k.id] == null) L.lv[k.id] = 0; if (L.xp[k.id] == null) L.xp[k.id] = 0; });
   if (!Array.isArray(L.queue)) L.queue = [];
   L.queue = L.queue.filter(id => T[id]);
@@ -944,6 +952,7 @@ function updateTasks(){
       r.e.textContent = both(left);
       if (r.rp) r.rp.textContent = (L.done[t.id] || 0) + '/' + t.reps;
     } else {
+      jobBar(r.f, t, sp);
       if (t.prod) {
         const res = t.prod.rations ? 'rations' : 'salvage';
         r.e.textContent = '+' + fmt(t.prod[res] * sp) + ' ' + res + '/d';
@@ -957,6 +966,13 @@ function updateTasks(){
       }
     }
   });
+}
+
+// Job bars fill toward the next batch and empty when it is delivered. Too fast to follow: shown full.
+function jobBar(el, t, sp){
+  const fast = realSecs(JOB_CYCLE / sp) < 0.4;
+  el.classList.toggle('fast', fast);
+  if (!fast) el.style.width = ((S.life.cyc[t.id] || 0) * 100).toFixed(1) + '%';
 }
 
 /* ----- HUD ----- */
@@ -999,6 +1015,7 @@ function updateHud(){
   now.classList.toggle('idle', !cur && !L.dead && !S.set.paused);
   now.classList.toggle('paused', !!S.set.paused && !L.dead);
   now.classList.toggle('forage', !!(cur && L.foraging));
+  if (!cur || cur.kind !== 'job') $('#n-fill').classList.remove('fast');
   if (L.dead) { $('#n-name').textContent = 'Clone terminated'; $('#n-eta').textContent = ''; $('#n-fill').style.width = '0'; }
   else if (S.set.paused) { $('#n-name').textContent = 'Paused' + (cur ? ': ' + cur.name : ''); $('#n-eta').textContent = 'tap Resume'; }
   else if (!cur) { $('#n-name').textContent = 'Time stopped. Pick a task below.'; $('#n-eta').textContent = ''; $('#n-fill').style.width = '0'; }
@@ -1008,7 +1025,10 @@ function updateHud(){
       const sp = speedOf(cur);
       $('#n-fill').style.width = ((L.prog[cur.id] || 0) / cur.days * 100).toFixed(1) + '%';
       $('#n-eta').textContent = both((cur.days - (L.prog[cur.id] || 0)) / sp);
-    } else { $('#n-fill').style.width = '100%'; $('#n-eta').textContent = 'job'; }
+    } else {
+      const sp = speedOf(cur); jobBar($('#n-fill'), cur, sp);
+      $('#n-eta').textContent = cur.prod ? 'next batch ' + both((1 - (L.cyc[cur.id] || 0)) * JOB_CYCLE / sp) : 'training';
+    }
   }
   renderSpeed();
 }
