@@ -28,17 +28,9 @@ Saves live on the phone. Use **Archive → Save file** to export a save as a JSO
 
 The app is built by `.github/workflows/android.yml` from the `android/` folder, with `index.html` copied in. It is signed with `android/longpatience.keystore`, which is in this repository for convenience. For a private key, add repository secrets `LP_KEYSTORE_B64` (the keystore as base64), `LP_STORE_PASS`, `LP_KEY_ALIAS` and `LP_KEY_PASS`; note that switching keys means everyone must uninstall once, which deletes their saves, so export them first.
 
-## Saving to GitHub
+## Saves
 
-The Archive tab has a **GitHub save** panel that uploads your save to `saves/save.json` in this repository and loads it back on another device.
-
-1. Create a [fine-grained personal access token](https://github.com/settings/personal-access-tokens/new) with access to **only this repository** and the permission **Contents: Read and write**.
-2. In the game, open **Archive → GitHub save**, paste the token, and tap **Upload save**.
-3. On another device, paste the same token and tap **Load from GitHub** (tap twice to confirm; it replaces local progress).
-
-Turn on **Auto-upload** to upload every 10 minutes while the game is open. The token is stored only in that browser and is never written into the save file.
-
-There is also a **Save code** panel for copying a save as text and pasting it elsewhere.
+Saves are stored only on the device: in the browser's local storage, or inside the Android app. Back them up or move them with **Archive → Save file** (export/import a JSON file) or **Save as text** (copy and paste).
 
 ## How it works
 
