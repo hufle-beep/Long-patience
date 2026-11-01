@@ -235,7 +235,7 @@ input[type=range]{width:100%;accent-color:var(--amber)}
       <div class="ident"><button class="menub" data-menu="open" aria-label="Main menu">☰</button><b>K-7</b><span id="h-gen">Clone 1</span></div>
       <div class="spd" id="h-spd"></div>
     </div>
-    <div class="meter"><span class="lbl" style="min-width:0;text-align:left">Age</span><div class="bar"><i id="b-age"></i></div><span id="t-age" class="num"></span></div>
+    <div class="meter"><span class="lbl" style="min-width:0;text-align:left">Life</span><div class="bar"><i id="b-age"></i></div><span id="t-age" class="num"></span></div>
     <div class="meter"><span class="lbl" style="min-width:0;text-align:left">Health</span><div class="bar hp"><i id="b-hp"></i></div><span id="t-hp" class="num"></span></div>
     <div class="surv" id="surv"><span class="lbl">Time left</span><b id="s-left" class="num"></b><span id="s-real" class="num"></span><em id="s-why"></em></div>
     <div class="res">
@@ -271,10 +271,13 @@ input[type=range]{width:100%;accent-color:var(--amber)}
 
 <script id="logic">
 /* ===== Game data and rules (no DOM) ===== */
-const DPS = 4;             // in-game days per real second at 1x
+const DPS = 4;             // simulation ticks per real second at 1x
+// Time is simulated in ticks. 80 ticks make one ship day (18 minutes each), so a day lasts
+// 20 real seconds at 1x and a clone lives weeks, not years. Everything is shown in days and hours.
+const TPD = 80;
 const JOB_CYCLE = 8;       // in-game days of base work per job batch
-const MEAL_CD = 20;        // days between meals: at most one ration every 20 days
-const EAT = 1 / MEAL_CD;   // average rations eaten per day (used for estimates)
+const MEAL_CD = 20;        // ticks between meals: one ration every 6 hours, 4 a day
+const EAT = 1 / MEAL_CD;   // average rations eaten per tick (used for estimates)
 const HUNGER = 0.15;       // health lost per day, always, while time runs
 const MAX_DRAIN = 0.2;     // most health a clone can lose per day: a full bar lasts at least ~2 min at 1x
 // A meal restores the hunger of one cooldown plus the old resting regeneration.
@@ -366,13 +369,13 @@ const PERKS = [
   {id:'muscle',   name:'Muscle memory',         from:1, desc:'+15% skill XP.', eff:{xp:1.15}},
   {id:'chitin',   name:'Chitin lore',           from:1, desc:'Hazard damage −10%.', eff:{haz:0.9}},
   {id:'medrec',   name:'Medbay records',        from:2, desc:'Meals restore more health.', eff:{regen:2}},
-  {id:'telomere', name:'Telomere patch',        from:2, desc:'+4 years lifespan.', eff:{life:4}},
+  {id:'telomere', name:'Telomere patch',        from:2, desc:'Clones live about 18 days longer.', eff:{life:4}},
   {id:'transit',  name:'Ring transit',          from:2, desc:'+10% speed on every task.', eff:{spd:1.1}},
   {id:'hardened', name:'Radiation hardening',   from:3, desc:'Hazard damage −20%.', eff:{haz:0.8}},
   {id:'engram',   name:'Engram recorder',       from:3, desc:'New clones replay the task order of your last life. Toggle it in settings.'},
   {id:'clock',    name:'Bridge chronometer',    from:4, desc:'Unlocks 8× time speed.'},
   {id:'starmem',  name:'Star memory',           from:4, desc:'+50% Navigation XP.', eff:{xpSk:{nav:1.5}}},
-  {id:'favor',    name:'WARDEN’s favour',  from:4, desc:'+4 years lifespan and +25% skill XP.', eff:{life:4, xp:1.25}},
+  {id:'favor',    name:'WARDEN’s favour',  from:4, desc:'Clones live about 18 days longer; +25% skill XP.', eff:{life:4, xp:1.25}},
 ];
 const PK = {}; PERKS.forEach(p => PK[p.id] = p);
 
@@ -380,14 +383,14 @@ const ITEMS = [
   {id:'locker',     name:'Cold locker',        cost:8,    req:'search',     desc:'+10 ration storage', eff:{ratCap:10}},
   {id:'rebreather', name:'Patched rebreather', cost:4,    req:'search',     desc:'+20 max health', eff:{maxHp:20}},
   {id:'toolkit',    name:'Scrap toolkit',      cost:10,   req:'search',     desc:'Engineering work 25% faster', eff:{sk:{eng:1.25}}},
-  {id:'press',      name:'Algae press',        cost:18,   req:'search',     desc:'+1 ration every 40 days, passively', eff:{pRat:0.025}},
+  {id:'press',      name:'Algae press',        cost:18,   req:'search',     desc:'+2 rations a day, passively', eff:{pRat:0.025}},
   {id:'baton',      name:'Shock baton',        cost:23,   req:'hatch',      desc:'Combat work 20% faster, hazard damage −25%', eff:{sk:{cbt:1.2}, haz:0.75}},
   {id:'chitinarm',  name:'Chitin armour',      cost:55,   req:'crawlers',   desc:'+20 max health, hazard damage −30%', eff:{maxHp:20, haz:0.7}},
-  {id:'doser',      name:'Hydro auto-doser',   cost:88,   req:'irrigation', desc:'+3 rations every 40 days, passively', eff:{pRat:0.075}},
+  {id:'doser',      name:'Hydro auto-doser',   cost:88,   req:'irrigation', desc:'+6 rations a day, passively', eff:{pRat:0.075}},
   {id:'lace',       name:'Neural lace',        cost:163,  req:'medbay',     desc:'+30% skill XP', eff:{xp:1.3}},
   {id:'stims',      name:'Stim injector',      cost:250,  req:'lift',       desc:'All work 15% faster', eff:{spd:1.15}},
   {id:'rifle',      name:'Armoury rifle',      cost:400,  req:'armory',     desc:'Combat work 50% faster, hazard damage −20%', eff:{sk:{cbt:1.5}, haz:0.8}},
-  {id:'cryo',       name:'Cryo-sleeve',        cost:700,  req:'vent',       desc:'+3 years lifespan for this clone', eff:{life:3}},
+  {id:'cryo',       name:'Cryo-sleeve',        cost:700,  req:'vent',       desc:'This clone lives about 14 days longer', eff:{life:3}},
   {id:'visor',      name:'Nav visor',          cost:1125, req:'bridgepower',desc:'Navigation and Hacking work 30% faster', eff:{sk:{nav:1.3, hak:1.3}}},
   {id:'exo',        name:'Exo-frame',          cost:1750, req:'navcore',    desc:'Engineering and Resolve work 30% faster, +40 max health', eff:{sk:{eng:1.3, res:1.3}, maxHp:40}},
 ];
@@ -522,10 +525,10 @@ function finish(t){
 }
 function die(cause){
   const L = S.life; L.dead = true; L.cause = cause; L.cur = null;
-  const age = START_AGE + L.day / 365;
+  const age = L.day / TPD;
   SKILLS.forEach(k => { if (L.lv[k.id] > S.echo[k.id]) S.echo[k.id] = L.lv[k.id]; });
   S.stats.deaths++; S.stats.daysLived += L.day;
-  if (age > S.stats.bestAge) S.stats.bestAge = age;
+  if (age > (S.stats.bestDays || 0)) S.stats.bestDays = age;
   HOOK.die();
 }
 function step(dt){
@@ -611,11 +614,14 @@ function fmt(n){
   if (a >= 10) return n.toFixed(1);
   return n.toFixed(a > 0 && a < 1 ? 2 : 1);
 }
-function fmtDays(d){
-  if (!isFinite(d)) return '∞';
-  if (d < 1) return '<1 d';
-  if (d < 365) return Math.ceil(d) + ' d';
-  return (d/365).toFixed(1) + ' y';
+const perDay = r => r * TPD;                       // per-tick rate -> per-day rate
+const lifeShown = ticks => ticks / TPD;            // ticks -> days
+function fmtDays(t){
+  if (!isFinite(t)) return '\u221e';
+  const d = t / TPD;
+  if (d * 24 < 1) return Math.max(1, Math.ceil(d * 1440)) + ' min';
+  if (d < 1) return (d * 24 < 10 ? (d * 24).toFixed(1) : Math.ceil(d * 24)) + ' h';
+  return (d < 10 ? d.toFixed(1) : Math.ceil(d)) + ' d';
 }
 // Real time it takes for a number of in-game days to pass at the chosen speed
 function realSecs(days){ return days / (DPS * S.set.speed * (S.set.boost && S.bank > 0 ? 2 : 1)); }
@@ -684,10 +690,10 @@ function readSlot(i){
 }
 function slotInfo(raw){
   if (!raw || !raw.life) return 'Empty';
-  const age = (START_AGE + (raw.life.day || 0) / 365).toFixed(1);
+  const age = ((raw.life.day || 0) / TPD).toFixed(1);
   const rec = Object.keys(raw.perks || {}).length;
   const when = raw.saved ? new Date(raw.saved).toLocaleString([], {month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'}) : '';
-  return 'Clone ' + raw.gen + (raw.life.dead ? ' (dead)' : ', age ' + age) + ' \u00b7 ' + rec + '/' + PERKS.length + ' records' + (raw.won ? ' \u00b7 drive lit' : '') + (when ? ' \u00b7 ' + when : '');
+  return 'Clone ' + raw.gen + (raw.life.dead ? ' (dead)' : ', day ' + age) + ' \u00b7 ' + rec + '/' + PERKS.length + ' records' + (raw.won ? ' \u00b7 drive lit' : '') + (when ? ' \u00b7 ' + when : '');
 }
 /* ----- GitHub save sync ----- */
 const GH_KEY = 'long-patience.github.v1';
@@ -733,7 +739,7 @@ async function ghUpload(auto){
     const cur = await ghFetch('GET');
     if (!cur.ok && cur.status !== 404) { ghSetMsg(ghErr(cur.status, 'save'), false); return; }
     const L = S.life;
-    const body = {message:'Save: clone ' + S.gen + ', age ' + (START_AGE + L.day/365).toFixed(1) + (auto ? ' (auto)' : ''),
+    const body = {message:'Save: clone ' + S.gen + ', day ' + (L.day/TPD).toFixed(1) + (auto ? ' (auto)' : ''),
       content:b64enc(JSON.stringify(S, null, 1)), branch:GH.branch};
     if (cur.ok && cur.j && cur.j.sha) body.sha = cur.j.sha;
     const r = await ghFetch('PUT', body);
@@ -880,7 +886,7 @@ function twoStep(b, key, label){
 /* ----- hooks from the rules ----- */
 HOOK.log = (title, text) => {
   const L = S.life;
-  S.log.push({g:S.gen, a:+(START_AGE + L.day/365).toFixed(1), t:title, x:text});
+  S.log.push({g:S.gen, a:+(L.day/TPD).toFixed(1), t:title, x:text});
   if (S.log.length > 120) S.log.shift();
   if (tab !== 'log') newLog = true;
   logKey = '';
@@ -907,7 +913,7 @@ function rewardBits(t){
   if (r.salvage) b.push('+' + r.salvage + ' salvage');
   if (r.rations) b.push('+' + r.rations + ' rations');
   if (r.heal) b.push('full heal');
-  if (t.lifeEff && t.lifeEff.pSal) b.push('+' + t.lifeEff.pSal + ' salvage/d');
+  if (t.lifeEff && t.lifeEff.pSal) b.push('+' + fmt(perDay(t.lifeEff.pSal)) + ' salvage/d');
   if (t.lifeEff && t.lifeEff.salCap) b.push('+' + fmt(t.lifeEff.salCap) + ' salvage storage');
   if (t.lifeEff && t.lifeEff.ratCap) b.push('+' + t.lifeEff.ratCap + ' ration storage');
   if (t.perk && !S.perks[t.perk]) b.push('<span class="star">★ archive record</span>');
@@ -1003,10 +1009,10 @@ function updateTasks(){
       if (r.rp) r.rp.textContent = (L.done[t.id] || 0) + '/' + t.reps;
     } else {
       jobBar(r.f, t, sp);
-      if (r.pr) r.pr.textContent = 'practice ' + Math.floor(S.prac[t.id] || 0) + '/' + AUTO_JOB_DAYS + ' d';
+      if (r.pr) r.pr.textContent = 'practice ' + fmtDays(S.prac[t.id] || 0) + ' of ' + fmtDays(AUTO_JOB_DAYS);
       if (t.prod) {
         const res = t.prod.rations ? 'rations' : 'salvage';
-        r.e.textContent = '+' + fmt(t.prod[res] * sp) + ' ' + res + '/d';
+        r.e.textContent = '+' + fmt(perDay(t.prod[res] * sp)) + ' ' + res + '/d';
         if (r.tt) {
           const rt = rates(t), isR = res === 'rations';
           const e = storeEta(isR ? L.rations : L.salvage, isR ? M.ratCap : M.salCap, isR ? rt.rr : rt.sr);
@@ -1036,10 +1042,10 @@ function renderSpeed(){
 }
 function updateHud(){
   const L = S.life;
-  const age = START_AGE + L.day/365, maxAge = START_AGE + M.life;
+  const age = L.day / TPD, maxAge = lifeDays() / TPD;
   $('#h-gen').textContent = 'Clone ' + S.gen;
   $('#b-age').style.width = Math.min(100, L.day / lifeDays() * 100) + '%';
-  $('#t-age').textContent = age.toFixed(1) + ' / ' + maxAge.toFixed(0) + ' y';
+  $('#t-age').textContent = 'day ' + age.toFixed(1) + ' / ' + maxAge.toFixed(0);
   $('#b-hp').style.width = Math.max(0, L.hp / M.maxHp * 100) + '%';
   $('#t-hp').textContent = Math.ceil(L.hp) + ' / ' + M.maxHp;
   const cur = L.cur ? T[L.cur] : null;
@@ -1058,13 +1064,13 @@ function updateHud(){
   $('#t-salt').textContent = se.txt === 'full' ? 'storage full' : se.txt === 'steady' ? '' : se.txt + ' ' + both(se.days);
   $('#t-rat').innerHTML = fmt(L.rations) + '<span class="cap">/' + Math.round(M.ratCap) + '</span>';
   $('#t-rat').classList.toggle('full', L.rations >= M.ratCap - 0.01);
-  const ra = $('#t-ratr'); ra.textContent = (rr >= 0 ? '+' : '−') + fmt(Math.abs(rr)) + '/d'; ra.className = 'num ' + (rr >= 0 ? 'pos' : 'neg');
+  const ra = $('#t-ratr'); ra.textContent = (rr >= 0 ? '+' : '−') + fmt(perDay(Math.abs(rr))) + '/d'; ra.className = 'num ' + (rr >= 0 ? 'pos' : 'neg');
   const eb = $('#eatb'), mealLeft = L.meal || 0;
   eb.disabled = !canEat();
   eb.textContent = L.dead ? 'Eat' : mealLeft > 0 ? 'Next meal in ' + both(mealLeft) : L.rations < 1 ? 'No rations to eat' : 'Eat a ration (+' + fmt(mealHp()) + ' health)';
   $('#t-sal').innerHTML = fmt(L.salvage) + '<span class="cap">/' + Math.round(M.salCap) + '</span>';
   $('#t-sal').classList.toggle('full', L.salvage >= M.salCap - 0.01);
-  const sa = $('#t-salr'); sa.textContent = sr > 0 ? '+' + fmt(sr) + '/d' : ''; sa.className = 'num pos';
+  const sa = $('#t-salr'); sa.textContent = sr > 0 ? '+' + fmt(perDay(sr)) + '/d' : ''; sa.className = 'num pos';
   const now = $('#now');
   now.classList.toggle('idle', !cur && !L.dead && !S.set.paused);
   now.classList.toggle('paused', !!S.set.paused && !L.dead);
@@ -1131,7 +1137,7 @@ function renderArchive(force){
   const st = S.stats;
   h += `<div class="stats">
     <div><b>${S.gen}</b><span>Clones decanted</span></div>
-    <div><b>${st.bestAge ? st.bestAge.toFixed(1) : '—'}</b><span>Oldest clone (years)</span></div>
+    <div><b>${st.bestDays ? st.bestDays.toFixed(1) : '—'}</b><span>Longest life (days)</span></div>
     <div><b>${Object.values(S.echo).reduce((a,b)=>a+b,0)}</b><span>Total echo levels</span></div>
     <div><b>${S.won ? 'Clone ' + S.winGen : 'Not yet'}</b><span>Drive ignited</span></div></div>`;
   h += '<div class="panel set"><span class="h2">Settings</span>';
@@ -1158,7 +1164,7 @@ function renderLog(){
   let h = '<div class="panel"><span class="h2">Ship log</span><p class="note">Things your clones have learned about the Long Patience.</p></div><div>';
   if (!S.log.length) h += '<p class="note">Nothing yet.</p>';
   S.log.slice().reverse().forEach(e => {
-    h += `<article class="le"><header><h3>${esc(e.t)}</h3><time>Clone ${e.g} · age ${e.a}</time></header><p>${esc(e.x)}</p></article>`;
+    h += `<article class="le"><header><h3>${esc(e.t)}</h3><time>Clone ${e.g} · day ${e.a}</time></header><p>${esc(e.x)}</p></article>`;
   });
   h += '</div>';
   $('#v-log').innerHTML = h;
@@ -1192,10 +1198,10 @@ function showIntro(){
     <p>You are K-7, clone stock aboard a colony ship that stopped answering long ago. Each body lasts a few years. What you learn echoes into the next one.</p>
     <ul>
       <li><b>Tap a task</b> to work on it now. <b>+</b> adds an action to the queue.</li>
-      <li>Practise an action in 3 lives, or a job for 200 days, and an <b>AUTO</b> switch appears so it runs by itself.</li>
+      <li>Practise an action in 3 lives, or a job for 2\u00bd days, and an <b>AUTO</b> switch appears so it runs by itself.</li>
       <li><b>Jobs</b> repeat forever and make rations or salvage. The last job you tapped runs whenever the queue is empty.</li>
-      <li>Health drains all the time. Eating a ration restores some of it, at most once every <b>20 days</b>. You wake with no food. Run out of rations and you starve. Storage is limited, so you can\u2019t stockpile much.</li>
-      <li>Bodies age. In the last quarter of a clone\u2019s life, all work slows down. The first clones are unstable and die young; each new one lives a year longer, up to 28.</li>
+      <li>Health drains all the time. Your clone eats about <b>4 rations a day</b>, one meal every 6 hours, and each meal restores some health. You wake with no food. Run out of rations and you starve. Storage is limited, so you can\u2019t stockpile much.</li>
+      <li>Bodies age. In the last quarter of a clone\u2019s life, all work slows down. The first clones are unstable and die young; each new one lives a few days longer.</li>
       <li>Time only moves while your clone is working. With nothing to do, the clock stops.</li>
       <li>When a clone dies, skill levels reset but their <b>echo</b> speeds up learning in every future clone.</li>
       <li><b>Pause</b> any time with the button at the top (or the space bar on a computer). <b>☰</b> opens the menu with save slots.</li>
@@ -1205,15 +1211,15 @@ function showIntro(){
 }
 function showDeath(){
   const L = S.life;
-  const age = START_AGE + L.day/365;
+  const age = L.day / TPD;
   let rows = SKILLS.map(k => {
     const up = S.echo[k.id] - (L.echo0[k.id] || 0);
     return `<tr><td>${k.name}</td><td>Lv ${L.lv[k.id]}</td><td>${up > 0 ? `<span class="up">echo ${S.echo[k.id]} (+${up})</span>` : 'echo ' + S.echo[k.id]}</td></tr>`;
   }).join('');
   showModal(`<h2>Clone ${S.gen} terminated</h2>
-    <p>${esc(L.cause)}.</p><p class="d">Age ${age.toFixed(1)} · ${L.order.length} actions completed</p>
+    <p>${esc(L.cause)}.</p><p class="d">Lived ${age.toFixed(1)} days · ${L.order.length} actions completed</p>
     <table class="dt">${rows}</table>
-    ${templateYears() < TEMPLATE_MAX ? `<p class="d">The clone template is still unstable. Clone ${S.gen + 1} will live to about age ${START_AGE + Math.min(TEMPLATE_MAX, templateYears() + TEMPLATE_STEP) + (M.life - templateYears())}.</p>` : ''}
+    ${templateYears() < TEMPLATE_MAX ? `<p class="d">The clone template is still unstable. Clone ${S.gen + 1} will live about ${Math.round((Math.min(TEMPLATE_MAX, templateYears() + TEMPLATE_STEP) + (M.life - templateYears())) * 365 / TPD)} days.</p>` : ''}
     ${S.perks.engram && S.set.replay ? '<p class="d">The engram recorder will queue this clone’s actions for the next one.</p>' : ''}
     <button class="btn pri" data-decant>Decant clone ${S.gen + 1}</button>`);
 }
