@@ -4,9 +4,13 @@
  "sv": 2,
  "pv": 2,
  "gen": 1,
+ "ever": {
+  "wake": 1,
+  "rest": 1
+ },
  "prac": {
   "wake": 1,
-  "algae": 1
+  "rest": 1
  },
  "auto": {},
  "echo": {
@@ -53,17 +57,17 @@
  },
  "won": false,
  "winGen": 0,
- "bank": 0,
- "saved": 1793550966005,
+ "bank": 33.064600000000006,
+ "saved": 1793551568873,
  "intro": true,
  "life": {
-  "day": 387.226000000035,
-  "hp": 86.13308767377953,
-  "rations": 9.560000000000015,
+  "day": 122.11119999999933,
+  "hp": 80.28502731849996,
+  "rations": 0,
   "salvage": 0,
   "lv": {
    "eng": 0,
-   "bio": 1,
+   "bio": 0,
    "cbt": 0,
    "hak": 0,
    "nav": 0,
@@ -71,11 +75,11 @@
   },
   "xp": {
    "eng": 0,
-   "bio": 232.5876000000116,
+   "bio": 0,
    "cbt": 0,
    "hak": 0,
    "nav": 0,
-   "res": 2.0384000000000015
+   "res": 122.11119999999933
   },
   "echo0": {
    "eng": 0,
@@ -86,27 +90,25 @@
    "res": 0
   },
   "done": {
-   "wake": 1
+   "wake": 1,
+   "rest": 2
   },
   "prog": {
-   "wake": 0
+   "wake": 0,
+   "rest": 0
   },
-  "cyc": {
-   "algae": 0.05515000000003152
-  },
-  "bat": {
-   "algae": 51
-  },
-  "meal": 11.579600000000003,
-  "strain": 1.9680650000000335,
-  "job": "algae",
+  "cyc": {},
+  "bat": {},
+  "meal": 0,
+  "strain": 1.000166,
+  "job": null,
   "queue": [],
   "owned": {},
   "order": [
    "wake"
   ],
   "foraging": false,
-  "cur": "algae",
+  "cur": null,
   "dead": false,
   "cause": ""
  }
