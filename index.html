@@ -191,8 +191,8 @@ input[type=range]{width:100%;accent-color:var(--amber)}
 
 /* tabs */
 #tabs{position:fixed;left:0;right:0;bottom:0;z-index:6;background:var(--panel);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
-#tabs .wrap{display:grid;grid-template-columns:repeat(5,1fr)}
-#tabs button{position:relative;padding:12px 0 13px;font-family:var(--f-disp);font-size:14px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);font-weight:600}
+#tabs .wrap{display:grid;grid-template-columns:repeat(6,1fr)}
+#tabs button{position:relative;padding:12px 0 13px;font-family:var(--f-disp);font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--dim);font-weight:600}
 #tabs button.on{color:var(--amber)}
 #tabs button.on::before{content:"";position:absolute;top:-1px;left:22%;right:22%;height:2px;background:var(--amber)}
 #tabs button.dot::after{content:"";position:absolute;top:9px;right:18%;width:6px;height:6px;border-radius:50%;background:var(--cyan)}
@@ -232,6 +232,22 @@ input[type=range]{width:100%;accent-color:var(--amber)}
 .slot span{font-size:12px;color:var(--dim)}
 .slot em{font-style:normal;font-size:12px;color:var(--amber)}
 .slot .btn{padding:6px 10px;font-size:12px}
+.lockbtn{font-size:12px;color:var(--faint);text-align:left;padding:4px 2px}
+.mapwrap{overflow-x:auto}
+.mapwrap svg{display:block;max-width:100%;height:auto}
+.mn{cursor:pointer}
+.mn .mb{fill:var(--panel);stroke:var(--line);stroke-width:1}
+.mn .mf{fill:var(--amber-soft)}
+.mn text{fill:var(--fg);font-family:var(--f-body);font-size:11.5px;font-weight:500}
+.mn .ms{fill:var(--dim);font-family:var(--f-mono);font-size:9.5px;font-weight:400}
+.mn.rest .mb{stroke-dasharray:4 3}
+.mn.done .mb{stroke:var(--amber)}
+.mn.done .mf{fill:var(--amber-fill)}
+.mn.cur .mb{stroke:var(--amber);stroke-width:2}
+.mn.cur .mb{filter:drop-shadow(0 0 4px rgba(240,160,60,.55))}
+.mn.lock{opacity:.4}
+.me{fill:none;stroke:var(--line);stroke-width:1.5}
+.me.lit{stroke:var(--amber);opacity:.7}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 
@@ -257,6 +273,7 @@ input[type=range]{width:100%;accent-color:var(--amber)}
 <main class="gut">
   <div class="wrap">
     <section class="view" id="v-tasks"></section>
+    <section class="view" id="v-map" hidden></section>
     <section class="view" id="v-skills" hidden></section>
     <section class="view" id="v-gear" hidden></section>
     <section class="view" id="v-archive" hidden></section>
@@ -267,6 +284,7 @@ input[type=range]{width:100%;accent-color:var(--amber)}
 <nav id="tabs" class="gut" aria-label="Sections">
   <div class="wrap">
     <button data-tab="tasks" class="on">Tasks</button>
+    <button data-tab="map">Map</button>
     <button data-tab="skills">Skills</button>
     <button data-tab="gear">Gear</button>
     <button data-tab="archive">Archive</button>
@@ -420,7 +438,7 @@ function newLife(s){
   return L;
 }
 function defaultState(){
-  const s = {v:1, rv:3, sv:2, pv:2, gen:1, prac:{}, auto:{}, echo:{}, perks:{}, seen:{}, logged:{}, log:[], lastOrder:[], lastJob:null,
+  const s = {v:1, rv:3, sv:2, pv:2, gen:1, ever:{}, prac:{}, auto:{}, echo:{}, perks:{}, seen:{}, logged:{}, log:[], lastOrder:[], lastJob:null,
     set:{speed:1, autoFood:true, autoEat:true, foodDays:5, replay:true, boost:false},
     stats:{bestAge:0, deaths:0, daysLived:0}, won:false, winGen:0, bank:0, saved:Date.now(), intro:false};
   SKILLS.forEach(k => s.echo[k.id] = 0);
@@ -522,6 +540,8 @@ function gainXp(s, a){
 function finish(t){
   const L = S.life;
   L.done[t.id] = (L.done[t.id] || 0) + 1;
+  if (!S.ever) S.ever = {};
+  S.ever[t.id] = 1;
   if (t.kind === 'rest') {
     L.strain = Math.max(1, (L.strain || 1) / 2);
     L.queue = L.queue.filter(x => x !== t.id);
@@ -871,6 +891,7 @@ function fmtSecs(s){
 }
 const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
 
+const showLocked = {};
 let tab = 'tasks', taskKey = '', gearKey = '', archKey = '', logKey = '', paused = false, refs = [];
 let newLog = false, newPerk = false;
 
@@ -1002,6 +1023,7 @@ function mergeState(raw){
   s.set = Object.assign(defaultState().set, raw.set || {});
   s.stats = Object.assign(defaultState().stats, raw.stats || {});
   if (!s.prac) s.prac = {}; if (!s.auto) s.auto = {};
+  if (!s.ever) { s.ever = {}; TASKS.forEach(t => { if (t.kind !== 'job' && ((s.logged || {})[t.id] || (s.prac || {})[t.id] || (s.life && s.life.done && s.life.done[t.id]))) s.ever[t.id] = 1; }); }
   if (!raw.pv) {   // v2 practice: counted in lives (acts kept as-is, job days become at most 1 life)
     TASKS.forEach(t => { if (t.kind === 'job' && s.prac[t.id] != null) s.prac[t.id] = s.prac[t.id] >= 200 ? 1 : 0; });
   }
@@ -1140,7 +1162,7 @@ function renderTasks(){
     if (av && !complete(t)) vis.push(t.id);
     else if (!av && S.seen[t.id]) locked.push(t.id);
   });
-  const key = vis.join() + '|' + locked.join() + '|' + L.queue.join() + '|' + L.job + '|' + Object.keys(S.perks).join() + '|' + S.gen + '|' + TASKS.filter(t => practiced(t)).map(t => t.id + (S.auto[t.id] ? '*' : '')).join();
+  const key = vis.join() + '|' + locked.join() + '|' + L.queue.join() + '|' + L.job + '|' + Object.keys(S.perks).join() + '|' + S.gen + '|' + JSON.stringify(showLocked) + '|' + TASKS.filter(t => practiced(t)).map(t => t.id + (S.auto[t.id] ? '*' : '')).join();
   if (key === taskKey) return;
   taskKey = key;
 
@@ -1200,7 +1222,9 @@ function renderTasks(){
           <div class="side"><button class="tq${qi >= 0 ? ' in' : ''}" data-q="${t.id}" aria-label="${qi >= 0 ? 'Queued' : 'Add to queue'}">${qi >= 0 ? '#' + (qi+1) : '+'}</button>${autoBtn(t)}</div></div>`;
       });
     }
-    lk.forEach(t => {
+    if (lk.length && !showLocked[z.id]) h += `<button class="lockbtn" data-showlock="${z.id}">${lk.length} locked action${lk.length > 1 ? 's' : ''} you have seen before \u00b7 show</button>`;
+    if (lk.length && showLocked[z.id]) h += `<button class="lockbtn" data-showlock="${z.id}">Hide locked actions</button>`;
+    if (showLocked[z.id]) lk.forEach(t => {
       const need = t.req.filter(r => !isDone(r)).map(r => S.seen[r] ? T[r].name : 'something unseen');
       h += `<div class="task lock" data-lock="${t.id}"><div class="tm"><div class="th"><span class="tn">${esc(t.name)}</span></div>
         <div class="tx">${chips(t)}<span>Needs: ${esc(need.join(', '))}</span></div></div><span class="tq"></span></div>`;
@@ -1410,7 +1434,8 @@ function renderLog(){
 function setTab(t){
   tab = t;
   document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === t));
-  ['tasks','skills','gear','archive','log'].forEach(v => $('#v-' + v).hidden = v !== t);
+  ['tasks','map','skills','gear','archive','log'].forEach(v => $('#v-' + v).hidden = v !== t);
+  mapKey = '';
   if (t === 'log') newLog = false;
   if (t === 'archive') newPerk = false;
   gearKey = ''; archKey = ''; logKey = '';
@@ -1419,6 +1444,7 @@ function setTab(t){
 }
 function renderView(force){
   if (tab === 'tasks') { renderTasks(); updateTasks(); }
+  else if (tab === 'map') { renderMap(); updateMap(); }
   else if (tab === 'skills') renderSkills();
   else if (tab === 'gear') renderGear();
   else if (tab === 'archive') renderArchive(force);
@@ -1426,6 +1452,83 @@ function renderView(force){
   document.querySelector('[data-tab="log"]').classList.toggle('dot', newLog);
   document.querySelector('[data-tab="archive"]').classList.toggle('dot', newPerk);
 }
+
+/* ----- map: every action ever performed, by section, wired by requirement ----- */
+let mapKey = '', mapRefs = [];
+const MW = 340, NH = 50, RG = 34, PAD = 8;
+function wrap2(txt, max){
+  const w = txt.split(' '), lines = ['']; 
+  w.forEach(x => { const l = lines[lines.length - 1]; if ((l + ' ' + x).trim().length > max && lines.length < 2 && l) lines.push(x); else lines[lines.length - 1] = (l + ' ' + x).trim(); });
+  if (lines[1] && lines[1].length > max) lines[1] = lines[1].slice(0, max - 1) + '…';
+  return lines;
+}
+function renderMap(){
+  const ever = S.ever || {};
+  const key = Object.keys(ever).join() + '|' + S.gen;
+  if (key === mapKey) return; mapKey = key;
+  let h = '<div class="panel"><span class="h2">Ship map</span><p class="note">Every action your clones have ever performed, by section. Lines show what each one needs. Filled boxes are done in this life; the glowing one is in progress. Tap an action to work on it.</p></div>';
+  let any = false;
+  ZONES.forEach(z => {
+    const nodes = TASKS.filter(t => t.kind !== 'job' && t.z === z.id && ever[t.id]);
+    if (!nodes.length) return;
+    any = true;
+    const ids = new Set(nodes.map(t => t.id)), depth = {};
+    const dOf = t => { if (depth[t.id] != null) return depth[t.id]; let d = 0; t.req.forEach(r => { if (ids.has(r)) d = Math.max(d, dOf(T[r]) + 1); }); return depth[t.id] = d; };
+    nodes.forEach(dOf);
+    const rows = [];
+    nodes.forEach(t => (rows[depth[t.id]] = rows[depth[t.id]] || []).push(t));
+    const pos = {};
+    rows.forEach((row, ri) => {
+      const n = row.length, gap = 8, w = (MW - PAD * 2 - gap * (n - 1)) / n;
+      row.forEach((t, i) => pos[t.id] = {x: PAD + i * (w + gap), y: PAD + ri * (NH + RG), w});
+    });
+    const H = PAD * 2 + rows.length * NH + (rows.length - 1) * RG;
+    let edges = '', boxes = '';
+    nodes.forEach(t => {
+      const p = pos[t.id];
+      t.req.forEach(r => { if (!pos[r]) return; const q = pos[r];
+        const x1 = q.x + q.w / 2, y1 = q.y + NH, x2 = p.x + p.w / 2, y2 = p.y, my = (y1 + y2) / 2;
+        edges += `<path class="me" data-from="${r}" d="M${x1} ${y1} C${x1} ${my} ${x2} ${my} ${x2} ${y2}"/>`; });
+      const lines = wrap2(t.name, Math.max(10, Math.floor(p.w / 6.6)));
+      const outside = t.req.filter(r => !ids.has(r) && T[r] && T[r].z !== z.id);
+      boxes += `<g class="mn${t.kind === 'rest' ? ' rest' : ''}" data-mapdo="${t.id}" transform="translate(${p.x} ${p.y})">
+        <rect class="mb" width="${p.w}" height="${NH}" rx="5"/>
+        <rect class="mf" width="0" height="${NH}" rx="5"/>
+        ${lines.map((l, i) => `<text x="8" y="${(lines.length === 1 ? 23 : 17) + i * 14}">${esc(l)}</text>`).join('')}
+        <text class="ms" x="8" y="${NH - 7}"></text>
+        ${outside.length ? `<title>Needs ${esc(outside.map(r => T[r].name).join(', '))}</title>` : ''}
+      </g>`;
+    });
+    const entry = [...new Set(nodes.flatMap(t => t.req.filter(r => T[r] && T[r].z !== z.id)))].map(r => T[r].name);
+    h += `<section class="zone"><header class="zh"><h2>${z.name}</h2><span>${z.sub}</span></header>
+      ${entry.length ? `<p class="note">Reached from: ${esc(entry.join(', '))}</p>` : ''}
+      <div class="mapwrap"><svg viewBox="0 0 ${MW} ${H}" width="100%" role="img" aria-label="Map of ${esc(z.name)}">${edges}${boxes}</svg></div></section>`;
+  });
+  if (!any) h += '<p class="note">Nothing mapped yet. Finish your first action to start the map.</p>';
+  $('#v-map').innerHTML = h;
+  mapRefs = [...document.querySelectorAll('#v-map .mn')].map(g => ({g, t:T[g.dataset.mapdo], f:g.querySelector('.mf'), s:g.querySelector('.ms'), w:+g.querySelector('.mb').getAttribute('width')}));
+}
+function updateMap(){
+  const L = S.life;
+  mapRefs.forEach(r => {
+    const t = r.t, av = available(t), done = t.kind === 'act' && complete(t), cur = L.cur === t.id;
+    r.g.classList.toggle('done', done); r.g.classList.toggle('cur', cur); r.g.classList.toggle('lock', !av && !done);
+    let p = done ? 1 : (L.prog[t.id] || 0) / t.days;
+    r.f.setAttribute('width', (Math.min(1, p) * r.w).toFixed(1));
+    const sp = speedOf(t);
+    r.s.textContent = done ? 'done' : !av ? 'locked' : t.kind === 'rest' ? 'rest · ' + fmtDays((t.days - (L.prog[t.id] || 0)) / sp)
+      : (t.reps > 1 ? (L.done[t.id] || 0) + '/' + t.reps + ' · ' : '') + fmtDays((t.days * (t.reps - (L.done[t.id] || 0)) - (L.prog[t.id] || 0)) / sp);
+  });
+  document.querySelectorAll('#v-map .me').forEach(e => e.classList.toggle('lit', isDone(e.dataset.from)));
+}
+document.addEventListener('click', e => {
+  const g = e.target.closest && e.target.closest('[data-mapdo]'); if (!g) return;
+  const L = S.life, t = T[g.dataset.mapdo];
+  if (L.dead || !available(t) || (t.kind === 'act' && complete(t))) { sfx('error'); return; }
+  audioStart(); sfx('click');
+  L.queue = [t.id, ...L.queue.filter(x => x !== t.id)]; L.foraging = false; taskKey = '';
+  toast('Working on: ' + t.name);
+});
 
 /* ----- modals ----- */
 function showModal(h){ $('#mbox').innerHTML = h; $('#modal').hidden = false; }
@@ -1552,6 +1655,7 @@ document.addEventListener('click', e => {
     taskKey = ''; renderView(); return;
   }
   if (d.auto) { S.auto[d.auto] = !S.auto[d.auto]; toast((S.auto[d.auto] ? 'Automated: ' : 'Automation off: ') + T[d.auto].name); taskKey = ''; renderView(); return; }
+  if (d.showlock) { showLocked[d.showlock] = !showLocked[d.showlock]; taskKey = ''; renderView(); return; }
   if (d.unq) { L.queue = L.queue.filter(x => x !== d.unq); taskKey = ''; renderView(); return; }
   if ('clearq' in d) { L.queue = []; taskKey = ''; renderView(); return; }
   if (d.buy) {
@@ -1613,6 +1717,7 @@ function frame(now){
   updateHud();
   viewT += dt;
   if (tab === 'tasks') { renderTasks(); updateTasks(); }
+  if (tab === 'map') { renderMap(); updateMap(); }
   if (viewT > 0.4) { viewT = 0; renderView(); }
   saveT += dt;
   if (saveT > 5) { saveT = 0; save(); if (GH.auto && GH.token && Date.now() - GH.last > GH_AUTO_MS) ghUpload(true); }
