@@ -346,7 +346,7 @@ const TASKS = [
   {id:'ignite', z:5, kind:'act', name:'Ignite the main drive', sk:['nav','eng','res'], days:9000, req:['course','injectors'], win:true,
     log:'The Long Patience shudders, then pushes. For the first time in sixty years, the ship is going somewhere.'},
 ];
-const ZDAYS = {1:2, 2:5, 3:9, 4:22, 5:34};
+const ZDAYS = {1:0.3, 2:1, 3:2, 4:4, 5:6};
 const T = {}; TASKS.forEach(t => { T[t.id] = t; t.reps = t.reps || 1; if (t.days) t.days = Math.round(t.days * ZDAYS[t.z]); });
 
 const PERKS = [
@@ -400,9 +400,13 @@ function defaultState(){
   s.life = newLife(s);
   return s;
 }
+// The clone template is unstable at first: early clones die young. Each decanting refines it
+// by one year until it reaches the full 14 (death at 28). Lifespan records add on top.
+const TEMPLATE_MIN = 6, TEMPLATE_MAX = 14, TEMPLATE_STEP = 1;
+function templateYears(){ return Math.min(TEMPLATE_MAX, TEMPLATE_MIN + TEMPLATE_STEP * (S.gen - 1)); }
 function mods(){
   const L = S.life, P = S.perks;
-  const m = {sk:{}, xpSk:{}, spd:1, xp:1, haz:1, maxHp:100, pRat:0, pSal:0, life:14, regen:0.05, ratCap:25, salCap:100};
+  const m = {sk:{}, xpSk:{}, spd:1, xp:1, haz:1, maxHp:100, pRat:0, pSal:0, life:templateYears(), regen:0.05, ratCap:25, salCap:100};
   SKILLS.forEach(k => { m.sk[k.id] = 1; m.xpSk[k.id] = 1; });
   const ap = e => {
     if (!e) return;
@@ -418,14 +422,14 @@ function mods(){
   TASKS.forEach(t => { if (t.lifeEff && isDone(t.id)) ap(t.lifeEff); });
   return m;
 }
-// One level here equals five of the old, finer levels: same speed and XP curve, smaller numbers.
+// Each level makes work 10% faster; levels come slowly.
 const xpNeed = l => 152.6 * Math.pow(1.61051, l);
 const echoMult = s => Math.pow(1.58, S.echo[s]);
 const isDone = id => (S.life.done[id] || 0) >= T[id].reps;
 const available = t => t.req.every(isDone);
 const complete = t => t.kind === 'act' && isDone(t.id);
 const lifeDays = () => M.life * 365;
-function skF(s){ return (1 + 0.5 * S.life.lv[s]) * M.sk[s]; }
+function skF(s){ return (1 + 0.1 * S.life.lv[s]) * M.sk[s]; }
 // Frailty: in the last quarter of a clone's life, all work slows down, to 60% at the very end.
 function frailty(){ const f = S.life.day / lifeDays(); return f < 0.75 ? 1 : 1 - 1.6 * (f - 0.75); }
 function speedOf(t){ let p = 1; t.sk.forEach(s => p *= skF(s)); return Math.pow(p, 1 / t.sk.length) * M.spd * frailty(); }
@@ -1139,7 +1143,7 @@ function showIntro(){
       <li><b>Tap a task</b> to work on it now. <b>+</b> adds an action to the queue.</li>
       <li><b>Jobs</b> repeat forever and make rations or salvage. The last job you tapped runs whenever the queue is empty.</li>
       <li>One ration feeds you for <b>8 days</b>. Run out and you starve. Storage is limited, so you can\u2019t stockpile much.</li>
-      <li>Bodies age. In the last quarter of a clone\u2019s life, all work slows down.</li>
+      <li>Bodies age. In the last quarter of a clone\u2019s life, all work slows down. The first clones are unstable and die young; each new one lives a year longer, up to 28.</li>
       <li>Time only moves while your clone is working. With nothing to do, the clock stops.</li>
       <li>When a clone dies, skill levels reset but their <b>echo</b> speeds up learning in every future clone.</li>
       <li><b>Pause</b> any time with the button at the top (or the space bar on a computer). <b>☰</b> opens the menu with save slots.</li>
@@ -1157,6 +1161,7 @@ function showDeath(){
   showModal(`<h2>Clone ${S.gen} terminated</h2>
     <p>${esc(L.cause)}.</p><p class="d">Age ${age.toFixed(1)} · ${L.order.length} actions completed</p>
     <table class="dt">${rows}</table>
+    ${templateYears() < TEMPLATE_MAX ? `<p class="d">The clone template is still unstable. Clone ${S.gen + 1} will live to about age ${START_AGE + Math.min(TEMPLATE_MAX, templateYears() + TEMPLATE_STEP) + (M.life - templateYears())}.</p>` : ''}
     ${S.perks.engram && S.set.replay ? '<p class="d">The engram recorder will queue this clone’s actions for the next one.</p>' : ''}
     <button class="btn pri" data-decant>Decant clone ${S.gen + 1}</button>`);
 }
