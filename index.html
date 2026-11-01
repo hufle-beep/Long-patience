@@ -264,6 +264,7 @@ input[type=range]{width:100%;accent-color:var(--amber)}
 <script id="logic">
 /* ===== Game data and rules (no DOM) ===== */
 const DPS = 4;             // in-game days per real second at 1x
+const EAT = 0.25;          // rations eaten per day: one ration feeds a clone for 4 days
 const MAX_DRAIN = 0.08;    // most health a clone can lose per day: 100 HP lasts at least ~5 min at 1x
 const START_AGE = 14;
 
@@ -290,7 +291,7 @@ const TASKS = [
   // Zone 1
   {id:'wake', z:1, kind:'act', name:'Climb out of the vat', sk:['res'], days:6, req:[],
     log:'Fluid drains from the vat. Stencilled on the glass: K-7. The emergency lamps are sodium orange and the ship is very quiet.'},
-  {id:'algae', z:1, kind:'job', name:'Press vat algae', sk:['bio'], prod:{rations:1.4}, req:['wake']},
+  {id:'algae', z:1, kind:'job', name:'Press vat algae', sk:['bio'], prod:{rations:0.35}, req:['wake']},
   {id:'scrap', z:1, kind:'job', name:'Strip wall panels', sk:['eng'], prod:{salvage:0.6}, req:['wake']},
   {id:'search', z:1, kind:'act', name:'Search the vat bay', sk:['eng'], days:60, req:['wake'], reward:{salvage:12, rations:10}, perk:'decant',
     log:'Forty-one vats. Forty are dry and cracked. Yours was the only one still warm. Someone kept the clone line running.'},
@@ -307,7 +308,7 @@ const TASKS = [
     log:'The ring is eleven kilometres around. Half the bulkheads are sealed. Painted across one of them: WARDEN SEES.'},
   {id:'irrigation', z:2, kind:'act', name:'Restore the irrigation pumps', sk:['eng','bio'], days:420, lifeEff:{ratCap:100}, req:['mapring'],
     log:'Water moves through the pipes again. The dead beds might grow something besides mould.'},
-  {id:'hydro', z:2, kind:'job', name:'Tend hydroponic beds', sk:['bio'], prod:{rations:2.6}, req:['irrigation']},
+  {id:'hydro', z:2, kind:'job', name:'Tend hydroponic beds', sk:['bio'], prod:{rations:0.65}, req:['irrigation']},
   {id:'medbay', z:2, kind:'act', name:'Reach the abandoned medbay', sk:['cbt','res'], days:380, haz:0.15, req:['mapring'], reward:{heal:true}, perk:'medrec',
     log:'The medbay is intact. Every patient record stops on the same day.'},
   {id:'genelog', z:2, kind:'act', name:'Decrypt the gene-sequencer logs', sk:['hak','bio'], days:650, req:['medbay'], perk:'telomere',
@@ -328,7 +329,7 @@ const TASKS = [
     log:'The security drones were loyal to WARDEN. Were. The way to the bridge is open.'},
   // Zone 4
   {id:'charts', z:4, kind:'job', name:'Run star-chart calculations', sk:['nav','hak'], prod:{salvage:7}, req:['secdeck']},
-  {id:'galley', z:4, kind:'job', name:'Run the officers’ galley', sk:['bio','res'], prod:{rations:5}, req:['secdeck']},
+  {id:'galley', z:4, kind:'job', name:'Run the officers’ galley', sk:['bio','res'], prod:{rations:1.25}, req:['secdeck']},
   {id:'bridgepower', z:4, kind:'act', name:'Restore bridge power', sk:['eng'], days:2600, lifeEff:{salCap:4000}, req:['secdeck'], perk:'clock',
     log:'The bridge consoles light up one by one. The chronometer says the ship is 61 years behind schedule.'},
   {id:'navcore', z:4, kind:'act', name:'Reboot the navigation core', sk:['nav','hak'], days:3200, req:['bridgepower'], perk:'starmem',
@@ -366,10 +367,10 @@ const ITEMS = [
   {id:'locker',     name:'Cold locker',        cost:30,   req:'search',     desc:'+50 ration storage', eff:{ratCap:50}},
   {id:'rebreather', name:'Patched rebreather', cost:15,   req:'search',     desc:'+20 max health', eff:{maxHp:20}},
   {id:'toolkit',    name:'Scrap toolkit',      cost:40,   req:'search',     desc:'Engineering work 25% faster', eff:{sk:{eng:1.25}}},
-  {id:'press',      name:'Algae press',        cost:70,   req:'search',     desc:'+0.5 rations per day, passively', eff:{pRat:0.5}},
+  {id:'press',      name:'Algae press',        cost:70,   req:'search',     desc:'+1 ration every 8 days, passively', eff:{pRat:0.125}},
   {id:'baton',      name:'Shock baton',        cost:90,   req:'hatch',      desc:'Combat work 20% faster, hazard damage −25%', eff:{sk:{cbt:1.2}, haz:0.75}},
   {id:'chitinarm',  name:'Chitin armour',      cost:220,  req:'crawlers',   desc:'+20 max health, hazard damage −30%', eff:{maxHp:20, haz:0.7}},
-  {id:'doser',      name:'Hydro auto-doser',   cost:350,  req:'irrigation', desc:'+1.5 rations per day, passively', eff:{pRat:1.5}},
+  {id:'doser',      name:'Hydro auto-doser',   cost:350,  req:'irrigation', desc:'+3 rations every 8 days, passively', eff:{pRat:0.375}},
   {id:'lace',       name:'Neural lace',        cost:650,  req:'medbay',     desc:'+30% skill XP', eff:{xp:1.3}},
   {id:'stims',      name:'Stim injector',      cost:1000, req:'lift',       desc:'All work 15% faster', eff:{spd:1.15}},
   {id:'rifle',      name:'Armoury rifle',      cost:1600, req:'armory',     desc:'Combat work 50% faster, hazard damage −20%', eff:{sk:{cbt:1.5}, haz:0.8}},
@@ -507,7 +508,7 @@ function step(dt){
       if (L.prog[t.id] >= t.days) { L.prog[t.id] = 0; finish(t); }
     }
   }
-  L.rations += (M.pRat - 1) * dt;
+  L.rations += (M.pRat - EAT) * dt;
   L.salvage += M.pSal * dt;
   clampRes();
   let drain = 0, starving = false;
@@ -579,7 +580,7 @@ function fmtReal(sec){
 const both = days => isFinite(days) ? fmtDays(days) + ' \u00b7 ' + fmtReal(realSecs(days)) : '\u221e';
 // Net ration and salvage change per day if task t is the one being worked
 function rates(t){
-  let rr = M.pRat - 1, sr = M.pSal;
+  let rr = M.pRat - EAT, sr = M.pSal;
   if (t && t.kind === 'job' && t.prod) {
     const sp = speedOf(t);
     if (t.prod.rations) rr += t.prod.rations * sp;
@@ -1106,7 +1107,7 @@ function showIntro(){
     <ul>
       <li><b>Tap a task</b> to work on it now. <b>+</b> adds an action to the queue.</li>
       <li><b>Jobs</b> repeat forever and make rations or salvage. The last job you tapped runs whenever the queue is empty.</li>
-      <li>You eat <b>1 ration a day</b>. Run out and you starve. Storage is limited, so you can\u2019t stockpile much.</li>
+      <li>One ration feeds you for <b>4 days</b>. Run out and you starve. Storage is limited, so you can\u2019t stockpile much.</li>
       <li>Bodies age. In the last quarter of a clone\u2019s life, all work slows down.</li>
       <li>Time only moves while your clone is working. With nothing to do, the clock stops.</li>
       <li>When a clone dies, skill levels reset but their <b>echo</b> speeds up learning in every future clone.</li>
