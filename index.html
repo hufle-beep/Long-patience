@@ -527,11 +527,11 @@ function newLife(s){
   const p = s.perks;
   const L = {day:0, hp:100, rations:p.decant?1:0, salvage:0, lv:{}, xp:{}, echo0:{},
     done:{}, prog:{}, cyc:{}, bat:{}, meal:0, strain:1, sec:1, job:null, queue:[], owned:{}, order:[], foraging:false, cur:null, dead:false, cause:''};
-  SKILLS.forEach(k => { L.lv[k.id] = 0; L.xp[k.id] = 0; L.echo0[k.id] = s.echo[k.id] || 0; });
+  SKILLS.forEach(k => { L.lv[k.id] = 0; L.xp[k.id] = 0; L.echo0[k.id] = (s.xpTot && s.xpTot[k.id]) || 0; });
   return L;
 }
 function defaultState(){
-  const s = {v:1, rv:4, sv:2, pv:2, vv:3, gen:1, prio:{}, ever:{}, prac:{}, auto:{}, echo:{}, perks:{}, seen:{}, logged:{}, log:[], lastOrder:[], lastJob:null,
+  const s = {v:1, ev:2, xpTot:{}, rv:4, sv:2, pv:2, vv:3, gen:1, prio:{}, ever:{}, prac:{}, auto:{}, echo:{}, perks:{}, seen:{}, logged:{}, log:[], lastOrder:[], lastJob:null,
     set:{speed:1, autoFood:true, autoEat:true, foodDays:2, replay:true, boost:false},
     stats:{bestAge:0, deaths:0, daysLived:0}, won:false, winGen:0, bank:0, saved:Date.now(), intro:false};
   SKILLS.forEach(k => s.echo[k.id] = 0);
@@ -561,17 +561,20 @@ function mods(){
 }
 // Each level makes work 10% faster; levels come slowly.
 const xpNeed = l => 152.6 * Math.pow(1.61051, l);
-const echoMult = s => Math.pow(1.58, S.echo[s]);
+// Neural echo: every point of XP a skill has ever gained, in any clone, adds to a flat speed
+// multiplier for that skill: x(1 + sqrt(total XP / ECHO_XP)). Diminishing returns, never resets.
+const ECHO_XP = 2800;
+const echoSpeed = s => 1 + Math.sqrt(((S.xpTot && S.xpTot[s]) || 0) / ECHO_XP);
 const isDone = id => (S.life.done[id] || 0) >= T[id].reps;
 const available = t => t.z === (S.life.sec || 1) && t.req.every(isDone);
 const complete = t => t.kind !== 'job' && isDone(t.id);
 const lifeDays = () => Infinity;   // no lifespan limit
-function skF(s){ return (1 + 0.1 * S.life.lv[s]) * M.sk[s]; }
+function skF(s){ return (1 + 0.1 * S.life.lv[s]) * echoSpeed(s) * M.sk[s]; }
 // (The old last-quarter ageing slowdown was removed; strain alone limits a life.)
 function frailty(){ return 1; }   // ageing slowdown removed
 function speedOf(t){ let p = 1; t.sk.forEach(s => p *= skF(s)); return Math.pow(p, 1 / t.sk.length) * M.spd * frailty(); }
 function hazDmg(t){ const L = S.life; return (t.haz || 0) * M.haz / (1 + 0.2 * L.lv.cbt + 0.3 * L.lv.res); }
-function xpRate(t, s){ return ZT[t.z] * M.xp * M.xpSk[s] * echoMult(s) * (t.kind === 'train' ? TRAIN_XP : 1); }
+function xpRate(t, s){ return ZT[t.z] * M.xp * M.xpSk[s] * (t.kind === 'train' ? TRAIN_XP : 1); }
 
 function pickFood(){
   let best = null, br = 0;
@@ -634,6 +637,8 @@ function jobFull(t){
 }
 function gainXp(s, a){
   const L = S.life; L.xp[s] += a;
+  if (!S.xpTot) S.xpTot = {};
+  S.xpTot[s] = (S.xpTot[s] || 0) + a;
   let n = xpNeed(L.lv[s]);
   while (L.xp[s] >= n) { L.xp[s] -= n; L.lv[s]++; n = xpNeed(L.lv[s]); }
 }
@@ -1093,6 +1098,13 @@ function mergeState(raw){
   s.set = Object.assign(defaultState().set, raw.set || {});
   s.stats = Object.assign(defaultState().stats, raw.stats || {});
   if (Array.isArray(s.log)) s.log.forEach(e => { const t = TASKS.find(x => x.name === e.t || (x.id === 'warden' && e.t === 'Negotiate with WARDEN')); if (t && t.log) { e.t = t.name; e.x = t.log; } });
+  if (!raw.ev) {   // v2 echo: estimate total XP from the old echo levels (capped), and rescale levels
+    s.xpTot = {};
+    SKILLS.forEach(k => { let tot = 0; for (let l = 0; l < (s.echo[k.id] || 0) && tot < 200000; l++) tot += xpNeed(l); s.xpTot[k.id] = Math.min(200000, tot);
+      if (s.life && s.life.echo0) s.life.echo0[k.id] = s.xpTot[k.id]; });
+  }
+  if (!s.xpTot) s.xpTot = {};
+  s.ev = 2;
   if (!s.prac) s.prac = {}; if (!s.auto) s.auto = {}; if (!s.prio) s.prio = {};
   if (!raw.vv) s.vit = (s.vit || 0) / 4;   // genome bonus quartered (v3)
   else if (raw.vv < 3) s.vit = (s.vit || 0) / 2;
@@ -1443,12 +1455,12 @@ function updateHud(){
 /* ----- other views ----- */
 function renderSkills(){
   const L = S.life;
-  let h = '<div class="panel"><span class="h2">Neural echo</span><p class="note">Skill levels reset with each clone. The highest level you ever reached is kept as an echo, and every echo level adds 58% XP to that skill for all future clones.</p></div><div>';
+  let h = '<div class="panel"><span class="h2">Neural echo</span><p class="note">Skill levels reset with each clone. Every bit of XP a skill gains, in any clone, is kept as its echo and makes that skill permanently faster: speed \u00d7(1 + \u221a(total XP \u00f7 ' + ECHO_XP + ')). The first few thousand XP help most.</p></div><div>';
   SKILLS.forEach(k => {
     const lv = L.lv[k.id], n = xpNeed(lv);
     h += `<div class="sk"><div class="skh"><h3 class="c-${k.id}">${k.name}</h3><b>Lv ${lv}</b></div>
       <div class="bar xp"><i style="width:${(L.xp[k.id]/n*100).toFixed(1)}%"></i></div>
-      <div class="skm num"><span>Speed ×${fmt(skF(k.id))}</span><span>Echo ${S.echo[k.id]} · XP ×${fmt(echoMult(k.id) * M.xp * M.xpSk[k.id])}</span></div></div>`;
+      <div class="skm num"><span>Speed ×${fmt(skF(k.id))}</span><span>Echo ${fmt((S.xpTot || {})[k.id] || 0)} XP · ×${fmt(echoSpeed(k.id))} speed</span></div></div>`;
   });
   h += '</div>';
   $('#v-skills').innerHTML = h;
@@ -1719,8 +1731,9 @@ function showDeath(){
   const L = S.life;
   const age = L.day / TPD;
   let rows = SKILLS.map(k => {
-    const up = S.echo[k.id] - (L.echo0[k.id] || 0);
-    return `<tr><td>${k.name}</td><td>Lv ${L.lv[k.id]}</td><td>${up > 0 ? `<span class="up">echo ${S.echo[k.id]} (+${up})</span>` : 'echo ' + S.echo[k.id]}</td></tr>`;
+    const tot = (S.xpTot || {})[k.id] || 0, up = tot - (L.echo0[k.id] || 0);
+    const before = 1 + Math.sqrt((L.echo0[k.id] || 0) / ECHO_XP), now = echoSpeed(k.id);
+    return `<tr><td>${k.name}</td><td>Lv ${L.lv[k.id]}</td><td>${up > 0 ? `<span class="up">\u00d7${fmt(now)} (+${fmt(now - before)})</span>` : '\u00d7' + fmt(now)}</td></tr>`;
   }).join('');
   showModal(`<h2>Clone ${S.gen} terminated</h2>
     <p>${esc(L.cause)}.</p><p class="d">Lived ${age.toFixed(1)} days · ${L.order.length} actions completed</p>
