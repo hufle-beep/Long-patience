@@ -1,0 +1,43 @@
+plugins { id 'com.android.application' }
+
+// Version code comes from the CI run number so every build installs over the last one.
+def ciBuild = (System.getenv('GITHUB_RUN_NUMBER') ?: '1') as Integer
+
+android {
+    namespace 'io.github.hufle.longpatience'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId 'io.github.hufle.longpatience'
+        minSdk 26
+        targetSdk 34
+        versionCode ciBuild
+        versionName "1.0.${ciBuild}"
+    }
+
+    signingConfigs {
+        release {
+            // A fixed key, so updates install over the previous version and keep saves.
+            storeFile file(System.getenv('LP_KEYSTORE') ?: '../longpatience.keystore')
+            storePassword System.getenv('LP_STORE_PASS') ?: 'longpatience'
+            keyAlias System.getenv('LP_KEY_ALIAS') ?: 'longpatience'
+            keyPassword System.getenv('LP_KEY_PASS') ?: 'longpatience'
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.release
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    implementation 'androidx.webkit:webkit:1.11.0'
+}

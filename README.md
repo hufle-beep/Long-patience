@@ -14,6 +14,20 @@ https://hufle-beep.github.io/Long-patience/
 
 Progress saves in your browser's local storage.
 
+## Android app
+
+An Android version is built automatically every time the game changes. It is not on Google Play; share this link with friends:
+
+**https://github.com/hufle-beep/long-patience/releases/download/android-latest/LongPatience.apk**
+
+Installing: open the link on an Android phone (Android 8 or newer), download the file, and tap it. Android will ask to allow installs from your browser or file manager the first time; allow it.
+
+Updating: install the new APK over the old one. Saves are kept, because every build is signed with the same key. The app also tells you, in its menu, when a newer build is available.
+
+Saves live on the phone. Use **Archive → Save file** to export a save as a JSON file or import one, or **Save as text** to copy and paste it.
+
+The app is built by `.github/workflows/android.yml` from the `android/` folder, with `index.html` copied in. It is signed with `android/longpatience.keystore`, which is in this repository for convenience. For a private key, add repository secrets `LP_KEYSTORE_B64` (the keystore as base64), `LP_STORE_PASS`, `LP_KEY_ALIAS` and `LP_KEY_PASS`; note that switching keys means everyone must uninstall once, which deletes their saves, so export them first.
+
 ## Saving to GitHub
 
 The Archive tab has a **GitHub save** panel that uploads your save to `saves/save.json` in this repository and loads it back on another device.

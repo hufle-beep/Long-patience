@@ -1,0 +1,70 @@
+name: Android app
+
+# Rebuilds the APK whenever the game (index.html) or the app changes,
+# and puts it on the "android-latest" release with a fixed download link.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'index.html'
+      - 'android/**'
+      - '.github/workflows/android.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: android-build
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+
+      - name: Copy the game into the app
+        run: cp index.html android/app/src/main/assets/index.html
+
+      - name: Build signed APK
+        working-directory: android
+        env:
+          # Optional: set these repository secrets to use your own key instead of the bundled one
+          LP_KEYSTORE_B64: ${{ secrets.LP_KEYSTORE_B64 }}
+          LP_STORE_PASS: ${{ secrets.LP_STORE_PASS }}
+          LP_KEY_ALIAS: ${{ secrets.LP_KEY_ALIAS }}
+          LP_KEY_PASS: ${{ secrets.LP_KEY_PASS }}
+        run: |
+          if [ -n "$LP_KEYSTORE_B64" ]; then
+            echo "$LP_KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/release.keystore"
+            export LP_KEYSTORE="$RUNNER_TEMP/release.keystore"
+          else
+            unset LP_STORE_PASS LP_KEY_ALIAS LP_KEY_PASS
+          fi
+          gradle assembleRelease --no-daemon
+          cp app/build/outputs/apk/release/app-release.apk "$RUNNER_TEMP/LongPatience.apk"
+
+      - name: Publish to the android-latest release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          NOTES="Build ${GITHUB_RUN_NUMBER} from commit ${GITHUB_SHA::7}, $(date -u '+%Y-%m-%d %H:%M UTC').
+
+          Download LongPatience.apk below and open it on your Android phone to install or update.
+          Updates install over the previous version and keep your saves."
+          if gh release view android-latest >/dev/null 2>&1; then
+            gh release edit android-latest --title "Long Patience for Android (build ${GITHUB_RUN_NUMBER})" --notes "$NOTES"
+          else
+            gh release create android-latest --title "Long Patience for Android (build ${GITHUB_RUN_NUMBER})" --notes "$NOTES" --target "$GITHUB_SHA"
+          fi
+          gh release upload android-latest "$RUNNER_TEMP/LongPatience.apk" --clobber

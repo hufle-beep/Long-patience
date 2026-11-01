@@ -300,6 +300,8 @@ html.horiz #v-map > .panel,html.horiz #v-map > p,html.horiz #v-auto > .panel,htm
 html.horiz #v-auto .zone{display:grid;grid-template-columns:1fr}
 html.horiz #v-gear,html.horiz #v-archive,html.horiz #v-log,html.horiz #v-skills{max-width:760px}
 html.horiz #toasts{left:var(--side);bottom:16px}
+.updl{display:block;text-decoration:none;text-align:left;padding:11px 12px}
+.updl small{display:block;font-weight:400;font-size:12px;opacity:.85;margin-top:2px}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 
@@ -1057,6 +1059,34 @@ async function ghUpload(auto){
     ghSetMsg('Couldn’t reach GitHub. Check your connection.', false);
   } finally { ghBusy = false; }
 }
+/* ----- save file export / import (works in browsers and in the Android app) ----- */
+function saveFileName(){ return 'long-patience-slot' + slot + '-clone' + S.gen + '.json'; }
+function exportJson(){
+  save();
+  const json = JSON.stringify(S, null, 1), name = saveFileName();
+  if (window.AndroidBridge && AndroidBridge.exportFile) { AndroidBridge.exportFile(name, json); return; }
+  try {
+    const blob = new Blob([json], {type:'application/json'}), a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click();
+    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+    toast('Saved ' + name);
+  } catch(e) { toast('This browser can’t save files. Use “Copy as JSON” instead.'); }
+}
+function parseSaveText(txt){
+  txt = (txt || '').trim(); let raw = null;
+  try { raw = JSON.parse(txt.startsWith('{') ? txt : b64dec(txt)); } catch(e) {}
+  return raw && raw.life ? raw : null;
+}
+document.addEventListener('change', e => {
+  if (e.target.id !== 'import-file' || !e.target.files || !e.target.files[0]) return;
+  const f = e.target.files[0], rd = new FileReader();
+  rd.onload = () => { const raw = parseSaveText(rd.result); e.target.value = ''; if (!raw) { sfx('error'); toast('That file isn’t a Long Patience save.'); return; } applyLoaded(raw, 'file ' + f.name); };
+  rd.onerror = () => toast('Couldn’t read that file.');
+  rd.readAsText(f);
+});
+// The Android app reports back after writing a file
+window.onAndroidExport = (ok, msg) => toast(ok ? 'Saved ' + msg : 'Export failed: ' + msg);
+
 function applyLoaded(raw, from){
   S = mergeState(raw); M = mods();
   taskKey = ''; gearKey = ''; archKey = ''; logKey = '';
@@ -1091,10 +1121,15 @@ function ghPanel(){
     <div class="ghst" id="gh-st" role="status"></div>
     <div class="row"><p>Auto-upload<small>Upload every 10 minutes while the game is open. Each upload is a commit.</small></p><button class="tog${GH.auto ? ' on' : ''}" data-gh-auto aria-label="Auto-upload" aria-pressed="${GH.auto}"></button></div>
   </div>
-  <div class="panel set"><span class="h2">Save code</span>
-    <p class="note">A text copy of your save for moving it by hand. Copy it, or paste one in and load it.</p>
-    <div class="fld"><label for="save-code">Save code</label><textarea id="save-code" spellcheck="false" placeholder="Paste a save code here"></textarea></div>
-    <div class="btns"><button class="btn" data-copysave>Copy save code</button><button class="btn" data-confirm="import">Load pasted code</button></div>
+  <div class="panel set"><span class="h2">Save file</span>
+    <p class="note">Export this slot as a JSON file to keep a backup or send it to another device, and import one to continue from it. Importing replaces the game in the current slot.</p>
+    <div class="btns"><button class="btn pri" data-exportjson>Export save file</button><button class="btn" data-confirm="importfile">Import save file</button></div>
+    <input type="file" id="import-file" accept=".json,application/json,text/plain" hidden>
+  </div>
+  <div class="panel set"><span class="h2">Save as text</span>
+    <p class="note">The same save as text you can copy and paste. JSON is readable; the save code is shorter. The box below accepts either.</p>
+    <div class="fld"><label for="save-code">Save text</label><textarea id="save-code" spellcheck="false" placeholder="Paste a save code or save JSON here"></textarea></div>
+    <div class="btns"><button class="btn" data-copysave>Copy save code</button><button class="btn" data-copyjson>Copy as JSON</button><button class="btn" data-confirm="import">Load pasted text</button></div>
   </div>`;
 }
 document.addEventListener('input', e => {
@@ -1160,6 +1195,7 @@ function showMenu(view){
   paused = true;
   const cur = readSlot(slot);
   let h = '<h2>Long Patience</h2>';
+  if (appUpdate) h += `<a class="btn pri updl" href="${APK_URL}" target="_blank" rel="noopener">Download app update (build ${appUpdate.build})<small>You have build ${appUpdate.mine}. Install it over this one; saves are kept.</small></a>`;
   if (view === 'new') {
     h += '<p>Start a new game in which slot? A used slot is overwritten; tap it twice to confirm.</p><div class="slots">';
     for (let i = 1; i <= SLOTS; i++) {
@@ -1792,6 +1828,13 @@ document.addEventListener('click', e => {
   if ('eat' in d) { if (eat()) sfx('eat'), toast('Ate a ration. +' + fmt(mealHp()) + ' health'); return; }
   if ('ghUp' in d) { ghUpload(false); return; }
   if ('ghAuto' in d) { GH.auto = !GH.auto; if (GH.auto) GH.last = Date.now(); ghSave(); b.classList.toggle('on', GH.auto); b.setAttribute('aria-pressed', GH.auto); return; }
+  if ('exportjson' in d) { exportJson(); return; }
+  if ('copyjson' in d) {
+    save(); const code = JSON.stringify(S, null, 1), ta = $('#save-code'); ta.value = code;
+    const fallback = () => { ta.focus(); ta.select(); toast('Save JSON selected. Copy it from the box.'); };
+    try { navigator.clipboard.writeText(code).then(() => toast('Save JSON copied'), fallback); } catch(e) { fallback(); }
+    return;
+  }
   if ('copysave' in d) {
     save();
     const code = b64enc(JSON.stringify(S));
@@ -1838,13 +1881,14 @@ document.addEventListener('click', e => {
   if (d.confirm) {
     const k = d.confirm;
     if (!confirmT[k]) {
-      confirmT[k] = setTimeout(() => { confirmT[k] = null; if (b.isConnected) b.textContent = ({reset:'Restart', recycle:'Recycle', ghload:'Load from GitHub', import:'Load pasted code'})[k]; }, 3000);
+      confirmT[k] = setTimeout(() => { confirmT[k] = null; if (b.isConnected) b.textContent = ({reset:'Restart', recycle:'Recycle', ghload:'Load from GitHub', import:'Load pasted text', importfile:'Import save file'})[k]; }, 3000);
       b.textContent = 'Tap again'; return;
     }
     clearTimeout(confirmT[k]); confirmT[k] = null;
     if (k === 'ghload') { b.textContent = 'Load from GitHub'; ghDownload(); return; }
+    if (k === 'importfile') { b.textContent = 'Import save file'; $('#import-file').click(); return; }
     if (k === 'import') {
-      b.textContent = 'Load pasted code';
+      b.textContent = 'Load pasted text';
       let raw = null; const txt = $('#save-code').value.trim();
       try { raw = JSON.parse(txt.startsWith('{') ? txt : b64dec(txt)); } catch(e) {}
       if (!raw || !raw.life) { toast('That save code isn\u2019t valid.'); return; }
@@ -1893,8 +1937,21 @@ function frame(now){
 document.addEventListener('visibilitychange', () => { if (document.hidden) save(); });
 window.addEventListener('pagehide', save);
 
+/* ----- Android app: check GitHub for a newer build ----- */
+const APK_URL = 'https://github.com/hufle-beep/long-patience/releases/download/android-latest/LongPatience.apk';
+let appUpdate = null;
+function checkAppUpdate(){
+  let mine = 0;
+  try { if (!(window.AndroidBridge && AndroidBridge.versionCode)) return; mine = AndroidBridge.versionCode(); } catch(e) { return; }
+  fetch('https://api.github.com/repos/hufle-beep/long-patience/releases/tags/android-latest', {cache:'no-store'})
+    .then(r => r.ok ? r.json() : null).then(j => {
+      const m = j && j.name && j.name.match(/build (\d+)/);
+      if (m && +m[1] > mine) { appUpdate = {build:+m[1], mine}; toast('App update available: build ' + m[1] + '. Open the menu to download it.', true); }
+    }).catch(() => {});
+}
 function boot(data){
   applyLayout();
+  setTimeout(checkAppUpdate, 2500);
   const raw = (data && data.S) || loadSaved();
   S = mergeState(raw);
   M = mods();

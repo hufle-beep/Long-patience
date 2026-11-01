@@ -1,0 +1,6 @@
+.gradle/
+build/
+app/build/
+local.properties
+# The game page is copied in at build time from ../index.html
+app/src/main/assets/index.html
