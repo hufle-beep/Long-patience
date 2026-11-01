@@ -183,6 +183,14 @@ input[type=range]{width:100%;accent-color:var(--amber)}
 .toast{background:var(--panel2);border:1px solid var(--line);border-radius:5px;padding:8px 12px;font-size:13px;max-width:420px;animation:tin .2s ease-out}
 .toast.gold{border-color:var(--amber);color:var(--amber)}
 @keyframes tin{from{transform:translateY(8px);opacity:0}}
+.fld{display:grid;gap:4px}
+.fld label{font-size:12px;color:var(--dim)}
+.fld input,.fld textarea{width:100%;box-sizing:border-box;background:var(--panel2);border:1px solid var(--line);color:var(--fg);border-radius:4px;padding:8px;font:13px var(--f-mono)}
+.fld textarea{min-height:64px;resize:vertical;word-break:break-all}
+.btns{display:flex;gap:8px;flex-wrap:wrap}
+.ghst{font-size:12px;color:var(--dim);min-height:1.4em}
+.ghst.err{color:var(--red)} .ghst.ok{color:var(--green)}
+.note a{color:var(--cyan)}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 
@@ -520,6 +528,108 @@ let newLog = false, newPerk = false;
 function save(){
   try { S.saved = Date.now(); localStorage.setItem(KEY, JSON.stringify(S)); } catch(e) {}
 }
+/* ----- GitHub save sync ----- */
+const GH_KEY = 'long-patience.github.v1';
+const GH_AUTO_MS = 10 * 60 * 1000;
+let GH = {repo:'hufle-beep/long-patience', path:'saves/save.json', branch:'main', token:'', auto:false, last:0, msg:'', ok:true};
+let ghBusy = false;
+try { Object.assign(GH, JSON.parse(localStorage.getItem(GH_KEY) || '{}')); } catch(e) {}
+function ghSave(){ try { localStorage.setItem(GH_KEY, JSON.stringify(GH)); } catch(e) {} }
+const b64enc = str => btoa(unescape(encodeURIComponent(str)));
+const b64dec = str => decodeURIComponent(escape(atob(str.replace(/\s/g, ''))));
+function ghUrl(){
+  const path = GH.path.replace(/^\/+/, '').split('/').map(encodeURIComponent).join('/');
+  return 'https://api.github.com/repos/' + GH.repo.trim() + '/contents/' + path;
+}
+async function ghFetch(method, body){
+  const url = ghUrl() + (method === 'GET' ? '?ref=' + encodeURIComponent(GH.branch) : '');
+  const r = await fetch(url, {method, cache:'no-store', headers:{
+    'Accept':'application/vnd.github+json', 'Authorization':'Bearer ' + GH.token.trim(),
+    'X-GitHub-Api-Version':'2022-11-28', ...(body ? {'Content-Type':'application/json'} : {})},
+    body: body ? JSON.stringify(body) : undefined});
+  let j = null; try { j = await r.json(); } catch(e) {}
+  return {status:r.status, ok:r.ok, j};
+}
+function ghErr(st, what){
+  if (st === 401) return 'GitHub rejected the token. Paste a valid token with Contents: read and write on this repository.';
+  if (st === 403) return 'The token lacks permission. Give it Contents: read and write on ' + GH.repo + '.';
+  if (st === 404) return what === 'load' ? 'No save found at ' + GH.path + ' on ' + GH.branch + '. Upload one first.' : 'Repository or branch not found. Check the repository name and that the token can see it.';
+  if (st === 409 || st === 422) return 'GitHub refused the write (conflict). Try again.';
+  return 'GitHub returned an error (' + st + ').';
+}
+function ghSetMsg(msg, ok){ GH.msg = msg; GH.ok = ok; ghSave(); ghStatus(); }
+function ghStatus(){
+  const el = document.getElementById('gh-st'); if (!el) return;
+  el.textContent = GH.msg || (GH.token ? 'Ready.' : 'Add a token to enable GitHub saves.');
+  el.className = 'ghst' + (GH.msg ? (GH.ok ? ' ok' : ' err') : '');
+}
+async function ghUpload(auto){
+  if (ghBusy) return;
+  if (!GH.token.trim()) { if (!auto) ghSetMsg('Paste a GitHub token first.', false); return; }
+  ghBusy = true; if (!auto) ghSetMsg('Uploading…', true);
+  try {
+    save();
+    const cur = await ghFetch('GET');
+    if (!cur.ok && cur.status !== 404) { ghSetMsg(ghErr(cur.status, 'save'), false); return; }
+    const L = S.life;
+    const body = {message:'Save: clone ' + S.gen + ', age ' + (START_AGE + L.day/365).toFixed(1) + (auto ? ' (auto)' : ''),
+      content:b64enc(JSON.stringify(S, null, 1)), branch:GH.branch};
+    if (cur.ok && cur.j && cur.j.sha) body.sha = cur.j.sha;
+    const r = await ghFetch('PUT', body);
+    if (!r.ok) { ghSetMsg(ghErr(r.status, 'save'), false); return; }
+    GH.last = Date.now();
+    const sha = r.j && r.j.commit ? r.j.commit.sha.slice(0, 7) : '';
+    ghSetMsg('Uploaded at ' + new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) + (sha ? ' · commit ' + sha : '') + (auto ? ' (auto)' : '') + '.', true);
+    if (!auto) toast('Save uploaded to GitHub');
+  } catch(e) {
+    ghSetMsg('Couldn’t reach GitHub. Check your connection.', false);
+  } finally { ghBusy = false; }
+}
+function applyLoaded(raw, from){
+  S = mergeState(raw); M = mods();
+  taskKey = ''; gearKey = ''; archKey = ''; logKey = '';
+  paused = false; hideModal(); S.intro = true; save();
+  setTab('archive');
+  if (S.life.dead) showDeath();
+  toast('Loaded save from ' + from + ': clone ' + S.gen);
+}
+async function ghDownload(){
+  if (ghBusy) return;
+  if (!GH.token.trim()) { ghSetMsg('Paste a GitHub token first.', false); return; }
+  ghBusy = true; ghSetMsg('Loading…', true);
+  try {
+    const r = await ghFetch('GET');
+    if (!r.ok) { ghSetMsg(ghErr(r.status, 'load'), false); return; }
+    let raw;
+    try { raw = JSON.parse(b64dec(r.j.content)); } catch(e) { ghSetMsg('The file on GitHub isn’t a valid save.', false); return; }
+    if (!raw || !raw.life) { ghSetMsg('The file on GitHub isn’t a valid save.', false); return; }
+    applyLoaded(raw, 'GitHub');
+    ghSetMsg('Loaded from GitHub at ' + new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) + '.', true);
+  } catch(e) {
+    ghSetMsg('Couldn’t reach GitHub. Check your connection.', false);
+  } finally { ghBusy = false; }
+}
+function ghPanel(){
+  return `<div class="panel set"><span class="h2">GitHub save</span>
+    <p class="note">Uploads your save as a JSON file to a GitHub repository, so you can continue on another device. Use a <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">fine-grained token</a> limited to this one repository, with <b>Contents: Read and write</b>. The token stays in this browser only and is never put in the save file.</p>
+    <div class="fld"><label for="gh-repo">Repository (owner/name)</label><input id="gh-repo" data-gh="repo" value="${esc(GH.repo)}" autocomplete="off" autocapitalize="off" spellcheck="false"></div>
+    <div class="fld"><label for="gh-path">File path and branch</label><div class="btns" style="flex-wrap:nowrap"><input id="gh-path" data-gh="path" value="${esc(GH.path)}" autocomplete="off" autocapitalize="off" spellcheck="false"><input id="gh-branch" data-gh="branch" value="${esc(GH.branch)}" style="max-width:90px" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Branch"></div></div>
+    <div class="fld"><label for="gh-token">Access token</label><input id="gh-token" data-gh="token" type="password" value="${esc(GH.token)}" placeholder="github_pat_…" autocomplete="off" spellcheck="false"></div>
+    <div class="btns"><button class="btn pri" data-gh-up>Upload save</button><button class="btn" data-confirm="ghload">Load from GitHub</button></div>
+    <div class="ghst" id="gh-st" role="status"></div>
+    <div class="row"><p>Auto-upload<small>Upload every 10 minutes while the game is open. Each upload is a commit.</small></p><button class="tog${GH.auto ? ' on' : ''}" data-gh-auto aria-label="Auto-upload" aria-pressed="${GH.auto}"></button></div>
+  </div>
+  <div class="panel set"><span class="h2">Save code</span>
+    <p class="note">A text copy of your save for moving it by hand. Copy it, or paste one in and load it.</p>
+    <div class="fld"><label for="save-code">Save code</label><textarea id="save-code" spellcheck="false" placeholder="Paste a save code here"></textarea></div>
+    <div class="btns"><button class="btn" data-copysave>Copy save code</button><button class="btn" data-confirm="import">Load pasted code</button></div>
+  </div>`;
+}
+document.addEventListener('input', e => {
+  const k = e.target.dataset && e.target.dataset.gh;
+  if (k) { GH[k] = e.target.value; GH.msg = ''; ghSave(); ghStatus(); }
+});
+
 function mergeState(raw){
   const d = defaultState();
   if (!raw || typeof raw !== 'object' || !raw.life) return d;
@@ -767,7 +877,9 @@ function renderArchive(force){
   h += `<div class="row"><p>Recycle this clone<small>End the current life now. Echoes are kept.</small></p><button class="btn warn" data-confirm="recycle">Recycle</button></div>
     <div class="row"><p>Erase all progress<small>Deletes the save in this browser.</small></p><button class="btn warn" data-confirm="reset">Erase</button></div>
     <p class="note">Progress saves in this browser. Time spent away is stored as a stasis boost that doubles game speed.</p></div>`;
+  h += ghPanel();
   $('#v-archive').innerHTML = h;
+  ghStatus();
   const fd = $('#fd');
   if (fd) fd.addEventListener('input', () => { S.set.foodDays = +fd.value; $('#fd-v').textContent = fd.value + ' rations'; });
 }
@@ -849,7 +961,17 @@ document.addEventListener('click', e => {
   if ('boost' in d) { S.set.boost = !S.set.boost; renderSpeed(); return; }
   if ('close' in d) { hideModal(); paused = false; S.intro = true; save(); return; }
   if ('decant' in d) { decant(); hideModal(); taskKey = ''; setTab('tasks'); save(); return; }
-  if (L.dead) return;
+  if ('ghUp' in d) { ghUpload(false); return; }
+  if ('ghAuto' in d) { GH.auto = !GH.auto; if (GH.auto) GH.last = Date.now(); ghSave(); b.classList.toggle('on', GH.auto); b.setAttribute('aria-pressed', GH.auto); return; }
+  if ('copysave' in d) {
+    save();
+    const code = b64enc(JSON.stringify(S));
+    const ta = $('#save-code'); ta.value = code;
+    const fallback = () => { ta.focus(); ta.select(); toast('Save code selected. Copy it from the box.'); };
+    try { navigator.clipboard.writeText(code).then(() => toast('Save code copied'), fallback); } catch(e) { fallback(); }
+    return;
+  }
+  if (L.dead && !d.confirm) return;
   if (d.do) {
     const t = T[d.do];
     if (t.kind === 'job') {
@@ -882,11 +1004,19 @@ document.addEventListener('click', e => {
   if (d.confirm) {
     const k = d.confirm;
     if (!confirmT[k]) {
-      confirmT[k] = setTimeout(() => { confirmT[k] = null; if (b.isConnected) b.textContent = k === 'reset' ? 'Erase' : 'Recycle'; }, 3000);
+      confirmT[k] = setTimeout(() => { confirmT[k] = null; if (b.isConnected) b.textContent = ({reset:'Erase', recycle:'Recycle', ghload:'Load from GitHub', import:'Load pasted code'})[k]; }, 3000);
       b.textContent = 'Tap again'; return;
     }
     clearTimeout(confirmT[k]); confirmT[k] = null;
-    if (k === 'recycle') die('Recycled by choice');
+    if (k === 'ghload') { b.textContent = 'Load from GitHub'; ghDownload(); return; }
+    if (k === 'import') {
+      b.textContent = 'Load pasted code';
+      let raw = null; const txt = $('#save-code').value.trim();
+      try { raw = JSON.parse(txt.startsWith('{') ? txt : b64dec(txt)); } catch(e) {}
+      if (!raw || !raw.life) { toast('That save code isn\u2019t valid.'); return; }
+      applyLoaded(raw, 'save code'); return;
+    }
+    if (k === 'recycle' && !S.life.dead) die('Recycled by choice');
     if (k === 'reset') {
       try { localStorage.removeItem(KEY); } catch(e) {}
       S = defaultState(); M = mods(); S.life.hp = M.maxHp; taskKey = ''; archKey = ''; logKey = ''; gearKey = '';
@@ -911,7 +1041,7 @@ function frame(now){
   if (tab === 'tasks') { renderTasks(); updateTasks(); }
   if (viewT > 0.4) { viewT = 0; renderView(); }
   saveT += dt;
-  if (saveT > 5) { saveT = 0; save(); }
+  if (saveT > 5) { saveT = 0; save(); if (GH.auto && GH.token && Date.now() - GH.last > GH_AUTO_MS) ghUpload(true); }
   requestAnimationFrame(frame);
 }
 document.addEventListener('visibilitychange', () => { if (document.hidden) save(); });

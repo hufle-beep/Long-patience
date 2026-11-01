@@ -14,6 +14,18 @@ https://hufle-beep.github.io/long-patience/
 
 Progress saves in your browser's local storage.
 
+## Saving to GitHub
+
+The Archive tab has a **GitHub save** panel that uploads your save to `saves/save.json` in this repository and loads it back on another device.
+
+1. Create a [fine-grained personal access token](https://github.com/settings/personal-access-tokens/new) with access to **only this repository** and the permission **Contents: Read and write**.
+2. In the game, open **Archive → GitHub save**, paste the token, and tap **Upload save**.
+3. On another device, paste the same token and tap **Load from GitHub** (tap twice to confirm; it replaces local progress).
+
+Turn on **Auto-upload** to upload every 10 minutes while the game is open. The token is stored only in that browser and is never written into the save file.
+
+There is also a **Save code** panel for copying a save as text and pasting it elsewhere.
+
 ## How it works
 
 - **Jobs** repeat and produce rations or salvage. **Actions** are one-off tasks that unlock new areas.
