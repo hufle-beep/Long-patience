@@ -130,7 +130,7 @@ main .wrap{display:grid;gap:18px}
 .task.on .tm{border-color:var(--amber)}
 .task.job .tm .tf{background:var(--amber-soft)}
 .task.job:not(.on) .tm .tf{opacity:.45}
-.tf.fast,.nf.fast{width:100%!important;opacity:.6}
+.tf.fast,.nf.fast{width:100%!important;opacity:.75;background:linear-gradient(90deg,var(--amber-soft),var(--amber-fill),var(--amber-soft))!important}
 .task.fb .tn::after{content:" · fallback";color:var(--faint);font-size:11px;font-weight:400}
 .tq{flex:0 0 44px;border:1px solid var(--line);border-radius:5px;font-family:var(--f-mono);font-size:18px;color:var(--dim)}
 .side{display:flex;flex-direction:column;gap:4px;flex:0 0 52px}
@@ -365,14 +365,16 @@ const EAT = 1 / MEAL_CD;   // average rations eaten per tick (used for estimates
 const HUNGER = 0.15;       // base health lost per tick, always, while time runs
 // Strain: the body wears down. The hunger drain is multiplied by strain, which climbs
 // faster and faster as the clone ages: its growth rate starts at +1 per STRAIN_RAMP ticks and
-// rises by that much again every STRAIN_ACCEL ticks of wear. Rest actions halve both strain and wear.
+// rises by that much again every STRAIN_ACCEL ticks of wear. Rest actions halve strain but not wear, so the acceleration keeps building.
 const STRAIN_RAMP = 800, STRAIN_ACCEL = 2000, AUTO_REST_AT = 2;
 // Resolve slows strain: early clones feel it most.
 const STRAIN_RES = 0.02;
 const strainRate = wear => (1 + wear / STRAIN_ACCEL) / STRAIN_RAMP / (1 + STRAIN_RES * (S.life.lv.res || 0));
 const MAX_DRAIN = 1.2;     // most health a clone can lose per day: a full bar lasts at least ~2 min at 1x
 // A meal restores the hunger of one cooldown plus the old resting regeneration.
-function mealHp(){ return (HUNGER + M.regen) * MEAL_CD; }
+// Food deeper in the ship is better: each section past the first makes meals restore 12% more.
+const MEAL_SEC = 0.12;
+function mealHp(){ return (HUNGER + M.regen) * MEAL_CD * (1 + MEAL_SEC * ((S.life.sec || 1) - 1)); }
 const START_AGE = 14;
 
 const SKILLS = [
@@ -641,7 +643,6 @@ function finish(t){
   }
   if (t.kind === 'rest') {
     L.strain = Math.max(1, (L.strain || 1) / 2);
-    L.wear = (L.wear || 0) / 2;
     L.queue = L.queue.filter(x => x !== t.id);
     if (L.done[t.id] === 1) addPractice(t);
     HOOK.rested(t); HOOK.change();
@@ -1331,7 +1332,8 @@ function updateTasks(){
       if (r.pr) { const b = Math.min(JOB_PRAC_BATCHES, L.bat[t.id] || 0); r.pr.textContent = 'practice ' + (S.prac[t.id] || 0) + '/' + AUTO_LIVES + ' lives' + (b < JOB_PRAC_BATCHES ? ' \u00b7 ' + b + '/' + JOB_PRAC_BATCHES + ' batches this life' : ' \u00b7 done this life'); }
       if (t.prod) {
         const res = t.prod.rations ? 'rations' : 'salvage';
-        r.e.textContent = '+' + fmt(perDay(t.prod[res] * sp)) + ' ' + res + '/d';
+        const batch = t.prod[res] * JOB_CYCLE;
+        r.e.textContent = jobFast(sp) ? 'continuous \u00b7 +' + fmt(perDay(t.prod[res] * sp)) + '/d' : '+' + fmt(batch) + ' ' + res + ' every ' + fmtDays(JOB_CYCLE / sp);
         if (r.tt) {
           const rt = rates(t), isR = res === 'rations';
           const e = storeEta(isR ? L.rations : L.salvage, isR ? M.ratCap : M.salCap, isR ? rt.rr : rt.sr);
@@ -1345,8 +1347,11 @@ function updateTasks(){
 }
 
 // Job bars fill toward the next batch and empty when it is delivered. Too fast to follow: shown full.
+// Each batch has a fixed size; skill only makes the bar fill faster. Past the point where a batch
+// takes under half a real second the bar stays full and the job runs as a continuous stream.
+const jobFast = sp => realSecs(JOB_CYCLE / sp) < 0.5;
 function jobBar(el, t, sp){
-  const fast = realSecs(JOB_CYCLE / sp) < 0.4;
+  const fast = jobFast(sp);
   el.classList.toggle('fast', fast);
   if (!fast) el.style.width = ((S.life.cyc[t.id] || 0) * 100).toFixed(1) + '%';
 }
@@ -1410,7 +1415,7 @@ function updateHud(){
       $('#n-eta').textContent = both((cur.days - (L.prog[cur.id] || 0)) / sp);
     } else {
       const sp = speedOf(cur); jobBar($('#n-fill'), cur, sp);
-      $('#n-eta').textContent = cur.prod ? 'next batch ' + both((1 - (L.cyc[cur.id] || 0)) * JOB_CYCLE / sp) : 'training';
+      $('#n-eta').textContent = cur.prod ? (jobFast(sp) ? 'continuous' : 'next batch ' + both((1 - (L.cyc[cur.id] || 0)) * JOB_CYCLE / sp)) : 'training';
     }
   }
   renderSpeed();
@@ -1674,7 +1679,7 @@ function showIntro(){
       <li><b>Training</b> sessions build skills faster (+50% XP), but each can be done only 4 times per life.</li>
       <li>Each automated task has a <b>priority</b> (P1\u2013P5, tap to change). P1 runs first.</li>
       <li><b>Jobs</b> repeat forever and make rations or salvage. The last job you tapped runs whenever the queue is empty.</li>
-      <li>Health drains all the time. Your clone eats about <b>4 rations a day</b>, one meal every 6 hours, and each meal restores some health. <b>Strain</b> makes the drain grow, faster and faster as the clone ages; Resolve slows it. Each ship section has one rest per life that halves it. Every day a clone survives adds a quarter point of max health to all later clones. You wake with no food. Run out of rations and you starve. Storage is limited, so you can\u2019t stockpile much.</li>
+      <li>Health drains all the time. Your clone eats about <b>4 rations a day</b>, one meal every 6 hours, and each meal restores some health. <b>Strain</b> makes the drain grow, faster and faster as the clone ages; Resolve slows it, rests halve it, and food deeper in the ship restores more health. Each ship section has one rest per life that halves it. Every day a clone survives adds a quarter point of max health to all later clones. You wake with no food. Run out of rations and you starve. Storage is limited, so you can\u2019t stockpile much.</li>
       <li>Bodies age. In the last quarter of a clone\u2019s life, all work slows down. The first clones are unstable and die young; each new one lives a few days longer.</li>
       <li>Time only moves while your clone is working. With nothing to do, the clock stops.</li>
       <li>When a clone dies, skill levels reset but their <b>echo</b> speeds up learning in every future clone.</li>
