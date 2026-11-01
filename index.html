@@ -138,6 +138,13 @@ main .wrap{display:grid;gap:18px}
 .ta{flex:0 0 52px;border:1px solid var(--line);border-radius:5px;font-family:var(--f-mono);font-size:10.5px;letter-spacing:.06em;color:var(--dim);padding:6px 0}
 .side .ta{flex:0 0 auto}
 .ta.on{background:var(--cyan-soft);border-color:var(--cyan);color:var(--cyan)}
+.tp{border:1px solid var(--line);border-radius:5px;font-family:var(--f-mono);font-size:10.5px;color:var(--dim);padding:5px 0}
+.tp.open{border-color:var(--amber);color:var(--amber)}
+.prio{display:grid;gap:8px;padding:10px;margin-top:-2px;border:1px solid var(--amber);border-radius:5px;background:var(--panel2);font-size:12px;color:var(--dim)}
+.prio b{color:var(--fg);font-weight:500}
+.prio-btns{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.prio-btns button{font-family:var(--f-mono);font-size:14px;padding:8px 0;border:1px solid var(--line);border-radius:4px;color:var(--fg)}
+.prio-btns button.on{background:var(--amber);border-color:var(--amber);color:var(--bg)}
 .tq.in{color:var(--amber);border-color:var(--amber);font-size:12px}
 .task.lock .tm{opacity:.45;cursor:default;border-style:dashed}
 .task.lock .tq{visibility:hidden}
@@ -464,7 +471,7 @@ function newLife(s){
   return L;
 }
 function defaultState(){
-  const s = {v:1, rv:3, sv:2, pv:2, gen:1, ever:{}, prac:{}, auto:{}, echo:{}, perks:{}, seen:{}, logged:{}, log:[], lastOrder:[], lastJob:null,
+  const s = {v:1, rv:3, sv:2, pv:2, gen:1, prio:{}, ever:{}, prac:{}, auto:{}, echo:{}, perks:{}, seen:{}, logged:{}, log:[], lastOrder:[], lastJob:null,
     set:{speed:1, autoFood:true, autoEat:true, foodDays:5, replay:true, boost:false},
     stats:{bestAge:0, deaths:0, daysLived:0}, won:false, winGen:0, bank:0, saved:Date.now(), intro:false};
   SKILLS.forEach(k => s.echo[k.id] = 0);
@@ -530,9 +537,13 @@ function active(){
   if ((L.strain || 1) >= AUTO_REST_AT) { const r = TASKS.find(t => t.kind === 'rest' && isAuto(t) && available(t) && !complete(t)); if (r) return r; }
   for (const id of L.queue) { const t = T[id]; if (available(t) && !complete(t)) return t; }
   // automated actions run on their own, in ship order, once the queue is done
-  for (const t of TASKS) if (t.kind === 'act' && !t.cross && isAuto(t) && available(t) && !complete(t)) return t;
-  for (const t of TASKS) if (t.kind === 'train' && isAuto(t) && available(t) && !complete(t)) return t;
-  for (const t of TASKS) if (t.kind === 'act' && t.cross && isAuto(t) && available(t) && !complete(t)) return t;
+  // automated actions and training: priority 1 (highest) to 5; ties go actions, then training, then crossings
+  const kindRank = t => t.cross ? 2 : t.kind === 'train' ? 1 : 0;
+  let pick = null;
+  for (const t of TASKS) if ((t.kind === 'act' || t.kind === 'train') && isAuto(t) && available(t) && !complete(t)) {
+    if (!pick || prioOf(t) < prioOf(pick) || (prioOf(t) === prioOf(pick) && kindRank(t) < kindRank(pick))) pick = t;
+  }
+  if (pick) return pick;
   if (L.job && T[L.job].kind !== 'job') L.job = null;
   if (L.job && available(T[L.job])) {
     const j = T[L.job];
@@ -540,9 +551,9 @@ function active(){
     L.job = null; HOOK.stopped(j);   // storage full: unselect it
   }
   // automated jobs: the one whose storage is emptiest; stop when all are full
-  let best = null, br = 2;
+  let best = null, br = 99;
   for (const t of TASKS) if (t.kind === 'job' && isAuto(t) && available(t) && !jobFull(t)) {
-    const r = t.prod ? storeRatio(t) : 1.5; if (r < br) { br = r; best = t; }
+    const r = prioOf(t) * 10 + (t.prod ? storeRatio(t) : 1.5); if (r < br) { br = r; best = t; }
   }
   return best;
 }
@@ -554,6 +565,7 @@ function practiced(t){ return (S.prac[t.id] || 0) >= AUTO_LIVES; }
 function addPractice(t){ S.prac[t.id] = (S.prac[t.id] || 0) + 1; if (S.prac[t.id] === AUTO_LIVES) HOOK.practiced(t); }
 function isAuto(t){ return !!S.auto[t.id] && practiced(t); }
 function storeRatio(t){ return t.prod && t.prod.rations ? S.life.rations / M.ratCap : t.prod && t.prod.salvage ? S.life.salvage / M.salCap : 0; }
+const prioOf = t => (S.prio && S.prio[t.id]) || 3;
 function jobFull(t){
   if (!t.prod) return false;
   const L = S.life;
@@ -1058,7 +1070,7 @@ function mergeState(raw){
   const s = Object.assign(d, raw);
   s.set = Object.assign(defaultState().set, raw.set || {});
   s.stats = Object.assign(defaultState().stats, raw.stats || {});
-  if (!s.prac) s.prac = {}; if (!s.auto) s.auto = {};
+  if (!s.prac) s.prac = {}; if (!s.auto) s.auto = {}; if (!s.prio) s.prio = {};
   if (s.life && !s.life.sec) s.life.sec = 1 + ['hatch','lift','secdeck','warden'].filter(id => s.life.done && s.life.done[id]).length;
   if (!s.ever) { s.ever = {}; TASKS.forEach(t => { if (t.kind !== 'job' && ((s.logged || {})[t.id] || (s.prac || {})[t.id] || (s.life && s.life.done && s.life.done[t.id]))) s.ever[t.id] = 1; }); }
   if (!raw.pv) {   // v2 practice: counted in lives (acts kept as-is, job days become at most 1 life)
@@ -1184,10 +1196,17 @@ function rewardBits(t){
   if (t.win) b.push('<span class="star">the end of the voyage</span>');
   return b;
 }
+let openPrio = null;
 function autoBtn(t){
   if (!practiced(t)) return '';
   const on = !!S.auto[t.id];
-  return `<button class="ta${on ? ' on' : ''}" data-auto="${t.id}" aria-pressed="${on}" aria-label="Automate ${esc(t.name)}">AUTO</button>`;
+  return `<button class="ta${on ? ' on' : ''}" data-auto="${t.id}" aria-pressed="${on}" aria-label="Automate ${esc(t.name)}">AUTO</button>` +
+    (t.kind === 'rest' ? '' : `<button class="tp${openPrio === t.id ? ' open' : ''}" data-prio="${t.id}" aria-label="Automation priority ${prioOf(t)} for ${esc(t.name)}">P${prioOf(t)}</button>`);
+}
+function prioPick(t){
+  if (openPrio !== t.id || !practiced(t)) return '';
+  return `<div class="prio"><span>Automation priority for <b>${esc(t.name)}</b>. 1 runs first.</span><div class="prio-btns">` +
+    [1,2,3,4,5].map(n => `<button data-setprio="${t.id}" data-n="${n}" class="${prioOf(t) === n ? 'on' : ''}">${n}</button>`).join('') + '</div></div>';
 }
 function chips(t){ return t.sk.map(s => `<span class="chip c-${s}">${SKN[s].ab}</span>`).join(''); }
 
@@ -1200,7 +1219,7 @@ function renderTasks(){
     if (av && !complete(t)) vis.push(t.id);
     else if (!av && S.seen[t.id]) locked.push(t.id);
   });
-  const key = vis.join() + '|' + locked.join() + '|' + L.queue.join() + '|' + L.job + '|' + Object.keys(S.perks).join() + '|' + S.gen + '|' + JSON.stringify(showLocked) + '|' + L.sec + '|' + TASKS.filter(t => practiced(t)).map(t => t.id + (S.auto[t.id] ? '*' : '')).join();
+  const key = vis.join() + '|' + locked.join() + '|' + L.queue.join() + '|' + L.job + '|' + Object.keys(S.perks).join() + '|' + S.gen + '|' + JSON.stringify(showLocked) + '|' + L.sec + '|' + TASKS.filter(t => practiced(t)).map(t => t.id + (S.auto[t.id] ? '*' : '') + prioOf(t)).join() + '|' + openPrio;
   if (key === taskKey) return;
   taskKey = key;
 
@@ -1235,7 +1254,7 @@ function renderTasks(){
           <button class="tm" data-do="${t.id}"><div class="tf"></div>
             <div class="th"><span class="tn">${esc(t.name)}</span><span class="te num" data-r="${res}"></span></div>
             <div class="tx">${chips(t)}${t.haz ? '<span class="haz">▲ hazard</span>' : ''}${!t.prod ? '<span>skill training only</span>' : '<span class="tt num"></span>'}${practiced(t) ? '' : '<span class="pr num"></span>'}</div>
-          </button>${autoBtn(t)}</div>`;
+          </button>${practiced(t) ? `<div class="side">${autoBtn(t)}</div>` : ''}</div>` + prioPick(t);
       });
     }
     if (rests.length) {
@@ -1247,7 +1266,7 @@ function renderTasks(){
             <div class="th"><span class="tn">${esc(t.name)}</span><span class="te num"></span></div>
             <div class="tx">${chips(t)}<span>strain \u00f72</span>${practiced(t) ? `<span>auto at strain \u00d7${AUTO_REST_AT}</span>` : `<span class="num">practice ${S.prac[t.id] || 0}/${AUTO_LIVES} lives</span>`}</div>
           </button>
-          <div class="side"><button class="tq${qi >= 0 ? ' in' : ''}" data-q="${t.id}" aria-label="${qi >= 0 ? 'Queued' : 'Add to queue'}">${qi >= 0 ? '#' + (qi+1) : '+'}</button>${autoBtn(t)}</div></div>`;
+          <div class="side"><button class="tq${qi >= 0 ? ' in' : ''}" data-q="${t.id}" aria-label="${qi >= 0 ? 'Queued' : 'Add to queue'}">${qi >= 0 ? '#' + (qi+1) : '+'}</button>${autoBtn(t)}</div></div>` + prioPick(t);
       });
     }
     if (trains.length) {
@@ -1259,7 +1278,7 @@ function renderTasks(){
             <div class="th"><span class="tn">${esc(t.name)}</span><span class="te num"></span></div>
             <div class="tx">${chips(t)}<span class="num rp"></span>${practiced(t) ? '' : `<span class="num">practice ${S.prac[t.id] || 0}/${AUTO_LIVES} lives</span>`}</div>
           </button>
-          <div class="side"><button class="tq${qi >= 0 ? ' in' : ''}" data-q="${t.id}" aria-label="${qi >= 0 ? 'Queued' : 'Add to queue'}">${qi >= 0 ? '#' + (qi+1) : '+'}</button>${autoBtn(t)}</div></div>`;
+          <div class="side"><button class="tq${qi >= 0 ? ' in' : ''}" data-q="${t.id}" aria-label="${qi >= 0 ? 'Queued' : 'Add to queue'}">${qi >= 0 ? '#' + (qi+1) : '+'}</button>${autoBtn(t)}</div></div>` + prioPick(t);
       });
     }
     if (acts.length) {
@@ -1272,7 +1291,7 @@ function renderTasks(){
             <div class="th"><span class="tn">${esc(t.name)}</span><span class="te num"></span></div>
             <div class="tx">${chips(t)}${t.reps > 1 ? `<span class="num rp"></span>` : ''}${t.haz ? '<span class="haz">▲ hazard</span>' : ''}${rb.length ? '<span>' + rb.join(' · ') + '</span>' : ''}${practiced(t) ? '' : `<span class="num">practice ${S.prac[t.id] || 0}/${AUTO_LIVES} lives</span>`}</div>
           </button>
-          <div class="side"><button class="tq${qi >= 0 ? ' in' : ''}" data-q="${t.id}" aria-label="${qi >= 0 ? 'Queued' : 'Add to queue'}">${qi >= 0 ? '#' + (qi+1) : '+'}</button>${autoBtn(t)}</div></div>`;
+          <div class="side"><button class="tq${qi >= 0 ? ' in' : ''}" data-q="${t.id}" aria-label="${qi >= 0 ? 'Queued' : 'Add to queue'}">${qi >= 0 ? '#' + (qi+1) : '+'}</button>${autoBtn(t)}</div></div>` + prioPick(t);
       });
     }
     if (lk.length && !showLocked[z.id]) h += `<button class="lockbtn" data-showlock="${z.id}">${lk.length} locked action${lk.length > 1 ? 's' : ''} you have seen before \u00b7 show</button>`;
@@ -1595,6 +1614,7 @@ function showIntro(){
       <li>Finish an action in 10 different lives, or work a job for 10 batches in 10 different lives, and an <b>AUTO</b> switch appears so it runs by itself.</li>
       <li>The ship is split into <b>sections</b>. A red action leads to the next one, and the way back is sealed for that clone, so finish what you need first.</li>
       <li><b>Training</b> sessions build skills faster (+50% XP), but each can be done only 4 times per life.</li>
+      <li>Each automated task has a <b>priority</b> (P1\u2013P5, tap to change). P1 runs first.</li>
       <li><b>Jobs</b> repeat forever and make rations or salvage. The last job you tapped runs whenever the queue is empty.</li>
       <li>Health drains all the time. Your clone eats about <b>4 rations a day</b>, one meal every 6 hours, and each meal restores some health. <b>Strain</b> makes the drain grow steadily. Each ship section has one rest per life that halves it. Every day a clone survives adds 1 max health to all later clones. You wake with no food. Run out of rations and you starve. Storage is limited, so you can\u2019t stockpile much.</li>
       <li>Bodies age. In the last quarter of a clone\u2019s life, all work slows down. The first clones are unstable and die young; each new one lives a few days longer.</li>
@@ -1709,6 +1729,8 @@ document.addEventListener('click', e => {
     else { L.queue = L.queue.filter(x => x !== d.q); }
     taskKey = ''; renderView(); return;
   }
+  if (d.prio) { openPrio = openPrio === d.prio ? null : d.prio; taskKey = ''; renderView(); return; }
+  if (d.setprio) { S.prio[d.setprio] = +d.n; openPrio = null; toast('Priority ' + d.n + ': ' + T[d.setprio].name); taskKey = ''; renderView(); return; }
   if (d.auto) { S.auto[d.auto] = !S.auto[d.auto]; toast((S.auto[d.auto] ? 'Automated: ' : 'Automation off: ') + T[d.auto].name); taskKey = ''; renderView(); return; }
   if (d.showlock) { showLocked[d.showlock] = !showLocked[d.showlock]; taskKey = ''; renderView(); return; }
   if (d.unq) { L.queue = L.queue.filter(x => x !== d.unq); taskKey = ''; renderView(); return; }
