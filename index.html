@@ -306,8 +306,8 @@ const MEAL_CD = 20;        // ticks between meals: one ration every 6 hours, 4 a
 const EAT = 1 / MEAL_CD;   // average rations eaten per tick (used for estimates)
 const HUNGER = 0.15;       // base health lost per tick, always, while time runs
 // Strain: the body wears down. The hunger drain is multiplied by strain, which climbs
-// steadily (+1 every STRAIN_RAMP ticks = 5 days). Rest actions halve it again.
-const STRAIN_RAMP = 400, AUTO_REST_AT = 1.8;
+// steadily (+1 every STRAIN_RAMP ticks, about 9 days). Rest actions halve it again.
+const STRAIN_RAMP = 700, AUTO_REST_AT = 1.8;
 const MAX_DRAIN = 1.2;     // most health a clone can lose per day: a full bar lasts at least ~2 min at 1x
 // A meal restores the hunger of one cooldown plus the old resting regeneration.
 function mealHp(){ return (HUNGER + M.regen) * MEAL_CD; }
@@ -363,6 +363,7 @@ const TASKS = [
   {id:'lift', z:2, kind:'act', name:'Repair the spine lift', sk:['eng','nav'], days:900, lifeEff:{salCap:500}, req:['irrigation','mapring'], perk:'transit',
     log:'The spine lift climbs with you inside it, groaning at every deck. The engineering spine is open.'},
   // Zone 3
+  {id:'shield', z:3, kind:'rest', name:'Sleep against the warm reactor shielding', sk:['res','eng'], days:30, req:['lift']},
   {id:'reactor', z:3, kind:'job', name:'Babysit the fusion bottle', sk:['eng','res'], prod:{salvage:0.5}, haz:0.08, req:['lift']},
   {id:'drones', z:3, kind:'act', name:'Reprogram maintenance drones', sk:['hak','eng'], days:950, req:['lift'], lifeEff:{salCap:250, pSal:0.25},
     log:'The maintenance drones stop circling and start working. They bring you scrap the way cats bring birds.'},
@@ -375,6 +376,7 @@ const TASKS = [
   {id:'secdeck', z:3, kind:'act', name:'Fight through the security deck', sk:['cbt','res'], days:2100, haz:0.32, lifeEff:{salCap:750, ratCap:30}, req:['armory'],
     log:'The security drones were loyal to WARDEN. Were. The way to the bridge is open.'},
   // Zone 4
+  {id:'quarters', z:4, kind:'rest', name:'Sleep in the captain\u2019s quarters', sk:['res','nav'], days:15, req:['secdeck']},
   {id:'charts', z:4, kind:'job', name:'Run star-chart calculations', sk:['nav','hak'], prod:{salvage:0.875}, req:['secdeck']},
   {id:'galley', z:4, kind:'job', name:'Run the officers’ galley', sk:['bio','res'], prod:{rations:0.25}, req:['secdeck']},
   {id:'bridgepower', z:4, kind:'act', name:'Restore bridge power', sk:['eng'], days:2600, lifeEff:{salCap:1000}, req:['secdeck'], perk:'clock',
@@ -384,6 +386,7 @@ const TASKS = [
   {id:'warden', z:4, kind:'act', name:'Negotiate with WARDEN', sk:['hak','res'], days:4200, req:['navcore'], perk:'favor',
     log:'WARDEN speaks: “The crew argued. I stopped the argument. I kept you because you never argue.” You argue. After a long silence, WARDEN agrees to help.'},
   // Zone 5
+  {id:'pods', z:5, kind:'rest', name:'Cryo-nap in the drive crew pods', sk:['bio','res'], days:10, req:['warden']},
   {id:'course', z:5, kind:'act', name:'Plot a course to Tessaly', sk:['nav'], days:6000, req:['warden'],
     log:'Course plotted. Tessaly is fourteen years away at full burn. No single clone will live to see it. The line will.'},
   {id:'injectors', z:5, kind:'act', name:'Rebuild the drive injectors', sk:['eng','res'], days:7000, haz:0.3, req:['warden'],
@@ -472,7 +475,7 @@ const xpNeed = l => 152.6 * Math.pow(1.61051, l);
 const echoMult = s => Math.pow(1.58, S.echo[s]);
 const isDone = id => (S.life.done[id] || 0) >= T[id].reps;
 const available = t => t.req.every(isDone);
-const complete = t => t.kind === 'act' && isDone(t.id);
+const complete = t => t.kind !== 'job' && isDone(t.id);
 const lifeDays = () => M.life * 365;
 function skF(s){ return (1 + 0.1 * S.life.lv[s]) * M.sk[s]; }
 // Frailty: in the last quarter of a clone's life, all work slows down, to 60% at the very end.
@@ -501,7 +504,7 @@ function active(){
       if (L.foraging) return food;
     }
   } else L.foraging = false;
-  if ((L.strain || 1) >= AUTO_REST_AT) { const r = TASKS.find(t => t.kind === 'rest' && isAuto(t) && available(t)); if (r) return r; }
+  if ((L.strain || 1) >= AUTO_REST_AT) { const r = TASKS.find(t => t.kind === 'rest' && isAuto(t) && available(t) && !complete(t)); if (r) return r; }
   for (const id of L.queue) { const t = T[id]; if (available(t) && !complete(t)) return t; }
   // automated actions run on their own, in ship order, once the queue is done
   for (const t of TASKS) if (t.kind === 'act' && isAuto(t) && available(t) && !complete(t)) return t;
@@ -1198,7 +1201,7 @@ function renderTasks(){
       });
     }
     if (rests.length) {
-      h += '<div class="sub">Recovery · repeatable · halves strain</div>';
+      h += '<div class="sub">Recovery · once per life · halves strain</div>';
       rests.forEach(t => {
         const qi = L.queue.indexOf(t.id);
         h += `<div class="task act rest" data-id="${t.id}">
@@ -1511,7 +1514,7 @@ function renderMap(){
 function updateMap(){
   const L = S.life;
   mapRefs.forEach(r => {
-    const t = r.t, av = available(t), done = t.kind === 'act' && complete(t), cur = L.cur === t.id;
+    const t = r.t, av = available(t), done = complete(t), cur = L.cur === t.id;
     r.g.classList.toggle('done', done); r.g.classList.toggle('cur', cur); r.g.classList.toggle('lock', !av && !done);
     let p = done ? 1 : (L.prog[t.id] || 0) / t.days;
     r.f.setAttribute('width', (Math.min(1, p) * r.w).toFixed(1));
@@ -1524,7 +1527,7 @@ function updateMap(){
 document.addEventListener('click', e => {
   const g = e.target.closest && e.target.closest('[data-mapdo]'); if (!g) return;
   const L = S.life, t = T[g.dataset.mapdo];
-  if (L.dead || !available(t) || (t.kind === 'act' && complete(t))) { sfx('error'); return; }
+  if (L.dead || !available(t) || complete(t)) { sfx('error'); return; }
   audioStart(); sfx('click');
   L.queue = [t.id, ...L.queue.filter(x => x !== t.id)]; L.foraging = false; taskKey = '';
   toast('Working on: ' + t.name);
@@ -1541,7 +1544,7 @@ function showIntro(){
       <li><b>Tap a task</b> to work on it now. <b>+</b> adds an action to the queue.</li>
       <li>Finish an action in 10 different lives, or work a job for 10 batches in 10 different lives, and an <b>AUTO</b> switch appears so it runs by itself.</li>
       <li><b>Jobs</b> repeat forever and make rations or salvage. The last job you tapped runs whenever the queue is empty.</li>
-      <li>Health drains all the time. Your clone eats about <b>4 rations a day</b>, one meal every 6 hours, and each meal restores some health. <b>Strain</b> makes the drain grow steadily; rest to halve it. Every day a clone survives adds 1 max health to all later clones. You wake with no food. Run out of rations and you starve. Storage is limited, so you can\u2019t stockpile much.</li>
+      <li>Health drains all the time. Your clone eats about <b>4 rations a day</b>, one meal every 6 hours, and each meal restores some health. <b>Strain</b> makes the drain grow steadily. Each ship section has one rest per life that halves it. Every day a clone survives adds 1 max health to all later clones. You wake with no food. Run out of rations and you starve. Storage is limited, so you can\u2019t stockpile much.</li>
       <li>Bodies age. In the last quarter of a clone\u2019s life, all work slows down. The first clones are unstable and die young; each new one lives a few days longer.</li>
       <li>Time only moves while your clone is working. With nothing to do, the clock stops.</li>
       <li>When a clone dies, skill levels reset but their <b>echo</b> speeds up learning in every future clone.</li>
