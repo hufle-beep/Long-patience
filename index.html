@@ -670,7 +670,7 @@ function finish(t){
     return;
   }
   if (t.kind === 'rest') {
-    L.strain = Math.max(1, (L.strain || 1) / 2);
+    L.strain = (L.strain || 1) / 2;   // may drop below 1
     L.queue = L.queue.filter(x => x !== t.id);
     if (L.done[t.id] === 1) addPractice(t);
     HOOK.rested(t); HOOK.change();
