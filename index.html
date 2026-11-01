@@ -1231,7 +1231,6 @@ function renderTasks(){
   }
   h += `<div class="qnote">Fallback job: <b>${L.job ? esc(T[L.job].name) : 'none'}</b>. It runs whenever the queue is empty.</div></div>`;
 
-  h += '<div class="secstrip">' + ZONES.map(z => `<span class="${z.id < L.sec ? 'past' : z.id === L.sec ? 'here' : ''}">${z.id < L.sec ? '\u2715 ' : ''}${z.name}</span>`).join('<i>\u203a</i>') + '</div>';
   ZONES.forEach(z => {
     if (z.id !== L.sec) return;
     const zt = TASKS.filter(t => t.z === z.id);
