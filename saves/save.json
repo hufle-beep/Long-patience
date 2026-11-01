@@ -1,6 +1,7 @@
 {
  "v": 1,
  "rv": 2,
+ "sv": 2,
  "gen": 1,
  "echo": {
   "eng": 0,
@@ -44,29 +45,29 @@
  },
  "won": false,
  "winGen": 0,
- "bank": 0,
- "saved": 1793547787963,
+ "bank": 341.4813,
+ "saved": 1793548605487,
  "intro": true,
  "life": {
-  "day": 189.9080000000046,
+  "day": 12.059999999999993,
   "hp": 100,
-  "rations": 24.586793999999546,
-  "salvage": 0.9722399999999966,
+  "rations": 8.492499999999993,
+  "salvage": 0,
   "lv": {
    "eng": 0,
-   "bio": 5,
+   "bio": 0,
    "cbt": 0,
    "hak": 0,
    "nav": 0,
    "res": 0
   },
   "xp": {
-   "eng": 3.240799999999988,
-   "bio": 21.980100000000512,
+   "eng": 0,
+   "bio": 0,
    "cbt": 0,
    "hak": 0,
    "nav": 0,
-   "res": 12.0596
+   "res": 12.059999999999993
   },
   "echo0": {
    "eng": 0,
@@ -82,14 +83,15 @@
   "prog": {
    "wake": 0
   },
-  "job": "scrap",
+  "cyc": {},
+  "job": null,
   "queue": [],
   "owned": {},
   "order": [
    "wake"
   ],
   "foraging": false,
-  "cur": "scrap",
+  "cur": null,
   "dead": false,
   "cause": ""
  }
