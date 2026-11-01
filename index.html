@@ -364,8 +364,12 @@ const MEAL_CD = 20;        // ticks between meals: one ration every 6 hours, 4 a
 const EAT = 1 / MEAL_CD;   // average rations eaten per tick (used for estimates)
 const HUNGER = 0.15;       // base health lost per tick, always, while time runs
 // Strain: the body wears down. The hunger drain is multiplied by strain, which climbs
-// steadily (+1 every STRAIN_RAMP ticks, about 14 days). Rest actions halve it again.
-const STRAIN_RAMP = 1100, AUTO_REST_AT = 2;
+// faster and faster as the clone ages: its growth rate starts at +1 per STRAIN_RAMP ticks and
+// rises by that much again every STRAIN_ACCEL ticks of wear. Rest actions halve both strain and wear.
+const STRAIN_RAMP = 800, STRAIN_ACCEL = 2000, AUTO_REST_AT = 2;
+// Resolve slows strain: early clones feel it most.
+const STRAIN_RES = 0.02;
+const strainRate = wear => (1 + wear / STRAIN_ACCEL) / STRAIN_RAMP / (1 + STRAIN_RES * (S.life.lv.res || 0));
 const MAX_DRAIN = 1.2;     // most health a clone can lose per day: a full bar lasts at least ~2 min at 1x
 // A meal restores the hunger of one cooldown plus the old resting regeneration.
 function mealHp(){ return (HUNGER + M.regen) * MEAL_CD; }
@@ -637,6 +641,7 @@ function finish(t){
   }
   if (t.kind === 'rest') {
     L.strain = Math.max(1, (L.strain || 1) / 2);
+    L.wear = (L.wear || 0) / 2;
     L.queue = L.queue.filter(x => x !== t.id);
     if (L.done[t.id] === 1) addPractice(t);
     HOOK.rested(t); HOOK.change();
@@ -698,7 +703,8 @@ function step(dt){
   L.salvage += M.pSal * dt;
   clampRes();
   // Health drains all the time; hazards add to it. Meals put some back.
-  L.strain = (L.strain || 1) + dt / STRAIN_RAMP;
+  L.wear = (L.wear || 0) + dt;
+  L.strain = (L.strain || 1) + dt * strainRate(L.wear);
   const drain = Math.min(HUNGER * L.strain + (t && t.haz ? hazDmg(t) : 0), MAX_DRAIN);
   L.hp -= drain * dt;
   L.meal = Math.max(0, (L.meal || 0) - dt);
@@ -966,7 +972,7 @@ function survival(){
   let hp = L.hp, rat = L.rations, strain = L.strain || 1, meal = L.meal || 0, t = 0, why = '';
   const dt = 5, eatOn = S.set.autoEat, mh = mealHp();
   while (t < lifeLeft) {
-    strain += dt / STRAIN_RAMP;
+    strain += dt * strainRate((L.wear || 0) + t);
     hp -= Math.min(HUNGER * strain + haz, MAX_DRAIN) * dt;
     rat = Math.min(M.ratCap, rat + net * dt); meal -= dt;
     if (eatOn && meal <= 0 && rat >= 1 && hp <= M.maxHp - mh / 2) { rat -= 1; hp = Math.min(M.maxHp, hp + mh); meal = MEAL_CD; }
@@ -1668,7 +1674,7 @@ function showIntro(){
       <li><b>Training</b> sessions build skills faster (+50% XP), but each can be done only 4 times per life.</li>
       <li>Each automated task has a <b>priority</b> (P1\u2013P5, tap to change). P1 runs first.</li>
       <li><b>Jobs</b> repeat forever and make rations or salvage. The last job you tapped runs whenever the queue is empty.</li>
-      <li>Health drains all the time. Your clone eats about <b>4 rations a day</b>, one meal every 6 hours, and each meal restores some health. <b>Strain</b> makes the drain grow steadily. Each ship section has one rest per life that halves it. Every day a clone survives adds a quarter point of max health to all later clones. You wake with no food. Run out of rations and you starve. Storage is limited, so you can\u2019t stockpile much.</li>
+      <li>Health drains all the time. Your clone eats about <b>4 rations a day</b>, one meal every 6 hours, and each meal restores some health. <b>Strain</b> makes the drain grow, faster and faster as the clone ages; Resolve slows it. Each ship section has one rest per life that halves it. Every day a clone survives adds a quarter point of max health to all later clones. You wake with no food. Run out of rations and you starve. Storage is limited, so you can\u2019t stockpile much.</li>
       <li>Bodies age. In the last quarter of a clone\u2019s life, all work slows down. The first clones are unstable and die young; each new one lives a few days longer.</li>
       <li>Time only moves while your clone is working. With nothing to do, the clock stops.</li>
       <li>When a clone dies, skill levels reset but their <b>echo</b> speeds up learning in every future clone.</li>
