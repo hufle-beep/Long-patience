@@ -532,7 +532,7 @@ function newLife(s){
 }
 function defaultState(){
   const s = {v:1, ev:2, xpTot:{}, rv:4, sv:2, pv:2, vv:3, gen:1, prio:{}, ever:{}, prac:{}, auto:{}, echo:{}, perks:{}, seen:{}, logged:{}, log:[], lastOrder:[], lastJob:null,
-    set:{speed:1, autoFood:true, autoEat:true, foodDays:2, replay:true, boost:false},
+    set:{speed:1, autoFood:true, autoEat:true, foodDays:2, replay:true, fillCross:false, boost:false},
     stats:{bestAge:0, deaths:0, daysLived:0}, won:false, winGen:0, bank:0, saved:Date.now(), intro:false};
   SKILLS.forEach(k => s.echo[k.id] = 0);
   s.life = newLife(s);
@@ -605,6 +605,11 @@ function active(){
   for (const t of TASKS) if ((t.kind === 'act' || t.kind === 'train') && isAuto(t) && available(t) && !complete(t)) {
     if (!pick || prioOf(t) < prioOf(pick) || (prioOf(t) === prioOf(pick) && kindRank(t) < kindRank(pick))) pick = t;
   }
+  if (pick && pick.cross && S.set.fillCross) {
+    // Option: top up every storage in this section before an automated crossing
+    const fill = fillJob();
+    if (fill) return fill;
+  }
   if (pick) return pick;
   if (L.job && T[L.job].kind !== 'job') L.job = null;
   if (L.job && available(T[L.job])) {
@@ -628,6 +633,17 @@ function addPractice(t){ S.prac[t.id] = (S.prac[t.id] || 0) + 1; if (S.prac[t.id
 function isAuto(t){ return !!S.auto[t.id] && practiced(t); }
 function storeRatio(t){ return t.prod && t.prod.rations ? S.life.rations / M.ratCap : t.prod && t.prod.salvage ? S.life.salvage / M.salCap : 0; }
 const prioOf = t => (S.prio && S.prio[t.id]) || 3;
+// The best job in the current section for a storage that isn't full yet (rations first).
+function fillJob(){
+  for (const res of ['rations', 'salvage']) {
+    let best = null, br = 0;
+    for (const t of TASKS) if (t.kind === 'job' && t.prod && t.prod[res] && available(t) && !jobFull(t)) {
+      const r = t.prod[res] * speedOf(t); if (r > br) { br = r; best = t; }
+    }
+    if (best) return best;
+  }
+  return null;
+}
 function jobFull(t){
   if (!t.prod) return false;
   const L = S.life;
@@ -1682,9 +1698,10 @@ const KIND_LABEL = {job:'Job', act:'Action', train:'Training', rest:'Rest'};
 function renderAuto(){
   const L = S.life;
   const list = TASKS.filter(t => practiced(t));
-  const key = list.map(t => t.id + (S.auto[t.id] ? '*' : '') + prioOf(t)).join() + '|' + L.sec + '|' + S.gen;
+  const key = list.map(t => t.id + (S.auto[t.id] ? '*' : '') + prioOf(t)).join() + '|' + L.sec + '|' + S.gen + '|' + !!S.set.fillCross;
   if (key === autoKey) return; autoKey = key;
-  let h = `<div class="panel"><span class="h2">Automation</span><p class="note">Tasks practised in ${AUTO_LIVES} lives can run by themselves. Switch them on and set their priority here: 1 runs first, 5 last. Your own queue always comes first; rests fire on their own at strain ×${AUTO_REST_AT}.</p></div>`;
+  let h = `<div class="panel"><span class="h2">Automation</span><p class="note">Tasks practised in ${AUTO_LIVES} lives can run by themselves. Switch them on and set their priority here: 1 runs first, 5 last. Your own queue always comes first; rests fire on their own at strain ×${AUTO_REST_AT}.</p>
+    <div class="row"><p>Fill storage before moving on<small>Before an automated crossing to the next section, work this section\u2019s jobs until ration and salvage storage are both full.</small></p><button class="tog${S.set.fillCross ? ' on' : ''}" data-set="fillCross" aria-label="Fill storage before moving on" aria-pressed="${!!S.set.fillCross}"></button></div></div>`;
   if (!list.length) {
     h += `<p class="note">Nothing unlocked yet. Finish an action in ${AUTO_LIVES} different lives, or work a job for ${JOB_PRAC_BATCHES} batches in ${AUTO_LIVES} different lives, and it will appear here.</p>`;
   }
@@ -1862,7 +1879,7 @@ document.addEventListener('click', e => {
     }
     return;
   }
-  if (d.set) { S.set[d.set] = !S.set[d.set]; renderArchive(true); return; }
+  if (d.set) { S.set[d.set] = !S.set[d.set]; autoKey = ''; renderArchive(true); if (tab === 'auto') renderAuto(); return; }
   if (d.confirm) {
     const k = d.confirm;
     if (!confirmT[k]) {
