@@ -560,8 +560,8 @@ const available = t => t.z === (S.life.sec || 1) && t.req.every(isDone);
 const complete = t => t.kind !== 'job' && isDone(t.id);
 const lifeDays = () => M.life * 365;
 function skF(s){ return (1 + 0.1 * S.life.lv[s]) * M.sk[s]; }
-// Frailty: in the last quarter of a clone's life, all work slows down, to 60% at the very end.
-function frailty(){ const f = S.life.day / lifeDays(); return f < 0.75 ? 1 : 1 - 1.6 * (f - 0.75); }
+// (The old last-quarter ageing slowdown was removed; strain alone limits a life.)
+function frailty(){ return 1; }   // ageing slowdown removed
 function speedOf(t){ let p = 1; t.sk.forEach(s => p *= skF(s)); return Math.pow(p, 1 / t.sk.length) * M.spd * frailty(); }
 function hazDmg(t){ const L = S.life; return (t.haz || 0) * M.haz / (1 + 0.2 * L.lv.cbt + 0.3 * L.lv.res); }
 function xpRate(t, s){ return ZT[t.z] * M.xp * M.xpSk[s] * echoMult(s) * (t.kind === 'train' ? TRAIN_XP : 1); }
@@ -1680,7 +1680,7 @@ function showIntro(){
       <li>Each automated task has a <b>priority</b> (P1\u2013P5, tap to change). P1 runs first.</li>
       <li><b>Jobs</b> repeat forever and make rations or salvage. The last job you tapped runs whenever the queue is empty.</li>
       <li>Health drains all the time. Your clone eats about <b>4 rations a day</b>, one meal every 6 hours, and each meal restores some health. <b>Strain</b> makes the drain grow, faster and faster as the clone ages; Resolve slows it, rests halve it, and food deeper in the ship restores more health. Each ship section has one rest per life that halves it. Every day a clone survives adds a quarter point of max health to all later clones. You wake with no food. Run out of rations and you starve. Storage is limited, so you can\u2019t stockpile much.</li>
-      <li>Bodies age. In the last quarter of a clone\u2019s life, all work slows down. The first clones are unstable and die young; each new one lives a few days longer.</li>
+      <li> The first clones are unstable and die young; each new one lives a few days longer.</li>
       <li>Time only moves while your clone is working. With nothing to do, the clock stops.</li>
       <li>When a clone dies, skill levels reset but their <b>echo</b> speeds up learning in every future clone.</li>
       <li><b>☰</b> opens the menu with save slots; the game waits while it is open. Time spent away is stored as a <b>+2×</b> boost you can switch on in the header.</li>
