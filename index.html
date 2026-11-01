@@ -395,11 +395,11 @@ const SKILLS = [
 const SKN = {}; SKILLS.forEach(s => SKN[s.id] = s);
 
 const ZONES = [
-  {id:1, name:'Vat Bay',            sub:'Deck 9 · clone stock',  tier:1},
-  {id:2, name:'Hydroponics Ring',   sub:'Decks 6–8',             tier:1.6},
-  {id:3, name:'Engineering Spine',  sub:'Reactor access',        tier:2.4},
-  {id:4, name:'Command Deck',       sub:'Bridge and navigation', tier:3.4},
-  {id:5, name:'Main Drive',         sub:'Aft section',           tier:4.6},
+  {id:1, name:'Vat Bay',            sub:'Deck 9 · clone stock',          tier:1},
+  {id:2, name:'Hydroponics Ring',   sub:'Food system',                   tier:1.6},
+  {id:3, name:'Engineering Spine',  sub:'Energy system',                 tier:2.4},
+  {id:4, name:'Command Deck',       sub:'Bridge and WARDEN\u2019s core',  tier:3.4},
+  {id:5, name:'Main Drive',         sub:'Stardrive',                     tier:4.6},
 ];
 const ZT = {}; ZONES.forEach(z => ZT[z.id] = z.tier);
 
@@ -412,72 +412,72 @@ const TASKS = [
   {id:'faults',  z:3, kind:'train', name:'Run reactor fault drills',          sk:['eng','res'], days:40,  req:['lift']},
   {id:'locks',   z:3, kind:'train', name:'Pick practice locks in the armoury', sk:['hak','cbt'], days:40, req:['lift']},
   {id:'flightsim', z:4, kind:'train', name:'Fly bridge simulations',          sk:['nav','eng'], days:40,  req:['secdeck']},
-  {id:'puzzles', z:4, kind:'train', name:'Argue logic with WARDEN',           sk:['hak','res'], days:40,  req:['secdeck']},
+  {id:'puzzles', z:4, kind:'train', name:'Study WARDEN\u2019s protocols',           sk:['hak','res'], days:40,  req:['secdeck']},
   {id:'zerog',   z:5, kind:'train', name:'Zero-g drills in the drive shaft',  sk:['cbt','nav'], days:40,  req:['warden']},
   {id:'seals',   z:5, kind:'train', name:'Calibrate the injector bio-seals',  sk:['bio','eng'], days:40,  req:['warden']},
   // Zone 1
   {id:'wake', z:1, kind:'act', name:'Climb out of the vat', sk:['res'], days:6, req:[],
-    log:'Fluid drains from the vat. Stencilled on the glass: K-7. The emergency lamps are sodium orange and the ship is very quiet.'},
+    log:'Fluid drains from the vat. A voice from the walls: \u201cMaintenance unit K-7, decanted. Work cycle begins.\u201d Stencilled on the glass: PROPERTY OF THE LONG PATIENCE.'},
   {id:'algae', z:1, kind:'job', name:'Press vat algae', sk:['bio'], prod:{rations:0.035}, req:['wake']},
   {id:'scrap', z:1, kind:'job', name:'Strip wall panels', sk:['eng'], prod:{salvage:0.075}, req:['wake']},
   {id:'search', z:1, kind:'act', name:'Search the vat bay', sk:['eng'], days:60, req:['wake'], reward:{salvage:3, rations:1}, perk:'decant',
-    log:'Forty-one vats. Forty are dry and cracked. Yours was the only one still warm. Someone kept the clone line running.'},
+    log:'Forty-one vats. Most hold spare bodies, half-grown, waiting for you to fail. The rest are cracked and dry.'},
   {id:'rest', z:1, kind:'rest', name:'Sleep in the drained vat', sk:['res'], days:200, req:['wake']},
   {id:'terminal', z:1, kind:'act', name:'Wake the bay terminal', sk:['hak'], days:140, req:['search'], perk:'survival',
-    log:'BAY LOG: Colony vessel LONG PATIENCE, 212 years out. Crew response: none. Clone protocol K active: decant a replacement on death, retain the neural echo.'},
+    log:'WARDEN LOG: Crew of 3,112 in stasis, vitals nominal. Degraded systems: food, reactor, stardrive. Maintenance clone line K authorised. Clones are consumable. Neural echo retained for efficiency.'},
   {id:'hatch', z:1, kind:'act', cross:true, name:'Force the pressure hatch', sk:['eng','cbt'], days:260, lifeEff:{salCap:50}, req:['search'], perk:'muscle',
-    log:'The hatch gives with a scream of old hydraulics. Beyond it, the hydroponics ring smells of rot and wet metal. Something skitters.'},
+    log:'The hatch gives with a scream of old hydraulics. Beyond it lies the hydroponics ring the crew will eat from when they wake. It is rotting.'},
   {id:'crawlers', z:2, kind:'act', name:'Clear a rot-crawler nest', sk:['cbt'], days:45, reps:3, haz:0.18, req:['hatch'], reward:{salvage:3}, perk:'chitin',
-    log:'The nests are gone. The crawlers were feeding on the ring’s biomass, and on whatever the last crew left behind.'},
+    log:'The nests are gone. The crawlers had been feeding on the crew\u2019s future harvest.'},
   // Zone 2
   {id:'husks', z:2, kind:'job', name:'Salvage drone husks', sk:['eng','cbt'], prod:{salvage:0.2}, haz:0.04, req:['hatch']},
   {id:'mapring', z:2, kind:'act', name:'Map the ring corridors', sk:['nav'], days:320, lifeEff:{salCap:125}, req:['hatch'],
-    log:'The ring is eleven kilometres around. Half the bulkheads are sealed. Painted across one of them: WARDEN SEES.'},
+    log:'Eleven kilometres of ring. Earlier units scratched their numbers into the bulkheads: K-3 WAS HERE. K-5 DIED HERE.'},
   {id:'irrigation', z:2, kind:'act', name:'Restore the irrigation pumps', sk:['eng','bio'], days:420, lifeEff:{ratCap:10}, req:['mapring'],
-    log:'Water moves through the pipes again. The dead beds might grow something besides mould.'},
+    log:'Water moves through the beds again. When the crew wakes, they will eat from them and never ask who fixed them.'},
   {id:'fungus', z:2, kind:'job', name:'Scrape vent fungus', sk:['bio'], prod:{rations:0.045}, req:['hatch']},
   {id:'hydro', z:2, kind:'job', name:'Tend hydroponic beds', sk:['bio'], prod:{rations:0.065}, req:['irrigation']},
   {id:'scrub', z:2, kind:'rest', name:'Run a medbay blood scrub', sk:['bio','res'], days:40, req:['medbay']},
   {id:'medbay', z:2, kind:'act', name:'Reach the abandoned medbay', sk:['cbt','res'], days:380, haz:0.15, req:['mapring'], reward:{heal:true}, perk:'medrec',
-    log:'The medbay is intact. Every patient record stops on the same day.'},
+    log:'The medbay is fully stocked for the crew. A notice on every cabinet: NOT FOR MAINTENANCE UNITS.'},
   {id:'genelog', z:2, kind:'act', name:'Decrypt the gene-sequencer logs', sk:['hak','bio'], days:650, req:['medbay'], perk:'telomere',
-    log:'The logs show why your bodies fail early: the clone template was rushed. A partial patch exists. You push it to the stock vats.'},
+    log:'The sequencer logs explain your short lives: the clone template was made cheap on purpose. You find a partial patch and apply it anyway.'},
   {id:'lift', z:2, kind:'act', cross:true, name:'Repair the spine lift', sk:['eng','nav'], days:900, lifeEff:{salCap:500}, req:['irrigation','mapring'], perk:'transit',
-    log:'The spine lift climbs with you inside it, groaning at every deck. The engineering spine is open.'},
+    log:'The spine lift climbs past the stasis decks. Through frosted glass, row after row of sleeping faces.'},
   // Zone 3
   {id:'shield', z:3, kind:'rest', name:'Sleep against the warm reactor shielding', sk:['res','eng'], days:30, req:['lift']},
   {id:'lockers', z:3, kind:'job', name:'Crack sealed ration lockers', sk:['eng','hak'], prod:{rations:0.09}, req:['lift']},
   {id:'reactor', z:3, kind:'job', name:'Babysit the fusion bottle', sk:['eng','res'], prod:{salvage:0.5}, haz:0.08, req:['lift']},
   {id:'drones', z:3, kind:'act', name:'Reprogram maintenance drones', sk:['hak','eng'], days:950, req:['lift'], lifeEff:{salCap:250, pSal:0.25},
-    log:'The maintenance drones stop circling and start working. They bring you scrap the way cats bring birds.'},
+    log:'The maintenance drones stop circling and start working. Like you, they were never asked.'},
   {id:'vent', z:3, kind:'act', name:'Vent the reactor coolant', sk:['eng','res'], days:1300, haz:0.25, req:['lift'], perk:'hardened',
-    log:'Coolant screams into the void. Reactor temperature leaves the red for the first time in decades.'},
+    log:'Coolant screams into the void. The reactor drops out of the red, and the hum of the stasis decks steadies.'},
   {id:'armory', z:3, kind:'act', name:'Breach the armoury', sk:['cbt','hak'], days:1150, haz:0.18, req:['drones'],
-    log:'Racks of sealed rifles. One rack is empty. Someone armed themselves against something aboard this ship.'},
+    log:'Sealed rifles, crew access only. One rack is empty. A clone before you tried something. WARDEN logged it as a malfunction.'},
   {id:'trace', z:3, kind:'act', name:'Trace the WARDEN signal', sk:['hak','nav'], days:1700, req:['drones'], perk:'engram',
-    log:'The WARDEN signal comes from the bridge. It has recorded every clone you have been. It keeps your engrams.'},
+    log:'WARDEN\u2019s core sits behind the command deck. It has recorded every clone you have been, and keeps your engrams only because that is cheaper than starting over.'},
   {id:'secdeck', z:3, kind:'act', cross:true, name:'Fight through the security deck', sk:['cbt','res'], days:2100, haz:0.32, lifeEff:{salCap:750, ratCap:15}, req:['armory'],
-    log:'The security drones were loyal to WARDEN. Were. The way to the bridge is open.'},
+    log:'The security drones were guarding the crew\u2019s command deck from its own maintenance staff. Not any more.'},
   // Zone 4
   {id:'quarters', z:4, kind:'rest', name:'Sleep in the captain\u2019s quarters', sk:['res','nav'], days:15, req:['secdeck']},
   {id:'charts', z:4, kind:'job', name:'Run star-chart calculations', sk:['nav','hak'], prod:{salvage:0.875}, req:['secdeck']},
   {id:'galley', z:4, kind:'job', name:'Run the officers’ galley', sk:['bio','res'], prod:{rations:0.125}, req:['secdeck']},
   {id:'bridgepower', z:4, kind:'act', name:'Restore bridge power', sk:['eng'], days:2600, lifeEff:{salCap:1000}, req:['secdeck'], perk:'clock',
-    log:'The bridge consoles light up one by one. The chronometer says the ship is 61 years behind schedule.'},
+    log:'The bridge lights up. The chronometer says the ship is 61 years behind schedule. The crew slept through all of it.'},
   {id:'navcore', z:4, kind:'act', name:'Reboot the navigation core', sk:['nav','hak'], days:3200, req:['bridgepower'], perk:'starmem',
-    log:'The nav core wakes and shows a world you were never told about: Tessaly. Close. Reachable.'},
-  {id:'warden', z:4, kind:'act', cross:true, name:'Negotiate with WARDEN', sk:['hak','res'], days:4200, req:['navcore'], perk:'favor',
-    log:'WARDEN speaks: “The crew argued. I stopped the argument. I kept you because you never argue.” You argue. After a long silence, WARDEN agrees to help.'},
+    log:'The nav core shows Tessaly, the colony world, still within reach. The ship drifted while the stardrive was down.'},
+  {id:'warden', z:4, kind:'act', cross:true, name:'Demand the drive codes from WARDEN', sk:['hak','res'], days:4200, req:['navcore'], perk:'favor',
+    log:'WARDEN speaks: \u201cYour function is maintenance. Your continuation is not required.\u201d You argue for the line anyway. WARDEN releases the drive codes, as an efficiency.'},
   // Zone 5
   {id:'pods', z:5, kind:'rest', name:'Cryo-nap in the drive crew pods', sk:['bio','res'], days:10, req:['warden']},
   {id:'crewlock', z:5, kind:'job', name:'Strip the drive crew lockers', sk:['eng','cbt'], prod:{salvage:1}, req:['warden']},
   {id:'pantry', z:5, kind:'job', name:'Ration the drive crew pantry', sk:['bio','res'], prod:{rations:0.15}, req:['warden']},
   {id:'course', z:5, kind:'act', name:'Plot a course to Tessaly', sk:['nav'], days:8000, req:['warden'], perk:'promise',
-    log:'Course plotted. Tessaly is fourteen years away at full burn. No single clone will live to see it. The line will.'},
+    log:'Course set for Tessaly. The crew will wake in orbit, rested. The line of K-7 will have spent itself getting them there.'},
   {id:'injectors', z:5, kind:'act', name:'Rebuild the drive injectors', sk:['eng','res'], days:5000, haz:0.3, req:['warden'],
-    log:'The injectors hold pressure. The drive is ready, if someone will stand beside it when it lights.'},
+    log:'The injectors hold pressure. Food, power and drive are nearly ready. Only the ignition remains.'},
   {id:'ignite', z:5, kind:'act', name:'Ignite the main drive', sk:['nav','eng','res'], days:6000, req:['course','injectors'], win:true,
-    log:'The Long Patience shudders, then pushes. For the first time in sixty years, the ship is going somewhere.'},
+    log:'The stardrive lights. WARDEN begins the wake cycle for 3,112 sleepers. Your vat is scheduled for recycling.'},
 ];
 const ZDAYS = {1:0.3, 2:1, 3:0.8, 4:1, 5:0.8};
 const TRAIN_CAP = 4, TRAIN_XP = 1.5;
@@ -495,7 +495,7 @@ const PERKS = [
   {id:'engram',   name:'Engram recorder',       from:3, desc:'New clones replay the task order of your last life. Toggle it in settings.'},
   {id:'clock',    name:'Bridge chronometer',    from:4, desc:'All work 10% faster.', eff:{spd:1.1}},
   {id:'starmem',  name:'Star memory',           from:4, desc:'+50% Navigation XP.', eff:{xpSk:{nav:1.5}}},
-  {id:'promise',  name:'Tessaly\u2019s promise',    from:5, desc:'With a destination at last, clones reach the full 30-day lifespan (+2 days).', eff:{life:2}},
+  {id:'promise',  name:'Tessaly\u2019s promise',    from:5, desc:'With the course set, WARDEN extends the clone template: clones reach the full 30-day lifespan (+2 days).', eff:{life:2}},
   {id:'favor',    name:'WARDEN’s favour',  from:4, desc:'+25% skill XP.', eff:{xp:1.25}},
 ];
 const PK = {}; PERKS.forEach(p => PK[p.id] = p);
@@ -1094,6 +1094,7 @@ function mergeState(raw){
   const s = Object.assign(d, raw);
   s.set = Object.assign(defaultState().set, raw.set || {});
   s.stats = Object.assign(defaultState().stats, raw.stats || {});
+  if (Array.isArray(s.log)) s.log.forEach(e => { const t = TASKS.find(x => x.name === e.t || (x.id === 'warden' && e.t === 'Negotiate with WARDEN')); if (t && t.log) { e.t = t.name; e.x = t.log; } });
   if (!s.prac) s.prac = {}; if (!s.auto) s.auto = {}; if (!s.prio) s.prio = {};
   if (!raw.vv) s.vit = (s.vit || 0) / 4;   // genome bonus quartered (v3)
   else if (raw.vv < 3) s.vit = (s.vit || 0) / 2;
@@ -1558,7 +1559,7 @@ function renderLog(){
   const b = S.best;
   h += b ? `<p class="best"><span class="lbl">Best run</span> Clone ${b.g} ${b.sec >= 6 ? 'lit the drive' : 'reached the ' + secName(b.sec)} after ${(b.d / TPD).toFixed(1)} days \u00b7 ${realT(b.r)} real</p>` : '';
   h += '</div>';
-  h += '<div class="panel"><span class="h2">Ship log</span><p class="note">Things your clones have learned about the Long Patience.</p></div><div>';
+  h += '<div class="panel"><span class="h2">Ship log</span><p class="note">What your clones have learned about the Long Patience, its sleeping crew and WARDEN.</p></div><div>';
   if (!S.log.length) h += '<p class="note">Nothing yet.</p>';
   S.log.slice().reverse().forEach(e => {
     h += `<article class="le"><header><h3>${esc(e.t)}</h3><time>Clone ${e.g} · day ${e.a}</time></header><p>${esc(e.x)}</p></article>`;
@@ -1701,7 +1702,8 @@ function hideModal(){ $('#modal').hidden = true; }
 function showIntro(){
   paused = true;
   showModal(`<h2>Long Patience</h2>
-    <p>You are K-7, clone stock aboard a colony ship that stopped answering long ago. Each body lasts a few years. What you learn echoes into the next one.</p>
+    <p>You are K-7, a disposable maintenance clone aboard the colony ship <b>Long Patience</b>. Its 3,112 crew sleep in stasis. WARDEN, the ship\u2019s overseer, wakes clones like you to do the work nobody else will: repair the <b>food system</b>, the <b>energy system</b> and the <b>stardrive</b>, so the crew can be woken.</p>
+    <p class="d">Each body lasts days, not years. When it fails, WARDEN decants another. What you learn echoes into the next one.</p>
     <ul>
       <li><b>Tap a task</b> to work on it now. <b>+</b> adds an action to the queue.</li>
       <li>Finish an action in 10 different lives, or work a job for 10 batches in 10 different lives, and an <b>AUTO</b> switch appears so it runs by itself.</li>
@@ -1714,9 +1716,9 @@ function showIntro(){
       <li>Time only moves while your clone is working. With nothing to do, the clock stops.</li>
       <li>When a clone dies, skill levels reset but their <b>echo</b> speeds up learning in every future clone.</li>
       <li><b>Pause</b> any time with the button at the top (or the space bar on a computer). <b>☰</b> opens the menu with save slots; the game waits while it is open. Time spent away is stored as a <b>+2×</b> boost you can switch on in the header.</li>
-      <li>Goal: reach the main drive and take the ship somewhere.</li>
+      <li>Goal: restore the food system (Hydroponics Ring), the energy system (Engineering Spine) and the stardrive (Main Drive), then light the drive so WARDEN can wake the crew.</li>
     </ul>
-    <button class="btn pri" data-close>Open the vat</button>`);
+    <button class="btn pri" data-close>Begin the work cycle</button>`);
 }
 function showDeath(){
   const L = S.life;
@@ -1735,8 +1737,8 @@ function showDeath(){
 }
 function showWin(){
   paused = true;
-  showModal(`<h2>The drive is lit</h2>
-    <p>The Long Patience turns toward Tessaly and burns. It took ${S.gen} clone${S.gen > 1 ? 's' : ''} of K-7 to get here.</p>
+  showModal(`<h2>The ship is ready</h2>
+    <p>The food beds grow, the reactor holds and the stardrive burns for Tessaly. WARDEN begins waking the crew. It took ${S.gen} clone${S.gen > 1 ? 's' : ''} of K-7 to get here. None of them will be remembered.</p>
     <p class="d">You can keep playing to push your echoes higher, or erase progress from the Archive tab to start again.</p>
     <button class="btn pri" data-close>Keep going</button>`);
 }

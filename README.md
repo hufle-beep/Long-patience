@@ -2,9 +2,7 @@
 
 A sci-fi clone-loop incremental game in the vein of Increlution and Incremortal.
 
-You are K-7, clone stock aboard the derelict colony ship *Long Patience*. Each body lives a few years.
-When it dies, its skills fade into an echo that speeds up learning for every later clone.
-Work your way aft through five areas of the ship and light the main drive.
+You are K-7, a disposable maintenance clone aboard the colony ship *Long Patience*. Its crew sleeps in stasis; WARDEN, the ship's overseer, decants clones to keep the ship alive. Repair the food system, the energy system and the stardrive so the crew can be woken. Each body lasts days, and what it learns echoes into the next one.
 
 ## Play
 
