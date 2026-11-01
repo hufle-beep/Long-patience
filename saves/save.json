@@ -3,31 +3,44 @@
  "rv": 3,
  "sv": 2,
  "pv": 2,
- "gen": 2,
+ "gen": 3,
  "ever": {
   "wake": 1,
   "drill": 1,
   "rest": 1,
-  "rewire": 1
+  "rewire": 1,
+  "search": 1,
+  "terminal": 1,
+  "hatch": 1,
+  "reckon": 1
  },
  "prac": {
-  "wake": 2,
-  "drill": 2,
-  "algae": 2,
-  "scrap": 1,
-  "rest": 1,
-  "rewire": 2
+  "wake": 3,
+  "drill": 3,
+  "algae": 3,
+  "scrap": 3,
+  "rest": 3,
+  "rewire": 3,
+  "search": 2,
+  "terminal": 2,
+  "hatch": 1,
+  "fungus": 1,
+  "reckon": 1
  },
  "auto": {},
  "echo": {
-  "eng": 2,
-  "bio": 3,
+  "eng": 3,
+  "bio": 5,
   "cbt": 1,
   "hak": 1,
-  "nav": 0,
-  "res": 1
+  "nav": 1,
+  "res": 3
  },
- "perks": {},
+ "perks": {
+  "decant": true,
+  "survival": true,
+  "muscle": true
+ },
  "seen": {
   "wake": 1,
   "drill": 1,
@@ -35,10 +48,21 @@
   "algae": 1,
   "scrap": 1,
   "search": 1,
-  "rest": 1
+  "rest": 1,
+  "terminal": 1,
+  "hatch": 1,
+  "genes": 1,
+  "reckon": 1,
+  "crawlers": 1,
+  "husks": 1,
+  "mapring": 1,
+  "fungus": 1
  },
  "logged": {
-  "wake": 1
+  "wake": 1,
+  "search": 1,
+  "terminal": 1,
+  "hatch": 1
  },
  "log": [
   {
@@ -46,12 +70,33 @@
    "a": 0,
    "t": "Climb out of the vat",
    "x": "Fluid drains from the vat. Stencilled on the glass: K-7. The emergency lamps are sodium orange and the ship is very quiet."
+  },
+  {
+   "g": 2,
+   "a": 16.3,
+   "t": "Search the vat bay",
+   "x": "Forty-one vats. Forty are dry and cracked. Yours was the only one still warm. Someone kept the clone line running."
+  },
+  {
+   "g": 2,
+   "a": 16.8,
+   "t": "Wake the bay terminal",
+   "x": "BAY LOG: Colony vessel LONG PATIENCE, 212 years out. Crew response: none. Clone protocol K active: decant a replacement on death, retain the neural echo."
+  },
+  {
+   "g": 2,
+   "a": 18,
+   "t": "Force the pressure hatch",
+   "x": "The hatch gives with a scream of old hydraulics. Beyond it, the hydroponics ring smells of rot and wet metal. Something skitters."
   }
  ],
  "lastOrder": [
-  "wake"
+  "wake",
+  "search",
+  "terminal",
+  "hatch"
  ],
- "lastJob": "algae",
+ "lastJob": null,
  "set": {
   "speed": 1,
   "autoFood": true,
@@ -62,77 +107,83 @@
  },
  "stats": {
   "bestAge": 0,
-  "deaths": 1,
-  "daysLived": 1512.5612000002352,
-  "bestDays": 18.90701500000294
+  "deaths": 2,
+  "daysLived": 3182.078400000486,
+  "bestDays": 20.868965000003136
  },
  "won": false,
  "winGen": 0,
- "bank": 0,
- "saved": 1793554643233,
+ "bank": 155.41630000000004,
+ "saved": 1793555389709,
  "intro": true,
  "life": {
-  "day": 677.9308000000789,
-  "hp": 84.91975540148107,
-  "rations": 1.9600000000000004,
-  "salvage": 4.2,
+  "day": 1040.3196000001344,
+  "hp": 75.064785778364,
+  "rations": 10,
+  "salvage": 25,
   "lv": {
-   "eng": 2,
-   "bio": 4,
+   "eng": 4,
+   "bio": 6,
    "cbt": 1,
    "hak": 1,
    "nav": 0,
-   "res": 1
+   "res": 3
   },
   "xp": {
-   "eng": 163.83943383999954,
-   "bio": 107.45827951032547,
-   "cbt": 120.13865200000214,
-   "hak": 106.16987200000167,
+   "eng": 208.22282931191728,
+   "bio": 1964.9202027464269,
+   "cbt": 148.29847059999958,
+   "hak": 218.1704787999985,
    "nav": 0,
-   "res": 123.35742800000202
+   "res": 178.34154850049774
   },
   "echo0": {
-   "eng": 2,
-   "bio": 3,
+   "eng": 3,
+   "bio": 5,
    "cbt": 1,
    "hak": 1,
-   "nav": 0,
-   "res": 1
+   "nav": 1,
+   "res": 3
   },
   "done": {
    "wake": 1,
    "drill": 4,
-   "rewire": 3
+   "rewire": 4,
+   "search": 1,
+   "terminal": 1,
+   "rest": 1
   },
   "prog": {
    "wake": 0,
    "drill": 0,
-   "rewire": 28.856087086089847
+   "rewire": 0,
+   "search": 0,
+   "terminal": 0,
+   "rest": 0
   },
   "cyc": {
-   "algae": 0.4838150000000645,
-   "scrap": 0.6813199999999738
+   "algae": 0.005139999999590694,
+   "scrap": 0.00410000000024513
   },
   "bat": {
-   "algae": 59,
-   "scrap": 7
+   "algae": 97,
+   "scrap": 30
   },
-  "meal": 12.719600000000142,
-  "strain": 1.9684725714288214,
+  "meal": 14.790000000000033,
+  "strain": 1.2752642857145833,
   "sec": 1,
-  "job": "algae",
-  "queue": [
-   "rewire"
-  ],
+  "job": null,
+  "queue": [],
   "owned": {},
   "order": [
-   "wake"
+   "wake",
+   "search",
+   "terminal"
   ],
   "foraging": false,
-  "cur": "rewire",
+  "cur": null,
   "dead": false,
   "cause": ""
  },
- "vit": 18
+ "vit": 38
 }
