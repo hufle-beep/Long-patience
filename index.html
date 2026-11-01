@@ -37,6 +37,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--amber);outline-
 #hud .wrap{display:grid;gap:7px}
 .r1{display:flex;align-items:center;justify-content:space-between;gap:8px 10px;flex-wrap:wrap}
 .ident{display:flex;align-items:center;gap:8px;flex:0 0 auto;white-space:nowrap}
+.hday{font-size:13px;color:var(--fg);font-family:var(--f-mono)}
 .ident b{white-space:nowrap;font-family:var(--f-disp);font-size:22px;font-weight:700;letter-spacing:.04em;color:var(--amber);line-height:1}
 .ident span{font-family:var(--f-disp);font-size:14px;color:var(--dim);letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
 .spd{display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;margin-left:auto}
@@ -319,10 +320,9 @@ button.updl{width:100%}
 <header id="hud" class="gut">
   <div class="wrap">
     <div class="r1">
-      <div class="ident"><button class="menub" data-menu="open" aria-label="Main menu">☰</button><b>K-7</b><span id="h-gen">Clone 1</span></div>
+      <div class="ident"><button class="menub" data-menu="open" aria-label="Main menu">☰</button><b>K-7</b><span id="h-gen">Clone 1</span><span id="h-day" class="num hday"></span></div>
       <div class="spd" id="h-spd"></div>
     </div>
-    <div class="meter"><span class="lbl" style="min-width:0;text-align:left">Life</span><div class="bar"><i id="b-age"></i></div><span id="t-age" class="num"></span></div>
     <div class="meter"><span class="lbl" style="min-width:0;text-align:left">Health</span><div class="bar hp"><i id="b-hp"></i></div><span id="t-hp" class="num"></span></div>
     <div class="surv" id="surv"><span class="lbl">Time left</span><b id="s-left" class="num"></b><span id="s-real" class="num"></span><em id="s-why"></em><span id="s-strain" class="num strain"></span></div>
     <div class="res">
@@ -373,14 +373,14 @@ const HUNGER = 0.15;       // base health lost per tick, always, while time runs
 // Strain: the body wears down. The hunger drain is multiplied by strain, which climbs
 // faster and faster as the clone ages: its growth rate starts at +1 per STRAIN_RAMP ticks and
 // rises by that much again every STRAIN_ACCEL ticks of wear. Rest actions halve strain but not wear, so the acceleration keeps building.
-const STRAIN_RAMP = 800, STRAIN_ACCEL = 2000, AUTO_REST_AT = 2;
+const STRAIN_RAMP = 1000, STRAIN_ACCEL = 300, AUTO_REST_AT = 2;
 // Resolve slows strain: early clones feel it most.
-const STRAIN_RES = 0.02;
-const strainRate = wear => (1 + wear / STRAIN_ACCEL) / STRAIN_RAMP / (1 + STRAIN_RES * (S.life.lv.res || 0));
+const STRAIN_RES = 0.002;
+const strainRate = wear => (1 + wear / STRAIN_ACCEL) / STRAIN_RAMP / (1 + STRAIN_RES * (S.life.lv.res || 0)) * (M ? M.strainMul : 1);
 const MAX_DRAIN = 1.2;     // most health a clone can lose per day: a full bar lasts at least ~2 min at 1x
 // A meal restores the hunger of one cooldown plus the old resting regeneration.
 // Food deeper in the ship is better: each section past the first makes meals restore 12% more.
-const MEAL_SEC = 0.12;
+const MEAL_SEC = 0;
 function mealHp(){ return (HUNGER + M.regen) * MEAL_CD * (1 + MEAL_SEC * ((S.life.sec || 1) - 1)); }
 const START_AGE = 14;
 
@@ -489,13 +489,13 @@ const PERKS = [
   {id:'muscle',   name:'Muscle memory',         from:1, desc:'+15% skill XP.', eff:{xp:1.15}},
   {id:'chitin',   name:'Chitin lore',           from:1, desc:'Hazard damage −10%.', eff:{haz:0.9}},
   {id:'medrec',   name:'Medbay records',        from:2, desc:'Meals restore more health.', eff:{regen:2}},
-  {id:'telomere', name:'Telomere patch',        from:2, desc:'Clones live 2 days longer (lifespan never exceeds 30 days).', eff:{life:2}},
+  {id:'telomere', name:'Telomere patch',        from:2, desc:'+25 max health for every clone.', eff:{maxHp:25}},
   {id:'transit',  name:'Ring transit',          from:2, desc:'+10% speed on every task.', eff:{spd:1.1}},
   {id:'hardened', name:'Radiation hardening',   from:3, desc:'Hazard damage −20%.', eff:{haz:0.8}},
   {id:'engram',   name:'Engram recorder',       from:3, desc:'New clones replay the task order of your last life. Toggle it in settings.'},
   {id:'clock',    name:'Bridge chronometer',    from:4, desc:'All work 10% faster.', eff:{spd:1.1}},
   {id:'starmem',  name:'Star memory',           from:4, desc:'+50% Navigation XP.', eff:{xpSk:{nav:1.5}}},
-  {id:'promise',  name:'Tessaly\u2019s promise',    from:5, desc:'With the course set, WARDEN extends the clone template: clones reach the full 30-day lifespan (+2 days).', eff:{life:2}},
+  {id:'promise',  name:'Tessaly\u2019s promise',    from:5, desc:'With the course set, WARDEN upgrades the clone template: +50 max health for every clone.', eff:{maxHp:50}},
   {id:'favor',    name:'WARDEN’s favour',  from:4, desc:'+25% skill XP.', eff:{xp:1.25}},
 ];
 const PK = {}; PERKS.forEach(p => PK[p.id] = p);
@@ -511,7 +511,7 @@ const ITEMS = [
   {id:'lace',       name:'Neural lace',        cost:163,  req:'medbay',     desc:'+30% skill XP', eff:{xp:1.3}},
   {id:'stims',      name:'Stim injector',      cost:250,  req:'lift',       desc:'All work 15% faster', eff:{spd:1.15}},
   {id:'rifle',      name:'Armoury rifle',      cost:400,  req:'armory',     desc:'Combat work 50% faster, hazard damage −20%', eff:{sk:{cbt:1.5}, haz:0.8}},
-  {id:'cryo',       name:'Cryo-sleeve',        cost:700,  req:'vent',       desc:'This clone lives 2 days longer (up to 30)', eff:{life:2}},
+  {id:'cryo',       name:'Cryo-sleeve',        cost:700,  req:'vent',       desc:'Slows this clone\u2019s strain by 25%', eff:{strainMul:0.75}},
   {id:'visor',      name:'Nav visor',          cost:1125, req:'bridgepower',desc:'Navigation and Hacking work 30% faster', eff:{sk:{nav:1.3, hak:1.3}}},
   {id:'medkit',     name:'Command-deck medkit', cost:600,  req:'secdeck',    desc:'+25 max health, meals restore 50% more health', eff:{maxHp:25, regen:1.5}},
   {id:'exo',        name:'Exo-frame',          cost:1750, req:'navcore',    desc:'Engineering and Resolve work 30% faster, +40 max health', eff:{sk:{eng:1.3, res:1.3}, maxHp:40}},
@@ -538,13 +538,12 @@ function defaultState(){
   s.life = newLife(s);
   return s;
 }
-// Lifespans are in ship days. The template starts at 20 days and gains 1 per clone up to 26;
-// lifespan records add a few more, but no clone ever lives past MAX_LIFE days.
-const TEMPLATE_MIN = 20, TEMPLATE_MAX = 26, TEMPLATE_STEP = 1, MAX_LIFE = 30;
-function templateYears(){ return Math.min(TEMPLATE_MAX, TEMPLATE_MIN + TEMPLATE_STEP * (S.gen - 1)); }
+// Clones have no fixed lifespan: strain alone ends a life. Base health grows with the hardened
+// genome but stops at BASE_HP_MAX; archive records and gear add on top.
+const BASE_HP_MAX = 500;
 function mods(){
   const L = S.life, P = S.perks;
-  const m = {sk:{}, xpSk:{}, spd:1, xp:1, haz:1, maxHp:100 + Math.floor(S.vit || 0), pRat:0, pSal:0, life:templateYears(), regen:0.05, ratCap:5, salCap:25};
+  const m = {sk:{}, xpSk:{}, spd:1, xp:1, haz:1, maxHp:Math.min(BASE_HP_MAX, 100 + Math.floor(S.vit || 0)), pRat:0, pSal:0, strainMul:1, regen:0.05, ratCap:5, salCap:25};
   SKILLS.forEach(k => { m.sk[k.id] = 1; m.xpSk[k.id] = 1; });
   const ap = e => {
     if (!e) return;
@@ -552,7 +551,7 @@ function mods(){
     if (e.xpSk) for (const k in e.xpSk) m.xpSk[k] *= e.xpSk[k];
     if (e.spd) m.spd *= e.spd; if (e.xp) m.xp *= e.xp; if (e.haz) m.haz *= e.haz;
     if (e.maxHp) m.maxHp += e.maxHp; if (e.pRat) m.pRat += e.pRat; if (e.pSal) m.pSal += e.pSal;
-    if (e.life) m.life += e.life; if (e.regen) m.regen *= e.regen;
+    if (e.strainMul) m.strainMul *= e.strainMul; if (e.regen) m.regen *= e.regen;
     if (e.ratCap) m.ratCap += e.ratCap; if (e.salCap) m.salCap += e.salCap;
   };
   PERKS.forEach(p => { if (P[p.id]) ap(p.eff); });
@@ -566,7 +565,7 @@ const echoMult = s => Math.pow(1.58, S.echo[s]);
 const isDone = id => (S.life.done[id] || 0) >= T[id].reps;
 const available = t => t.z === (S.life.sec || 1) && t.req.every(isDone);
 const complete = t => t.kind !== 'job' && isDone(t.id);
-const lifeDays = () => Math.min(MAX_LIFE, M.life) * TPD;
+const lifeDays = () => Infinity;   // no lifespan limit
 function skF(s){ return (1 + 0.1 * S.life.lv[s]) * M.sk[s]; }
 // (The old last-quarter ageing slowdown was removed; strain alone limits a life.)
 function frailty(){ return 1; }   // ageing slowdown removed
@@ -686,8 +685,8 @@ function die(cause){
   const L = S.life; L.dead = true; L.cause = cause; L.cur = null;
   const age = L.day / TPD;
   SKILLS.forEach(k => { if (L.lv[k.id] > S.echo[k.id]) S.echo[k.id] = L.lv[k.id]; });
-  // Hardened genome: every full day a clone survives adds 0.25 max health to all later clones.
-  L.vitGain = Math.floor(L.day / TPD) * 0.25;
+  // Hardened genome: every full day a clone survives adds 0.8 max health to all later clones (base caps at 500).
+  L.vitGain = Math.floor(L.day / TPD) * 0.8;
   S.vit = (S.vit || 0) + L.vitGain;
   S.stats.deaths++; S.stats.daysLived += L.day;
   if (!S.hist) S.hist = [];
@@ -736,7 +735,6 @@ function step(dt){
     return;
   }
   L.day += dt;
-  if (L.day >= lifeDays()) die('Telomere collapse. The body wore out');
   return true;
 }
 function canEat(){ const L = S.life; return !L.dead && (L.meal || 0) <= 0 && L.rations >= 1; }
@@ -983,10 +981,10 @@ function storeEta(val, cap, rate){
   if (rate < -1e-9) return val <= 0.01 ? {txt:'empty', days:0} : {txt:'empty in', days:val / -rate};
   return {txt:'steady', days:Infinity};
 }
-// How long the clone lives if the current task keeps going: old age, starvation or injuries
+// How long the clone lives if the current task keeps going: strain, starvation or injuries
 function survival(){
   const L = S.life, cur = L.cur ? T[L.cur] : null;
-  const lifeLeft = lifeDays() - L.day;
+  const lifeLeft = 300 * TPD;   // look ahead at most 300 days
   // Step forward assuming the current task keeps running and no rest is taken.
   const net = rates(cur).rr + EAT;           // rations gained per tick before eating
   const haz = cur && cur.haz ? hazDmg(cur) : 0;
@@ -1001,7 +999,7 @@ function survival(){
     if (hp <= 0) { why = haz ? 'injuries' : rat < 1 ? 'starvation' : 'strain'; break; }
   }
   if (!why) t = Infinity;
-  if (t >= lifeLeft) { t = lifeLeft; why = 'old age'; }
+  if (t >= lifeLeft) { t = Infinity; why = 'nothing soon'; }
   return {t, why};
 }
 function fmtSecs(s){
@@ -1389,10 +1387,8 @@ function renderSpeed(){
 }
 function updateHud(){
   const L = S.life;
-  const age = L.day / TPD, maxAge = lifeDays() / TPD;
   $('#h-gen').textContent = 'Clone ' + S.gen;
-  $('#b-age').style.width = Math.min(100, L.day / lifeDays() * 100) + '%';
-  $('#t-age').textContent = 'day ' + age.toFixed(1) + ' / ' + maxAge.toFixed(0);
+  $('#h-day').textContent = 'day ' + (L.day / TPD).toFixed(1);
   $('#b-hp').style.width = Math.max(0, L.hp / M.maxHp * 100) + '%';
   $('#t-hp').textContent = Math.ceil(L.hp) + ' / ' + M.maxHp;
   const cur = L.cur ? T[L.cur] : null;
@@ -1407,7 +1403,7 @@ function updateHud(){
   const st = L.strain || 1, se2 = $('#s-strain');
   se2.textContent = 'strain \u00d7' + st.toFixed(2);
   se2.classList.toggle('hi', st >= 1.6);
-  surv.classList.toggle('warn', !L.dead && sv.why !== 'old age');
+  surv.classList.toggle('warn', !L.dead && sv.why !== 'nothing soon');
   const re = storeEta(L.rations, M.ratCap, rr), se = storeEta(L.salvage, M.salCap, sr);
   $('#t-ratt').textContent = re.txt === 'full' ? 'storage full' : re.txt === 'empty' ? 'empty: starving' : re.txt === 'steady' ? '' : re.txt + ' ' + both(re.days);
   $('#t-ratt').classList.toggle('neg', re.txt === 'empty in' || re.txt === 'empty');
@@ -1526,7 +1522,7 @@ function renderArchive(force){
   h += `<div class="stats">
     <div><b>${S.gen}</b><span>Clones decanted</span></div>
     <div><b>${st.bestDays ? st.bestDays.toFixed(1) : '—'}</b><span>Longest life (days)</span></div>
-    <div><b>+${Math.floor(S.vit || 0)}</b><span>Max health from hardened genome</span></div>
+    <div><b>${Math.min(BASE_HP_MAX, 100 + Math.floor(S.vit || 0))}</b><span>Base health (max ${BASE_HP_MAX})</span></div>
     <div><b>${Object.values(S.echo).reduce((a,b)=>a+b,0)}</b><span>Total echo levels</span></div>
     <div><b>${S.won ? 'Clone ' + S.winGen : 'Not yet'}</b><span>Drive ignited</span></div></div>`;
   h += '<div class="panel set"><span class="h2">Settings</span>';
@@ -1711,8 +1707,7 @@ function showIntro(){
       <li><b>Training</b> sessions build skills faster (+50% XP), but each can be done only 4 times per life.</li>
       <li>Each automated task has a <b>priority</b> (P1\u2013P5, tap to change). P1 runs first.</li>
       <li><b>Jobs</b> repeat forever and make rations or salvage. The last job you tapped runs whenever the queue is empty.</li>
-      <li>Health drains all the time. Your clone eats <b>2 rations a day</b>, one meal every 12 hours, and each meal restores some health. <b>Strain</b> makes the drain grow, faster and faster as the clone ages; Resolve slows it, rests halve it, and food deeper in the ship restores more health. Each ship section has one rest per life that halves it. Every day a clone survives adds a quarter point of max health to all later clones. You wake with no food. Run out of rations and you starve. Storage is limited, so you can\u2019t stockpile much.</li>
-      <li> The first clones are unstable and die young; each new one lives a day longer. Reaching the full 30-day lifespan is one of the last things you will achieve.</li>
+      <li>Health drains all the time. Your clone eats <b>2 rations a day</b>, one meal every 12 hours, and each meal restores some health. <b>Strain</b> makes the drain grow, faster and faster as the clone ages; rests halve it and Resolve slows it a little. Each ship section has one rest per life that halves it. Every day a clone survives adds 0.8 max health to all later clones, up to a base of 500. Clones have no fixed lifespan: strain decides how long they last. You wake with no food. Run out of rations and you starve. Storage is limited, so you can\u2019t stockpile much.</li>
       <li>Time only moves while your clone is working. With nothing to do, the clock stops.</li>
       <li>When a clone dies, skill levels reset but their <b>echo</b> speeds up learning in every future clone.</li>
       <li><b>Pause</b> any time with the button at the top (or the space bar on a computer). <b>☰</b> opens the menu with save slots; the game waits while it is open. Time spent away is stored as a <b>+2×</b> boost you can switch on in the header.</li>
@@ -1729,9 +1724,8 @@ function showDeath(){
   }).join('');
   showModal(`<h2>Clone ${S.gen} terminated</h2>
     <p>${esc(L.cause)}.</p><p class="d">Lived ${age.toFixed(1)} days · ${L.order.length} actions completed</p>
-    <p class="d">Hardened genome: <span class="up">+${fmt(L.vitGain || 0)} max health</span> for every future clone (now ${100 + Math.floor(S.vit || 0)}).</p>
+    <p class="d">Hardened genome: <span class="up">+${fmt(L.vitGain || 0)} max health</span> for every future clone (base now ${Math.min(BASE_HP_MAX, 100 + Math.floor(S.vit || 0))}${100 + Math.floor(S.vit || 0) >= BASE_HP_MAX ? ', the maximum' : ''}).</p>
     <table class="dt">${rows}</table>
-    ${templateYears() < TEMPLATE_MAX ? `<p class="d">The clone template is still unstable. Clone ${S.gen + 1} will live about ${Math.min(MAX_LIFE, Math.min(TEMPLATE_MAX, templateYears() + TEMPLATE_STEP) + (M.life - templateYears()))} days.</p>` : ''}
     ${S.perks.engram && S.set.replay ? '<p class="d">The engram recorder will queue this clone’s actions for the next one.</p>' : ''}
     <button class="btn pri" data-decant>Decant clone ${S.gen + 1}</button>`);
 }
