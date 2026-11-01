@@ -196,6 +196,17 @@ input[type=range]{width:100%;accent-color:var(--amber)}
 .ghst{font-size:12px;color:var(--dim);min-height:1.4em}
 .ghst.err{color:var(--red)} .ghst.ok{color:var(--green)}
 .note a{color:var(--cyan)}
+.menub{font-size:18px;line-height:1;padding:4px 8px 5px;border:1px solid var(--line);border-radius:4px;color:var(--fg);align-self:center}
+.mbtns{display:grid;gap:8px}
+.mbtns .btn{text-align:left;padding:11px 12px}
+.mbtns small{display:block;font-weight:400;font-size:12px;opacity:.8;margin-top:2px}
+.slots{display:grid;gap:8px}
+.slot{display:grid;gap:6px;text-align:left;border:1px solid var(--line);border-radius:6px;padding:10px;background:var(--panel2)}
+.slot.act{border-color:var(--amber)}
+.slot b{font-family:var(--f-disp);text-transform:uppercase;letter-spacing:.06em;font-size:15px}
+.slot span{font-size:12px;color:var(--dim)}
+.slot em{font-style:normal;font-size:12px;color:var(--amber)}
+.slot .btn{padding:6px 10px;font-size:12px}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 
@@ -204,7 +215,7 @@ input[type=range]{width:100%;accent-color:var(--amber)}
 <header id="hud" class="gut">
   <div class="wrap">
     <div class="r1">
-      <div class="ident"><b>K-7</b><span id="h-gen">Clone 1</span></div>
+      <div class="ident"><button class="menub" data-menu="open" aria-label="Main menu">☰</button><b>K-7</b><span id="h-gen">Clone 1</span></div>
       <div class="spd" id="h-spd"></div>
     </div>
     <div class="meter"><span class="lbl" style="min-width:0;text-align:left">Age</span><div class="bar"><i id="b-age"></i></div><span id="t-age" class="num"></span></div>
@@ -267,7 +278,7 @@ const ZT = {}; ZONES.forEach(z => ZT[z.id] = z.tier);
 
 const TASKS = [
   // Zone 1
-  {id:'wake', z:1, kind:'act', name:'Climb out of the vat', sk:['res'], days:12, req:[],
+  {id:'wake', z:1, kind:'act', name:'Climb out of the vat', sk:['res'], days:6, req:[],
     log:'Fluid drains from the vat. Stencilled on the glass: K-7. The emergency lamps are sodium orange and the ship is very quiet.'},
   {id:'algae', z:1, kind:'job', name:'Press vat algae', sk:['bio'], prod:{rations:1.4}, req:['wake']},
   {id:'scrap', z:1, kind:'job', name:'Strip wall panels', sk:['eng'], prod:{salvage:0.6}, req:['wake']},
@@ -547,8 +558,24 @@ const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
 let tab = 'tasks', taskKey = '', gearKey = '', archKey = '', logKey = '', paused = false, refs = [];
 let newLog = false, newPerk = false;
 
+const SLOTS = 3;
+const ACTIVE_KEY = 'long-patience.active-slot';
+const slotKey = i => 'long-patience.slot.' + i;
+let slot = 1;
+try { slot = Math.min(SLOTS, Math.max(1, +localStorage.getItem(ACTIVE_KEY) || 1)); } catch(e) {}
 function save(){
-  try { S.saved = Date.now(); localStorage.setItem(KEY, JSON.stringify(S)); } catch(e) {}
+  if (!S) return;
+  try { S.saved = Date.now(); localStorage.setItem(slotKey(slot), JSON.stringify(S)); localStorage.setItem(ACTIVE_KEY, slot); } catch(e) {}
+}
+function readSlot(i){
+  try { const r = localStorage.getItem(slotKey(i)); return r ? JSON.parse(r) : null; } catch(e) { return null; }
+}
+function slotInfo(raw){
+  if (!raw || !raw.life) return 'Empty';
+  const age = (START_AGE + (raw.life.day || 0) / 365).toFixed(1);
+  const rec = Object.keys(raw.perks || {}).length;
+  const when = raw.saved ? new Date(raw.saved).toLocaleString([], {month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'}) : '';
+  return 'Clone ' + raw.gen + (raw.life.dead ? ' (dead)' : ', age ' + age) + ' \u00b7 ' + rec + '/' + PERKS.length + ' records' + (raw.won ? ' \u00b7 drive lit' : '') + (when ? ' \u00b7 ' + when : '');
 }
 /* ----- GitHub save sync ----- */
 const GH_KEY = 'long-patience.github.v1';
@@ -669,7 +696,58 @@ function mergeState(raw){
   return s;
 }
 function loadSaved(){
-  try { const r = localStorage.getItem(KEY); return r ? JSON.parse(r) : null; } catch(e) { return null; }
+  // move a save from the old single-save key into slot 1
+  try {
+    const old = localStorage.getItem(KEY);
+    if (old && !localStorage.getItem(slotKey(1))) localStorage.setItem(slotKey(1), old);
+    if (old) localStorage.removeItem(KEY);
+  } catch(e) {}
+  return readSlot(slot);
+}
+function resetViews(){ taskKey = ''; archKey = ''; logKey = ''; gearKey = ''; }
+function startGame(){
+  paused = false; hideModal(); setTab('tasks');
+  if (S.life.dead) showDeath();
+  else if (!S.intro) showIntro();
+}
+
+/* ----- main menu and save slots ----- */
+function showMenu(view){
+  paused = true;
+  const cur = readSlot(slot);
+  let h = '<h2>Long Patience</h2>';
+  if (view === 'new') {
+    h += '<p>Start a new game in which slot? A used slot is overwritten; tap it twice to confirm.</p><div class="slots">';
+    for (let i = 1; i <= SLOTS; i++) {
+      const r = readSlot(i);
+      h += `<button class="slot" data-newin="${i}" data-used="${r ? 1 : 0}"><b>Slot ${i}</b><span>${esc(slotInfo(r))}</span><em>${r ? 'Overwrite' : 'Start here'}</em></button>`;
+    }
+    h += '</div><button class="btn" data-menu="back">Back</button>';
+  } else {
+    h += '<div class="mbtns">';
+    if (cur && cur.life) h += `<button class="btn pri" data-menu="continue">Continue \u00b7 slot ${slot}<small>${esc(slotInfo(cur))}</small></button>`;
+    h += '<button class="btn" data-menu="new">New game</button></div>';
+    h += '<span class="lbl">Save slots</span><div class="slots">';
+    for (let i = 1; i <= SLOTS; i++) {
+      const r = readSlot(i), act = i === slot;
+      h += `<div class="slot${act ? ' act' : ''}"><b>Slot ${i}${act ? ' \u00b7 playing' : ''}</b><span>${esc(slotInfo(r))}</span><div class="btns">`;
+      if (!act && r) h += `<button class="btn" data-loadslot="${i}">Load</button>`;
+      if (!act && cur) h += `<button class="btn" data-saveto="${i}">${r ? 'Save over' : 'Save here'}</button>`;
+      if (!act && r) h += `<button class="btn warn" data-delslot="${i}">Delete</button>`;
+      if (act) h += '<span class="ghst">Saves automatically every few seconds.</span>';
+      h += '</div></div>';
+    }
+    h += '</div><p class="d">\u201cSave here\u201d copies your current game into another slot as a save state. You keep playing in your current slot; load the copy later to go back to that moment.</p>';
+  }
+  showModal(h);
+}
+const armed = {};
+function twoStep(b, key, label){
+  if (armed[key]) { clearTimeout(armed[key]); armed[key] = null; return true; }
+  const orig = b.innerHTML;
+  b.textContent = label || 'Tap again to confirm';
+  armed[key] = setTimeout(() => { armed[key] = null; if (b.isConnected) b.innerHTML = orig; }, 3000);
+  return false;
 }
 
 /* ----- hooks from the rules ----- */
@@ -903,7 +981,7 @@ function renderArchive(force){
     h += `<div class="row"><p>Engram replay<small>New clones queue the actions your last clone finished, in the same order.</small></p><button class="tog${S.set.replay ? ' on' : ''}" data-set="replay" aria-label="Engram replay" aria-pressed="${S.set.replay}"></button></div>`;
   }
   h += `<div class="row"><p>Recycle this clone<small>End the current life now. Echoes are kept.</small></p><button class="btn warn" data-confirm="recycle">Recycle</button></div>
-    <div class="row"><p>Erase all progress<small>Deletes the save in this browser.</small></p><button class="btn warn" data-confirm="reset">Erase</button></div>
+    <div class="row"><p>Restart this slot<small>Erases the game in this slot and starts over. Other slots are kept. The main menu has more options.</small></p><button class="btn warn" data-confirm="reset">Restart</button></div>
     <p class="note">Progress saves in this browser. Time spent away is stored as a stasis boost that doubles game speed.</p></div>`;
   h += ghPanel();
   $('#v-archive').innerHTML = h;
@@ -956,7 +1034,7 @@ function showIntro(){
       <li>Bodies age. In the last quarter of a clone\u2019s life, all work slows down.</li>
       <li>Time only moves while your clone is working. With nothing to do, the clock stops.</li>
       <li>When a clone dies, skill levels reset but their <b>echo</b> speeds up learning in every future clone.</li>
-      <li><b>Pause</b> any time with the button at the top (or the space bar on a computer).</li>
+      <li><b>Pause</b> any time with the button at the top (or the space bar on a computer). <b>☰</b> opens the menu with save slots.</li>
       <li>Goal: reach the main drive and take the ship somewhere.</li>
     </ul>
     <button class="btn pri" data-close>Open the vat</button>`);
@@ -993,6 +1071,40 @@ document.addEventListener('click', e => {
   if ('boost' in d) { S.set.boost = !S.set.boost; renderSpeed(); return; }
   if ('close' in d) { hideModal(); paused = false; S.intro = true; save(); return; }
   if ('decant' in d) { decant(); hideModal(); taskKey = ''; setTab('tasks'); save(); return; }
+  if (d.menu) {
+    if (d.menu === 'open') { save(); return showMenu(); }
+    if (d.menu === 'back') return showMenu();
+    if (d.menu === 'new') return showMenu('new');
+    if (d.menu === 'continue') return startGame();
+  }
+  if (d.newin) {
+    const i = +d.newin;
+    if (d.used === '1' && !twoStep(b, 'new' + i, 'Tap again to overwrite')) return;
+    save();
+    slot = i; S = defaultState(); M = mods(); S.life.hp = M.maxHp; resetViews(); save();
+    toast('New game in slot ' + i);
+    return startGame();
+  }
+  if (d.loadslot) {
+    const i = +d.loadslot, r = readSlot(i); if (!r) return;
+    save(); slot = i; S = mergeState(r); M = mods(); resetViews(); save();
+    toast('Loaded slot ' + i);
+    return startGame();
+  }
+  if (d.saveto) {
+    const i = +d.saveto;
+    if (readSlot(i) && !twoStep(b, 'save' + i, 'Tap again to overwrite')) return;
+    save();
+    try { localStorage.setItem(slotKey(i), JSON.stringify(S)); toast('Saved to slot ' + i); } catch(e) { toast('Couldn\u2019t save: browser storage is full or blocked.'); }
+    return showMenu();
+  }
+  if (d.delslot) {
+    const i = +d.delslot;
+    if (!twoStep(b, 'del' + i, 'Tap again to delete')) return;
+    try { localStorage.removeItem(slotKey(i)); } catch(e) {}
+    toast('Slot ' + i + ' deleted');
+    return showMenu();
+  }
   if ('ghUp' in d) { ghUpload(false); return; }
   if ('ghAuto' in d) { GH.auto = !GH.auto; if (GH.auto) GH.last = Date.now(); ghSave(); b.classList.toggle('on', GH.auto); b.setAttribute('aria-pressed', GH.auto); return; }
   if ('copysave' in d) {
@@ -1036,7 +1148,7 @@ document.addEventListener('click', e => {
   if (d.confirm) {
     const k = d.confirm;
     if (!confirmT[k]) {
-      confirmT[k] = setTimeout(() => { confirmT[k] = null; if (b.isConnected) b.textContent = ({reset:'Erase', recycle:'Recycle', ghload:'Load from GitHub', import:'Load pasted code'})[k]; }, 3000);
+      confirmT[k] = setTimeout(() => { confirmT[k] = null; if (b.isConnected) b.textContent = ({reset:'Restart', recycle:'Recycle', ghload:'Load from GitHub', import:'Load pasted code'})[k]; }, 3000);
       b.textContent = 'Tap again'; return;
     }
     clearTimeout(confirmT[k]); confirmT[k] = null;
@@ -1050,8 +1162,7 @@ document.addEventListener('click', e => {
     }
     if (k === 'recycle' && !S.life.dead) die('Recycled by choice');
     if (k === 'reset') {
-      try { localStorage.removeItem(KEY); } catch(e) {}
-      S = defaultState(); M = mods(); S.life.hp = M.maxHp; taskKey = ''; archKey = ''; logKey = ''; gearKey = '';
+      S = defaultState(); M = mods(); S.life.hp = M.maxHp; resetViews(); save();
       setTab('tasks'); showIntro();
     }
   }
@@ -1098,8 +1209,7 @@ function boot(data){
   if (!raw) S.life.hp = M.maxHp;
   if (raw && raw.saved) S.bank = Math.min((S.bank || 0) + Math.max(0, (Date.now() - raw.saved) / 1000), 8*3600);
   setTab('tasks');
-  if (S.life.dead) showDeath();
-  else if (!S.intro) showIntro();
+  if (raw) showMenu(); else startGame();
   last = performance.now();
   requestAnimationFrame(frame);
 }
