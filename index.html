@@ -304,6 +304,13 @@ html.horiz #toasts{left:var(--side);bottom:16px}
 .updl small{display:block;font-weight:400;font-size:12px;opacity:.85;margin-top:2px}
 .mbox .panel{gap:8px}
 button.updl{width:100%}
+.rtab{overflow-x:auto}
+.rtab th{font-family:var(--f-disp);text-transform:uppercase;letter-spacing:.06em;font-size:11px;color:var(--dim);font-weight:600;text-align:left;padding:4px 0;border-bottom:1px solid var(--line)}
+.rtab th:not(:first-child){text-align:right}
+.rtab td:nth-child(2){text-align:left!important;font-family:var(--f-body)!important}
+.rtab th:nth-child(2){text-align:left}
+.best{margin:6px 0 0;font-size:13px}
+.best .lbl{color:var(--amber);margin-right:6px}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 
@@ -660,12 +667,20 @@ function finish(t){
   M = mods();
   clampRes();
   if (r.heal) L.hp = M.maxHp;
-  if (t.cross && complete(t)) { L.sec = t.z + 1; L.queue = L.queue.filter(id => T[id].z > t.z); if (L.job && T[L.job].z <= t.z) L.job = null; L.foraging = false; HOOK.crossed(t); }
+  if (t.cross && complete(t)) { L.sec = t.z + 1; if (!L.secAt) L.secAt = {}; L.secAt[L.sec] = {d:L.day, r:L.real || 0}; L.queue = L.queue.filter(id => T[id].z > t.z); if (L.job && T[L.job].z <= t.z) L.job = null; L.foraging = false; HOOK.crossed(t); }
   if (complete(t) && t.log && !S.logged[t.id]) { S.logged[t.id] = 1; HOOK.log(t.name, t.log); }
   HOOK.done(t);
   if (complete(t) && t.perk && !S.perks[t.perk]) { S.perks[t.perk] = true; M = mods(); HOOK.perk(PK[t.perk]); }
+  if (t.win) { L.wonAt = {d:L.day, r:L.real || 0}; recordBest(L); }
   if (t.win && !S.won) { S.won = true; S.winGen = S.gen; HOOK.win(); }
   HOOK.change();
+}
+// Run history: each clone's furthest section and time, plus the best run so far.
+// Rank: furthest section reached (6 = drive lit), then the fastest real time to get there.
+function recordBest(L){
+  const sec = L.wonAt ? 6 : (L.sec || 1), at = L.wonAt || (L.secAt && L.secAt[L.sec]) || {d:0, r:0};
+  const b = S.best;
+  if (!b || sec > b.sec || (sec === b.sec && at.r < b.r)) S.best = {g:S.gen, sec, d:at.d, r:at.r};
 }
 function die(cause){
   const L = S.life; L.dead = true; L.cause = cause; L.cur = null;
@@ -675,6 +690,10 @@ function die(cause){
   L.vitGain = Math.floor(L.day / TPD) * 0.25;
   S.vit = (S.vit || 0) + L.vitGain;
   S.stats.deaths++; S.stats.daysLived += L.day;
+  if (!S.hist) S.hist = [];
+  S.hist.push({g:S.gen, sec:L.wonAt ? 6 : (L.sec || 1), d:L.day, r:L.real || 0, cause});
+  if (S.hist.length > 50) S.hist.shift();
+  recordBest(L);
   if (age > (S.stats.bestDays || 0)) S.stats.bestDays = age;
   HOOK.die();
 }
@@ -1527,9 +1546,18 @@ function renderArchive(force){
   if (fd) fd.addEventListener('input', () => { S.set.foodDays = +fd.value; $('#fd-v').textContent = fd.value + ' rations'; });
 }
 function renderLog(){
-  const key = S.log.length + '|' + (S.log.length ? S.log[S.log.length-1].t : '');
+  const key = S.log.length + '|' + (S.log.length ? S.log[S.log.length-1].t : '') + '|' + (S.hist ? S.hist.length : 0) + '|' + S.gen + '|' + JSON.stringify(S.best || {});
   if (key === logKey) return; logKey = key;
-  let h = '<div class="panel"><span class="h2">Ship log</span><p class="note">Things your clones have learned about the Long Patience.</p></div><div>';
+  const secName = n => n >= 6 ? 'Drive lit' : ZONES[n - 1].name;
+  const realT = r => fmtReal(r);
+  const hist = (S.hist || []).slice(-5).reverse();
+  let h = '<div class="panel"><span class="h2">Recent clones</span>';
+  if (!hist.length) h += '<p class="note">No clone has died yet. Each clone\u2019s furthest section and time will appear here.</p>';
+  else h += `<div class="rtab"><table class="dt"><thead><tr><th>Clone</th><th>Furthest</th><th>Days</th><th>Real</th></tr></thead><tbody>${hist.map(e => `<tr title="${esc(e.cause)}"><td>${e.g}</td><td>${secName(e.sec)}</td><td>${(e.d / TPD).toFixed(1)}</td><td>${realT(e.r)}</td></tr>`).join('')}</tbody></table></div>`;
+  const b = S.best;
+  h += b ? `<p class="best"><span class="lbl">Best run</span> Clone ${b.g} ${b.sec >= 6 ? 'lit the drive' : 'reached the ' + secName(b.sec)} after ${(b.d / TPD).toFixed(1)} days \u00b7 ${realT(b.r)} real</p>` : '';
+  h += '</div>';
+  h += '<div class="panel"><span class="h2">Ship log</span><p class="note">Things your clones have learned about the Long Patience.</p></div><div>';
   if (!S.log.length) h += '<p class="note">Nothing yet.</p>';
   S.log.slice().reverse().forEach(e => {
     h += `<article class="le"><header><h3>${esc(e.t)}</h3><time>Clone ${e.g} · day ${e.a}</time></header><p>${esc(e.x)}</p></article>`;
@@ -1870,7 +1898,9 @@ function frame(now){
   if (dt > 0 && !S.life.dead && !paused && !S.set.paused) {
     let mult = S.set.speed;
     if (S.set.boost && S.bank > 0) { mult *= 2; S.bank = Math.max(0, S.bank - dt); if (S.bank <= 0) S.set.boost = false; }
+    const d0 = S.life.day;
     advance(dt * DPS * mult);
+    if (S.life.day > d0) S.life.real = (S.life.real || 0) + dt;   // real seconds this life actually ran
   }
   updateHud();
   viewT += dt;
