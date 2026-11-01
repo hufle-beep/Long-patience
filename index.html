@@ -360,8 +360,8 @@ const HOOK = {log(){}, perk(){}, die(){}, win(){}, change(){}};
 
 function newLife(s){
   const p = s.perks;
-  const L = {day:0, hp:100, rations:40 + (p.decant?30:0), salvage:p.decant?15:0, lv:{}, xp:{}, echo0:{},
-    done:{}, prog:{}, job:'algae', queue:['wake'], owned:{}, order:[], foraging:false, cur:null, dead:false, cause:''};
+  const L = {day:0, hp:100, rations:20 + (p.decant?30:0), salvage:p.decant?15:0, lv:{}, xp:{}, echo0:{},
+    done:{}, prog:{}, job:null, queue:[], owned:{}, order:[], foraging:false, cur:null, dead:false, cause:''};
   SKILLS.forEach(k => { L.lv[k.id] = 0; L.xp[k.id] = 0; L.echo0[k.id] = s.echo[k.id] || 0; });
   return L;
 }
@@ -456,6 +456,7 @@ function die(cause){
 function step(dt){
   const L = S.life;
   const t = active(); L.cur = t ? t.id : null;
+  if (!t) return false;      // nothing running: time stands still, like Increlution
   let hurt = false;
   if (t) {
     const sp = speedOf(t);
@@ -483,10 +484,11 @@ function step(dt){
   if (!hurt) L.hp = Math.min(M.maxHp, L.hp + M.regen * dt);
   L.day += dt;
   if (L.day >= lifeDays()) die('Telomere collapse. The body wore out');
+  return true;
 }
 function advance(days){
   let left = days, n = 0;
-  while (left > 1e-9 && !S.life.dead && n < 500) { const d = Math.min(left, 2); step(d); left -= d; n++; }
+  while (left > 1e-9 && !S.life.dead && n < 500) { const d = Math.min(left, 2); if (step(d) === false) break; left -= d; n++; }
 }
 function decant(){
   const prev = S.life;
@@ -816,7 +818,7 @@ function updateHud(){
   now.classList.toggle('forage', !!(cur && L.foraging));
   if (L.dead) { $('#n-name').textContent = 'Clone terminated'; $('#n-eta').textContent = ''; $('#n-fill').style.width = '0'; }
   else if (S.set.paused) { $('#n-name').textContent = 'Paused' + (cur ? ': ' + cur.name : ''); $('#n-eta').textContent = 'tap Resume'; }
-  else if (!cur) { $('#n-name').textContent = 'Idle. Pick a task below.'; $('#n-eta').textContent = ''; $('#n-fill').style.width = '0'; }
+  else if (!cur) { $('#n-name').textContent = 'Time stopped. Pick a task below.'; $('#n-eta').textContent = ''; $('#n-fill').style.width = '0'; }
   else {
     $('#n-name').textContent = (L.foraging ? 'Foraging: ' : '') + cur.name;
     if (cur.kind === 'act') {
@@ -934,6 +936,7 @@ function showIntro(){
       <li><b>Tap a task</b> to work on it now. <b>+</b> adds an action to the queue.</li>
       <li><b>Jobs</b> repeat forever and make rations or salvage. The last job you tapped runs whenever the queue is empty.</li>
       <li>You eat <b>1 ration a day</b>. Run out and you starve.</li>
+      <li>Time only moves while your clone is working. With nothing to do, the clock stops.</li>
       <li>When a clone dies, skill levels reset but their <b>echo</b> speeds up learning in every future clone.</li>
       <li><b>Pause</b> any time with the button at the top (or the space bar on a computer).</li>
       <li>Goal: reach the main drive and take the ship somewhere.</li>
