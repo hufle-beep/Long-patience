@@ -1,0 +1,89 @@
+{
+ "v": 1,
+ "gen": 14,
+ "echo": {
+  "eng": 0,
+  "bio": 0,
+  "cbt": 0,
+  "hak": 0,
+  "nav": 0,
+  "res": 0
+ },
+ "perks": {},
+ "seen": {
+  "wake": 1,
+  "algae": 1,
+  "scrap": 1,
+  "search": 1
+ },
+ "logged": {
+  "wake": 1
+ },
+ "log": [
+  {
+   "g": 7,
+   "a": 14.2,
+   "t": "Climb out of the vat",
+   "x": "Fluid drains from the vat. Stencilled on the glass: K-7. The emergency lamps are sodium orange and the ship is very quiet."
+  }
+ ],
+ "lastOrder": [],
+ "lastJob": null,
+ "set": {
+  "speed": 1,
+  "autoFood": true,
+  "foodDays": 25,
+  "replay": true,
+  "boost": false
+ },
+ "stats": {
+  "bestAge": 14.236893150684931,
+  "deaths": 13,
+  "daysLived": 1122.3450000000012
+ },
+ "won": false,
+ "winGen": 0,
+ "bank": 348.28020000000004,
+ "saved": 1793545228460,
+ "intro": true,
+ "life": {
+  "day": 0,
+  "hp": 100,
+  "rations": 20,
+  "salvage": 0,
+  "lv": {
+   "eng": 0,
+   "bio": 0,
+   "cbt": 0,
+   "hak": 0,
+   "nav": 0,
+   "res": 0
+  },
+  "xp": {
+   "eng": 0,
+   "bio": 0,
+   "cbt": 0,
+   "hak": 0,
+   "nav": 0,
+   "res": 0
+  },
+  "echo0": {
+   "eng": 0,
+   "bio": 0,
+   "cbt": 0,
+   "hak": 0,
+   "nav": 0,
+   "res": 0
+  },
+  "done": {},
+  "prog": {},
+  "job": null,
+  "queue": [],
+  "owned": {},
+  "order": [],
+  "foraging": false,
+  "cur": null,
+  "dead": false,
+  "cause": ""
+ }
+}
