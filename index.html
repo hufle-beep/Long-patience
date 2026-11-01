@@ -42,6 +42,9 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--amber);outline-
 .spd{display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end}
 .spd button{font-family:var(--f-mono);font-size:12px;padding:5px 9px;border:1px solid var(--line);border-radius:4px;color:var(--dim)}
 .spd button.on{color:var(--bg);background:var(--amber);border-color:var(--amber)}
+.spd button.pause{color:var(--fg)}
+.spd button.pause.on{background:var(--cyan);border-color:var(--cyan);color:var(--bg)}
+.now.paused{border-color:var(--cyan)}
 .spd button.boost{color:var(--cyan);border-color:var(--cyan-soft)}
 .spd button.boost.on{background:var(--cyan);color:var(--bg)}
 .meter{display:grid;grid-template-columns:54px 1fr auto;align-items:center;gap:8px}
@@ -237,7 +240,8 @@ input[type=range]{width:100%;accent-color:var(--amber)}
 
 <script id="logic">
 /* ===== Game data and rules (no DOM) ===== */
-const DPS = 30;            // in-game days per real second at 1x
+const DPS = 10;            // in-game days per real second at 1x
+const MAX_DRAIN = 0.08;    // most health a clone can lose per day: 100 HP lasts at least 125 s at 1x
 const START_AGE = 14;
 
 const SKILLS = [
@@ -329,7 +333,7 @@ const PERKS = [
   {id:'transit',  name:'Ring transit',          from:2, desc:'+10% speed on every task.', eff:{spd:1.1}},
   {id:'hardened', name:'Radiation hardening',   from:3, desc:'Hazard damage −20%.', eff:{haz:0.8}},
   {id:'engram',   name:'Engram recorder',       from:3, desc:'New clones replay the task order of your last life. Toggle it in settings.'},
-  {id:'clock',    name:'Bridge chronometer',    from:4, desc:'Unlocks 4× time speed.'},
+  {id:'clock',    name:'Bridge chronometer',    from:4, desc:'Unlocks 8× time speed.'},
   {id:'starmem',  name:'Star memory',           from:4, desc:'+50% Navigation XP.', eff:{xpSk:{nav:1.5}}},
   {id:'favor',    name:'WARDEN’s favour',  from:4, desc:'+4 years lifespan and +25% skill XP.', eff:{life:4, xp:1.25}},
 ];
@@ -356,8 +360,8 @@ const HOOK = {log(){}, perk(){}, die(){}, win(){}, change(){}};
 
 function newLife(s){
   const p = s.perks;
-  const L = {day:0, hp:100, rations:20 + (p.decant?30:0), salvage:p.decant?15:0, lv:{}, xp:{}, echo0:{},
-    done:{}, prog:{}, job:null, queue:[], owned:{}, order:[], foraging:false, cur:null, dead:false, cause:''};
+  const L = {day:0, hp:100, rations:40 + (p.decant?30:0), salvage:p.decant?15:0, lv:{}, xp:{}, echo0:{},
+    done:{}, prog:{}, job:'algae', queue:['wake'], owned:{}, order:[], foraging:false, cur:null, dead:false, cause:''};
   SKILLS.forEach(k => { L.lv[k.id] = 0; L.xp[k.id] = 0; L.echo0[k.id] = s.echo[k.id] || 0; });
   return L;
 }
@@ -462,16 +466,19 @@ function step(dt){
       L.prog[t.id] = (L.prog[t.id] || 0) + sp * dt;
       if (L.prog[t.id] >= t.days) { L.prog[t.id] = 0; finish(t); }
     }
-    if (t.haz) {
-      hurt = true; L.hp -= hazDmg(t) * dt;
-      if (L.hp <= 0) { L.hp = 0; die('Killed while trying to ' + t.name.charAt(0).toLowerCase() + t.name.slice(1)); return; }
-    }
   }
   L.rations += (M.pRat - 1) * dt;
   L.salvage += M.pSal * dt;
-  if (L.rations < 0) {
-    L.rations = 0; hurt = true; L.hp -= 1.5 * dt;
-    if (L.hp <= 0) { L.hp = 0; die('Starved'); return; }
+  let drain = 0, starving = false;
+  if (t && t.haz) { hurt = true; drain += hazDmg(t); }
+  if (L.rations < 0) { L.rations = 0; hurt = true; starving = true; drain += MAX_DRAIN; }
+  if (hurt) {
+    L.hp -= Math.min(drain, MAX_DRAIN) * dt;
+    if (L.hp <= 0) {
+      L.hp = 0;
+      die(starving ? 'Starved' : 'Killed while trying to ' + t.name.charAt(0).toLowerCase() + t.name.slice(1));
+      return;
+    }
   }
   if (!hurt) L.hp = Math.min(M.maxHp, L.hp + M.regen * dt);
   L.day += dt;
@@ -488,7 +495,7 @@ function decant(){
   S.life = newLife(S);
   M = mods(); S.life.hp = M.maxHp;
   if (S.perks.engram && S.set.replay) S.life.queue = S.lastOrder.filter(id => T[id] && T[id].kind === 'act');
-  S.life.job = S.lastJob;
+  if (S.lastJob) S.life.job = S.lastJob;
   HOOK.change();
 }
 </script>
@@ -778,9 +785,9 @@ function updateTasks(){
 
 /* ----- HUD ----- */
 function renderSpeed(){
-  const opts = [1, 2]; if (S.perks.clock) opts.push(4);
+  const opts = [1, 3]; if (S.perks.clock) opts.push(8);
   if (!opts.includes(S.set.speed)) S.set.speed = 1;
-  let h = opts.map(o => `<button data-speed="${o}" class="${S.set.speed === o ? 'on' : ''}">${o}×</button>`).join('');
+  let h = `<button data-pause class="pause${S.set.paused ? ' on' : ''}" aria-label="${S.set.paused ? 'Resume' : 'Pause'}">${S.set.paused ? '▶ Resume' : '❚❚ Pause'}</button>` + opts.map(o => `<button data-speed="${o}" class="${S.set.speed === o ? 'on' : ''}">${o}×</button>`).join('');
   if (S.bank >= 1) h += `<button data-boost class="boost${S.set.boost ? ' on' : ''}" aria-label="Stasis boost, doubles speed">+2× ${fmtSecs(S.bank)}</button>`;
   const el = $('#h-spd'); if (el.innerHTML !== h) el.innerHTML = h;
 }
@@ -804,9 +811,11 @@ function updateHud(){
   $('#t-sal').textContent = fmt(L.salvage);
   const sa = $('#t-salr'); sa.textContent = sr > 0 ? '+' + fmt(sr) + '/d' : ''; sa.className = 'num pos';
   const now = $('#now');
-  now.classList.toggle('idle', !cur && !L.dead);
+  now.classList.toggle('idle', !cur && !L.dead && !S.set.paused);
+  now.classList.toggle('paused', !!S.set.paused && !L.dead);
   now.classList.toggle('forage', !!(cur && L.foraging));
   if (L.dead) { $('#n-name').textContent = 'Clone terminated'; $('#n-eta').textContent = ''; $('#n-fill').style.width = '0'; }
+  else if (S.set.paused) { $('#n-name').textContent = 'Paused' + (cur ? ': ' + cur.name : ''); $('#n-eta').textContent = 'tap Resume'; }
   else if (!cur) { $('#n-name').textContent = 'Idle. Pick a task below.'; $('#n-eta').textContent = ''; $('#n-fill').style.width = '0'; }
   else {
     $('#n-name').textContent = (L.foraging ? 'Foraging: ' : '') + cur.name;
@@ -926,6 +935,7 @@ function showIntro(){
       <li><b>Jobs</b> repeat forever and make rations or salvage. The last job you tapped runs whenever the queue is empty.</li>
       <li>You eat <b>1 ration a day</b>. Run out and you starve.</li>
       <li>When a clone dies, skill levels reset but their <b>echo</b> speeds up learning in every future clone.</li>
+      <li><b>Pause</b> any time with the button at the top (or the space bar on a computer).</li>
       <li>Goal: reach the main drive and take the ship somewhere.</li>
     </ul>
     <button class="btn pri" data-close>Open the vat</button>`);
@@ -957,7 +967,8 @@ document.addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b) return;
   const L = S.life, d = b.dataset;
   if (d.tab) return setTab(d.tab);
-  if (d.speed) { S.set.speed = +d.speed; renderSpeed(); return; }
+  if (d.speed) { S.set.speed = +d.speed; S.set.paused = false; renderSpeed(); return; }
+  if ('pause' in d) { togglePause(); return; }
   if ('boost' in d) { S.set.boost = !S.set.boost; renderSpeed(); return; }
   if ('close' in d) { hideModal(); paused = false; S.intro = true; save(); return; }
   if ('decant' in d) { decant(); hideModal(); taskKey = ''; setTab('tasks'); save(); return; }
@@ -1026,12 +1037,24 @@ document.addEventListener('click', e => {
 });
 $('#modal').addEventListener('click', e => { if (e.target.id === 'modal' && !S.life.dead && S.intro && !paused) hideModal(); });
 
+function togglePause(){
+  S.set.paused = !S.set.paused;
+  toast(S.set.paused ? 'Paused. Time is stopped.' : 'Resumed');
+  renderSpeed(); save();
+}
+document.addEventListener('keydown', e => {
+  if (e.code !== 'Space' && e.key !== 'p') return;
+  const tg = e.target.tagName;
+  if (tg === 'INPUT' || tg === 'TEXTAREA' || tg === 'BUTTON' || !$('#modal').hidden) return;
+  e.preventDefault(); togglePause();
+});
+
 /* ----- loop ----- */
 let last = performance.now(), saveT = 0, viewT = 0;
 function frame(now){
   let dt = (now - last) / 1000; last = now;
   if (dt > 1.5) { S.bank = Math.min(S.bank + dt, 8*3600); dt = 0; }
-  if (dt > 0 && !S.life.dead && !paused) {
+  if (dt > 0 && !S.life.dead && !paused && !S.set.paused) {
     let mult = S.set.speed;
     if (S.set.boost && S.bank > 0) { mult *= 2; S.bank = Math.max(0, S.bank - dt); if (S.bank <= 0) S.set.boost = false; }
     advance(dt * DPS * mult);
