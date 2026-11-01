@@ -3,26 +3,55 @@
  "rv": 3,
  "sv": 2,
  "pv": 2,
- "gen": 1,
- "ever": {},
- "prac": {},
+ "gen": 2,
+ "ever": {
+  "wake": 1,
+  "drill": 1,
+  "rest": 1,
+  "rewire": 1
+ },
+ "prac": {
+  "wake": 2,
+  "drill": 2,
+  "algae": 2,
+  "scrap": 1,
+  "rest": 1,
+  "rewire": 2
+ },
  "auto": {},
  "echo": {
-  "eng": 0,
-  "bio": 0,
-  "cbt": 0,
-  "hak": 0,
+  "eng": 2,
+  "bio": 3,
+  "cbt": 1,
+  "hak": 1,
   "nav": 0,
-  "res": 0
+  "res": 1
  },
  "perks": {},
  "seen": {
+  "wake": 1,
+  "drill": 1,
+  "rewire": 1,
+  "algae": 1,
+  "scrap": 1,
+  "search": 1,
+  "rest": 1
+ },
+ "logged": {
   "wake": 1
  },
- "logged": {},
- "log": [],
- "lastOrder": [],
- "lastJob": null,
+ "log": [
+  {
+   "g": 1,
+   "a": 0,
+   "t": "Climb out of the vat",
+   "x": "Fluid drains from the vat. Stencilled on the glass: K-7. The emergency lamps are sodium orange and the ship is very quiet."
+  }
+ ],
+ "lastOrder": [
+  "wake"
+ ],
+ "lastJob": "algae",
  "set": {
   "speed": 1,
   "autoFood": true,
@@ -33,57 +62,77 @@
  },
  "stats": {
   "bestAge": 0,
-  "deaths": 0,
-  "daysLived": 0
+  "deaths": 1,
+  "daysLived": 1512.5612000002352,
+  "bestDays": 18.90701500000294
  },
  "won": false,
  "winGen": 0,
  "bank": 0,
- "saved": 1793554037312,
+ "saved": 1793554643233,
  "intro": true,
  "life": {
-  "day": 0,
-  "hp": 100,
-  "rations": 0,
-  "salvage": 0,
+  "day": 677.9308000000789,
+  "hp": 84.91975540148107,
+  "rations": 1.9600000000000004,
+  "salvage": 4.2,
   "lv": {
-   "eng": 0,
-   "bio": 0,
-   "cbt": 0,
-   "hak": 0,
+   "eng": 2,
+   "bio": 4,
+   "cbt": 1,
+   "hak": 1,
    "nav": 0,
-   "res": 0
+   "res": 1
   },
   "xp": {
-   "eng": 0,
-   "bio": 0,
-   "cbt": 0,
-   "hak": 0,
+   "eng": 163.83943383999954,
+   "bio": 107.45827951032547,
+   "cbt": 120.13865200000214,
+   "hak": 106.16987200000167,
    "nav": 0,
-   "res": 0
+   "res": 123.35742800000202
   },
   "echo0": {
-   "eng": 0,
-   "bio": 0,
-   "cbt": 0,
-   "hak": 0,
+   "eng": 2,
+   "bio": 3,
+   "cbt": 1,
+   "hak": 1,
    "nav": 0,
-   "res": 0
+   "res": 1
   },
-  "done": {},
-  "prog": {},
-  "cyc": {},
-  "bat": {},
-  "meal": 0,
-  "strain": 1,
+  "done": {
+   "wake": 1,
+   "drill": 4,
+   "rewire": 3
+  },
+  "prog": {
+   "wake": 0,
+   "drill": 0,
+   "rewire": 28.856087086089847
+  },
+  "cyc": {
+   "algae": 0.4838150000000645,
+   "scrap": 0.6813199999999738
+  },
+  "bat": {
+   "algae": 59,
+   "scrap": 7
+  },
+  "meal": 12.719600000000142,
+  "strain": 1.9684725714288214,
   "sec": 1,
-  "job": null,
-  "queue": [],
+  "job": "algae",
+  "queue": [
+   "rewire"
+  ],
   "owned": {},
-  "order": [],
+  "order": [
+   "wake"
+  ],
   "foraging": false,
-  "cur": null,
+  "cur": "rewire",
   "dead": false,
   "cause": ""
- }
+ },
+ "vit": 18
 }
