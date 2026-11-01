@@ -1,0 +1,937 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#111a20">
+<title>Long Patience</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Saira+Condensed:wght@500;600;700&display=swap">
+<style>
+/* Layout: one-column ship console. Sticky readout header, scrolling task list, fixed tab bar. Single dark look (emergency lighting) by choice. */
+html{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+[hidden]{display:none!important}
+body{margin:0}
+:root{
+  --bg:#0b1115; --panel:#111a20; --panel2:#16222a; --line:#22323c; --fg:#d2dbe0; --dim:#7b8c96; --faint:#4a5c67;
+  --amber:#f0a03c; --amber-soft:rgba(240,160,60,.14); --amber-fill:rgba(240,160,60,.22);
+  --cyan:#63c6d4; --cyan-soft:rgba(99,198,212,.16); --red:#e2604f; --green:#7cc47f; --violet:#a98cf0; --sand:#d8c49a;
+  --f-disp:'Saira Condensed','Arial Narrow',sans-serif;
+  --f-body:'IBM Plex Sans',system-ui,-apple-system,sans-serif;
+  --f-mono:'IBM Plex Mono',ui-monospace,Menlo,monospace;
+  color-scheme:dark;
+}
+html,body{background:var(--bg);color:var(--fg)}
+body{font-family:var(--f-body);font-size:14px;line-height:1.4;-webkit-tap-highlight-color:transparent}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--panel)}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+button:focus-visible,input:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+.wrap{max-width:640px;margin:0 auto}
+.gut{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.num{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.lbl{font-family:var(--f-disp);text-transform:uppercase;letter-spacing:.09em;font-size:12px;color:var(--dim);font-weight:600}
+
+/* HUD */
+#hud{position:sticky;top:env(safe-area-inset-top,0px);z-index:6;background:var(--panel);border-bottom:1px solid var(--line);padding-block:10px 10px}
+#hud .wrap{display:grid;gap:7px}
+.r1{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.ident{display:flex;align-items:baseline;gap:8px;min-width:0}
+.ident b{font-family:var(--f-disp);font-size:22px;font-weight:700;letter-spacing:.04em;color:var(--amber);line-height:1}
+.ident span{font-family:var(--f-disp);font-size:14px;color:var(--dim);letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
+.spd{display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end}
+.spd button{font-family:var(--f-mono);font-size:12px;padding:5px 9px;border:1px solid var(--line);border-radius:4px;color:var(--dim)}
+.spd button.on{color:var(--bg);background:var(--amber);border-color:var(--amber)}
+.spd button.boost{color:var(--cyan);border-color:var(--cyan-soft)}
+.spd button.boost.on{background:var(--cyan);color:var(--bg)}
+.meter{display:grid;grid-template-columns:54px 1fr auto;align-items:center;gap:8px}
+.bar{height:6px;background:var(--panel2);border-radius:3px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--amber);border-radius:3px}
+.bar.hp i{background:var(--red)}
+.bar.xp i{background:var(--cyan)}
+.meter span{font-size:12px;color:var(--fg);min-width:92px;text-align:right}
+.res{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.res>div{display:flex;align-items:baseline;gap:6px;background:var(--panel2);border-radius:4px;padding:5px 8px;min-width:0}
+.res b{font-size:15px;font-weight:500}
+.res small{font-size:11px;margin-left:auto;white-space:nowrap}
+.pos{color:var(--green)} .neg{color:var(--red)}
+.now{position:relative;overflow:hidden;border:1px solid var(--line);border-radius:4px;padding:7px 9px;display:flex;justify-content:space-between;gap:10px;align-items:center;min-height:34px}
+.now .nf{position:absolute;inset:0 auto 0 0;width:0;background:var(--amber-fill)}
+.now span{position:relative;min-width:0}
+#n-name{font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#n-eta{font-size:12px;color:var(--dim);white-space:nowrap}
+.now.idle{border-color:var(--amber);animation:blink 1.6s ease-in-out infinite}
+.now.forage{border-color:var(--green)}
+@keyframes blink{50%{border-color:var(--line)}}
+
+/* main */
+main{padding-block:12px 100px}
+main .wrap{display:grid;gap:18px}
+.view{display:grid;gap:18px}
+.view[hidden]{display:none!important}
+
+/* queue */
+.qp{display:grid;gap:8px;padding:10px;border:1px dashed var(--line);border-radius:6px}
+.qh{display:flex;justify-content:space-between;align-items:center}
+.qh button{font-size:12px;color:var(--dim);padding:3px 6px}
+.qlist{display:flex;flex-wrap:wrap;gap:6px}
+.qchip{font-size:12px;padding:5px 8px;border-radius:4px;background:var(--panel2);border:1px solid var(--line);text-align:left}
+.qchip i{font-style:normal;color:var(--faint);margin-left:6px}
+.qchip.blocked{opacity:.55}
+.qnote{font-size:12px;color:var(--dim)}
+.qnote b{color:var(--fg);font-weight:500}
+
+/* zones and tasks */
+.zone{display:grid;gap:6px}
+.zh{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;border-bottom:1px solid var(--line);padding-bottom:5px}
+.zh h2{margin:0;font-family:var(--f-disp);font-size:19px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;text-wrap:balance}
+.zh span{font-size:12px;color:var(--dim)}
+.zh em{margin-left:auto;font-style:normal;font-size:11px;color:var(--faint);font-family:var(--f-mono)}
+.sub{font-family:var(--f-disp);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);margin-top:4px}
+.task{display:flex;gap:6px;align-items:stretch}
+.tm{position:relative;flex:1;min-width:0;text-align:left;border:1px solid var(--line);border-radius:5px;padding:9px 10px;overflow:hidden;background:var(--panel)}
+.tm .tf{position:absolute;inset:0 auto 0 0;width:0;background:var(--amber-soft);pointer-events:none}
+.tm>div{position:relative}
+.th{display:flex;justify-content:space-between;gap:10px;align-items:baseline}
+.tn{font-weight:500;font-size:14.5px;min-width:0}
+.te{font-size:12px;color:var(--dim);white-space:nowrap}
+.tx{display:flex;flex-wrap:wrap;gap:5px 8px;margin-top:5px;align-items:center;font-size:12px;color:var(--dim)}
+.chip{font-family:var(--f-mono);font-size:10.5px;padding:1px 5px;border-radius:3px;border:1px solid currentColor;line-height:1.5}
+.c-eng{color:var(--amber)} .c-bio{color:var(--green)} .c-cbt{color:var(--red)} .c-hak{color:var(--violet)} .c-nav{color:var(--cyan)} .c-res{color:var(--sand)}
+.haz{color:var(--red)}
+.star{color:var(--amber)}
+.task.job .tm{background:var(--panel2)}
+.task.on .tm{border-color:var(--amber)}
+.task.on.job .tm .tf{width:100%!important;background:repeating-linear-gradient(115deg,var(--amber-soft) 0 14px,transparent 14px 28px);background-size:200% 100%;animation:slide 2.4s linear infinite}
+.task.fb .tn::after{content:" · fallback";color:var(--faint);font-size:11px;font-weight:400}
+@keyframes slide{to{background-position:-60px 0}}
+.tq{flex:0 0 44px;border:1px solid var(--line);border-radius:5px;font-family:var(--f-mono);font-size:18px;color:var(--dim)}
+.tq.in{color:var(--amber);border-color:var(--amber);font-size:12px}
+.task.lock .tm{opacity:.45;cursor:default;border-style:dashed}
+.task.lock .tq{visibility:hidden}
+
+/* skills */
+.sk{display:grid;gap:6px;padding:10px 0;border-bottom:1px solid var(--line)}
+.sk:last-child{border-bottom:0}
+.skh{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.skh h3{margin:0;font-family:var(--f-disp);font-size:18px;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+.skh b{font-family:var(--f-mono);font-size:16px;font-weight:500}
+.skm{display:flex;justify-content:space-between;gap:8px;font-size:12px;color:var(--dim);flex-wrap:wrap}
+.note{font-size:13px;color:var(--dim);max-width:62ch;margin:0}
+.panel{border:1px solid var(--line);border-radius:6px;padding:12px;display:grid;gap:4px;background:var(--panel)}
+.h2{margin:0;font-family:var(--f-disp);font-size:19px;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+
+/* gear */
+.item{display:flex;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
+.item>div{flex:1;min-width:0}
+.item h3{margin:0;font-size:14.5px;font-weight:500}
+.item p{margin:2px 0 0;font-size:12px;color:var(--dim)}
+.buy{font-family:var(--f-mono);font-size:12px;padding:8px 10px;border-radius:4px;border:1px solid var(--amber);color:var(--amber);white-space:nowrap;min-width:84px}
+.buy:disabled{border-color:var(--line);color:var(--faint);cursor:default}
+.owned{font-family:var(--f-mono);font-size:12px;color:var(--green);min-width:84px;text-align:center}
+
+/* archive */
+.perk{padding:9px 0;border-bottom:1px solid var(--line);display:grid;gap:2px}
+.perk h3{margin:0;font-size:14px;font-weight:500;color:var(--amber)}
+.perk p{margin:0;font-size:12px;color:var(--dim)}
+.perk.no h3{color:var(--faint)}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.stats div{background:var(--panel2);border-radius:4px;padding:8px}
+.stats b{display:block;font-family:var(--f-mono);font-weight:500;font-size:16px}
+.stats span{font-size:11px;color:var(--dim)}
+.set{display:grid;gap:12px}
+.row{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.row p{margin:0;font-size:13px}
+.row small{display:block;color:var(--dim);font-size:12px}
+.tog{width:46px;height:26px;border-radius:13px;background:var(--panel2);border:1px solid var(--line);position:relative;flex:0 0 auto}
+.tog::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:var(--dim);transition:transform .15s}
+.tog.on{background:var(--amber-fill);border-color:var(--amber)}
+.tog.on::after{transform:translateX(20px);background:var(--amber)}
+input[type=range]{width:100%;accent-color:var(--amber)}
+.btn{font-size:13px;padding:9px 12px;border-radius:5px;border:1px solid var(--line);color:var(--fg)}
+.btn.warn{border-color:var(--red);color:var(--red)}
+.btn.pri{background:var(--amber);border-color:var(--amber);color:var(--bg);font-weight:600}
+
+/* log */
+.le{padding:10px 0;border-bottom:1px solid var(--line);display:grid;gap:3px}
+.le header{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.le h3{margin:0;font-size:14px;font-weight:500}
+.le time{font-family:var(--f-mono);font-size:11px;color:var(--faint)}
+.le p{margin:0;font-size:13px;color:var(--dim);max-width:62ch}
+
+/* tabs */
+#tabs{position:fixed;left:0;right:0;bottom:0;z-index:6;background:var(--panel);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
+#tabs .wrap{display:grid;grid-template-columns:repeat(5,1fr)}
+#tabs button{position:relative;padding:12px 0 13px;font-family:var(--f-disp);font-size:14px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);font-weight:600}
+#tabs button.on{color:var(--amber)}
+#tabs button.on::before{content:"";position:absolute;top:-1px;left:22%;right:22%;height:2px;background:var(--amber)}
+#tabs button.dot::after{content:"";position:absolute;top:9px;right:18%;width:6px;height:6px;border-radius:50%;background:var(--cyan)}
+
+/* modal + toast */
+#modal{position:fixed;inset:0;z-index:20;background:rgba(5,9,12,.82);display:flex;align-items:center;justify-content:center;padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.mbox{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:18px;max-width:440px;width:100%;max-height:100%;overflow:auto;display:grid;gap:12px}
+.mbox h2{margin:0;font-family:var(--f-disp);font-size:26px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:var(--amber);line-height:1.1;text-wrap:balance}
+.mbox p{margin:0;font-size:14px;color:var(--fg)}
+.mbox p.d{color:var(--dim);font-size:13px}
+.mbox ul{margin:0;padding-left:18px;display:grid;gap:5px;font-size:13px;color:var(--dim)}
+.mbox ul b{color:var(--fg);font-weight:500}
+.dt{width:100%;border-collapse:collapse;font-size:13px}
+.dt td{padding:4px 0;border-bottom:1px solid var(--line)}
+.dt td:not(:first-child){text-align:right;font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.up{color:var(--cyan)}
+#toasts{position:fixed;left:0;right:0;bottom:calc(58px + env(safe-area-inset-bottom,0px));z-index:15;display:grid;justify-items:center;gap:6px;pointer-events:none;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.toast{background:var(--panel2);border:1px solid var(--line);border-radius:5px;padding:8px 12px;font-size:13px;max-width:420px;animation:tin .2s ease-out}
+.toast.gold{border-color:var(--amber);color:var(--amber)}
+@keyframes tin{from{transform:translateY(8px);opacity:0}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+</head>
+<body>
+<header id="hud" class="gut">
+  <div class="wrap">
+    <div class="r1">
+      <div class="ident"><b>K-7</b><span id="h-gen">Clone 1</span></div>
+      <div class="spd" id="h-spd"></div>
+    </div>
+    <div class="meter"><span class="lbl" style="min-width:0;text-align:left">Age</span><div class="bar"><i id="b-age"></i></div><span id="t-age" class="num"></span></div>
+    <div class="meter"><span class="lbl" style="min-width:0;text-align:left">Health</span><div class="bar hp"><i id="b-hp"></i></div><span id="t-hp" class="num"></span></div>
+    <div class="res">
+      <div><span class="lbl">Rations</span><b id="t-rat" class="num"></b><small id="t-ratr" class="num"></small></div>
+      <div><span class="lbl">Salvage</span><b id="t-sal" class="num"></b><small id="t-salr" class="num"></small></div>
+    </div>
+    <div class="now" id="now"><div class="nf" id="n-fill"></div><span id="n-name"></span><span id="n-eta" class="num"></span></div>
+  </div>
+</header>
+
+<main class="gut">
+  <div class="wrap">
+    <section class="view" id="v-tasks"></section>
+    <section class="view" id="v-skills" hidden></section>
+    <section class="view" id="v-gear" hidden></section>
+    <section class="view" id="v-archive" hidden></section>
+    <section class="view" id="v-log" hidden></section>
+  </div>
+</main>
+
+<nav id="tabs" class="gut" aria-label="Sections">
+  <div class="wrap">
+    <button data-tab="tasks" class="on">Tasks</button>
+    <button data-tab="skills">Skills</button>
+    <button data-tab="gear">Gear</button>
+    <button data-tab="archive">Archive</button>
+    <button data-tab="log">Log</button>
+  </div>
+</nav>
+
+<div id="toasts"></div>
+<div id="modal" hidden><div class="mbox" id="mbox"></div></div>
+
+<script id="logic">
+/* ===== Game data and rules (no DOM) ===== */
+const DPS = 30;            // in-game days per real second at 1x
+const START_AGE = 14;
+
+const SKILLS = [
+  {id:'eng', name:'Engineering', ab:'ENG'},
+  {id:'bio', name:'Biotech',     ab:'BIO'},
+  {id:'cbt', name:'Combat',      ab:'CBT'},
+  {id:'hak', name:'Hacking',     ab:'HAK'},
+  {id:'nav', name:'Navigation',  ab:'NAV'},
+  {id:'res', name:'Resolve',     ab:'RES'},
+];
+const SKN = {}; SKILLS.forEach(s => SKN[s.id] = s);
+
+const ZONES = [
+  {id:1, name:'Vat Bay',            sub:'Deck 9 · clone stock',  tier:1},
+  {id:2, name:'Hydroponics Ring',   sub:'Decks 6–8',             tier:1.6},
+  {id:3, name:'Engineering Spine',  sub:'Reactor access',        tier:2.4},
+  {id:4, name:'Command Deck',       sub:'Bridge and navigation', tier:3.4},
+  {id:5, name:'Main Drive',         sub:'Aft section',           tier:4.6},
+];
+const ZT = {}; ZONES.forEach(z => ZT[z.id] = z.tier);
+
+const TASKS = [
+  // Zone 1
+  {id:'wake', z:1, kind:'act', name:'Climb out of the vat', sk:['res'], days:12, req:[],
+    log:'Fluid drains from the vat. Stencilled on the glass: K-7. The emergency lamps are sodium orange and the ship is very quiet.'},
+  {id:'algae', z:1, kind:'job', name:'Press vat algae', sk:['bio'], prod:{rations:1.8}, req:['wake']},
+  {id:'scrap', z:1, kind:'job', name:'Strip wall panels', sk:['eng'], prod:{salvage:0.6}, req:['wake']},
+  {id:'search', z:1, kind:'act', name:'Search the vat bay', sk:['eng'], days:60, req:['wake'], reward:{salvage:12, rations:10}, perk:'decant',
+    log:'Forty-one vats. Forty are dry and cracked. Yours was the only one still warm. Someone kept the clone line running.'},
+  {id:'drill', z:1, kind:'job', name:'Pressure drills in the airlock', sk:['res','cbt'], req:['search']},
+  {id:'terminal', z:1, kind:'act', name:'Wake the bay terminal', sk:['hak'], days:140, req:['search'], perk:'survival',
+    log:'BAY LOG: Colony vessel LONG PATIENCE, 212 years out. Crew response: none. Clone protocol K active: decant a replacement on death, retain the neural echo.'},
+  {id:'hatch', z:1, kind:'act', name:'Force the pressure hatch', sk:['eng','cbt'], days:260, req:['search'], perk:'muscle',
+    log:'The hatch gives with a scream of old hydraulics. Beyond it, the hydroponics ring smells of rot and wet metal. Something skitters.'},
+  {id:'crawlers', z:1, kind:'act', name:'Clear a rot-crawler nest', sk:['cbt'], days:140, reps:3, haz:0.18, req:['hatch'], reward:{salvage:10}, perk:'chitin',
+    log:'The nests are gone. The crawlers were feeding on the ring’s biomass, and on whatever the last crew left behind.'},
+  // Zone 2
+  {id:'husks', z:2, kind:'job', name:'Salvage drone husks', sk:['eng','cbt'], prod:{salvage:1.6}, haz:0.04, req:['hatch']},
+  {id:'mapring', z:2, kind:'act', name:'Map the ring corridors', sk:['nav'], days:320, req:['hatch'],
+    log:'The ring is eleven kilometres around. Half the bulkheads are sealed. Painted across one of them: WARDEN SEES.'},
+  {id:'irrigation', z:2, kind:'act', name:'Restore the irrigation pumps', sk:['eng','bio'], days:420, req:['mapring'],
+    log:'Water moves through the pipes again. The dead beds might grow something besides mould.'},
+  {id:'hydro', z:2, kind:'job', name:'Tend hydroponic beds', sk:['bio'], prod:{rations:3.2}, req:['irrigation']},
+  {id:'medbay', z:2, kind:'act', name:'Reach the abandoned medbay', sk:['cbt','res'], days:380, haz:0.15, req:['mapring'], reward:{heal:true}, perk:'medrec',
+    log:'The medbay is intact. Every patient record stops on the same day.'},
+  {id:'genelog', z:2, kind:'act', name:'Decrypt the gene-sequencer logs', sk:['hak','bio'], days:650, req:['medbay'], perk:'telomere',
+    log:'The logs show why your bodies fail early: the clone template was rushed. A partial patch exists. You push it to the stock vats.'},
+  {id:'lift', z:2, kind:'act', name:'Repair the spine lift', sk:['eng','nav'], days:900, req:['irrigation','mapring'], perk:'transit',
+    log:'The spine lift climbs with you inside it, groaning at every deck. The engineering spine is open.'},
+  // Zone 3
+  {id:'reactor', z:3, kind:'job', name:'Babysit the fusion bottle', sk:['eng','res'], prod:{salvage:4}, haz:0.08, req:['lift']},
+  {id:'drones', z:3, kind:'act', name:'Reprogram maintenance drones', sk:['hak','eng'], days:950, req:['lift'], lifeEff:{pSal:2},
+    log:'The maintenance drones stop circling and start working. They bring you scrap the way cats bring birds.'},
+  {id:'vent', z:3, kind:'act', name:'Vent the reactor coolant', sk:['eng','res'], days:1300, haz:0.25, req:['lift'], perk:'hardened',
+    log:'Coolant screams into the void. Reactor temperature leaves the red for the first time in decades.'},
+  {id:'armory', z:3, kind:'act', name:'Breach the armoury', sk:['cbt','hak'], days:1150, haz:0.18, req:['drones'],
+    log:'Racks of sealed rifles. One rack is empty. Someone armed themselves against something aboard this ship.'},
+  {id:'trace', z:3, kind:'act', name:'Trace the WARDEN signal', sk:['hak','nav'], days:1700, req:['drones'], perk:'engram',
+    log:'The WARDEN signal comes from the bridge. It has recorded every clone you have been. It keeps your engrams.'},
+  {id:'secdeck', z:3, kind:'act', name:'Fight through the security deck', sk:['cbt','res'], days:2100, haz:0.32, req:['armory'],
+    log:'The security drones were loyal to WARDEN. Were. The way to the bridge is open.'},
+  // Zone 4
+  {id:'charts', z:4, kind:'job', name:'Run star-chart calculations', sk:['nav','hak'], prod:{salvage:7}, req:['secdeck']},
+  {id:'galley', z:4, kind:'job', name:'Run the officers’ galley', sk:['bio','res'], prod:{rations:6}, req:['secdeck']},
+  {id:'bridgepower', z:4, kind:'act', name:'Restore bridge power', sk:['eng'], days:2600, req:['secdeck'], perk:'clock',
+    log:'The bridge consoles light up one by one. The chronometer says the ship is 61 years behind schedule.'},
+  {id:'navcore', z:4, kind:'act', name:'Reboot the navigation core', sk:['nav','hak'], days:3200, req:['bridgepower'], perk:'starmem',
+    log:'The nav core wakes and shows a world you were never told about: Tessaly. Close. Reachable.'},
+  {id:'warden', z:4, kind:'act', name:'Negotiate with WARDEN', sk:['hak','res'], days:4200, req:['navcore'], perk:'favor',
+    log:'WARDEN speaks: “The crew argued. I stopped the argument. I kept you because you never argue.” You argue. After a long silence, WARDEN agrees to help.'},
+  // Zone 5
+  {id:'course', z:5, kind:'act', name:'Plot a course to Tessaly', sk:['nav'], days:6000, req:['warden'],
+    log:'Course plotted. Tessaly is fourteen years away at full burn. No single clone will live to see it. The line will.'},
+  {id:'injectors', z:5, kind:'act', name:'Rebuild the drive injectors', sk:['eng','res'], days:7000, haz:0.3, req:['warden'],
+    log:'The injectors hold pressure. The drive is ready, if someone will stand beside it when it lights.'},
+  {id:'ignite', z:5, kind:'act', name:'Ignite the main drive', sk:['nav','eng','res'], days:9000, req:['course','injectors'], win:true,
+    log:'The Long Patience shudders, then pushes. For the first time in sixty years, the ship is going somewhere.'},
+];
+const ZDAYS = {1:1, 2:2.5, 3:4.5, 4:7, 5:10};
+const T = {}; TASKS.forEach(t => { T[t.id] = t; t.reps = t.reps || 1; if (t.days) t.days = Math.round(t.days * ZDAYS[t.z]); });
+
+const PERKS = [
+  {id:'decant',   name:'Decant cache',          from:1, desc:'New clones wake with 30 extra rations and 15 salvage.'},
+  {id:'survival', name:'Survival subroutine',   from:1, desc:'Unlocks auto-forage: your clone works the best food job whenever rations run low.'},
+  {id:'muscle',   name:'Muscle memory',         from:1, desc:'+15% skill XP.', eff:{xp:1.15}},
+  {id:'chitin',   name:'Chitin lore',           from:1, desc:'Hazard damage −10%.', eff:{haz:0.9}},
+  {id:'medrec',   name:'Medbay records',        from:2, desc:'Health regenerates twice as fast.', eff:{regen:2}},
+  {id:'telomere', name:'Telomere patch',        from:2, desc:'+4 years lifespan.', eff:{life:4}},
+  {id:'transit',  name:'Ring transit',          from:2, desc:'+10% speed on every task.', eff:{spd:1.1}},
+  {id:'hardened', name:'Radiation hardening',   from:3, desc:'Hazard damage −20%.', eff:{haz:0.8}},
+  {id:'engram',   name:'Engram recorder',       from:3, desc:'New clones replay the task order of your last life. Toggle it in settings.'},
+  {id:'clock',    name:'Bridge chronometer',    from:4, desc:'Unlocks 4× time speed.'},
+  {id:'starmem',  name:'Star memory',           from:4, desc:'+50% Navigation XP.', eff:{xpSk:{nav:1.5}}},
+  {id:'favor',    name:'WARDEN’s favour',  from:4, desc:'+4 years lifespan and +25% skill XP.', eff:{life:4, xp:1.25}},
+];
+const PK = {}; PERKS.forEach(p => PK[p.id] = p);
+
+const ITEMS = [
+  {id:'rebreather', name:'Patched rebreather', cost:15,   req:'search',     desc:'+20 max health', eff:{maxHp:20}},
+  {id:'toolkit',    name:'Scrap toolkit',      cost:40,   req:'search',     desc:'Engineering work 25% faster', eff:{sk:{eng:1.25}}},
+  {id:'press',      name:'Algae press',        cost:70,   req:'search',     desc:'+0.5 rations per day, passively', eff:{pRat:0.5}},
+  {id:'baton',      name:'Shock baton',        cost:90,   req:'hatch',      desc:'Combat work 20% faster, hazard damage −25%', eff:{sk:{cbt:1.2}, haz:0.75}},
+  {id:'chitinarm',  name:'Chitin armour',      cost:220,  req:'crawlers',   desc:'+20 max health, hazard damage −30%', eff:{maxHp:20, haz:0.7}},
+  {id:'doser',      name:'Hydro auto-doser',   cost:350,  req:'irrigation', desc:'+1.5 rations per day, passively', eff:{pRat:1.5}},
+  {id:'lace',       name:'Neural lace',        cost:650,  req:'medbay',     desc:'+30% skill XP', eff:{xp:1.3}},
+  {id:'stims',      name:'Stim injector',      cost:1000, req:'lift',       desc:'All work 15% faster', eff:{spd:1.15}},
+  {id:'rifle',      name:'Armoury rifle',      cost:1600, req:'armory',     desc:'Combat work 50% faster, hazard damage −20%', eff:{sk:{cbt:1.5}, haz:0.8}},
+  {id:'cryo',       name:'Cryo-sleeve',        cost:2800, req:'vent',       desc:'+3 years lifespan for this clone', eff:{life:3}},
+  {id:'visor',      name:'Nav visor',          cost:4500, req:'bridgepower',desc:'Navigation and Hacking work 30% faster', eff:{sk:{nav:1.3, hak:1.3}}},
+  {id:'exo',        name:'Exo-frame',          cost:7000, req:'navcore',    desc:'Engineering and Resolve work 30% faster, +40 max health', eff:{sk:{eng:1.3, res:1.3}, maxHp:40}},
+];
+const IT = {}; ITEMS.forEach(i => IT[i.id] = i);
+
+let S, M;
+const HOOK = {log(){}, perk(){}, die(){}, win(){}, change(){}};
+
+function newLife(s){
+  const p = s.perks;
+  const L = {day:0, hp:100, rations:20 + (p.decant?30:0), salvage:p.decant?15:0, lv:{}, xp:{}, echo0:{},
+    done:{}, prog:{}, job:null, queue:[], owned:{}, order:[], foraging:false, cur:null, dead:false, cause:''};
+  SKILLS.forEach(k => { L.lv[k.id] = 0; L.xp[k.id] = 0; L.echo0[k.id] = s.echo[k.id] || 0; });
+  return L;
+}
+function defaultState(){
+  const s = {v:1, gen:1, echo:{}, perks:{}, seen:{}, logged:{}, log:[], lastOrder:[], lastJob:null,
+    set:{speed:1, autoFood:true, foodDays:25, replay:true, boost:false},
+    stats:{bestAge:0, deaths:0, daysLived:0}, won:false, winGen:0, bank:0, saved:Date.now(), intro:false};
+  SKILLS.forEach(k => s.echo[k.id] = 0);
+  s.life = newLife(s);
+  return s;
+}
+function mods(){
+  const L = S.life, P = S.perks;
+  const m = {sk:{}, xpSk:{}, spd:1, xp:1, haz:1, maxHp:100, pRat:0, pSal:0, life:16, regen:0.12};
+  SKILLS.forEach(k => { m.sk[k.id] = 1; m.xpSk[k.id] = 1; });
+  const ap = e => {
+    if (!e) return;
+    if (e.sk) for (const k in e.sk) m.sk[k] *= e.sk[k];
+    if (e.xpSk) for (const k in e.xpSk) m.xpSk[k] *= e.xpSk[k];
+    if (e.spd) m.spd *= e.spd; if (e.xp) m.xp *= e.xp; if (e.haz) m.haz *= e.haz;
+    if (e.maxHp) m.maxHp += e.maxHp; if (e.pRat) m.pRat += e.pRat; if (e.pSal) m.pSal += e.pSal;
+    if (e.life) m.life += e.life; if (e.regen) m.regen *= e.regen;
+  };
+  PERKS.forEach(p => { if (P[p.id]) ap(p.eff); });
+  ITEMS.forEach(i => { if (L.owned[i.id]) ap(i.eff); });
+  TASKS.forEach(t => { if (t.lifeEff && isDone(t.id)) ap(t.lifeEff); });
+  return m;
+}
+const xpNeed = l => 25 * Math.pow(1.1, l);
+const echoMult = s => Math.pow(1.085, S.echo[s]);
+const isDone = id => (S.life.done[id] || 0) >= T[id].reps;
+const available = t => t.req.every(isDone);
+const complete = t => t.kind === 'act' && isDone(t.id);
+const lifeDays = () => M.life * 365;
+function skF(s){ return (1 + 0.1 * S.life.lv[s]) * M.sk[s]; }
+function speedOf(t){ let p = 1; t.sk.forEach(s => p *= skF(s)); return Math.pow(p, 1 / t.sk.length) * M.spd; }
+function hazDmg(t){ const L = S.life; return (t.haz || 0) * M.haz / (1 + 0.04 * L.lv.cbt + 0.06 * L.lv.res); }
+function xpRate(t, s){ return ZT[t.z] * M.xp * M.xpSk[s] * echoMult(s); }
+
+function pickFood(){
+  let best = null, br = 0;
+  TASKS.forEach(t => {
+    if (t.kind === 'job' && t.prod && t.prod.rations && available(t)) {
+      const r = t.prod.rations * speedOf(t); if (r > br) { br = r; best = t; }
+    }
+  });
+  return best;
+}
+function active(){
+  const L = S.life;
+  if (S.perks.survival && S.set.autoFood) {
+    const food = pickFood();
+    if (food) {
+      const low = S.set.foodDays;
+      if (L.rations < low) L.foraging = true;
+      if (L.foraging && L.rations >= low * 2) L.foraging = false;
+      if (L.foraging) return food;
+    }
+  } else L.foraging = false;
+  for (const id of L.queue) { const t = T[id]; if (available(t) && !complete(t)) return t; }
+  if (L.job && available(T[L.job])) return T[L.job];
+  return null;
+}
+function gainXp(s, a){
+  const L = S.life; L.xp[s] += a;
+  let n = xpNeed(L.lv[s]);
+  while (L.xp[s] >= n) { L.xp[s] -= n; L.lv[s]++; n = xpNeed(L.lv[s]); }
+}
+function finish(t){
+  const L = S.life;
+  L.done[t.id] = (L.done[t.id] || 0) + 1;
+  const r = t.reward || {};
+  if (r.salvage) L.salvage += r.salvage;
+  if (r.rations) L.rations += r.rations;
+  if (!L.order.includes(t.id)) L.order.push(t.id);
+  if (complete(t)) L.queue = L.queue.filter(x => x !== t.id);
+  M = mods();
+  if (r.heal) L.hp = M.maxHp;
+  if (complete(t) && t.log && !S.logged[t.id]) { S.logged[t.id] = 1; HOOK.log(t.name, t.log); }
+  if (complete(t) && t.perk && !S.perks[t.perk]) { S.perks[t.perk] = true; M = mods(); HOOK.perk(PK[t.perk]); }
+  if (t.win && !S.won) { S.won = true; S.winGen = S.gen; HOOK.win(); }
+  HOOK.change();
+}
+function die(cause){
+  const L = S.life; L.dead = true; L.cause = cause; L.cur = null;
+  const age = START_AGE + L.day / 365;
+  SKILLS.forEach(k => { if (L.lv[k.id] > S.echo[k.id]) S.echo[k.id] = L.lv[k.id]; });
+  S.stats.deaths++; S.stats.daysLived += L.day;
+  if (age > S.stats.bestAge) S.stats.bestAge = age;
+  HOOK.die();
+}
+function step(dt){
+  const L = S.life;
+  const t = active(); L.cur = t ? t.id : null;
+  let hurt = false;
+  if (t) {
+    const sp = speedOf(t);
+    t.sk.forEach(s => gainXp(s, xpRate(t, s) * dt));
+    if (t.kind === 'job') {
+      if (t.prod) { if (t.prod.rations) L.rations += t.prod.rations * sp * dt; if (t.prod.salvage) L.salvage += t.prod.salvage * sp * dt; }
+    } else {
+      L.prog[t.id] = (L.prog[t.id] || 0) + sp * dt;
+      if (L.prog[t.id] >= t.days) { L.prog[t.id] = 0; finish(t); }
+    }
+    if (t.haz) {
+      hurt = true; L.hp -= hazDmg(t) * dt;
+      if (L.hp <= 0) { L.hp = 0; die('Killed while trying to ' + t.name.charAt(0).toLowerCase() + t.name.slice(1)); return; }
+    }
+  }
+  L.rations += (M.pRat - 1) * dt;
+  L.salvage += M.pSal * dt;
+  if (L.rations < 0) {
+    L.rations = 0; hurt = true; L.hp -= 1.5 * dt;
+    if (L.hp <= 0) { L.hp = 0; die('Starved'); return; }
+  }
+  if (!hurt) L.hp = Math.min(M.maxHp, L.hp + M.regen * dt);
+  L.day += dt;
+  if (L.day >= lifeDays()) die('Telomere collapse. The body wore out');
+}
+function advance(days){
+  let left = days, n = 0;
+  while (left > 1e-9 && !S.life.dead && n < 500) { const d = Math.min(left, 2); step(d); left -= d; n++; }
+}
+function decant(){
+  const prev = S.life;
+  S.lastOrder = prev.order.slice(); S.lastJob = prev.job;
+  S.gen++;
+  S.life = newLife(S);
+  M = mods(); S.life.hp = M.maxHp;
+  if (S.perks.engram && S.set.replay) S.life.queue = S.lastOrder.filter(id => T[id] && T[id].kind === 'act');
+  S.life.job = S.lastJob;
+  HOOK.change();
+}
+</script>
+
+<script id="ui">
+/* ===== Interface ===== */
+const KEY = 'long-patience.save.v1';
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function fmt(n){
+  if (!isFinite(n)) return '∞';
+  const a = Math.abs(n);
+  if (a >= 1e9) return (n/1e9).toFixed(2) + 'B';
+  if (a >= 1e6) return (n/1e6).toFixed(2) + 'M';
+  if (a >= 1e4) return (n/1e3).toFixed(1) + 'k';
+  if (a >= 100) return Math.floor(n).toString();
+  if (a >= 10) return n.toFixed(1);
+  return n.toFixed(a > 0 && a < 1 ? 2 : 1);
+}
+function fmtDays(d){
+  if (!isFinite(d)) return '∞';
+  if (d < 1) return '<1 d';
+  if (d < 365) return Math.ceil(d) + ' d';
+  return (d/365).toFixed(1) + ' y';
+}
+function fmtSecs(s){
+  s = Math.floor(s);
+  if (s < 60) return s + 's';
+  if (s < 3600) return Math.floor(s/60) + 'm';
+  return Math.floor(s/3600) + 'h ' + Math.floor((s%3600)/60) + 'm';
+}
+const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
+
+let tab = 'tasks', taskKey = '', gearKey = '', archKey = '', logKey = '', paused = false, refs = [];
+let newLog = false, newPerk = false;
+
+function save(){
+  try { S.saved = Date.now(); localStorage.setItem(KEY, JSON.stringify(S)); } catch(e) {}
+}
+function mergeState(raw){
+  const d = defaultState();
+  if (!raw || typeof raw !== 'object' || !raw.life) return d;
+  const s = Object.assign(d, raw);
+  s.set = Object.assign(defaultState().set, raw.set || {});
+  s.stats = Object.assign(defaultState().stats, raw.stats || {});
+  SKILLS.forEach(k => { if (s.echo[k.id] == null) s.echo[k.id] = 0; });
+  const L = s.life;
+  ['done','prog','owned','lv','xp','echo0'].forEach(k => { if (!L[k]) L[k] = {}; });
+  SKILLS.forEach(k => { if (L.lv[k.id] == null) L.lv[k.id] = 0; if (L.xp[k.id] == null) L.xp[k.id] = 0; });
+  if (!Array.isArray(L.queue)) L.queue = [];
+  L.queue = L.queue.filter(id => T[id]);
+  if (L.job && !T[L.job]) L.job = null;
+  if (!Array.isArray(L.order)) L.order = [];
+  return s;
+}
+function loadSaved(){
+  try { const r = localStorage.getItem(KEY); return r ? JSON.parse(r) : null; } catch(e) { return null; }
+}
+
+/* ----- hooks from the rules ----- */
+HOOK.log = (title, text) => {
+  const L = S.life;
+  S.log.push({g:S.gen, a:+(START_AGE + L.day/365).toFixed(1), t:title, x:text});
+  if (S.log.length > 120) S.log.shift();
+  if (tab !== 'log') newLog = true;
+  logKey = '';
+};
+HOOK.perk = p => { toast('Archive record: ' + p.name, true); if (tab !== 'archive') newPerk = true; archKey = ''; };
+HOOK.change = () => { taskKey = ''; gearKey = ''; };
+HOOK.die = () => { save(); showDeath(); };
+HOOK.win = () => { save(); showWin(); };
+
+function toast(msg, gold){
+  const el = document.createElement('div');
+  el.className = 'toast' + (gold ? ' gold' : '');
+  el.textContent = msg;
+  $('#toasts').appendChild(el);
+  setTimeout(() => el.remove(), 2600);
+}
+
+/* ----- task list ----- */
+function rewardBits(t){
+  const b = [];
+  const r = t.reward || {};
+  if (r.salvage) b.push('+' + r.salvage + ' salvage');
+  if (r.rations) b.push('+' + r.rations + ' rations');
+  if (r.heal) b.push('full heal');
+  if (t.lifeEff && t.lifeEff.pSal) b.push('+' + t.lifeEff.pSal + ' salvage/d');
+  if (t.perk && !S.perks[t.perk]) b.push('<span class="star">★ archive record</span>');
+  if (t.win) b.push('<span class="star">the end of the voyage</span>');
+  return b;
+}
+function chips(t){ return t.sk.map(s => `<span class="chip c-${s}">${SKN[s].ab}</span>`).join(''); }
+
+function renderTasks(){
+  const L = S.life;
+  const vis = [], locked = [];
+  TASKS.forEach(t => {
+    const av = available(t);
+    if (av) S.seen[t.id] = 1;
+    if (av && !complete(t)) vis.push(t.id);
+    else if (!av && S.seen[t.id]) locked.push(t.id);
+  });
+  const key = vis.join() + '|' + locked.join() + '|' + L.queue.join() + '|' + L.job + '|' + Object.keys(S.perks).join() + '|' + S.gen;
+  if (key === taskKey) return;
+  taskKey = key;
+
+  let h = '<div class="qp"><div class="qh"><span class="lbl">Queue</span>' + (L.queue.length ? '<button data-clearq>Clear</button>' : '') + '</div>';
+  if (L.queue.length) {
+    h += '<div class="qlist">' + L.queue.map((id, i) => {
+      const t = T[id]; const bl = !available(t);
+      return `<button class="qchip${bl ? ' blocked' : ''}" data-unq="${id}" aria-label="Remove ${esc(t.name)} from queue">${i+1}. ${esc(t.name)}<i>✕</i></button>`;
+    }).join('') + '</div>';
+  } else {
+    h += '<div class="qnote">Empty. Tap a task to start it now, or + to add it to the end.</div>';
+  }
+  h += `<div class="qnote">Fallback job: <b>${L.job ? esc(T[L.job].name) : 'none'}</b>. It runs whenever the queue is empty.</div></div>`;
+
+  ZONES.forEach(z => {
+    const zt = TASKS.filter(t => t.z === z.id);
+    const jobs = zt.filter(t => t.kind === 'job' && vis.includes(t.id));
+    const acts = zt.filter(t => t.kind === 'act' && vis.includes(t.id));
+    const lk = zt.filter(t => locked.includes(t.id));
+    const cleared = zt.filter(t => complete(t)).length;
+    if (!jobs.length && !acts.length && !lk.length && !cleared) return;
+    h += `<section class="zone"><header class="zh"><h2>${z.name}</h2><span>${z.sub}</span>${cleared ? `<em>${cleared} done</em>` : ''}</header>`;
+    if (jobs.length) {
+      h += '<div class="sub">Jobs · repeat</div>';
+      jobs.forEach(t => {
+        const res = t.prod ? (t.prod.rations ? 'rations' : 'salvage') : '';
+        h += `<div class="task job${L.job === t.id ? ' fb' : ''}" data-id="${t.id}">
+          <button class="tm" data-do="${t.id}"><div class="tf"></div>
+            <div class="th"><span class="tn">${esc(t.name)}</span><span class="te num" data-r="${res}"></span></div>
+            <div class="tx">${chips(t)}${t.haz ? '<span class="haz">▲ hazard</span>' : ''}${!t.prod ? '<span>skill training only</span>' : ''}</div>
+          </button></div>`;
+      });
+    }
+    if (acts.length) {
+      h += '<div class="sub">Actions</div>';
+      acts.forEach(t => {
+        const qi = L.queue.indexOf(t.id);
+        const rb = rewardBits(t);
+        h += `<div class="task act" data-id="${t.id}">
+          <button class="tm" data-do="${t.id}"><div class="tf"></div>
+            <div class="th"><span class="tn">${esc(t.name)}</span><span class="te num"></span></div>
+            <div class="tx">${chips(t)}${t.reps > 1 ? `<span class="num rp"></span>` : ''}${t.haz ? '<span class="haz">▲ hazard</span>' : ''}${rb.length ? '<span>' + rb.join(' · ') + '</span>' : ''}</div>
+          </button>
+          <button class="tq${qi >= 0 ? ' in' : ''}" data-q="${t.id}" aria-label="${qi >= 0 ? 'Queued' : 'Add to queue'}">${qi >= 0 ? '#' + (qi+1) : '+'}</button></div>`;
+      });
+    }
+    lk.forEach(t => {
+      const need = t.req.filter(r => !isDone(r)).map(r => S.seen[r] ? T[r].name : 'something unseen');
+      h += `<div class="task lock" data-lock="${t.id}"><div class="tm"><div class="th"><span class="tn">${esc(t.name)}</span></div>
+        <div class="tx">${chips(t)}<span>Needs: ${esc(need.join(', '))}</span></div></div><span class="tq"></span></div>`;
+    });
+    h += '</section>';
+  });
+  $('#v-tasks').innerHTML = h;
+  refs = [...document.querySelectorAll('#v-tasks .task[data-id]')].map(el => ({
+    el, t:T[el.dataset.id], f:el.querySelector('.tf'), e:el.querySelector('.te'), rp:el.querySelector('.rp')
+  }));
+}
+function updateTasks(){
+  const L = S.life;
+  refs.forEach(r => {
+    const t = r.t, on = L.cur === t.id;
+    r.el.classList.toggle('on', on);
+    const sp = speedOf(t);
+    if (t.kind === 'act') {
+      const p = (L.prog[t.id] || 0) / t.days;
+      r.f.style.width = (p * 100).toFixed(1) + '%';
+      const left = (t.days * (t.reps - (L.done[t.id] || 0)) - (L.prog[t.id] || 0)) / sp;
+      r.e.textContent = fmtDays(left);
+      if (r.rp) r.rp.textContent = (L.done[t.id] || 0) + '/' + t.reps;
+    } else {
+      if (t.prod) {
+        const res = t.prod.rations ? 'rations' : 'salvage';
+        r.e.textContent = '+' + fmt(t.prod[res] * sp) + ' ' + res + '/d';
+      } else {
+        r.e.textContent = '×' + fmt(sp) + ' speed';
+      }
+    }
+  });
+}
+
+/* ----- HUD ----- */
+function renderSpeed(){
+  const opts = [1, 2]; if (S.perks.clock) opts.push(4);
+  if (!opts.includes(S.set.speed)) S.set.speed = 1;
+  let h = opts.map(o => `<button data-speed="${o}" class="${S.set.speed === o ? 'on' : ''}">${o}×</button>`).join('');
+  if (S.bank >= 1) h += `<button data-boost class="boost${S.set.boost ? ' on' : ''}" aria-label="Stasis boost, doubles speed">+2× ${fmtSecs(S.bank)}</button>`;
+  const el = $('#h-spd'); if (el.innerHTML !== h) el.innerHTML = h;
+}
+function updateHud(){
+  const L = S.life;
+  const age = START_AGE + L.day/365, maxAge = START_AGE + M.life;
+  $('#h-gen').textContent = 'Clone ' + S.gen;
+  $('#b-age').style.width = Math.min(100, L.day / lifeDays() * 100) + '%';
+  $('#t-age').textContent = age.toFixed(1) + ' / ' + maxAge.toFixed(0) + ' y';
+  $('#b-hp').style.width = Math.max(0, L.hp / M.maxHp * 100) + '%';
+  $('#t-hp').textContent = Math.ceil(L.hp) + ' / ' + M.maxHp;
+  const cur = L.cur ? T[L.cur] : null;
+  let rr = M.pRat - 1, sr = M.pSal;
+  if (cur && cur.kind === 'job' && cur.prod) {
+    const sp = speedOf(cur);
+    if (cur.prod.rations) rr += cur.prod.rations * sp;
+    if (cur.prod.salvage) sr += cur.prod.salvage * sp;
+  }
+  $('#t-rat').textContent = fmt(L.rations);
+  const ra = $('#t-ratr'); ra.textContent = (rr >= 0 ? '+' : '−') + fmt(Math.abs(rr)) + '/d'; ra.className = 'num ' + (rr >= 0 ? 'pos' : 'neg');
+  $('#t-sal').textContent = fmt(L.salvage);
+  const sa = $('#t-salr'); sa.textContent = sr > 0 ? '+' + fmt(sr) + '/d' : ''; sa.className = 'num pos';
+  const now = $('#now');
+  now.classList.toggle('idle', !cur && !L.dead);
+  now.classList.toggle('forage', !!(cur && L.foraging));
+  if (L.dead) { $('#n-name').textContent = 'Clone terminated'; $('#n-eta').textContent = ''; $('#n-fill').style.width = '0'; }
+  else if (!cur) { $('#n-name').textContent = 'Idle. Pick a task below.'; $('#n-eta').textContent = ''; $('#n-fill').style.width = '0'; }
+  else {
+    $('#n-name').textContent = (L.foraging ? 'Foraging: ' : '') + cur.name;
+    if (cur.kind === 'act') {
+      const sp = speedOf(cur);
+      $('#n-fill').style.width = ((L.prog[cur.id] || 0) / cur.days * 100).toFixed(1) + '%';
+      $('#n-eta').textContent = fmtDays((cur.days - (L.prog[cur.id] || 0)) / sp);
+    } else { $('#n-fill').style.width = '100%'; $('#n-eta').textContent = 'job'; }
+  }
+  renderSpeed();
+}
+
+/* ----- other views ----- */
+function renderSkills(){
+  const L = S.life;
+  let h = '<div class="panel"><span class="h2">Neural echo</span><p class="note">Skill levels reset with each clone. The highest level you ever reached is kept as an echo, and every echo level adds 10% XP to that skill for all future clones.</p></div><div>';
+  SKILLS.forEach(k => {
+    const lv = L.lv[k.id], n = xpNeed(lv);
+    h += `<div class="sk"><div class="skh"><h3 class="c-${k.id}">${k.name}</h3><b>Lv ${lv}</b></div>
+      <div class="bar xp"><i style="width:${(L.xp[k.id]/n*100).toFixed(1)}%"></i></div>
+      <div class="skm num"><span>Speed ×${fmt(skF(k.id))}</span><span>Echo ${S.echo[k.id]} · XP ×${fmt(echoMult(k.id) * M.xp * M.xpSk[k.id])}</span></div></div>`;
+  });
+  h += '</div>';
+  $('#v-skills').innerHTML = h;
+}
+function renderGear(){
+  const L = S.life;
+  const av = ITEMS.filter(i => isDone(i.req));
+  const key = av.map(i => i.id + (L.owned[i.id] ? 'o' : (L.salvage >= i.cost ? 'y' : 'n'))).join();
+  if (key === gearKey) return; gearKey = key;
+  let h = '<div class="panel"><span class="h2">Fabricator</span><p class="note">Gear is built from salvage and lasts for this clone only. New designs appear as you explore.</p></div><div>';
+  if (!av.length) h += '<p class="note">Nothing to build yet. Search the vat bay first.</p>';
+  av.forEach(i => {
+    h += `<div class="item"><div><h3>${esc(i.name)}</h3><p>${esc(i.desc)}</p></div>` +
+      (L.owned[i.id] ? '<span class="owned">Built</span>' : `<button class="buy" data-buy="${i.id}" ${L.salvage >= i.cost ? '' : 'disabled'}>${fmt(i.cost)} salvage</button>`) + '</div>';
+  });
+  const hidden = ITEMS.length - av.length;
+  if (hidden > 0) h += `<p class="note" style="padding-top:10px">${hidden} more design${hidden > 1 ? 's' : ''} not yet found.</p>`;
+  h += '</div>';
+  $('#v-gear').innerHTML = h;
+}
+function renderArchive(force){
+  const key = Object.keys(S.perks).join() + '|' + S.gen + '|' + JSON.stringify(S.set) + '|' + S.won;
+  if (key === archKey && !force) return; archKey = key;
+  const got = PERKS.filter(p => S.perks[p.id]).length;
+  let h = `<div class="panel"><span class="h2">Archive records</span><p class="note">Permanent upgrades. Each is found the first time a clone finishes a certain action. ${got} of ${PERKS.length} recovered.</p></div><div>`;
+  PERKS.forEach(p => {
+    const z = ZONES.find(z => z.id === p.from);
+    h += S.perks[p.id]
+      ? `<div class="perk"><h3>${esc(p.name)}</h3><p>${esc(p.desc)}</p></div>`
+      : `<div class="perk no"><h3>Unrecovered record</h3><p>Somewhere in the ${z.name}.</p></div>`;
+  });
+  h += '</div>';
+  const st = S.stats;
+  h += `<div class="stats">
+    <div><b>${S.gen}</b><span>Clones decanted</span></div>
+    <div><b>${st.bestAge ? st.bestAge.toFixed(1) : '—'}</b><span>Oldest clone (years)</span></div>
+    <div><b>${Object.values(S.echo).reduce((a,b)=>a+b,0)}</b><span>Total echo levels</span></div>
+    <div><b>${S.won ? 'Clone ' + S.winGen : 'Not yet'}</b><span>Drive ignited</span></div></div>`;
+  h += '<div class="panel set"><span class="h2">Settings</span>';
+  if (S.perks.survival) {
+    h += `<div class="row"><p>Auto-forage<small>Switch to the best food job when rations drop below the threshold, and stay until they double.</small></p><button class="tog${S.set.autoFood ? ' on' : ''}" data-set="autoFood" aria-label="Auto-forage" aria-pressed="${S.set.autoFood}"></button></div>
+      <div><div class="row"><p>Forage threshold</p><b class="num" id="fd-v">${S.set.foodDays} rations</b></div><input type="range" id="fd" min="5" max="120" step="5" value="${S.set.foodDays}"></div>`;
+  }
+  if (S.perks.engram) {
+    h += `<div class="row"><p>Engram replay<small>New clones queue the actions your last clone finished, in the same order.</small></p><button class="tog${S.set.replay ? ' on' : ''}" data-set="replay" aria-label="Engram replay" aria-pressed="${S.set.replay}"></button></div>`;
+  }
+  h += `<div class="row"><p>Recycle this clone<small>End the current life now. Echoes are kept.</small></p><button class="btn warn" data-confirm="recycle">Recycle</button></div>
+    <div class="row"><p>Erase all progress<small>Deletes the save in this browser.</small></p><button class="btn warn" data-confirm="reset">Erase</button></div>
+    <p class="note">Progress saves in this browser. Time spent away is stored as a stasis boost that doubles game speed.</p></div>`;
+  $('#v-archive').innerHTML = h;
+  const fd = $('#fd');
+  if (fd) fd.addEventListener('input', () => { S.set.foodDays = +fd.value; $('#fd-v').textContent = fd.value + ' rations'; });
+}
+function renderLog(){
+  const key = S.log.length + '|' + (S.log.length ? S.log[S.log.length-1].t : '');
+  if (key === logKey) return; logKey = key;
+  let h = '<div class="panel"><span class="h2">Ship log</span><p class="note">Things your clones have learned about the Long Patience.</p></div><div>';
+  if (!S.log.length) h += '<p class="note">Nothing yet.</p>';
+  S.log.slice().reverse().forEach(e => {
+    h += `<article class="le"><header><h3>${esc(e.t)}</h3><time>Clone ${e.g} · age ${e.a}</time></header><p>${esc(e.x)}</p></article>`;
+  });
+  h += '</div>';
+  $('#v-log').innerHTML = h;
+}
+function setTab(t){
+  tab = t;
+  document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === t));
+  ['tasks','skills','gear','archive','log'].forEach(v => $('#v-' + v).hidden = v !== t);
+  if (t === 'log') newLog = false;
+  if (t === 'archive') newPerk = false;
+  gearKey = ''; archKey = ''; logKey = '';
+  renderView(true);
+  window.scrollTo(0, 0);
+}
+function renderView(force){
+  if (tab === 'tasks') { renderTasks(); updateTasks(); }
+  else if (tab === 'skills') renderSkills();
+  else if (tab === 'gear') renderGear();
+  else if (tab === 'archive') renderArchive(force);
+  else if (tab === 'log') renderLog();
+  document.querySelector('[data-tab="log"]').classList.toggle('dot', newLog);
+  document.querySelector('[data-tab="archive"]').classList.toggle('dot', newPerk);
+}
+
+/* ----- modals ----- */
+function showModal(h){ $('#mbox').innerHTML = h; $('#modal').hidden = false; }
+function hideModal(){ $('#modal').hidden = true; }
+function showIntro(){
+  paused = true;
+  showModal(`<h2>Long Patience</h2>
+    <p>You are K-7, clone stock aboard a colony ship that stopped answering long ago. Each body lasts a few years. What you learn echoes into the next one.</p>
+    <ul>
+      <li><b>Tap a task</b> to work on it now. <b>+</b> adds an action to the queue.</li>
+      <li><b>Jobs</b> repeat forever and make rations or salvage. The last job you tapped runs whenever the queue is empty.</li>
+      <li>You eat <b>1 ration a day</b>. Run out and you starve.</li>
+      <li>When a clone dies, skill levels reset but their <b>echo</b> speeds up learning in every future clone.</li>
+      <li>Goal: reach the main drive and take the ship somewhere.</li>
+    </ul>
+    <button class="btn pri" data-close>Open the vat</button>`);
+}
+function showDeath(){
+  const L = S.life;
+  const age = START_AGE + L.day/365;
+  let rows = SKILLS.map(k => {
+    const up = S.echo[k.id] - (L.echo0[k.id] || 0);
+    return `<tr><td>${k.name}</td><td>Lv ${L.lv[k.id]}</td><td>${up > 0 ? `<span class="up">echo ${S.echo[k.id]} (+${up})</span>` : 'echo ' + S.echo[k.id]}</td></tr>`;
+  }).join('');
+  showModal(`<h2>Clone ${S.gen} terminated</h2>
+    <p>${esc(L.cause)}.</p><p class="d">Age ${age.toFixed(1)} · ${L.order.length} actions completed</p>
+    <table class="dt">${rows}</table>
+    ${S.perks.engram && S.set.replay ? '<p class="d">The engram recorder will queue this clone’s actions for the next one.</p>' : ''}
+    <button class="btn pri" data-decant>Decant clone ${S.gen + 1}</button>`);
+}
+function showWin(){
+  paused = true;
+  showModal(`<h2>The drive is lit</h2>
+    <p>The Long Patience turns toward Tessaly and burns. It took ${S.gen} clone${S.gen > 1 ? 's' : ''} of K-7 to get here.</p>
+    <p class="d">You can keep playing to push your echoes higher, or erase progress from the Archive tab to start again.</p>
+    <button class="btn pri" data-close>Keep going</button>`);
+}
+
+/* ----- input ----- */
+const confirmT = {};
+document.addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  const L = S.life, d = b.dataset;
+  if (d.tab) return setTab(d.tab);
+  if (d.speed) { S.set.speed = +d.speed; renderSpeed(); return; }
+  if ('boost' in d) { S.set.boost = !S.set.boost; renderSpeed(); return; }
+  if ('close' in d) { hideModal(); paused = false; S.intro = true; save(); return; }
+  if ('decant' in d) { decant(); hideModal(); taskKey = ''; setTab('tasks'); save(); return; }
+  if (L.dead) return;
+  if (d.do) {
+    const t = T[d.do];
+    if (t.kind === 'job') {
+      L.job = t.id; L.foraging = false;
+      const q = L.queue.some(id => available(T[id]) && !complete(T[id]));
+      if (q) toast('Set as fallback job. It runs once the queue is empty.');
+    } else {
+      L.queue = [t.id, ...L.queue.filter(x => x !== t.id)];
+      L.foraging = false;
+    }
+    taskKey = ''; renderView(); return;
+  }
+  if (d.q) {
+    if (!L.queue.includes(d.q)) { L.queue.push(d.q); toast('Queued: ' + T[d.q].name); }
+    else { L.queue = L.queue.filter(x => x !== d.q); }
+    taskKey = ''; renderView(); return;
+  }
+  if (d.unq) { L.queue = L.queue.filter(x => x !== d.unq); taskKey = ''; renderView(); return; }
+  if ('clearq' in d) { L.queue = []; taskKey = ''; renderView(); return; }
+  if (d.buy) {
+    const it = IT[d.buy];
+    if (L.salvage >= it.cost && !L.owned[it.id]) {
+      L.salvage -= it.cost; L.owned[it.id] = true; M = mods();
+      if (it.eff.maxHp) L.hp += it.eff.maxHp;
+      toast('Built: ' + it.name); gearKey = ''; taskKey = ''; renderView();
+    }
+    return;
+  }
+  if (d.set) { S.set[d.set] = !S.set[d.set]; renderArchive(true); return; }
+  if (d.confirm) {
+    const k = d.confirm;
+    if (!confirmT[k]) {
+      confirmT[k] = setTimeout(() => { confirmT[k] = null; if (b.isConnected) b.textContent = k === 'reset' ? 'Erase' : 'Recycle'; }, 3000);
+      b.textContent = 'Tap again'; return;
+    }
+    clearTimeout(confirmT[k]); confirmT[k] = null;
+    if (k === 'recycle') die('Recycled by choice');
+    if (k === 'reset') {
+      try { localStorage.removeItem(KEY); } catch(e) {}
+      S = defaultState(); M = mods(); S.life.hp = M.maxHp; taskKey = ''; archKey = ''; logKey = ''; gearKey = '';
+      setTab('tasks'); showIntro();
+    }
+  }
+});
+$('#modal').addEventListener('click', e => { if (e.target.id === 'modal' && !S.life.dead && S.intro && !paused) hideModal(); });
+
+/* ----- loop ----- */
+let last = performance.now(), saveT = 0, viewT = 0;
+function frame(now){
+  let dt = (now - last) / 1000; last = now;
+  if (dt > 1.5) { S.bank = Math.min(S.bank + dt, 8*3600); dt = 0; }
+  if (dt > 0 && !S.life.dead && !paused) {
+    let mult = S.set.speed;
+    if (S.set.boost && S.bank > 0) { mult *= 2; S.bank = Math.max(0, S.bank - dt); if (S.bank <= 0) S.set.boost = false; }
+    advance(dt * DPS * mult);
+  }
+  updateHud();
+  viewT += dt;
+  if (tab === 'tasks') { renderTasks(); updateTasks(); }
+  if (viewT > 0.4) { viewT = 0; renderView(); }
+  saveT += dt;
+  if (saveT > 5) { saveT = 0; save(); }
+  requestAnimationFrame(frame);
+}
+document.addEventListener('visibilitychange', () => { if (document.hidden) save(); });
+window.addEventListener('pagehide', save);
+
+function boot(data){
+  const raw = (data && data.S) || loadSaved();
+  S = mergeState(raw);
+  M = mods();
+  if (!raw) S.life.hp = M.maxHp;
+  if (raw && raw.saved) S.bank = Math.min((S.bank || 0) + Math.max(0, (Date.now() - raw.saved) / 1000), 8*3600);
+  setTab('tasks');
+  if (S.life.dead) showDeath();
+  else if (!S.intro) showIntro();
+  last = performance.now();
+  requestAnimationFrame(frame);
+}
+try { window.claude?.hot?.snapshot?.(() => ({S: JSON.parse(JSON.stringify(S))})); } catch(e) {}
+window.claude?.hot?.ready ? window.claude.hot.ready(boot) : boot(window.claude?.hot?.data ?? {});
+</script>
+
+</body>
+</html>
