@@ -1,8 +1,10 @@
 {
  "v": 1,
- "rv": 2,
+ "rv": 3,
  "sv": 2,
  "gen": 1,
+ "prac": {},
+ "auto": {},
  "echo": {
   "eng": 0,
   "bio": 0,
@@ -13,16 +15,29 @@
  },
  "perks": {},
  "seen": {
+  "wake": 1,
+  "algae": 1,
+  "scrap": 1,
+  "search": 1
+ },
+ "logged": {
   "wake": 1
  },
- "logged": {},
- "log": [],
+ "log": [
+  {
+   "g": 1,
+   "a": 14,
+   "t": "Climb out of the vat",
+   "x": "Fluid drains from the vat. Stencilled on the glass: K-7. The emergency lamps are sodium orange and the ship is very quiet."
+  }
+ ],
  "lastOrder": [],
  "lastJob": null,
  "set": {
   "speed": 1,
   "autoFood": true,
-  "foodDays": 12,
+  "autoEat": true,
+  "foodDays": 5,
   "replay": true,
   "boost": false
  },
@@ -33,29 +48,29 @@
  },
  "won": false,
  "winGen": 0,
- "bank": 0,
- "saved": 1793548611202,
+ "bank": 1029.5849,
+ "saved": 1793549759732,
  "intro": true,
  "life": {
-  "day": 0,
+  "day": 412.020000000038,
   "hp": 100,
-  "rations": 10,
-  "salvage": 0,
+  "rations": 2.923479999999652,
+  "salvage": 10.199999999999998,
   "lv": {
    "eng": 0,
-   "bio": 0,
+   "bio": 1,
    "cbt": 0,
    "hak": 0,
    "nav": 0,
    "res": 0
   },
   "xp": {
-   "eng": 0,
-   "bio": 0,
+   "eng": 141.53039999999842,
+   "bio": 115.85120000000033,
    "cbt": 0,
    "hak": 0,
    "nav": 0,
-   "res": 0
+   "res": 2.0383999999999975
   },
   "echo0": {
    "eng": 0,
@@ -65,15 +80,24 @@
    "nav": 0,
    "res": 0
   },
-  "done": {},
-  "prog": {},
-  "cyc": {},
-  "job": null,
+  "done": {
+   "wake": 1
+  },
+  "prog": {
+   "wake": 0
+  },
+  "cyc": {
+   "algae": 0.0038550000000185936,
+   "scrap": 0.6912999999999782
+  },
+  "job": "scrap",
   "queue": [],
   "owned": {},
-  "order": [],
+  "order": [
+   "wake"
+  ],
   "foraging": false,
-  "cur": null,
+  "cur": "scrap",
   "dead": false,
   "cause": ""
  }
