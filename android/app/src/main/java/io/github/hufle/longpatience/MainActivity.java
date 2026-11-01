@@ -6,6 +6,7 @@ import android.content.pm.PackageInfo;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.provider.Settings;
 import android.webkit.JavascriptInterface;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
@@ -15,11 +16,17 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
+import androidx.core.content.FileProvider;
 import androidx.webkit.WebViewAssetLoader;
 
 import org.json.JSONObject;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
 
 /**
@@ -31,6 +38,8 @@ public class MainActivity extends Activity {
     private static final String START_URL = "https://appassets.androidplatform.net/assets/index.html";
     private static final int REQ_EXPORT = 41;
     private static final int REQ_IMPORT = 42;
+    private static final int REQ_INSTALL_PERM = 43;
+    private File pendingInstall;
 
     private WebView web;
     private String pendingExport;
@@ -118,6 +127,51 @@ public class MainActivity extends Activity {
         @JavascriptInterface
         public boolean isApp() { return true; }
 
+        /** Downloads the newest APK from GitHub and opens Android's installer. */
+        @JavascriptInterface
+        public void downloadUpdate(final String url) {
+            new Thread(() -> {
+                try {
+                    File dir = new File(getCacheDir(), "updates");
+                    dir.mkdirs();
+                    File out = new File(dir, "LongPatience.apk");
+                    HttpURLConnection c = null;
+                    String target = url;
+                    for (int hop = 0; hop < 6; hop++) {   // follow GitHub's redirects to its file host
+                        c = (HttpURLConnection) new URL(target).openConnection();
+                        c.setInstanceFollowRedirects(false);
+                        c.setConnectTimeout(15000);
+                        c.setReadTimeout(30000);
+                        int code = c.getResponseCode();
+                        if (code >= 300 && code < 400 && c.getHeaderField("Location") != null) {
+                            target = new URL(new URL(target), c.getHeaderField("Location")).toString();
+                            c.disconnect();
+                            continue;
+                        }
+                        if (code != 200) throw new Exception("GitHub answered " + code);
+                        break;
+                    }
+                    long total = c.getContentLengthLong(), done = 0;
+                    int lastPct = -1;
+                    try (InputStream in = c.getInputStream(); FileOutputStream fo = new FileOutputStream(out)) {
+                        byte[] buf = new byte[32768];
+                        int n;
+                        while ((n = in.read(buf)) > 0) {
+                            fo.write(buf, 0, n);
+                            done += n;
+                            if (total > 0) {
+                                int pct = (int) (done * 100 / total);
+                                if (pct / 5 != lastPct / 5) { lastPct = pct; post("progress", String.valueOf(pct)); }
+                            }
+                        }
+                    }
+                    runOnUiThread(() -> install(out));
+                } catch (Exception e) {
+                    post("error", "Download failed: " + (e.getMessage() == null ? "unknown error" : e.getMessage()));
+                }
+            }).start();
+        }
+
         /** Build number of the installed app, used by the game to spot updates. */
         @JavascriptInterface
         public int versionCode() {
@@ -145,12 +199,49 @@ public class MainActivity extends Activity {
                 }
             }
             pendingExport = null;
+        } else if (requestCode == REQ_INSTALL_PERM) {
+            if (pendingInstall != null && Build.VERSION.SDK_INT >= 26 && getPackageManager().canRequestPackageInstalls()) {
+                File f = pendingInstall;
+                pendingInstall = null;
+                install(f);
+            } else {
+                post("error", "Install permission was not given. You can try again from Settings.");
+            }
         } else if (requestCode == REQ_IMPORT && fileCallback != null) {
             Uri[] result = null;
             if (resultCode == RESULT_OK && data != null && data.getData() != null) result = new Uri[]{data.getData()};
             fileCallback.onReceiveValue(result);
             fileCallback = null;
         }
+    }
+
+    private void install(File apk) {
+        if (Build.VERSION.SDK_INT >= 26 && !getPackageManager().canRequestPackageInstalls()) {
+            pendingInstall = apk;
+            post("permission", "Allow Long Patience to install apps, then return here. The install will continue.");
+            try {
+                startActivityForResult(new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
+                        Uri.parse("package:" + getPackageName())), REQ_INSTALL_PERM);
+            } catch (Exception e) {
+                post("error", "Couldn't open the install permission screen.");
+            }
+            return;
+        }
+        try {
+            Uri uri = FileProvider.getUriForFile(this, getPackageName() + ".files", apk);
+            Intent i = new Intent(Intent.ACTION_VIEW);
+            i.setDataAndType(uri, "application/vnd.android.package-archive");
+            i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(i);
+            post("ready", "Installer opened. Confirm the update; your saves are kept.");
+        } catch (Exception e) {
+            post("error", "Couldn't open the installer: " + e.getMessage());
+        }
+    }
+
+    private void post(final String state, final String msg) {
+        runOnUiThread(() -> web.evaluateJavascript("window.onAppUpdate && window.onAppUpdate("
+                + JSONObject.quote(state) + "," + JSONObject.quote(msg) + ")", null));
     }
 
     private void report(boolean ok, String msg) {

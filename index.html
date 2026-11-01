@@ -302,6 +302,8 @@ html.horiz #v-gear,html.horiz #v-archive,html.horiz #v-log,html.horiz #v-skills{
 html.horiz #toasts{left:var(--side);bottom:16px}
 .updl{display:block;text-decoration:none;text-align:left;padding:11px 12px}
 .updl small{display:block;font-weight:400;font-size:12px;opacity:.85;margin-top:2px}
+.mbox .panel{gap:8px}
+button.updl{width:100%}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 
@@ -1195,7 +1197,7 @@ function showMenu(view){
   paused = true;
   const cur = readSlot(slot);
   let h = '<h2>Long Patience</h2>';
-  if (appUpdate) h += `<a class="btn pri updl" href="${APK_URL}" target="_blank" rel="noopener">Download app update (build ${appUpdate.build})<small>You have build ${appUpdate.mine}. Install it over this one; saves are kept.</small></a>`;
+  if (appUpdate && appUpdate.build > appUpdate.mine) h += `<button class="btn pri updl" data-settings="menu">App update available (build ${appUpdate.build})<small>You have build ${appUpdate.mine}. Open settings to install it; saves are kept.</small></button>`;
   if (view === 'new') {
     h += '<p>Start a new game in which slot? A used slot is overwritten; tap it twice to confirm.</p><div class="slots">';
     for (let i = 1; i <= SLOTS; i++) {
@@ -1217,7 +1219,7 @@ function showMenu(view){
       if (act) h += '<span class="ghst">Saves automatically every few seconds.</span>';
       h += '</div></div>';
     }
-    h += '</div>' + soundPanel().replace('panel set', 'panel set mpanel') + displayPanel('mpanel') + '<p class="d">\u201cSave here\u201d copies your current game into another slot as a save state. You keep playing in your current slot; load the copy later to go back to that moment.</p>';
+    h += '</div><button class="btn" data-settings="menu">Settings: sound, layout, app updates</button><p class="d">\u201cSave here\u201d copies your current game into another slot as a save state. You keep playing in your current slot; load the copy later to go back to that moment.</p>';
   }
   showModal(h);
 }
@@ -1424,7 +1426,7 @@ let lastSpd = '';
 function renderSpeed(){
   // Time always runs at 1x; pausing and speed-ups were removed. Only the stasis boost remains.
   S.set.speed = 1; S.set.paused = false;
-  let h = `<button data-flip class="flip" aria-label="Switch layout" title="Switch layout">\u21c4</button><button data-atog="musicOn" class="mus${ASET.musicOn ? ' on' : ''}" aria-label="Music ${ASET.musicOn ? 'on' : 'off'}">\u266a</button>`;
+  let h = `<button data-settings="hud" class="flip" aria-label="Settings" title="Settings">\u2699</button><button data-atog="musicOn" class="mus${ASET.musicOn ? ' on' : ''}" aria-label="Music ${ASET.musicOn ? 'on' : 'off'}">\u266a</button>`;
   if (S.bank >= 1) h += `<button data-boost class="boost${S.set.boost ? ' on' : ''}" aria-label="Stasis boost, doubles speed">+2× ${fmtSecs(S.bank)}</button>`;
   if (h !== lastSpd) { lastSpd = h; $('#h-spd').innerHTML = h; }
 }
@@ -1537,7 +1539,7 @@ function soundPanel(){
   const row = (k, vk, label, note) => `<div class="row"><p>${label}<small>${note}</small></p><button class="tog${ASET[k] ? ' on' : ''}" data-atog="${k}" aria-label="${label}" aria-pressed="${ASET[k]}"></button></div>
     <div class="vol"><span class="lbl">Volume</span><input type="range" min="0" max="100" step="1" value="${Math.round(ASET[vk] * 100)}" data-avol="${vk}" aria-label="${label} volume"><b class="num" data-avv="${vk}">${Math.round(ASET[vk] * 100)}</b></div>`;
   return `<div class="panel set"><span class="h2">Sound</span>
-    ${row('musicOn', 'musicVol', 'Music', 'Generated darkwave soundtrack. It grows uneasy when health runs low and muffles while paused.')}
+    ${row('musicOn', 'musicVol', 'Music', 'Generated darkwave soundtrack. It grows uneasy when health runs low and muffles while a menu is open.')}
     ${row('sfxOn', 'sfxVol', 'Sound effects', 'Buttons, finished actions, records, meals and deaths.')}
   </div>`;
 }
@@ -1576,7 +1578,7 @@ function renderArchive(force){
   if (S.perks.engram) {
     h += `<div class="row"><p>Engram replay<small>New clones queue the actions your last clone finished, in the same order.</small></p><button class="tog${S.set.replay ? ' on' : ''}" data-set="replay" aria-label="Engram replay" aria-pressed="${S.set.replay}"></button></div>`;
   }
-  h += '</div>' + soundPanel() + displayPanel() + '<div class="panel set"><span class="h2">Clone</span>';
+  h += '<div class="row"><p>Sound, layout and app updates<small>These are in the settings menu.</small></p><button class="btn" data-settings="hud">Open</button></div></div><div class="panel set"><span class="h2">Clone</span>';
   h += `<div class="row"><p>Recycle this clone<small>End the current life now. Echoes are kept.</small></p><button class="btn warn" data-confirm="recycle">Recycle</button></div>
     <div class="row"><p>Restart this slot<small>Erases the game in this slot and starts over. Other slots are kept. The main menu has more options.</small></p><button class="btn warn" data-confirm="reset">Restart</button></div>
     <p class="note">Progress saves in this browser. Time spent away is stored as a stasis boost that doubles game speed.</p></div>`;
@@ -1784,6 +1786,15 @@ document.addEventListener('click', e => {
   if ('boost' in d) { S.set.boost = !S.set.boost; renderSpeed(); return; }
   if ('close' in d) { hideModal(); paused = false; S.intro = true; save(); return; }
   if ('decant' in d) { decant(); hideModal(); taskKey = ''; setTab('tasks'); save(); return; }
+  if (d.settings) { save(); showSettings(d.settings); return; }
+  if ('settingsclose' in d) {
+    const from = settingsFrom; settingsFrom = null;
+    if (from === 'menu') return showMenu();
+    hideModal(); paused = false; if (S.life.dead) showDeath(); return;
+  }
+  if (d.upd) { UPD[d.upd] = !UPD[d.upd]; updSave(); b.classList.toggle('on', UPD[d.upd]); b.setAttribute('aria-pressed', UPD[d.upd]); return; }
+  if ('updcheck' in d) { checkAppUpdate(true); return; }
+  if ('updinstall' in d) { startAppUpdate(); return; }
   if (d.menu) {
     if (d.menu === 'open') { save(); return showMenu(); }
     if (d.menu === 'back') return showMenu();
@@ -1940,19 +1951,65 @@ window.addEventListener('pagehide', save);
 
 /* ----- Android app: check GitHub for a newer build ----- */
 const APK_URL = 'https://github.com/hufle-beep/long-patience/releases/download/android-latest/LongPatience.apk';
-let appUpdate = null;
-function checkAppUpdate(){
-  let mine = 0;
-  try { if (!(window.AndroidBridge && AndroidBridge.versionCode)) return; mine = AndroidBridge.versionCode(); } catch(e) { return; }
+let appUpdate = null, updStatus = '', updBusy = false;
+const UPD_KEY = 'long-patience.update.v1';
+const UPD = {auto:true, autoInstall:false};
+try { Object.assign(UPD, JSON.parse(localStorage.getItem(UPD_KEY) || '{}')); } catch(e) {}
+function updSave(){ try { localStorage.setItem(UPD_KEY, JSON.stringify(UPD)); } catch(e) {} }
+const inApp = () => !!(window.AndroidBridge && AndroidBridge.versionCode);
+function myBuild(){ try { return AndroidBridge.versionCode(); } catch(e) { return 0; } }
+function setUpd(msg){ updStatus = msg; const el = document.getElementById('upd-st'); if (el) el.textContent = msg; }
+function checkAppUpdate(manual){
+  if (!inApp()) return;
+  const mine = myBuild();
+  if (manual) setUpd('Checking GitHub\u2026');
   fetch('https://api.github.com/repos/hufle-beep/long-patience/releases/tags/android-latest', {cache:'no-store'})
-    .then(r => r.ok ? r.json() : null).then(j => {
+    .then(r => r.ok ? r.json() : Promise.reject(r.status)).then(j => {
       const m = j && j.name && j.name.match(/build (\d+)/);
-      if (m && +m[1] > mine) { appUpdate = {build:+m[1], mine}; toast('App update available: build ' + m[1] + '. Open the menu to download it.', true); }
-    }).catch(() => {});
+      if (!m) { setUpd('No app build found on GitHub.'); return; }
+      appUpdate = {build:+m[1], mine};
+      if (appUpdate.build > mine) {
+        setUpd('Build ' + appUpdate.build + ' is available (you have ' + mine + ').');
+        if (!manual && UPD.autoInstall) startAppUpdate();
+        else if (!manual) toast('App update available: build ' + appUpdate.build + '. Install it from Settings.', true);
+      } else setUpd('You have the latest build (' + mine + ').');
+      refreshSettings();
+    }).catch(() => { if (manual) setUpd('Couldn\u2019t reach GitHub. Check your connection.'); });
 }
+function startAppUpdate(){
+  if (!inApp() || updBusy) return;
+  if (!(AndroidBridge.downloadUpdate)) { setUpd('This app build can\u2019t self-update. Download the new version from the link below once.'); return; }
+  updBusy = true; save(); setUpd('Downloading\u2026');
+  AndroidBridge.downloadUpdate(APK_URL);
+}
+// Called by the Android app while downloading and installing
+window.onAppUpdate = (state, msg) => {
+  if (state === 'progress') setUpd('Downloading\u2026 ' + msg + '%');
+  else { updBusy = false; setUpd(msg); if (state === 'error') sfx('error'); }
+};
+let settingsFrom = null;
+function updatePanel(){
+  if (!inApp()) return `<div class="panel set"><span class="h2">App updates</span>
+    <p class="note">You are playing in a browser, which always has the newest version. The Android app can be downloaded here:</p>
+    <p class="note num" style="word-break:break-all;user-select:all">${APK_URL}</p></div>`;
+  const avail = appUpdate && appUpdate.build > appUpdate.mine;
+  const tg = (k, label, note) => `<div class="row"><p>${label}<small>${note}</small></p><button class="tog${UPD[k] ? ' on' : ''}" data-upd="${k}" aria-label="${label}" aria-pressed="${UPD[k]}"></button></div>`;
+  return `<div class="panel set"><span class="h2">App updates</span>
+    <p class="note">Installed: build ${myBuild()}${appUpdate ? ' \u00b7 latest on GitHub: build ' + appUpdate.build : ''}. Updates install over this version and keep your saves.</p>
+    ${tg('auto', 'Check automatically', 'Look for a new build each time the app starts.')}
+    ${tg('autoInstall', 'Install automatically', 'Download a new build as soon as it is found and open the installer. Android still asks you to confirm.')}
+    <div class="btns"><button class="btn" data-updcheck>Check now</button><button class="btn pri" data-updinstall ${avail && !updBusy ? '' : 'disabled'}>${avail ? 'Download and install build ' + appUpdate.build : 'Up to date'}</button></div>
+    <div class="ghst" id="upd-st" role="status">${esc(updStatus)}</div></div>`;
+}
+function showSettings(from){
+  settingsFrom = from; paused = true;
+  showModal(`<h2>Settings</h2>${soundPanel().replace('panel set', 'panel set mpanel')}${displayPanel('mpanel')}${updatePanel().replace('panel set', 'panel set mpanel')}
+    <button class="btn pri" data-settingsclose>${from === 'menu' ? 'Back to menu' : 'Close'}</button>`);
+}
+function refreshSettings(){ if (settingsFrom && !$('#modal').hidden && document.getElementById('upd-st')) showSettings(settingsFrom); }
 function boot(data){
   applyLayout();
-  setTimeout(checkAppUpdate, 2500);
+  if (UPD.auto) setTimeout(() => checkAppUpdate(false), 2500);
   const raw = (data && data.S) || loadSaved();
   S = mergeState(raw);
   M = mods();
