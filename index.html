@@ -67,6 +67,8 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--amber);outline-
 .surv em{font-style:normal;margin-left:auto;color:var(--dim)}
 .surv.warn b,.surv.warn em{color:var(--red)}
 .tx .tt{color:var(--dim)}
+.eat{flex-basis:100%;margin-top:4px;font-size:12px;padding:5px 8px;border:1px solid var(--green);color:var(--green);border-radius:4px;text-align:center}
+.eat:disabled{border-color:var(--line);color:var(--faint);cursor:default}
 .res small{font-size:11px;margin-left:auto;white-space:nowrap}
 .pos{color:var(--green)} .neg{color:var(--red)}
 .now{position:relative;overflow:hidden;border:1px solid var(--line);border-radius:4px;padding:7px 9px;display:flex;justify-content:space-between;gap:10px;align-items:center;min-height:34px}
@@ -232,7 +234,7 @@ input[type=range]{width:100%;accent-color:var(--amber)}
     <div class="meter"><span class="lbl" style="min-width:0;text-align:left">Health</span><div class="bar hp"><i id="b-hp"></i></div><span id="t-hp" class="num"></span></div>
     <div class="surv" id="surv"><span class="lbl">Time left</span><b id="s-left" class="num"></b><span id="s-real" class="num"></span><em id="s-why"></em></div>
     <div class="res">
-      <div><span class="lbl">Rations</span><b id="t-rat" class="num"></b><small id="t-ratr" class="num"></small><small id="t-ratt" class="rt num"></small></div>
+      <div><span class="lbl">Rations</span><b id="t-rat" class="num"></b><small id="t-ratr" class="num"></small><small id="t-ratt" class="rt num"></small><button id="eatb" class="eat num" data-eat>Eat</button></div>
       <div><span class="lbl">Salvage</span><b id="t-sal" class="num"></b><small id="t-salr" class="num"></small><small id="t-salt" class="rt num"></small></div>
     </div>
     <div class="now" id="now"><div class="nf" id="n-fill"></div><span id="n-name"></span><span id="n-eta" class="num"></span></div>
@@ -266,8 +268,12 @@ input[type=range]{width:100%;accent-color:var(--amber)}
 /* ===== Game data and rules (no DOM) ===== */
 const DPS = 4;             // in-game days per real second at 1x
 const JOB_CYCLE = 8;       // in-game days of base work per job batch
-const EAT = 0.125;         // rations eaten per day: one ration feeds a clone for 8 days
-const MAX_DRAIN = 0.08;    // most health a clone can lose per day: 100 HP lasts at least ~5 min at 1x
+const MEAL_CD = 8;         // days between meals: at most one ration every 8 days
+const EAT = 1 / MEAL_CD;   // average rations eaten per day (used for estimates)
+const HUNGER = 0.15;       // health lost per day, always, while time runs
+const MAX_DRAIN = 0.2;     // most health a clone can lose per day: a full bar lasts at least ~2 min at 1x
+// A meal restores the hunger of one cooldown plus the old resting regeneration.
+function mealHp(){ return (HUNGER + M.regen) * MEAL_CD; }
 const START_AGE = 14;
 
 const SKILLS = [
@@ -354,7 +360,7 @@ const PERKS = [
   {id:'survival', name:'Survival subroutine',   from:1, desc:'Unlocks auto-forage: your clone works the best food job whenever rations run low.'},
   {id:'muscle',   name:'Muscle memory',         from:1, desc:'+15% skill XP.', eff:{xp:1.15}},
   {id:'chitin',   name:'Chitin lore',           from:1, desc:'Hazard damage −10%.', eff:{haz:0.9}},
-  {id:'medrec',   name:'Medbay records',        from:2, desc:'Health regenerates twice as fast.', eff:{regen:2}},
+  {id:'medrec',   name:'Medbay records',        from:2, desc:'Meals restore more health.', eff:{regen:2}},
   {id:'telomere', name:'Telomere patch',        from:2, desc:'+4 years lifespan.', eff:{life:4}},
   {id:'transit',  name:'Ring transit',          from:2, desc:'+10% speed on every task.', eff:{spd:1.1}},
   {id:'hardened', name:'Radiation hardening',   from:3, desc:'Hazard damage −20%.', eff:{haz:0.8}},
@@ -388,13 +394,13 @@ const HOOK = {log(){}, perk(){}, die(){}, win(){}, change(){}, stopped(){}};
 function newLife(s){
   const p = s.perks;
   const L = {day:0, hp:100, rations:10 + (p.decant?15:0), salvage:p.decant?15:0, lv:{}, xp:{}, echo0:{},
-    done:{}, prog:{}, cyc:{}, job:null, queue:[], owned:{}, order:[], foraging:false, cur:null, dead:false, cause:''};
+    done:{}, prog:{}, cyc:{}, meal:0, job:null, queue:[], owned:{}, order:[], foraging:false, cur:null, dead:false, cause:''};
   SKILLS.forEach(k => { L.lv[k.id] = 0; L.xp[k.id] = 0; L.echo0[k.id] = s.echo[k.id] || 0; });
   return L;
 }
 function defaultState(){
   const s = {v:1, rv:2, sv:2, gen:1, echo:{}, perks:{}, seen:{}, logged:{}, log:[], lastOrder:[], lastJob:null,
-    set:{speed:1, autoFood:true, foodDays:12, replay:true, boost:false},
+    set:{speed:1, autoFood:true, autoEat:true, foodDays:12, replay:true, boost:false},
     stats:{bestAge:0, deaths:0, daysLived:0}, won:false, winGen:0, bank:0, saved:Date.now(), intro:false};
   SKILLS.forEach(k => s.echo[k.id] = 0);
   s.life = newLife(s);
@@ -521,23 +527,27 @@ function step(dt){
       if (L.prog[t.id] >= t.days) { L.prog[t.id] = 0; finish(t); }
     }
   }
-  L.rations += (M.pRat - EAT) * dt;
+  L.rations += M.pRat * dt;
   L.salvage += M.pSal * dt;
   clampRes();
-  let drain = 0, starving = false;
-  if (t && t.haz) { hurt = true; drain += hazDmg(t); }
-  if (L.rations < 0) { L.rations = 0; hurt = true; starving = true; drain += MAX_DRAIN; }
-  if (hurt) {
-    L.hp -= Math.min(drain, MAX_DRAIN) * dt;
-    if (L.hp <= 0) {
-      L.hp = 0;
-      die(starving ? 'Starved' : 'Killed while trying to ' + t.name.charAt(0).toLowerCase() + t.name.slice(1));
-      return;
-    }
+  // Health drains all the time; hazards add to it. Meals put some back.
+  const drain = Math.min(HUNGER + (t && t.haz ? hazDmg(t) : 0), MAX_DRAIN);
+  L.hp -= drain * dt;
+  L.meal = Math.max(0, (L.meal || 0) - dt);
+  if (S.set.autoEat && L.meal <= 0 && L.rations >= 1 && L.hp <= M.maxHp - mealHp() / 2) eat();
+  if (L.hp <= 0) {
+    L.hp = 0;
+    die(L.rations < 1 ? 'Starved' : (t && t.haz ? 'Killed while trying to ' + t.name.charAt(0).toLowerCase() + t.name.slice(1) : 'Collapsed from exhaustion'));
+    return;
   }
-  if (!hurt) L.hp = Math.min(M.maxHp, L.hp + M.regen * dt);
   L.day += dt;
   if (L.day >= lifeDays()) die('Telomere collapse. The body wore out');
+  return true;
+}
+function canEat(){ const L = S.life; return !L.dead && (L.meal || 0) <= 0 && L.rations >= 1; }
+function eat(){
+  const L = S.life; if (!canEat()) return false;
+  L.rations -= 1; L.hp = Math.min(M.maxHp, L.hp + mealHp()); L.meal = MEAL_CD;
   return true;
 }
 function clampRes(){
@@ -611,15 +621,15 @@ function survival(){
   const L = S.life, cur = L.cur ? T[L.cur] : null;
   const lifeLeft = lifeDays() - L.day;
   const net = rates(cur).rr;
-  const haz = cur && cur.haz ? Math.min(hazDmg(cur), MAX_DRAIN) : 0;
-  const tFood = net < 0 ? L.rations / -net : Infinity;
+  const hazed = !!(cur && cur.haz);
+  const starveRate = Math.min(HUNGER + (hazed ? hazDmg(cur) : 0), MAX_DRAIN);
+  const fedRate = starveRate - (S.set.autoEat ? mealHp() / MEAL_CD : 0);   // >0: losing health even while eating
+  const tFood = L.rations < 1 && !(net > 0) ? 0 : (net < 0 ? L.rations / -net : Infinity);
   let t = Infinity, why = '';
-  if (haz > 0) {
-    const d1 = L.hp / haz;
-    if (d1 <= tFood) { t = d1; why = 'injuries'; }
-    else { t = tFood + (L.hp - haz * tFood) / MAX_DRAIN; why = 'starvation'; }
-  } else if (isFinite(tFood)) {
-    t = tFood + Math.min(M.maxHp, L.hp + M.regen * tFood) / MAX_DRAIN; why = 'starvation';
+  if (fedRate > 0 && L.hp / fedRate <= tFood) { t = L.hp / fedRate; why = hazed ? 'injuries' : 'exhaustion'; }
+  else if (isFinite(tFood)) {
+    const hp2 = Math.min(M.maxHp, L.hp - fedRate * tFood);
+    t = tFood + hp2 / starveRate; why = 'starvation';
   }
   if (t >= lifeLeft) { t = lifeLeft; why = 'old age'; }
   return {t, why};
@@ -1012,6 +1022,9 @@ function updateHud(){
   $('#t-rat').innerHTML = fmt(L.rations) + '<span class="cap">/' + Math.round(M.ratCap) + '</span>';
   $('#t-rat').classList.toggle('full', L.rations >= M.ratCap - 0.01);
   const ra = $('#t-ratr'); ra.textContent = (rr >= 0 ? '+' : '−') + fmt(Math.abs(rr)) + '/d'; ra.className = 'num ' + (rr >= 0 ? 'pos' : 'neg');
+  const eb = $('#eatb'), mealLeft = L.meal || 0;
+  eb.disabled = !canEat();
+  eb.textContent = L.dead ? 'Eat' : mealLeft > 0 ? 'Next meal in ' + both(mealLeft) : L.rations < 1 ? 'No rations to eat' : 'Eat a ration (+' + fmt(mealHp()) + ' health)';
   $('#t-sal').innerHTML = fmt(L.salvage) + '<span class="cap">/' + Math.round(M.salCap) + '</span>';
   $('#t-sal').classList.toggle('full', L.salvage >= M.salCap - 0.01);
   const sa = $('#t-salr'); sa.textContent = sr > 0 ? '+' + fmt(sr) + '/d' : ''; sa.className = 'num pos';
@@ -1085,6 +1098,7 @@ function renderArchive(force){
     <div><b>${Object.values(S.echo).reduce((a,b)=>a+b,0)}</b><span>Total echo levels</span></div>
     <div><b>${S.won ? 'Clone ' + S.winGen : 'Not yet'}</b><span>Drive ignited</span></div></div>`;
   h += '<div class="panel set"><span class="h2">Settings</span>';
+  h += `<div class="row"><p>Auto-eat<small>Eat a ration whenever the meal cooldown is over and health has room for it.</small></p><button class="tog${S.set.autoEat ? ' on' : ''}" data-set="autoEat" aria-label="Auto-eat" aria-pressed="${S.set.autoEat}"></button></div>`;
   if (S.perks.survival) {
     h += `<div class="row"><p>Auto-forage<small>Switch to the best food job when rations drop below the threshold, and stay until they double.</small></p><button class="tog${S.set.autoFood ? ' on' : ''}" data-set="autoFood" aria-label="Auto-forage" aria-pressed="${S.set.autoFood}"></button></div>
       <div><div class="row"><p>Forage threshold</p><b class="num" id="fd-v">${S.set.foodDays} rations</b></div><input type="range" id="fd" min="2" max="60" step="1" value="${S.set.foodDays}"></div>`;
@@ -1142,7 +1156,7 @@ function showIntro(){
     <ul>
       <li><b>Tap a task</b> to work on it now. <b>+</b> adds an action to the queue.</li>
       <li><b>Jobs</b> repeat forever and make rations or salvage. The last job you tapped runs whenever the queue is empty.</li>
-      <li>One ration feeds you for <b>8 days</b>. Run out and you starve. Storage is limited, so you can\u2019t stockpile much.</li>
+      <li>Health drains all the time. Eating a ration restores some of it, at most once every <b>8 days</b>. Run out of rations and you starve. Storage is limited, so you can\u2019t stockpile much.</li>
       <li>Bodies age. In the last quarter of a clone\u2019s life, all work slows down. The first clones are unstable and die young; each new one lives a year longer, up to 28.</li>
       <li>Time only moves while your clone is working. With nothing to do, the clock stops.</li>
       <li>When a clone dies, skill levels reset but their <b>echo</b> speeds up learning in every future clone.</li>
@@ -1218,6 +1232,7 @@ document.addEventListener('click', e => {
     toast('Slot ' + i + ' deleted');
     return showMenu();
   }
+  if ('eat' in d) { if (eat()) toast('Ate a ration. +' + fmt(mealHp()) + ' health'); return; }
   if ('ghUp' in d) { ghUpload(false); return; }
   if ('ghAuto' in d) { GH.auto = !GH.auto; if (GH.auto) GH.last = Date.now(); ghSave(); b.classList.toggle('on', GH.auto); b.setAttribute('aria-pressed', GH.auto); return; }
   if ('copysave' in d) {
