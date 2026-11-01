@@ -457,6 +457,7 @@ const TASKS = [
     log:'WARDEN speaks: “The crew argued. I stopped the argument. I kept you because you never argue.” You argue. After a long silence, WARDEN agrees to help.'},
   // Zone 5
   {id:'pods', z:5, kind:'rest', name:'Cryo-nap in the drive crew pods', sk:['bio','res'], days:10, req:['warden']},
+  {id:'crewlock', z:5, kind:'job', name:'Strip the drive crew lockers', sk:['eng','cbt'], prod:{salvage:1}, req:['warden']},
   {id:'pantry', z:5, kind:'job', name:'Ration the drive crew pantry', sk:['bio','res'], prod:{rations:0.3}, req:['warden']},
   {id:'course', z:5, kind:'act', name:'Plot a course to Tessaly', sk:['nav'], days:6000, req:['warden'],
     log:'Course plotted. Tessaly is fourteen years away at full burn. No single clone will live to see it. The line will.'},
@@ -486,9 +487,9 @@ const PERKS = [
 const PK = {}; PERKS.forEach(p => PK[p.id] = p);
 
 const ITEMS = [
-  {id:'locker',     name:'Cold locker',        cost:8,    req:'search',     desc:'+10 ration storage', eff:{ratCap:10}},
-  {id:'rebreather', name:'Patched rebreather', cost:4,    req:'search',     desc:'+20 max health', eff:{maxHp:20}},
-  {id:'toolkit',    name:'Scrap toolkit',      cost:10,   req:'search',     desc:'Engineering work 25% faster', eff:{sk:{eng:1.25}}},
+  {id:'locker',     name:'Cold locker',        cost:8,    req:'wake',       desc:'+10 ration storage', eff:{ratCap:10}},
+  {id:'rebreather', name:'Patched rebreather', cost:4,    req:'wake',       desc:'+20 max health', eff:{maxHp:20}},
+  {id:'toolkit',    name:'Scrap toolkit',      cost:10,   req:'wake',       desc:'Engineering work 25% faster', eff:{sk:{eng:1.25}}},
   {id:'press',      name:'Algae press',        cost:18,   req:'search',     desc:'+2 rations a day, passively', eff:{pRat:0.025}},
   {id:'baton',      name:'Shock baton',        cost:23,   req:'hatch',      desc:'Combat work 20% faster, hazard damage −25%', eff:{sk:{cbt:1.2}, haz:0.75}},
   {id:'chitinarm',  name:'Chitin armour',      cost:55,   req:'crawlers',   desc:'+20 max health, hazard damage −30%', eff:{maxHp:20, haz:0.7}},
@@ -498,7 +499,10 @@ const ITEMS = [
   {id:'rifle',      name:'Armoury rifle',      cost:400,  req:'armory',     desc:'Combat work 50% faster, hazard damage −20%', eff:{sk:{cbt:1.5}, haz:0.8}},
   {id:'cryo',       name:'Cryo-sleeve',        cost:700,  req:'vent',       desc:'This clone lives about 14 days longer', eff:{life:3}},
   {id:'visor',      name:'Nav visor',          cost:1125, req:'bridgepower',desc:'Navigation and Hacking work 30% faster', eff:{sk:{nav:1.3, hak:1.3}}},
+  {id:'medkit',     name:'Command-deck medkit', cost:600,  req:'secdeck',    desc:'+25 max health, meals restore 50% more health', eff:{maxHp:25, regen:1.5}},
   {id:'exo',        name:'Exo-frame',          cost:1750, req:'navcore',    desc:'Engineering and Resolve work 30% faster, +40 max health', eff:{sk:{eng:1.3, res:1.3}, maxHp:40}},
+  {id:'hardsuit',   name:'Drive-crew hardsuit', cost:1200, req:'warden',     desc:'+30 max health, hazard damage \u221230%', eff:{maxHp:30, haz:0.7}},
+  {id:'diagrig',    name:'Injector diagnostic rig', cost:1600, req:'course', desc:'Engineering and Navigation work 25% faster', eff:{sk:{eng:1.25, nav:1.25}}},
 ];
 const IT = {}; ITEMS.forEach(i => IT[i.id] = i);
 
@@ -1426,8 +1430,11 @@ function renderGear(){
   const key = M.salCap + '|' + av.map(i => i.id + (L.owned[i.id] ? 'o' : (L.salvage >= i.cost ? 'y' : 'n'))).join();
   if (key === gearKey) return; gearKey = key;
   let h = '<div class="panel"><span class="h2">Fabricator</span><p class="note">Gear is built from salvage and lasts for this clone only. New designs appear as you explore. Salvage storage is limited; opening up more of the ship raises it.</p></div><div>';
-  if (!av.length) h += '<p class="note">Nothing to build yet. Search the vat bay first.</p>';
-  av.forEach(i => {
+  if (!av.length) h += '<p class="note">Nothing to build yet. Climb out of the vat first.</p>';
+  let lastZ = 0;
+  av.slice().sort((a, b) => T[a.req].z - T[b.req].z).forEach(i => {
+    const z = T[i.req].z;
+    if (z !== lastZ) { lastZ = z; h += `<div class="sub" style="margin-top:12px">${ZONES[z - 1].name}</div>`; }
     h += `<div class="item"><div><h3>${esc(i.name)}</h3><p>${esc(i.desc)}</p></div>` +
       (L.owned[i.id] ? '<span class="owned">Built</span>' : `<button class="buy" data-buy="${i.id}" ${L.salvage >= i.cost ? '' : 'disabled'}>${fmt(i.cost)} salvage${i.cost > M.salCap ? '<br><small>needs storage</small>' : ''}</button>`) + '</div>';
   });
