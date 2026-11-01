@@ -373,7 +373,7 @@ const HUNGER = 0.15;       // base health lost per tick, always, while time runs
 // Strain: the body wears down. The hunger drain is multiplied by strain, which climbs
 // faster and faster as the clone ages: its growth rate starts at +1 per STRAIN_RAMP ticks and
 // rises by that much again every STRAIN_ACCEL ticks of wear. Rest actions halve strain but not wear, so the acceleration keeps building.
-const STRAIN_RAMP = 1000, STRAIN_ACCEL = 300, AUTO_REST_AT = 3;
+const STRAIN_RAMP = 1000, STRAIN_ACCEL = 300, AUTO_REST_AT = 2.5;
 // Resolve slows strain: early clones feel it most.
 const STRAIN_RES = 0.002;
 const strainRate = wear => (1 + wear / STRAIN_ACCEL) / STRAIN_RAMP / (1 + STRAIN_RES * (S.life.lv.res || 0)) * (M ? M.strainMul : 1);
