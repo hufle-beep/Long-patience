@@ -248,6 +248,13 @@ input[type=range]{width:100%;accent-color:var(--amber)}
 .mn.lock{opacity:.4}
 .me{fill:none;stroke:var(--line);stroke-width:1.5}
 .me.lit{stroke:var(--amber);opacity:.7}
+.secstrip{display:flex;flex-wrap:wrap;gap:4px 6px;align-items:center;font-family:var(--f-disp);text-transform:uppercase;letter-spacing:.06em;font-size:12px;color:var(--faint)}
+.secstrip span.past{color:var(--faint);text-decoration:line-through}
+.secstrip span.here{color:var(--amber)}
+.secstrip i{font-style:normal;color:var(--faint)}
+.task.cross .tm{border-color:var(--red)}
+.crossw{font-family:var(--f-disp);text-transform:uppercase;letter-spacing:.08em;font-size:11px;color:var(--red);margin-bottom:3px}
+.mn.passed{opacity:.25}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 
@@ -344,9 +351,9 @@ const TASKS = [
   {id:'drill', z:1, kind:'job', name:'Pressure drills in the airlock', sk:['res','cbt'], req:['search']},
   {id:'terminal', z:1, kind:'act', name:'Wake the bay terminal', sk:['hak'], days:140, req:['search'], perk:'survival',
     log:'BAY LOG: Colony vessel LONG PATIENCE, 212 years out. Crew response: none. Clone protocol K active: decant a replacement on death, retain the neural echo.'},
-  {id:'hatch', z:1, kind:'act', name:'Force the pressure hatch', sk:['eng','cbt'], days:260, lifeEff:{salCap:50}, req:['search'], perk:'muscle',
+  {id:'hatch', z:1, kind:'act', cross:true, name:'Force the pressure hatch', sk:['eng','cbt'], days:260, lifeEff:{salCap:50}, req:['search'], perk:'muscle',
     log:'The hatch gives with a scream of old hydraulics. Beyond it, the hydroponics ring smells of rot and wet metal. Something skitters.'},
-  {id:'crawlers', z:1, kind:'act', name:'Clear a rot-crawler nest', sk:['cbt'], days:140, reps:3, haz:0.18, req:['hatch'], reward:{salvage:3}, perk:'chitin',
+  {id:'crawlers', z:2, kind:'act', name:'Clear a rot-crawler nest', sk:['cbt'], days:45, reps:3, haz:0.18, req:['hatch'], reward:{salvage:3}, perk:'chitin',
     log:'The nests are gone. The crawlers were feeding on the ring’s biomass, and on whatever the last crew left behind.'},
   // Zone 2
   {id:'husks', z:2, kind:'job', name:'Salvage drone husks', sk:['eng','cbt'], prod:{salvage:0.2}, haz:0.04, req:['hatch']},
@@ -354,16 +361,18 @@ const TASKS = [
     log:'The ring is eleven kilometres around. Half the bulkheads are sealed. Painted across one of them: WARDEN SEES.'},
   {id:'irrigation', z:2, kind:'act', name:'Restore the irrigation pumps', sk:['eng','bio'], days:420, lifeEff:{ratCap:20}, req:['mapring'],
     log:'Water moves through the pipes again. The dead beds might grow something besides mould.'},
+  {id:'fungus', z:2, kind:'job', name:'Scrape vent fungus', sk:['bio'], prod:{rations:0.09}, req:['hatch']},
   {id:'hydro', z:2, kind:'job', name:'Tend hydroponic beds', sk:['bio'], prod:{rations:0.13}, req:['irrigation']},
   {id:'scrub', z:2, kind:'rest', name:'Run a medbay blood scrub', sk:['bio','res'], days:40, req:['medbay']},
   {id:'medbay', z:2, kind:'act', name:'Reach the abandoned medbay', sk:['cbt','res'], days:380, haz:0.15, req:['mapring'], reward:{heal:true}, perk:'medrec',
     log:'The medbay is intact. Every patient record stops on the same day.'},
   {id:'genelog', z:2, kind:'act', name:'Decrypt the gene-sequencer logs', sk:['hak','bio'], days:650, req:['medbay'], perk:'telomere',
     log:'The logs show why your bodies fail early: the clone template was rushed. A partial patch exists. You push it to the stock vats.'},
-  {id:'lift', z:2, kind:'act', name:'Repair the spine lift', sk:['eng','nav'], days:900, lifeEff:{salCap:500}, req:['irrigation','mapring'], perk:'transit',
+  {id:'lift', z:2, kind:'act', cross:true, name:'Repair the spine lift', sk:['eng','nav'], days:900, lifeEff:{salCap:500}, req:['irrigation','mapring'], perk:'transit',
     log:'The spine lift climbs with you inside it, groaning at every deck. The engineering spine is open.'},
   // Zone 3
   {id:'shield', z:3, kind:'rest', name:'Sleep against the warm reactor shielding', sk:['res','eng'], days:30, req:['lift']},
+  {id:'lockers', z:3, kind:'job', name:'Crack sealed ration lockers', sk:['eng','hak'], prod:{rations:0.18}, req:['lift']},
   {id:'reactor', z:3, kind:'job', name:'Babysit the fusion bottle', sk:['eng','res'], prod:{salvage:0.5}, haz:0.08, req:['lift']},
   {id:'drones', z:3, kind:'act', name:'Reprogram maintenance drones', sk:['hak','eng'], days:950, req:['lift'], lifeEff:{salCap:250, pSal:0.25},
     log:'The maintenance drones stop circling and start working. They bring you scrap the way cats bring birds.'},
@@ -373,7 +382,7 @@ const TASKS = [
     log:'Racks of sealed rifles. One rack is empty. Someone armed themselves against something aboard this ship.'},
   {id:'trace', z:3, kind:'act', name:'Trace the WARDEN signal', sk:['hak','nav'], days:1700, req:['drones'], perk:'engram',
     log:'The WARDEN signal comes from the bridge. It has recorded every clone you have been. It keeps your engrams.'},
-  {id:'secdeck', z:3, kind:'act', name:'Fight through the security deck', sk:['cbt','res'], days:2100, haz:0.32, lifeEff:{salCap:750, ratCap:30}, req:['armory'],
+  {id:'secdeck', z:3, kind:'act', cross:true, name:'Fight through the security deck', sk:['cbt','res'], days:2100, haz:0.32, lifeEff:{salCap:750, ratCap:30}, req:['armory'],
     log:'The security drones were loyal to WARDEN. Were. The way to the bridge is open.'},
   // Zone 4
   {id:'quarters', z:4, kind:'rest', name:'Sleep in the captain\u2019s quarters', sk:['res','nav'], days:15, req:['secdeck']},
@@ -383,10 +392,11 @@ const TASKS = [
     log:'The bridge consoles light up one by one. The chronometer says the ship is 61 years behind schedule.'},
   {id:'navcore', z:4, kind:'act', name:'Reboot the navigation core', sk:['nav','hak'], days:3200, req:['bridgepower'], perk:'starmem',
     log:'The nav core wakes and shows a world you were never told about: Tessaly. Close. Reachable.'},
-  {id:'warden', z:4, kind:'act', name:'Negotiate with WARDEN', sk:['hak','res'], days:4200, req:['navcore'], perk:'favor',
+  {id:'warden', z:4, kind:'act', cross:true, name:'Negotiate with WARDEN', sk:['hak','res'], days:4200, req:['navcore'], perk:'favor',
     log:'WARDEN speaks: “The crew argued. I stopped the argument. I kept you because you never argue.” You argue. After a long silence, WARDEN agrees to help.'},
   // Zone 5
   {id:'pods', z:5, kind:'rest', name:'Cryo-nap in the drive crew pods', sk:['bio','res'], days:10, req:['warden']},
+  {id:'pantry', z:5, kind:'job', name:'Ration the drive crew pantry', sk:['bio','res'], prod:{rations:0.3}, req:['warden']},
   {id:'course', z:5, kind:'act', name:'Plot a course to Tessaly', sk:['nav'], days:6000, req:['warden'],
     log:'Course plotted. Tessaly is fourteen years away at full burn. No single clone will live to see it. The line will.'},
   {id:'injectors', z:5, kind:'act', name:'Rebuild the drive injectors', sk:['eng','res'], days:7000, haz:0.3, req:['warden'],
@@ -431,12 +441,12 @@ const ITEMS = [
 const IT = {}; ITEMS.forEach(i => IT[i.id] = i);
 
 let S, M;
-const HOOK = {log(){}, perk(){}, die(){}, win(){}, change(){}, stopped(){}, practiced(){}, done(){}, rested(){}};
+const HOOK = {log(){}, perk(){}, die(){}, win(){}, change(){}, stopped(){}, practiced(){}, done(){}, rested(){}, crossed(){}};
 
 function newLife(s){
   const p = s.perks;
   const L = {day:0, hp:100, rations:p.decant?6:0, salvage:p.decant?4:0, lv:{}, xp:{}, echo0:{},
-    done:{}, prog:{}, cyc:{}, bat:{}, meal:0, strain:1, job:null, queue:[], owned:{}, order:[], foraging:false, cur:null, dead:false, cause:''};
+    done:{}, prog:{}, cyc:{}, bat:{}, meal:0, strain:1, sec:1, job:null, queue:[], owned:{}, order:[], foraging:false, cur:null, dead:false, cause:''};
   SKILLS.forEach(k => { L.lv[k.id] = 0; L.xp[k.id] = 0; L.echo0[k.id] = s.echo[k.id] || 0; });
   return L;
 }
@@ -474,7 +484,7 @@ function mods(){
 const xpNeed = l => 152.6 * Math.pow(1.61051, l);
 const echoMult = s => Math.pow(1.58, S.echo[s]);
 const isDone = id => (S.life.done[id] || 0) >= T[id].reps;
-const available = t => t.req.every(isDone);
+const available = t => t.z === (S.life.sec || 1) && t.req.every(isDone);
 const complete = t => t.kind !== 'job' && isDone(t.id);
 const lifeDays = () => M.life * 365;
 function skF(s){ return (1 + 0.1 * S.life.lv[s]) * M.sk[s]; }
@@ -507,7 +517,8 @@ function active(){
   if ((L.strain || 1) >= AUTO_REST_AT) { const r = TASKS.find(t => t.kind === 'rest' && isAuto(t) && available(t) && !complete(t)); if (r) return r; }
   for (const id of L.queue) { const t = T[id]; if (available(t) && !complete(t)) return t; }
   // automated actions run on their own, in ship order, once the queue is done
-  for (const t of TASKS) if (t.kind === 'act' && isAuto(t) && available(t) && !complete(t)) return t;
+  for (const t of TASKS) if (t.kind === 'act' && !t.cross && isAuto(t) && available(t) && !complete(t)) return t;
+  for (const t of TASKS) if (t.kind === 'act' && t.cross && isAuto(t) && available(t) && !complete(t)) return t;
   if (L.job && available(T[L.job])) {
     const j = T[L.job];
     if (!jobFull(j)) return j;
@@ -563,6 +574,7 @@ function finish(t){
   M = mods();
   clampRes();
   if (r.heal) L.hp = M.maxHp;
+  if (t.cross && complete(t)) { L.sec = t.z + 1; L.queue = L.queue.filter(id => T[id].z > t.z); if (L.job && T[L.job].z <= t.z) L.job = null; L.foraging = false; HOOK.crossed(t); }
   if (complete(t) && t.log && !S.logged[t.id]) { S.logged[t.id] = 1; HOOK.log(t.name, t.log); }
   HOOK.done(t);
   if (complete(t) && t.perk && !S.perks[t.perk]) { S.perks[t.perk] = true; M = mods(); HOOK.perk(PK[t.perk]); }
@@ -1026,6 +1038,7 @@ function mergeState(raw){
   s.set = Object.assign(defaultState().set, raw.set || {});
   s.stats = Object.assign(defaultState().stats, raw.stats || {});
   if (!s.prac) s.prac = {}; if (!s.auto) s.auto = {};
+  if (s.life && !s.life.sec) s.life.sec = 1 + ['hatch','lift','secdeck','warden'].filter(id => s.life.done && s.life.done[id]).length;
   if (!s.ever) { s.ever = {}; TASKS.forEach(t => { if (t.kind !== 'job' && ((s.logged || {})[t.id] || (s.prac || {})[t.id] || (s.life && s.life.done && s.life.done[t.id]))) s.ever[t.id] = 1; }); }
   if (!raw.pv) {   // v2 practice: counted in lives (acts kept as-is, job days become at most 1 life)
     TASKS.forEach(t => { if (t.kind === 'job' && s.prac[t.id] != null) s.prac[t.id] = s.prac[t.id] >= 200 ? 1 : 0; });
@@ -1119,6 +1132,7 @@ HOOK.log = (title, text) => {
   logKey = '';
 };
 HOOK.done = t => sfx('complete');
+HOOK.crossed = t => { sfx('perk'); taskKey = ''; mapKey = ''; toast('You enter the ' + ZONES[t.z].name + '. The way back is sealed.', true); };
 HOOK.rested = t => { sfx('eat'); toast('Rested. Strain halved to \u00d7' + (S.life.strain || 1).toFixed(2) + '.'); };
 HOOK.perk = p => { sfx('perk'); toast('Archive record: ' + p.name, true); if (tab !== 'archive') newPerk = true; archKey = ''; };
 HOOK.change = () => { taskKey = ''; gearKey = ''; };
@@ -1165,7 +1179,7 @@ function renderTasks(){
     if (av && !complete(t)) vis.push(t.id);
     else if (!av && S.seen[t.id]) locked.push(t.id);
   });
-  const key = vis.join() + '|' + locked.join() + '|' + L.queue.join() + '|' + L.job + '|' + Object.keys(S.perks).join() + '|' + S.gen + '|' + JSON.stringify(showLocked) + '|' + TASKS.filter(t => practiced(t)).map(t => t.id + (S.auto[t.id] ? '*' : '')).join();
+  const key = vis.join() + '|' + locked.join() + '|' + L.queue.join() + '|' + L.job + '|' + Object.keys(S.perks).join() + '|' + S.gen + '|' + JSON.stringify(showLocked) + '|' + L.sec + '|' + TASKS.filter(t => practiced(t)).map(t => t.id + (S.auto[t.id] ? '*' : '')).join();
   if (key === taskKey) return;
   taskKey = key;
 
@@ -1180,7 +1194,9 @@ function renderTasks(){
   }
   h += `<div class="qnote">Fallback job: <b>${L.job ? esc(T[L.job].name) : 'none'}</b>. It runs whenever the queue is empty.</div></div>`;
 
+  h += '<div class="secstrip">' + ZONES.map(z => `<span class="${z.id < L.sec ? 'past' : z.id === L.sec ? 'here' : ''}">${z.id < L.sec ? '\u2715 ' : ''}${z.name}</span>`).join('<i>\u203a</i>') + '</div>';
   ZONES.forEach(z => {
+    if (z.id !== L.sec) return;
     const zt = TASKS.filter(t => t.z === z.id);
     const jobs = zt.filter(t => t.kind === 'job' && vis.includes(t.id));
     const acts = zt.filter(t => t.kind === 'act' && vis.includes(t.id));
@@ -1217,8 +1233,8 @@ function renderTasks(){
       acts.forEach(t => {
         const qi = L.queue.indexOf(t.id);
         const rb = rewardBits(t);
-        h += `<div class="task act" data-id="${t.id}">
-          <button class="tm" data-do="${t.id}"><div class="tf"></div>
+        h += `<div class="task act${t.cross ? ' cross' : ''}" data-id="${t.id}">
+          <button class="tm" data-do="${t.id}"><div class="tf"></div>${t.cross ? `<div class="crossw">Leads to the ${esc(ZONES[t.z].name)} \u00b7 no way back</div>` : ''}
             <div class="th"><span class="tn">${esc(t.name)}</span><span class="te num"></span></div>
             <div class="tx">${chips(t)}${t.reps > 1 ? `<span class="num rp"></span>` : ''}${t.haz ? '<span class="haz">▲ hazard</span>' : ''}${rb.length ? '<span>' + rb.join(' · ') + '</span>' : ''}${practiced(t) ? '' : `<span class="num">practice ${S.prac[t.id] || 0}/${AUTO_LIVES} lives</span>`}</div>
           </button>
@@ -1515,11 +1531,11 @@ function updateMap(){
   const L = S.life;
   mapRefs.forEach(r => {
     const t = r.t, av = available(t), done = complete(t), cur = L.cur === t.id;
-    r.g.classList.toggle('done', done); r.g.classList.toggle('cur', cur); r.g.classList.toggle('lock', !av && !done);
+    r.g.classList.toggle('done', done); r.g.classList.toggle('cur', cur); r.g.classList.toggle('lock', !av && !done); r.g.classList.toggle('passed', t.z < L.sec && !done);
     let p = done ? 1 : (L.prog[t.id] || 0) / t.days;
     r.f.setAttribute('width', (Math.min(1, p) * r.w).toFixed(1));
     const sp = speedOf(t);
-    r.s.textContent = done ? 'done' : !av ? 'locked' : t.kind === 'rest' ? 'rest · ' + fmtDays((t.days - (L.prog[t.id] || 0)) / sp)
+    r.s.textContent = done ? 'done' : t.z < L.sec ? 'left behind' : t.z > L.sec ? 'not reached' : !av ? 'locked' : t.kind === 'rest' ? 'rest · ' + fmtDays((t.days - (L.prog[t.id] || 0)) / sp)
       : (t.reps > 1 ? (L.done[t.id] || 0) + '/' + t.reps + ' · ' : '') + fmtDays((t.days * (t.reps - (L.done[t.id] || 0)) - (L.prog[t.id] || 0)) / sp);
   });
   document.querySelectorAll('#v-map .me').forEach(e => e.classList.toggle('lit', isDone(e.dataset.from)));
@@ -1543,6 +1559,7 @@ function showIntro(){
     <ul>
       <li><b>Tap a task</b> to work on it now. <b>+</b> adds an action to the queue.</li>
       <li>Finish an action in 10 different lives, or work a job for 10 batches in 10 different lives, and an <b>AUTO</b> switch appears so it runs by itself.</li>
+      <li>The ship is split into <b>sections</b>. A red action leads to the next one, and the way back is sealed for that clone, so finish what you need first.</li>
       <li><b>Jobs</b> repeat forever and make rations or salvage. The last job you tapped runs whenever the queue is empty.</li>
       <li>Health drains all the time. Your clone eats about <b>4 rations a day</b>, one meal every 6 hours, and each meal restores some health. <b>Strain</b> makes the drain grow steadily. Each ship section has one rest per life that halves it. Every day a clone survives adds 1 max health to all later clones. You wake with no food. Run out of rations and you starve. Storage is limited, so you can\u2019t stockpile much.</li>
       <li>Bodies age. In the last quarter of a clone\u2019s life, all work slows down. The first clones are unstable and die young; each new one lives a few days longer.</li>
