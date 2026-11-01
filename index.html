@@ -391,7 +391,7 @@ function newLife(s){
   return L;
 }
 function defaultState(){
-  const s = {v:1, rv:2, gen:1, echo:{}, perks:{}, seen:{}, logged:{}, log:[], lastOrder:[], lastJob:null,
+  const s = {v:1, rv:2, sv:2, gen:1, echo:{}, perks:{}, seen:{}, logged:{}, log:[], lastOrder:[], lastJob:null,
     set:{speed:1, autoFood:true, foodDays:12, replay:true, boost:false},
     stats:{bestAge:0, deaths:0, daysLived:0}, won:false, winGen:0, bank:0, saved:Date.now(), intro:false};
   SKILLS.forEach(k => s.echo[k.id] = 0);
@@ -416,17 +416,18 @@ function mods(){
   TASKS.forEach(t => { if (t.lifeEff && isDone(t.id)) ap(t.lifeEff); });
   return m;
 }
-const xpNeed = l => 25 * Math.pow(1.1, l);
-const echoMult = s => Math.pow(1.095, S.echo[s]);
+// One level here equals five of the old, finer levels: same speed and XP curve, smaller numbers.
+const xpNeed = l => 152.6 * Math.pow(1.61051, l);
+const echoMult = s => Math.pow(1.58, S.echo[s]);
 const isDone = id => (S.life.done[id] || 0) >= T[id].reps;
 const available = t => t.req.every(isDone);
 const complete = t => t.kind === 'act' && isDone(t.id);
 const lifeDays = () => M.life * 365;
-function skF(s){ return (1 + 0.1 * S.life.lv[s]) * M.sk[s]; }
+function skF(s){ return (1 + 0.5 * S.life.lv[s]) * M.sk[s]; }
 // Frailty: in the last quarter of a clone's life, all work slows down, to 60% at the very end.
 function frailty(){ const f = S.life.day / lifeDays(); return f < 0.75 ? 1 : 1 - 1.6 * (f - 0.75); }
 function speedOf(t){ let p = 1; t.sk.forEach(s => p *= skF(s)); return Math.pow(p, 1 / t.sk.length) * M.spd * frailty(); }
-function hazDmg(t){ const L = S.life; return (t.haz || 0) * M.haz / (1 + 0.04 * L.lv.cbt + 0.06 * L.lv.res); }
+function hazDmg(t){ const L = S.life; return (t.haz || 0) * M.haz / (1 + 0.2 * L.lv.cbt + 0.3 * L.lv.res); }
 function xpRate(t, s){ return ZT[t.z] * M.xp * M.xpSk[s] * echoMult(s); }
 
 function pickFood(){
@@ -751,6 +752,14 @@ function mergeState(raw){
   s.stats = Object.assign(defaultState().stats, raw.stats || {});
   if (!raw.rv) { s.set.foodDays = Math.max(2, Math.round(s.set.foodDays / 2)); if (s.life) s.life.rations = (s.life.rations || 0) / 2; }
   s.rv = 2;   // ration units halved in v2
+  if (!raw.sv) {   // skill levels rescaled 5:1 in v2
+    SKILLS.forEach(k => {
+      s.echo[k.id] = Math.floor((s.echo[k.id] || 0) / 5);
+      if (s.life && s.life.lv) { s.life.lv[k.id] = Math.floor((s.life.lv[k.id] || 0) / 5); s.life.xp[k.id] = 0; }
+      if (s.life && s.life.echo0) s.life.echo0[k.id] = Math.floor((s.life.echo0[k.id] || 0) / 5);
+    });
+  }
+  s.sv = 2;
   SKILLS.forEach(k => { if (s.echo[k.id] == null) s.echo[k.id] = 0; });
   const L = s.life;
   ['done','prog','owned','lv','xp','echo0'].forEach(k => { if (!L[k]) L[k] = {}; });
@@ -1007,7 +1016,7 @@ function updateHud(){
 /* ----- other views ----- */
 function renderSkills(){
   const L = S.life;
-  let h = '<div class="panel"><span class="h2">Neural echo</span><p class="note">Skill levels reset with each clone. The highest level you ever reached is kept as an echo, and every echo level adds 10% XP to that skill for all future clones.</p></div><div>';
+  let h = '<div class="panel"><span class="h2">Neural echo</span><p class="note">Skill levels reset with each clone. The highest level you ever reached is kept as an echo, and every echo level adds 58% XP to that skill for all future clones.</p></div><div>';
   SKILLS.forEach(k => {
     const lv = L.lv[k.id], n = xpNeed(lv);
     h += `<div class="sk"><div class="skh"><h3 class="c-${k.id}">${k.name}</h3><b>Lv ${lv}</b></div>
