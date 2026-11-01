@@ -39,7 +39,7 @@
  "won": false,
  "winGen": 0,
  "bank": 0,
- "saved": 1793551787151,
+ "saved": 1793552583219,
  "intro": true,
  "life": {
   "day": 0,
@@ -76,6 +76,7 @@
   "bat": {},
   "meal": 0,
   "strain": 1,
+  "sec": 1,
   "job": null,
   "queue": [],
   "owned": {},
