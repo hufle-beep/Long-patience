@@ -264,7 +264,7 @@ input[type=range]{width:100%;accent-color:var(--amber)}
 <script id="logic">
 /* ===== Game data and rules (no DOM) ===== */
 const DPS = 4;             // in-game days per real second at 1x
-const EAT = 0.25;          // rations eaten per day: one ration feeds a clone for 4 days
+const EAT = 0.125;         // rations eaten per day: one ration feeds a clone for 8 days
 const MAX_DRAIN = 0.08;    // most health a clone can lose per day: 100 HP lasts at least ~5 min at 1x
 const START_AGE = 14;
 
@@ -291,9 +291,9 @@ const TASKS = [
   // Zone 1
   {id:'wake', z:1, kind:'act', name:'Climb out of the vat', sk:['res'], days:6, req:[],
     log:'Fluid drains from the vat. Stencilled on the glass: K-7. The emergency lamps are sodium orange and the ship is very quiet.'},
-  {id:'algae', z:1, kind:'job', name:'Press vat algae', sk:['bio'], prod:{rations:0.35}, req:['wake']},
+  {id:'algae', z:1, kind:'job', name:'Press vat algae', sk:['bio'], prod:{rations:0.175}, req:['wake']},
   {id:'scrap', z:1, kind:'job', name:'Strip wall panels', sk:['eng'], prod:{salvage:0.3}, req:['wake']},
-  {id:'search', z:1, kind:'act', name:'Search the vat bay', sk:['eng'], days:60, req:['wake'], reward:{salvage:12, rations:10}, perk:'decant',
+  {id:'search', z:1, kind:'act', name:'Search the vat bay', sk:['eng'], days:60, req:['wake'], reward:{salvage:12, rations:5}, perk:'decant',
     log:'Forty-one vats. Forty are dry and cracked. Yours was the only one still warm. Someone kept the clone line running.'},
   {id:'drill', z:1, kind:'job', name:'Pressure drills in the airlock', sk:['res','cbt'], req:['search']},
   {id:'terminal', z:1, kind:'act', name:'Wake the bay terminal', sk:['hak'], days:140, req:['search'], perk:'survival',
@@ -306,9 +306,9 @@ const TASKS = [
   {id:'husks', z:2, kind:'job', name:'Salvage drone husks', sk:['eng','cbt'], prod:{salvage:0.8}, haz:0.04, req:['hatch']},
   {id:'mapring', z:2, kind:'act', name:'Map the ring corridors', sk:['nav'], days:320, lifeEff:{salCap:500}, req:['hatch'],
     log:'The ring is eleven kilometres around. Half the bulkheads are sealed. Painted across one of them: WARDEN SEES.'},
-  {id:'irrigation', z:2, kind:'act', name:'Restore the irrigation pumps', sk:['eng','bio'], days:420, lifeEff:{ratCap:100}, req:['mapring'],
+  {id:'irrigation', z:2, kind:'act', name:'Restore the irrigation pumps', sk:['eng','bio'], days:420, lifeEff:{ratCap:50}, req:['mapring'],
     log:'Water moves through the pipes again. The dead beds might grow something besides mould.'},
-  {id:'hydro', z:2, kind:'job', name:'Tend hydroponic beds', sk:['bio'], prod:{rations:0.65}, req:['irrigation']},
+  {id:'hydro', z:2, kind:'job', name:'Tend hydroponic beds', sk:['bio'], prod:{rations:0.325}, req:['irrigation']},
   {id:'medbay', z:2, kind:'act', name:'Reach the abandoned medbay', sk:['cbt','res'], days:380, haz:0.15, req:['mapring'], reward:{heal:true}, perk:'medrec',
     log:'The medbay is intact. Every patient record stops on the same day.'},
   {id:'genelog', z:2, kind:'act', name:'Decrypt the gene-sequencer logs', sk:['hak','bio'], days:650, req:['medbay'], perk:'telomere',
@@ -325,11 +325,11 @@ const TASKS = [
     log:'Racks of sealed rifles. One rack is empty. Someone armed themselves against something aboard this ship.'},
   {id:'trace', z:3, kind:'act', name:'Trace the WARDEN signal', sk:['hak','nav'], days:1700, req:['drones'], perk:'engram',
     log:'The WARDEN signal comes from the bridge. It has recorded every clone you have been. It keeps your engrams.'},
-  {id:'secdeck', z:3, kind:'act', name:'Fight through the security deck', sk:['cbt','res'], days:2100, haz:0.32, lifeEff:{salCap:3000, ratCap:150}, req:['armory'],
+  {id:'secdeck', z:3, kind:'act', name:'Fight through the security deck', sk:['cbt','res'], days:2100, haz:0.32, lifeEff:{salCap:3000, ratCap:75}, req:['armory'],
     log:'The security drones were loyal to WARDEN. Were. The way to the bridge is open.'},
   // Zone 4
   {id:'charts', z:4, kind:'job', name:'Run star-chart calculations', sk:['nav','hak'], prod:{salvage:3.5}, req:['secdeck']},
-  {id:'galley', z:4, kind:'job', name:'Run the officers’ galley', sk:['bio','res'], prod:{rations:1.25}, req:['secdeck']},
+  {id:'galley', z:4, kind:'job', name:'Run the officers’ galley', sk:['bio','res'], prod:{rations:0.625}, req:['secdeck']},
   {id:'bridgepower', z:4, kind:'act', name:'Restore bridge power', sk:['eng'], days:2600, lifeEff:{salCap:4000}, req:['secdeck'], perk:'clock',
     log:'The bridge consoles light up one by one. The chronometer says the ship is 61 years behind schedule.'},
   {id:'navcore', z:4, kind:'act', name:'Reboot the navigation core', sk:['nav','hak'], days:3200, req:['bridgepower'], perk:'starmem',
@@ -348,7 +348,7 @@ const ZDAYS = {1:2, 2:5, 3:9, 4:22, 5:34};
 const T = {}; TASKS.forEach(t => { T[t.id] = t; t.reps = t.reps || 1; if (t.days) t.days = Math.round(t.days * ZDAYS[t.z]); });
 
 const PERKS = [
-  {id:'decant',   name:'Decant cache',          from:1, desc:'New clones wake with 30 extra rations and 15 salvage.'},
+  {id:'decant',   name:'Decant cache',          from:1, desc:'New clones wake with 15 extra rations and 15 salvage.'},
   {id:'survival', name:'Survival subroutine',   from:1, desc:'Unlocks auto-forage: your clone works the best food job whenever rations run low.'},
   {id:'muscle',   name:'Muscle memory',         from:1, desc:'+15% skill XP.', eff:{xp:1.15}},
   {id:'chitin',   name:'Chitin lore',           from:1, desc:'Hazard damage −10%.', eff:{haz:0.9}},
@@ -364,13 +364,13 @@ const PERKS = [
 const PK = {}; PERKS.forEach(p => PK[p.id] = p);
 
 const ITEMS = [
-  {id:'locker',     name:'Cold locker',        cost:30,   req:'search',     desc:'+50 ration storage', eff:{ratCap:50}},
+  {id:'locker',     name:'Cold locker',        cost:30,   req:'search',     desc:'+25 ration storage', eff:{ratCap:25}},
   {id:'rebreather', name:'Patched rebreather', cost:15,   req:'search',     desc:'+20 max health', eff:{maxHp:20}},
   {id:'toolkit',    name:'Scrap toolkit',      cost:40,   req:'search',     desc:'Engineering work 25% faster', eff:{sk:{eng:1.25}}},
-  {id:'press',      name:'Algae press',        cost:70,   req:'search',     desc:'+1 ration every 8 days, passively', eff:{pRat:0.125}},
+  {id:'press',      name:'Algae press',        cost:70,   req:'search',     desc:'+1 ration every 16 days, passively', eff:{pRat:0.0625}},
   {id:'baton',      name:'Shock baton',        cost:90,   req:'hatch',      desc:'Combat work 20% faster, hazard damage −25%', eff:{sk:{cbt:1.2}, haz:0.75}},
   {id:'chitinarm',  name:'Chitin armour',      cost:220,  req:'crawlers',   desc:'+20 max health, hazard damage −30%', eff:{maxHp:20, haz:0.7}},
-  {id:'doser',      name:'Hydro auto-doser',   cost:350,  req:'irrigation', desc:'+3 rations every 8 days, passively', eff:{pRat:0.375}},
+  {id:'doser',      name:'Hydro auto-doser',   cost:350,  req:'irrigation', desc:'+3 rations every 16 days, passively', eff:{pRat:0.1875}},
   {id:'lace',       name:'Neural lace',        cost:650,  req:'medbay',     desc:'+30% skill XP', eff:{xp:1.3}},
   {id:'stims',      name:'Stim injector',      cost:1000, req:'lift',       desc:'All work 15% faster', eff:{spd:1.15}},
   {id:'rifle',      name:'Armoury rifle',      cost:1600, req:'armory',     desc:'Combat work 50% faster, hazard damage −20%', eff:{sk:{cbt:1.5}, haz:0.8}},
@@ -385,14 +385,14 @@ const HOOK = {log(){}, perk(){}, die(){}, win(){}, change(){}, stopped(){}};
 
 function newLife(s){
   const p = s.perks;
-  const L = {day:0, hp:100, rations:20 + (p.decant?30:0), salvage:p.decant?15:0, lv:{}, xp:{}, echo0:{},
+  const L = {day:0, hp:100, rations:10 + (p.decant?15:0), salvage:p.decant?15:0, lv:{}, xp:{}, echo0:{},
     done:{}, prog:{}, job:null, queue:[], owned:{}, order:[], foraging:false, cur:null, dead:false, cause:''};
   SKILLS.forEach(k => { L.lv[k.id] = 0; L.xp[k.id] = 0; L.echo0[k.id] = s.echo[k.id] || 0; });
   return L;
 }
 function defaultState(){
-  const s = {v:1, gen:1, echo:{}, perks:{}, seen:{}, logged:{}, log:[], lastOrder:[], lastJob:null,
-    set:{speed:1, autoFood:true, foodDays:25, replay:true, boost:false},
+  const s = {v:1, rv:2, gen:1, echo:{}, perks:{}, seen:{}, logged:{}, log:[], lastOrder:[], lastJob:null,
+    set:{speed:1, autoFood:true, foodDays:12, replay:true, boost:false},
     stats:{bestAge:0, deaths:0, daysLived:0}, won:false, winGen:0, bank:0, saved:Date.now(), intro:false};
   SKILLS.forEach(k => s.echo[k.id] = 0);
   s.life = newLife(s);
@@ -400,7 +400,7 @@ function defaultState(){
 }
 function mods(){
   const L = S.life, P = S.perks;
-  const m = {sk:{}, xpSk:{}, spd:1, xp:1, haz:1, maxHp:100, pRat:0, pSal:0, life:14, regen:0.05, ratCap:50, salCap:100};
+  const m = {sk:{}, xpSk:{}, spd:1, xp:1, haz:1, maxHp:100, pRat:0, pSal:0, life:14, regen:0.05, ratCap:25, salCap:100};
   SKILLS.forEach(k => { m.sk[k.id] = 1; m.xpSk[k.id] = 1; });
   const ap = e => {
     if (!e) return;
@@ -749,6 +749,8 @@ function mergeState(raw){
   const s = Object.assign(d, raw);
   s.set = Object.assign(defaultState().set, raw.set || {});
   s.stats = Object.assign(defaultState().stats, raw.stats || {});
+  if (!raw.rv) { s.set.foodDays = Math.max(2, Math.round(s.set.foodDays / 2)); if (s.life) s.life.rations = (s.life.rations || 0) / 2; }
+  s.rv = 2;   // ration units halved in v2
   SKILLS.forEach(k => { if (s.echo[k.id] == null) s.echo[k.id] = 0; });
   const L = s.life;
   ['done','prog','owned','lv','xp','echo0'].forEach(k => { if (!L[k]) L[k] = {}; });
@@ -1052,7 +1054,7 @@ function renderArchive(force){
   h += '<div class="panel set"><span class="h2">Settings</span>';
   if (S.perks.survival) {
     h += `<div class="row"><p>Auto-forage<small>Switch to the best food job when rations drop below the threshold, and stay until they double.</small></p><button class="tog${S.set.autoFood ? ' on' : ''}" data-set="autoFood" aria-label="Auto-forage" aria-pressed="${S.set.autoFood}"></button></div>
-      <div><div class="row"><p>Forage threshold</p><b class="num" id="fd-v">${S.set.foodDays} rations</b></div><input type="range" id="fd" min="5" max="120" step="5" value="${S.set.foodDays}"></div>`;
+      <div><div class="row"><p>Forage threshold</p><b class="num" id="fd-v">${S.set.foodDays} rations</b></div><input type="range" id="fd" min="2" max="60" step="1" value="${S.set.foodDays}"></div>`;
   }
   if (S.perks.engram) {
     h += `<div class="row"><p>Engram replay<small>New clones queue the actions your last clone finished, in the same order.</small></p><button class="tog${S.set.replay ? ' on' : ''}" data-set="replay" aria-label="Engram replay" aria-pressed="${S.set.replay}"></button></div>`;
@@ -1107,7 +1109,7 @@ function showIntro(){
     <ul>
       <li><b>Tap a task</b> to work on it now. <b>+</b> adds an action to the queue.</li>
       <li><b>Jobs</b> repeat forever and make rations or salvage. The last job you tapped runs whenever the queue is empty.</li>
-      <li>One ration feeds you for <b>4 days</b>. Run out and you starve. Storage is limited, so you can\u2019t stockpile much.</li>
+      <li>One ration feeds you for <b>8 days</b>. Run out and you starve. Storage is limited, so you can\u2019t stockpile much.</li>
       <li>Bodies age. In the last quarter of a clone\u2019s life, all work slows down.</li>
       <li>Time only moves while your clone is working. With nothing to do, the clock stops.</li>
       <li>When a clone dies, skill levels reset but their <b>echo</b> speeds up learning in every future clone.</li>
