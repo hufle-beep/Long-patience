@@ -1,6 +1,6 @@
 {
  "v": 1,
- "gen": 14,
+ "gen": 1,
  "echo": {
   "eng": 0,
   "bio": 0,
@@ -21,8 +21,8 @@
  },
  "log": [
   {
-   "g": 7,
-   "a": 14.2,
+   "g": 1,
+   "a": 14,
    "t": "Climb out of the vat",
    "x": "Fluid drains from the vat. Stencilled on the glass: K-7. The emergency lamps are sodium orange and the ship is very quiet."
   }
@@ -37,35 +37,35 @@
   "boost": false
  },
  "stats": {
-  "bestAge": 14.236893150684931,
-  "deaths": 13,
-  "daysLived": 1122.3450000000012
+  "bestAge": 0,
+  "deaths": 0,
+  "daysLived": 0
  },
  "won": false,
  "winGen": 0,
- "bank": 824.9623,
- "saved": 1793545906385,
+ "bank": 206.09990000000002,
+ "saved": 1793546578001,
  "intro": true,
  "life": {
-  "day": 942.774000000012,
+  "day": 481.89699999999436,
   "hp": 100,
   "rations": 50,
   "salvage": 100,
   "lv": {
-   "eng": 6,
-   "bio": 13,
+   "eng": 5,
+   "bio": 8,
    "cbt": 0,
    "hak": 0,
    "nav": 0,
    "res": 0
   },
   "xp": {
-   "eng": 39.82375000000014,
-   "bio": 84.87919640172473,
+   "eng": 2.8814999999998867,
+   "bio": 28.37879749999997,
    "cbt": 0,
    "hak": 0,
    "nav": 0,
-   "res": 12.112999999999985
+   "res": 12.112000000000004
   },
   "echo0": {
    "eng": 0,
