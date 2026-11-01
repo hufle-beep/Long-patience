@@ -5,8 +5,20 @@
  "pv": 2,
  "gen": 1,
  "prio": {},
- "ever": {},
- "prac": {},
+ "ever": {
+  "wake": 1,
+  "drill": 1,
+  "rewire": 1,
+  "rest": 1
+ },
+ "prac": {
+  "wake": 1,
+  "algae": 1,
+  "drill": 1,
+  "rewire": 1,
+  "rest": 1,
+  "scrap": 1
+ },
  "auto": {},
  "echo": {
   "eng": 0,
@@ -18,10 +30,25 @@
  },
  "perks": {},
  "seen": {
+  "wake": 1,
+  "drill": 1,
+  "rewire": 1,
+  "algae": 1,
+  "scrap": 1,
+  "search": 1,
+  "rest": 1
+ },
+ "logged": {
   "wake": 1
  },
- "logged": {},
- "log": [],
+ "log": [
+  {
+   "g": 1,
+   "a": 0,
+   "t": "Climb out of the vat",
+   "x": "Fluid drains from the vat. Stencilled on the glass: K-7. The emergency lamps are sodium orange and the ship is very quiet."
+  }
+ ],
  "lastOrder": [],
  "lastJob": null,
  "set": {
@@ -39,29 +66,29 @@
  },
  "won": false,
  "winGen": 0,
- "bank": 27.88,
- "saved": 1793556009192,
+ "bank": 241.84420000000003,
+ "saved": 1793556629998,
  "intro": true,
  "life": {
-  "day": 0,
-  "hp": 100,
-  "rations": 0,
-  "salvage": 0,
+  "day": 1144.030400000068,
+  "hp": 28.68887525750403,
+  "rations": 6,
+  "salvage": 6.599999999999999,
   "lv": {
-   "eng": 0,
-   "bio": 0,
-   "cbt": 0,
-   "hak": 0,
+   "eng": 1,
+   "bio": 2,
+   "cbt": 1,
+   "hak": 1,
    "nav": 0,
-   "res": 0
+   "res": 1
   },
   "xp": {
-   "eng": 0,
-   "bio": 0,
-   "cbt": 0,
-   "hak": 0,
+   "eng": 109.61999999999911,
+   "bio": 367.59537400004143,
+   "cbt": 25.117000000000786,
+   "hak": 25.21840000000087,
    "nav": 0,
-   "res": 0
+   "res": 81.76299999999999
   },
   "echo0": {
    "eng": 0,
@@ -71,19 +98,37 @@
    "nav": 0,
    "res": 0
   },
-  "done": {},
-  "prog": {},
-  "cyc": {},
-  "bat": {},
-  "meal": 0,
-  "strain": 1,
+  "done": {
+   "wake": 1,
+   "drill": 4,
+   "rewire": 4,
+   "rest": 1
+  },
+  "prog": {
+   "wake": 0,
+   "drill": 0,
+   "rewire": 0,
+   "rest": 0
+  },
+  "cyc": {
+   "algae": 0.005830000000062396,
+   "scrap": 0.6052199999999857
+  },
+  "bat": {
+   "algae": 108,
+   "scrap": 11
+  },
+  "meal": 1.5959999999999643,
+  "strain": 1.4394085714287865,
   "sec": 1,
-  "job": null,
+  "job": "scrap",
   "queue": [],
   "owned": {},
-  "order": [],
+  "order": [
+   "wake"
+  ],
   "foraging": false,
-  "cur": null,
+  "cur": "scrap",
   "dead": false,
   "cause": ""
  }
