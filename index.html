@@ -477,7 +477,7 @@ const PERKS = [
   {id:'transit',  name:'Ring transit',          from:2, desc:'+10% speed on every task.', eff:{spd:1.1}},
   {id:'hardened', name:'Radiation hardening',   from:3, desc:'Hazard damage −20%.', eff:{haz:0.8}},
   {id:'engram',   name:'Engram recorder',       from:3, desc:'New clones replay the task order of your last life. Toggle it in settings.'},
-  {id:'clock',    name:'Bridge chronometer',    from:4, desc:'Unlocks 8× time speed.'},
+  {id:'clock',    name:'Bridge chronometer',    from:4, desc:'All work 10% faster.', eff:{spd:1.1}},
   {id:'starmem',  name:'Star memory',           from:4, desc:'+50% Navigation XP.', eff:{xpSk:{nav:1.5}}},
   {id:'favor',    name:'WARDEN’s favour',  from:4, desc:'Clones live about 18 days longer; +25% skill XP.', eff:{life:4, xp:1.25}},
 ];
@@ -1422,9 +1422,9 @@ function jobBar(el, t, sp){
 /* ----- HUD ----- */
 let lastSpd = '';
 function renderSpeed(){
-  const opts = [1, 3]; if (S.perks.clock) opts.push(8);
-  if (!opts.includes(S.set.speed)) S.set.speed = 1;
-  let h = `<button data-flip class="flip" aria-label="Switch layout" title="Switch layout">\u21c4</button><button data-atog="musicOn" class="mus${ASET.musicOn ? ' on' : ''}" aria-label="Music ${ASET.musicOn ? 'on' : 'off'}">\u266a</button><button data-pause class="pause${S.set.paused ? ' on' : ''}" aria-label="${S.set.paused ? 'Resume' : 'Pause'}">${S.set.paused ? '▶ Resume' : '❚❚ Pause'}</button>` + opts.map(o => `<button data-speed="${o}" class="${S.set.speed === o ? 'on' : ''}">${o}×</button>`).join('');
+  // Time always runs at 1x; pausing and speed-ups were removed. Only the stasis boost remains.
+  S.set.speed = 1; S.set.paused = false;
+  let h = `<button data-flip class="flip" aria-label="Switch layout" title="Switch layout">\u21c4</button><button data-atog="musicOn" class="mus${ASET.musicOn ? ' on' : ''}" aria-label="Music ${ASET.musicOn ? 'on' : 'off'}">\u266a</button>`;
   if (S.bank >= 1) h += `<button data-boost class="boost${S.set.boost ? ' on' : ''}" aria-label="Stasis boost, doubles speed">+2× ${fmtSecs(S.bank)}</button>`;
   if (h !== lastSpd) { lastSpd = h; $('#h-spd').innerHTML = h; }
 }
@@ -1744,7 +1744,7 @@ function showIntro(){
       <li>Bodies age. In the last quarter of a clone\u2019s life, all work slows down. The first clones are unstable and die young; each new one lives a few days longer.</li>
       <li>Time only moves while your clone is working. With nothing to do, the clock stops.</li>
       <li>When a clone dies, skill levels reset but their <b>echo</b> speeds up learning in every future clone.</li>
-      <li><b>Pause</b> any time with the button at the top (or the space bar on a computer). <b>☰</b> opens the menu with save slots.</li>
+      <li><b>☰</b> opens the menu with save slots; the game waits while it is open. Time spent away is stored as a <b>+2×</b> boost you can switch on in the header.</li>
       <li>Goal: reach the main drive and take the ship somewhere.</li>
     </ul>
     <button class="btn pri" data-close>Open the vat</button>`);
@@ -1909,6 +1909,7 @@ function togglePause(){
   renderSpeed(); save();
 }
 document.addEventListener('keydown', e => {
+  return;   // keyboard pause removed
   if (e.code !== 'Space' && e.key !== 'p') return;
   const tg = e.target.tagName;
   if (tg === 'INPUT' || tg === 'TEXTAREA' || tg === 'BUTTON' || !$('#modal').hidden) return;
