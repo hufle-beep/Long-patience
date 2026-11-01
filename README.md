@@ -10,7 +10,7 @@ Work your way aft through five areas of the ship and light the main drive.
 
 Open `index.html` in any browser, on a phone or a PC. Once GitHub Pages is enabled, it is playable at:
 
-https://hufle-beep.github.io/long-patience/
+https://hufle-beep.github.io/Long-patience/
 
 Progress saves in your browser's local storage.
 
