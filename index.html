@@ -407,12 +407,12 @@ const HOOK = {log(){}, perk(){}, die(){}, win(){}, change(){}, stopped(){}, prac
 function newLife(s){
   const p = s.perks;
   const L = {day:0, hp:100, rations:p.decant?6:0, salvage:p.decant?4:0, lv:{}, xp:{}, echo0:{},
-    done:{}, prog:{}, cyc:{}, meal:0, job:null, queue:[], owned:{}, order:[], foraging:false, cur:null, dead:false, cause:''};
+    done:{}, prog:{}, cyc:{}, bat:{}, meal:0, job:null, queue:[], owned:{}, order:[], foraging:false, cur:null, dead:false, cause:''};
   SKILLS.forEach(k => { L.lv[k.id] = 0; L.xp[k.id] = 0; L.echo0[k.id] = s.echo[k.id] || 0; });
   return L;
 }
 function defaultState(){
-  const s = {v:1, rv:3, sv:2, gen:1, prac:{}, auto:{}, echo:{}, perks:{}, seen:{}, logged:{}, log:[], lastOrder:[], lastJob:null,
+  const s = {v:1, rv:3, sv:2, pv:2, gen:1, prac:{}, auto:{}, echo:{}, perks:{}, seen:{}, logged:{}, log:[], lastOrder:[], lastJob:null,
     set:{speed:1, autoFood:true, autoEat:true, foodDays:5, replay:true, boost:false},
     stats:{bestAge:0, deaths:0, daysLived:0}, won:false, winGen:0, bank:0, saved:Date.now(), intro:false};
   SKILLS.forEach(k => s.echo[k.id] = 0);
@@ -490,10 +490,12 @@ function active(){
   }
   return best;
 }
-// Practice: actions finished in AUTO_ACTS different lives, or jobs worked AUTO_JOB_DAYS in total,
+// Practice is counted in lives: an action counts once per life when finished; a job counts once per
+// life after JOB_PRAC_BATCHES batches in that life. AUTO_LIVES practised lives unlock automation.
 // can be automated.
-const AUTO_ACTS = 3, AUTO_JOB_DAYS = 200;
-function practiced(t){ return (S.prac[t.id] || 0) >= (t.kind === 'act' ? AUTO_ACTS : AUTO_JOB_DAYS); }
+const AUTO_LIVES = 5, JOB_PRAC_BATCHES = 10;
+function practiced(t){ return (S.prac[t.id] || 0) >= AUTO_LIVES; }
+function addPractice(t){ S.prac[t.id] = (S.prac[t.id] || 0) + 1; if (S.prac[t.id] === AUTO_LIVES) HOOK.practiced(t); }
 function isAuto(t){ return !!S.auto[t.id] && practiced(t); }
 function storeRatio(t){ return t.prod && t.prod.rations ? S.life.rations / M.ratCap : t.prod && t.prod.salvage ? S.life.salvage / M.salCap : 0; }
 function jobFull(t){
@@ -517,8 +519,7 @@ function finish(t){
   if (!L.order.includes(t.id)) L.order.push(t.id);
   if (complete(t)) {
     L.queue = L.queue.filter(x => x !== t.id);
-    S.prac[t.id] = (S.prac[t.id] || 0) + 1;
-    if (S.prac[t.id] === AUTO_ACTS) HOOK.practiced(t);
+    addPractice(t);
   }
   M = mods();
   clampRes();
@@ -546,14 +547,13 @@ function step(dt){
     const sp = speedOf(t);
     t.sk.forEach(s => gainXp(s, xpRate(t, s) * dt));
     if (t.kind === 'job') {
-      const was = practiced(t);
-      S.prac[t.id] = (S.prac[t.id] || 0) + dt;
-      if (!was && practiced(t)) HOOK.practiced(t);
       // Jobs work in batches: the bar fills over JOB_CYCLE days of work, then delivers and empties.
       L.cyc[t.id] = (L.cyc[t.id] || 0) + sp * dt / JOB_CYCLE;
       const n = Math.floor(L.cyc[t.id]);
       if (n > 0) {
         L.cyc[t.id] -= n;
+        const before = L.bat[t.id] || 0; L.bat[t.id] = before + n;
+        if (before < JOB_PRAC_BATCHES && L.bat[t.id] >= JOB_PRAC_BATCHES) addPractice(t);
         if (t.prod) { if (t.prod.rations) L.rations += t.prod.rations * JOB_CYCLE * n; if (t.prod.salvage) L.salvage += t.prod.salvage * JOB_CYCLE * n; }
       }
     } else {
@@ -979,6 +979,10 @@ function mergeState(raw){
   s.set = Object.assign(defaultState().set, raw.set || {});
   s.stats = Object.assign(defaultState().stats, raw.stats || {});
   if (!s.prac) s.prac = {}; if (!s.auto) s.auto = {};
+  if (!raw.pv) {   // v2 practice: counted in lives (acts kept as-is, job days become at most 1 life)
+    TASKS.forEach(t => { if (t.kind === 'job' && s.prac[t.id] != null) s.prac[t.id] = s.prac[t.id] >= 200 ? 1 : 0; });
+  }
+  s.pv = 2;
   if (!raw.rv) { s.set.foodDays = Math.max(2, Math.round(s.set.foodDays / 2)); if (s.life) s.life.rations = (s.life.rations || 0) / 2; }
   if ((raw.rv || 0) < 3) {   // v3: rations x0.4, salvage x0.25
     s.set.foodDays = Math.max(1, Math.round(s.set.foodDays * 0.4));
@@ -995,7 +999,7 @@ function mergeState(raw){
   s.sv = 2;
   SKILLS.forEach(k => { if (s.echo[k.id] == null) s.echo[k.id] = 0; });
   const L = s.life;
-  ['done','prog','cyc','owned','lv','xp','echo0'].forEach(k => { if (!L[k]) L[k] = {}; });
+  ['done','prog','cyc','bat','owned','lv','xp','echo0'].forEach(k => { if (!L[k]) L[k] = {}; });
   SKILLS.forEach(k => { if (L.lv[k.id] == null) L.lv[k.id] = 0; if (L.xp[k.id] == null) L.xp[k.id] = 0; });
   if (!Array.isArray(L.queue)) L.queue = [];
   L.queue = L.queue.filter(id => T[id]);
@@ -1154,7 +1158,7 @@ function renderTasks(){
         h += `<div class="task act" data-id="${t.id}">
           <button class="tm" data-do="${t.id}"><div class="tf"></div>
             <div class="th"><span class="tn">${esc(t.name)}</span><span class="te num"></span></div>
-            <div class="tx">${chips(t)}${t.reps > 1 ? `<span class="num rp"></span>` : ''}${t.haz ? '<span class="haz">▲ hazard</span>' : ''}${rb.length ? '<span>' + rb.join(' · ') + '</span>' : ''}${practiced(t) ? '' : `<span class="num">practice ${S.prac[t.id] || 0}/${AUTO_ACTS}</span>`}</div>
+            <div class="tx">${chips(t)}${t.reps > 1 ? `<span class="num rp"></span>` : ''}${t.haz ? '<span class="haz">▲ hazard</span>' : ''}${rb.length ? '<span>' + rb.join(' · ') + '</span>' : ''}${practiced(t) ? '' : `<span class="num">practice ${S.prac[t.id] || 0}/${AUTO_LIVES} lives</span>`}</div>
           </button>
           <div class="side"><button class="tq${qi >= 0 ? ' in' : ''}" data-q="${t.id}" aria-label="${qi >= 0 ? 'Queued' : 'Add to queue'}">${qi >= 0 ? '#' + (qi+1) : '+'}</button>${autoBtn(t)}</div></div>`;
       });
@@ -1185,7 +1189,7 @@ function updateTasks(){
       if (r.rp) r.rp.textContent = (L.done[t.id] || 0) + '/' + t.reps;
     } else {
       jobBar(r.f, t, sp);
-      if (r.pr) r.pr.textContent = 'practice ' + fmtDays(S.prac[t.id] || 0) + ' of ' + fmtDays(AUTO_JOB_DAYS);
+      if (r.pr) { const b = Math.min(JOB_PRAC_BATCHES, L.bat[t.id] || 0); r.pr.textContent = 'practice ' + (S.prac[t.id] || 0) + '/' + AUTO_LIVES + ' lives' + (b < JOB_PRAC_BATCHES ? ' \u00b7 ' + b + '/' + JOB_PRAC_BATCHES + ' batches this life' : ' \u00b7 done this life'); }
       if (t.prod) {
         const res = t.prod.rations ? 'rations' : 'salvage';
         r.e.textContent = '+' + fmt(perDay(t.prod[res] * sp)) + ' ' + res + '/d';
@@ -1391,7 +1395,7 @@ function showIntro(){
     <p>You are K-7, clone stock aboard a colony ship that stopped answering long ago. Each body lasts a few years. What you learn echoes into the next one.</p>
     <ul>
       <li><b>Tap a task</b> to work on it now. <b>+</b> adds an action to the queue.</li>
-      <li>Practise an action in 3 lives, or a job for 2\u00bd days, and an <b>AUTO</b> switch appears so it runs by itself.</li>
+      <li>Finish an action in 5 different lives, or work a job for 10 batches in 5 different lives, and an <b>AUTO</b> switch appears so it runs by itself.</li>
       <li><b>Jobs</b> repeat forever and make rations or salvage. The last job you tapped runs whenever the queue is empty.</li>
       <li>Health drains all the time. Your clone eats about <b>4 rations a day</b>, one meal every 6 hours, and each meal restores some health. You wake with no food. Run out of rations and you starve. Storage is limited, so you can\u2019t stockpile much.</li>
       <li>Bodies age. In the last quarter of a clone\u2019s life, all work slows down. The first clones are unstable and die young; each new one lives a few days longer.</li>
