@@ -761,7 +761,7 @@ function decant(){
   S.life = newLife(S);
   M = mods(); S.life.hp = M.maxHp;
   if (S.perks.engram && S.set.replay) S.life.queue = S.lastOrder.filter(id => T[id] && T[id].kind === 'act');
-  if (S.lastJob) S.life.job = S.lastJob;
+  // No fallback job carries over: a new clone waits for orders unless automation or a record says otherwise.
   HOOK.change();
 }
 </script>
@@ -1380,9 +1380,9 @@ function jobBar(el, t, sp){
 /* ----- HUD ----- */
 let lastSpd = '';
 function renderSpeed(){
-  // Time always runs at 1x; pausing and speed-ups were removed. Only the stasis boost remains.
-  S.set.speed = 1; S.set.paused = false;
-  let h = `<button data-settings="hud" class="flip" aria-label="Settings" title="Settings">\u2699</button><button data-atog="musicOn" class="mus${ASET.musicOn ? ' on' : ''}" aria-label="Music ${ASET.musicOn ? 'on' : 'off'}">\u266a</button>`;
+  // Time runs at 1x (speed-ups were removed); pause and the stasis boost remain.
+  S.set.speed = 1;
+  let h = `<button data-settings="hud" class="flip" aria-label="Settings" title="Settings">\u2699</button><button data-atog="musicOn" class="mus${ASET.musicOn ? ' on' : ''}" aria-label="Music ${ASET.musicOn ? 'on' : 'off'}">\u266a</button><button data-pause class="pause${S.set.paused ? ' on' : ''}" aria-label="${S.set.paused ? 'Resume' : 'Pause'}">${S.set.paused ? '\u25b6 Resume' : '\u275a\u275a Pause'}</button>`;
   if (S.bank >= 1) h += `<button data-boost class="boost${S.set.boost ? ' on' : ''}" aria-label="Stasis boost, doubles speed">+2× ${fmtSecs(S.bank)}</button>`;
   if (h !== lastSpd) { lastSpd = h; $('#h-spd').innerHTML = h; }
 }
@@ -1713,7 +1713,7 @@ function showIntro(){
       <li> The first clones are unstable and die young; each new one lives a day longer. Reaching the full 30-day lifespan is one of the last things you will achieve.</li>
       <li>Time only moves while your clone is working. With nothing to do, the clock stops.</li>
       <li>When a clone dies, skill levels reset but their <b>echo</b> speeds up learning in every future clone.</li>
-      <li><b>☰</b> opens the menu with save slots; the game waits while it is open. Time spent away is stored as a <b>+2×</b> boost you can switch on in the header.</li>
+      <li><b>Pause</b> any time with the button at the top (or the space bar on a computer). <b>☰</b> opens the menu with save slots; the game waits while it is open. Time spent away is stored as a <b>+2×</b> boost you can switch on in the header.</li>
       <li>Goal: reach the main drive and take the ship somewhere.</li>
     </ul>
     <button class="btn pri" data-close>Open the vat</button>`);
@@ -1884,7 +1884,6 @@ function togglePause(){
   renderSpeed(); save();
 }
 document.addEventListener('keydown', e => {
-  return;   // keyboard pause removed
   if (e.code !== 'Space' && e.key !== 'p') return;
   const tg = e.target.tagName;
   if (tg === 'INPUT' || tg === 'TEXTAREA' || tg === 'BUTTON' || !$('#modal').hidden) return;
