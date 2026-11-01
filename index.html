@@ -56,6 +56,8 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--amber);outline-
 .res{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .res>div{display:flex;align-items:baseline;gap:6px;background:var(--panel2);border-radius:4px;padding:5px 8px;min-width:0}
 .res b{font-size:15px;font-weight:500}
+.res .cap{font-size:11px;color:var(--faint);font-weight:400}
+.res b.full{color:var(--amber)}
 .res small{font-size:11px;margin-left:auto;white-space:nowrap}
 .pos{color:var(--green)} .neg{color:var(--red)}
 .now{position:relative;overflow:hidden;border:1px solid var(--line);border-radius:4px;padding:7px 9px;display:flex;justify-content:space-between;gap:10px;align-items:center;min-height:34px}
@@ -274,26 +276,26 @@ const TASKS = [
   {id:'drill', z:1, kind:'job', name:'Pressure drills in the airlock', sk:['res','cbt'], req:['search']},
   {id:'terminal', z:1, kind:'act', name:'Wake the bay terminal', sk:['hak'], days:140, req:['search'], perk:'survival',
     log:'BAY LOG: Colony vessel LONG PATIENCE, 212 years out. Crew response: none. Clone protocol K active: decant a replacement on death, retain the neural echo.'},
-  {id:'hatch', z:1, kind:'act', name:'Force the pressure hatch', sk:['eng','cbt'], days:260, req:['search'], perk:'muscle',
+  {id:'hatch', z:1, kind:'act', name:'Force the pressure hatch', sk:['eng','cbt'], days:260, lifeEff:{salCap:200}, req:['search'], perk:'muscle',
     log:'The hatch gives with a scream of old hydraulics. Beyond it, the hydroponics ring smells of rot and wet metal. Something skitters.'},
   {id:'crawlers', z:1, kind:'act', name:'Clear a rot-crawler nest', sk:['cbt'], days:140, reps:3, haz:0.18, req:['hatch'], reward:{salvage:10}, perk:'chitin',
     log:'The nests are gone. The crawlers were feeding on the ring’s biomass, and on whatever the last crew left behind.'},
   // Zone 2
   {id:'husks', z:2, kind:'job', name:'Salvage drone husks', sk:['eng','cbt'], prod:{salvage:1.6}, haz:0.04, req:['hatch']},
-  {id:'mapring', z:2, kind:'act', name:'Map the ring corridors', sk:['nav'], days:320, req:['hatch'],
+  {id:'mapring', z:2, kind:'act', name:'Map the ring corridors', sk:['nav'], days:320, lifeEff:{salCap:500}, req:['hatch'],
     log:'The ring is eleven kilometres around. Half the bulkheads are sealed. Painted across one of them: WARDEN SEES.'},
-  {id:'irrigation', z:2, kind:'act', name:'Restore the irrigation pumps', sk:['eng','bio'], days:420, req:['mapring'],
+  {id:'irrigation', z:2, kind:'act', name:'Restore the irrigation pumps', sk:['eng','bio'], days:420, lifeEff:{ratCap:100}, req:['mapring'],
     log:'Water moves through the pipes again. The dead beds might grow something besides mould.'},
   {id:'hydro', z:2, kind:'job', name:'Tend hydroponic beds', sk:['bio'], prod:{rations:3.2}, req:['irrigation']},
   {id:'medbay', z:2, kind:'act', name:'Reach the abandoned medbay', sk:['cbt','res'], days:380, haz:0.15, req:['mapring'], reward:{heal:true}, perk:'medrec',
     log:'The medbay is intact. Every patient record stops on the same day.'},
   {id:'genelog', z:2, kind:'act', name:'Decrypt the gene-sequencer logs', sk:['hak','bio'], days:650, req:['medbay'], perk:'telomere',
     log:'The logs show why your bodies fail early: the clone template was rushed. A partial patch exists. You push it to the stock vats.'},
-  {id:'lift', z:2, kind:'act', name:'Repair the spine lift', sk:['eng','nav'], days:900, req:['irrigation','mapring'], perk:'transit',
+  {id:'lift', z:2, kind:'act', name:'Repair the spine lift', sk:['eng','nav'], days:900, lifeEff:{salCap:2000}, req:['irrigation','mapring'], perk:'transit',
     log:'The spine lift climbs with you inside it, groaning at every deck. The engineering spine is open.'},
   // Zone 3
   {id:'reactor', z:3, kind:'job', name:'Babysit the fusion bottle', sk:['eng','res'], prod:{salvage:4}, haz:0.08, req:['lift']},
-  {id:'drones', z:3, kind:'act', name:'Reprogram maintenance drones', sk:['hak','eng'], days:950, req:['lift'], lifeEff:{pSal:2},
+  {id:'drones', z:3, kind:'act', name:'Reprogram maintenance drones', sk:['hak','eng'], days:950, req:['lift'], lifeEff:{salCap:1000, pSal:2},
     log:'The maintenance drones stop circling and start working. They bring you scrap the way cats bring birds.'},
   {id:'vent', z:3, kind:'act', name:'Vent the reactor coolant', sk:['eng','res'], days:1300, haz:0.25, req:['lift'], perk:'hardened',
     log:'Coolant screams into the void. Reactor temperature leaves the red for the first time in decades.'},
@@ -301,12 +303,12 @@ const TASKS = [
     log:'Racks of sealed rifles. One rack is empty. Someone armed themselves against something aboard this ship.'},
   {id:'trace', z:3, kind:'act', name:'Trace the WARDEN signal', sk:['hak','nav'], days:1700, req:['drones'], perk:'engram',
     log:'The WARDEN signal comes from the bridge. It has recorded every clone you have been. It keeps your engrams.'},
-  {id:'secdeck', z:3, kind:'act', name:'Fight through the security deck', sk:['cbt','res'], days:2100, haz:0.32, req:['armory'],
+  {id:'secdeck', z:3, kind:'act', name:'Fight through the security deck', sk:['cbt','res'], days:2100, haz:0.32, lifeEff:{salCap:3000, ratCap:150}, req:['armory'],
     log:'The security drones were loyal to WARDEN. Were. The way to the bridge is open.'},
   // Zone 4
   {id:'charts', z:4, kind:'job', name:'Run star-chart calculations', sk:['nav','hak'], prod:{salvage:7}, req:['secdeck']},
   {id:'galley', z:4, kind:'job', name:'Run the officers’ galley', sk:['bio','res'], prod:{rations:6}, req:['secdeck']},
-  {id:'bridgepower', z:4, kind:'act', name:'Restore bridge power', sk:['eng'], days:2600, req:['secdeck'], perk:'clock',
+  {id:'bridgepower', z:4, kind:'act', name:'Restore bridge power', sk:['eng'], days:2600, lifeEff:{salCap:4000}, req:['secdeck'], perk:'clock',
     log:'The bridge consoles light up one by one. The chronometer says the ship is 61 years behind schedule.'},
   {id:'navcore', z:4, kind:'act', name:'Reboot the navigation core', sk:['nav','hak'], days:3200, req:['bridgepower'], perk:'starmem',
     log:'The nav core wakes and shows a world you were never told about: Tessaly. Close. Reachable.'},
@@ -340,6 +342,7 @@ const PERKS = [
 const PK = {}; PERKS.forEach(p => PK[p.id] = p);
 
 const ITEMS = [
+  {id:'locker',     name:'Cold locker',        cost:30,   req:'search',     desc:'+50 ration storage', eff:{ratCap:50}},
   {id:'rebreather', name:'Patched rebreather', cost:15,   req:'search',     desc:'+20 max health', eff:{maxHp:20}},
   {id:'toolkit',    name:'Scrap toolkit',      cost:40,   req:'search',     desc:'Engineering work 25% faster', eff:{sk:{eng:1.25}}},
   {id:'press',      name:'Algae press',        cost:70,   req:'search',     desc:'+0.5 rations per day, passively', eff:{pRat:0.5}},
@@ -375,7 +378,7 @@ function defaultState(){
 }
 function mods(){
   const L = S.life, P = S.perks;
-  const m = {sk:{}, xpSk:{}, spd:1, xp:1, haz:1, maxHp:100, pRat:0, pSal:0, life:16, regen:0.12};
+  const m = {sk:{}, xpSk:{}, spd:1, xp:1, haz:1, maxHp:100, pRat:0, pSal:0, life:16, regen:0.12, ratCap:50, salCap:100};
   SKILLS.forEach(k => { m.sk[k.id] = 1; m.xpSk[k.id] = 1; });
   const ap = e => {
     if (!e) return;
@@ -384,6 +387,7 @@ function mods(){
     if (e.spd) m.spd *= e.spd; if (e.xp) m.xp *= e.xp; if (e.haz) m.haz *= e.haz;
     if (e.maxHp) m.maxHp += e.maxHp; if (e.pRat) m.pRat += e.pRat; if (e.pSal) m.pSal += e.pSal;
     if (e.life) m.life += e.life; if (e.regen) m.regen *= e.regen;
+    if (e.ratCap) m.ratCap += e.ratCap; if (e.salCap) m.salCap += e.salCap;
   };
   PERKS.forEach(p => { if (P[p.id]) ap(p.eff); });
   ITEMS.forEach(i => { if (L.owned[i.id]) ap(i.eff); });
@@ -415,9 +419,9 @@ function active(){
   if (S.perks.survival && S.set.autoFood) {
     const food = pickFood();
     if (food) {
-      const low = S.set.foodDays;
+      const low = Math.min(S.set.foodDays, M.ratCap * 0.5);
       if (L.rations < low) L.foraging = true;
-      if (L.foraging && L.rations >= low * 2) L.foraging = false;
+      if (L.foraging && L.rations >= Math.min(low * 2, M.ratCap - 0.5)) L.foraging = false;
       if (L.foraging) return food;
     }
   } else L.foraging = false;
@@ -439,6 +443,7 @@ function finish(t){
   if (!L.order.includes(t.id)) L.order.push(t.id);
   if (complete(t)) L.queue = L.queue.filter(x => x !== t.id);
   M = mods();
+  clampRes();
   if (r.heal) L.hp = M.maxHp;
   if (complete(t) && t.log && !S.logged[t.id]) { S.logged[t.id] = 1; HOOK.log(t.name, t.log); }
   if (complete(t) && t.perk && !S.perks[t.perk]) { S.perks[t.perk] = true; M = mods(); HOOK.perk(PK[t.perk]); }
@@ -470,6 +475,7 @@ function step(dt){
   }
   L.rations += (M.pRat - 1) * dt;
   L.salvage += M.pSal * dt;
+  clampRes();
   let drain = 0, starving = false;
   if (t && t.haz) { hurt = true; drain += hazDmg(t); }
   if (L.rations < 0) { L.rations = 0; hurt = true; starving = true; drain += MAX_DRAIN; }
@@ -485,6 +491,11 @@ function step(dt){
   L.day += dt;
   if (L.day >= lifeDays()) die('Telomere collapse. The body wore out');
   return true;
+}
+function clampRes(){
+  const L = S.life;
+  if (L.rations > M.ratCap) L.rations = M.ratCap;
+  if (L.salvage > M.salCap) L.salvage = M.salCap;
 }
 function advance(days){
   let left = days, n = 0;
@@ -688,6 +699,8 @@ function rewardBits(t){
   if (r.rations) b.push('+' + r.rations + ' rations');
   if (r.heal) b.push('full heal');
   if (t.lifeEff && t.lifeEff.pSal) b.push('+' + t.lifeEff.pSal + ' salvage/d');
+  if (t.lifeEff && t.lifeEff.salCap) b.push('+' + fmt(t.lifeEff.salCap) + ' salvage storage');
+  if (t.lifeEff && t.lifeEff.ratCap) b.push('+' + t.lifeEff.ratCap + ' ration storage');
   if (t.perk && !S.perks[t.perk]) b.push('<span class="star">★ archive record</span>');
   if (t.win) b.push('<span class="star">the end of the voyage</span>');
   return b;
@@ -808,9 +821,11 @@ function updateHud(){
     if (cur.prod.rations) rr += cur.prod.rations * sp;
     if (cur.prod.salvage) sr += cur.prod.salvage * sp;
   }
-  $('#t-rat').textContent = fmt(L.rations);
+  $('#t-rat').innerHTML = fmt(L.rations) + '<span class="cap">/' + fmt(M.ratCap) + '</span>';
+  $('#t-rat').classList.toggle('full', L.rations >= M.ratCap - 0.01);
   const ra = $('#t-ratr'); ra.textContent = (rr >= 0 ? '+' : '−') + fmt(Math.abs(rr)) + '/d'; ra.className = 'num ' + (rr >= 0 ? 'pos' : 'neg');
-  $('#t-sal').textContent = fmt(L.salvage);
+  $('#t-sal').innerHTML = fmt(L.salvage) + '<span class="cap">/' + fmt(M.salCap) + '</span>';
+  $('#t-sal').classList.toggle('full', L.salvage >= M.salCap - 0.01);
   const sa = $('#t-salr'); sa.textContent = sr > 0 ? '+' + fmt(sr) + '/d' : ''; sa.className = 'num pos';
   const now = $('#now');
   now.classList.toggle('idle', !cur && !L.dead && !S.set.paused);
@@ -846,13 +861,13 @@ function renderSkills(){
 function renderGear(){
   const L = S.life;
   const av = ITEMS.filter(i => isDone(i.req));
-  const key = av.map(i => i.id + (L.owned[i.id] ? 'o' : (L.salvage >= i.cost ? 'y' : 'n'))).join();
+  const key = M.salCap + '|' + av.map(i => i.id + (L.owned[i.id] ? 'o' : (L.salvage >= i.cost ? 'y' : 'n'))).join();
   if (key === gearKey) return; gearKey = key;
-  let h = '<div class="panel"><span class="h2">Fabricator</span><p class="note">Gear is built from salvage and lasts for this clone only. New designs appear as you explore.</p></div><div>';
+  let h = '<div class="panel"><span class="h2">Fabricator</span><p class="note">Gear is built from salvage and lasts for this clone only. New designs appear as you explore. Salvage storage is limited; opening up more of the ship raises it.</p></div><div>';
   if (!av.length) h += '<p class="note">Nothing to build yet. Search the vat bay first.</p>';
   av.forEach(i => {
     h += `<div class="item"><div><h3>${esc(i.name)}</h3><p>${esc(i.desc)}</p></div>` +
-      (L.owned[i.id] ? '<span class="owned">Built</span>' : `<button class="buy" data-buy="${i.id}" ${L.salvage >= i.cost ? '' : 'disabled'}>${fmt(i.cost)} salvage</button>`) + '</div>';
+      (L.owned[i.id] ? '<span class="owned">Built</span>' : `<button class="buy" data-buy="${i.id}" ${L.salvage >= i.cost ? '' : 'disabled'}>${fmt(i.cost)} salvage${i.cost > M.salCap ? '<br><small>needs storage</small>' : ''}</button>`) + '</div>';
   });
   const hidden = ITEMS.length - av.length;
   if (hidden > 0) h += `<p class="note" style="padding-top:10px">${hidden} more design${hidden > 1 ? 's' : ''} not yet found.</p>`;
@@ -935,7 +950,7 @@ function showIntro(){
     <ul>
       <li><b>Tap a task</b> to work on it now. <b>+</b> adds an action to the queue.</li>
       <li><b>Jobs</b> repeat forever and make rations or salvage. The last job you tapped runs whenever the queue is empty.</li>
-      <li>You eat <b>1 ration a day</b>. Run out and you starve.</li>
+      <li>You eat <b>1 ration a day</b>. Run out and you starve. Storage is limited, so you can\u2019t stockpile much.</li>
       <li>Time only moves while your clone is working. With nothing to do, the clock stops.</li>
       <li>When a clone dies, skill levels reset but their <b>echo</b> speeds up learning in every future clone.</li>
       <li><b>Pause</b> any time with the button at the top (or the space bar on a computer).</li>
