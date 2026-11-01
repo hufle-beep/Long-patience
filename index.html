@@ -35,11 +35,11 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--amber);outline-
 /* HUD */
 #hud{position:sticky;top:env(safe-area-inset-top,0px);z-index:6;background:var(--panel);border-bottom:1px solid var(--line);padding-block:10px 10px}
 #hud .wrap{display:grid;gap:7px}
-.r1{display:flex;align-items:center;justify-content:space-between;gap:10px}
-.ident{display:flex;align-items:baseline;gap:8px;min-width:0}
-.ident b{font-family:var(--f-disp);font-size:22px;font-weight:700;letter-spacing:.04em;color:var(--amber);line-height:1}
+.r1{display:flex;align-items:center;justify-content:space-between;gap:8px 10px;flex-wrap:wrap}
+.ident{display:flex;align-items:center;gap:8px;flex:0 0 auto;white-space:nowrap}
+.ident b{white-space:nowrap;font-family:var(--f-disp);font-size:22px;font-weight:700;letter-spacing:.04em;color:var(--amber);line-height:1}
 .ident span{font-family:var(--f-disp);font-size:14px;color:var(--dim);letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
-.spd{display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end}
+.spd{display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;margin-left:auto}
 .spd button{font-family:var(--f-mono);font-size:12px;padding:5px 9px;border:1px solid var(--line);border-radius:4px;color:var(--dim)}
 .spd button.on{color:var(--bg);background:var(--amber);border-color:var(--amber)}
 .spd button.mus{font-size:14px;padding:3px 9px;color:var(--faint);text-decoration:line-through}
