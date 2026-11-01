@@ -3,99 +3,26 @@
  "rv": 3,
  "sv": 2,
  "pv": 2,
- "gen": 3,
- "ever": {
-  "wake": 1,
-  "drill": 1,
-  "rest": 1,
-  "rewire": 1,
-  "search": 1,
-  "terminal": 1,
-  "hatch": 1,
-  "reckon": 1
- },
- "prac": {
-  "wake": 3,
-  "drill": 3,
-  "algae": 3,
-  "scrap": 3,
-  "rest": 3,
-  "rewire": 3,
-  "search": 2,
-  "terminal": 2,
-  "hatch": 1,
-  "fungus": 1,
-  "reckon": 1
- },
+ "gen": 1,
+ "prio": {},
+ "ever": {},
+ "prac": {},
  "auto": {},
  "echo": {
-  "eng": 3,
-  "bio": 5,
-  "cbt": 1,
-  "hak": 1,
-  "nav": 1,
-  "res": 3
+  "eng": 0,
+  "bio": 0,
+  "cbt": 0,
+  "hak": 0,
+  "nav": 0,
+  "res": 0
  },
- "perks": {
-  "decant": true,
-  "survival": true,
-  "muscle": true
- },
+ "perks": {},
  "seen": {
-  "wake": 1,
-  "drill": 1,
-  "rewire": 1,
-  "algae": 1,
-  "scrap": 1,
-  "search": 1,
-  "rest": 1,
-  "terminal": 1,
-  "hatch": 1,
-  "genes": 1,
-  "reckon": 1,
-  "crawlers": 1,
-  "husks": 1,
-  "mapring": 1,
-  "fungus": 1
+  "wake": 1
  },
- "logged": {
-  "wake": 1,
-  "search": 1,
-  "terminal": 1,
-  "hatch": 1
- },
- "log": [
-  {
-   "g": 1,
-   "a": 0,
-   "t": "Climb out of the vat",
-   "x": "Fluid drains from the vat. Stencilled on the glass: K-7. The emergency lamps are sodium orange and the ship is very quiet."
-  },
-  {
-   "g": 2,
-   "a": 16.3,
-   "t": "Search the vat bay",
-   "x": "Forty-one vats. Forty are dry and cracked. Yours was the only one still warm. Someone kept the clone line running."
-  },
-  {
-   "g": 2,
-   "a": 16.8,
-   "t": "Wake the bay terminal",
-   "x": "BAY LOG: Colony vessel LONG PATIENCE, 212 years out. Crew response: none. Clone protocol K active: decant a replacement on death, retain the neural echo."
-  },
-  {
-   "g": 2,
-   "a": 18,
-   "t": "Force the pressure hatch",
-   "x": "The hatch gives with a scream of old hydraulics. Beyond it, the hydroponics ring smells of rot and wet metal. Something skitters."
-  }
- ],
- "lastOrder": [
-  "wake",
-  "search",
-  "terminal",
-  "hatch"
- ],
+ "logged": {},
+ "log": [],
+ "lastOrder": [],
  "lastJob": null,
  "set": {
   "speed": 1,
@@ -107,83 +34,57 @@
  },
  "stats": {
   "bestAge": 0,
-  "deaths": 2,
-  "daysLived": 3182.078400000486,
-  "bestDays": 20.868965000003136
+  "deaths": 0,
+  "daysLived": 0
  },
  "won": false,
  "winGen": 0,
- "bank": 155.41630000000004,
- "saved": 1793555389709,
+ "bank": 27.88,
+ "saved": 1793556009192,
  "intro": true,
  "life": {
-  "day": 1040.3196000001344,
-  "hp": 75.064785778364,
-  "rations": 10,
-  "salvage": 25,
+  "day": 0,
+  "hp": 100,
+  "rations": 0,
+  "salvage": 0,
   "lv": {
-   "eng": 4,
-   "bio": 6,
-   "cbt": 1,
-   "hak": 1,
+   "eng": 0,
+   "bio": 0,
+   "cbt": 0,
+   "hak": 0,
    "nav": 0,
-   "res": 3
+   "res": 0
   },
   "xp": {
-   "eng": 208.22282931191728,
-   "bio": 1964.9202027464269,
-   "cbt": 148.29847059999958,
-   "hak": 218.1704787999985,
+   "eng": 0,
+   "bio": 0,
+   "cbt": 0,
+   "hak": 0,
    "nav": 0,
-   "res": 178.34154850049774
+   "res": 0
   },
   "echo0": {
-   "eng": 3,
-   "bio": 5,
-   "cbt": 1,
-   "hak": 1,
-   "nav": 1,
-   "res": 3
+   "eng": 0,
+   "bio": 0,
+   "cbt": 0,
+   "hak": 0,
+   "nav": 0,
+   "res": 0
   },
-  "done": {
-   "wake": 1,
-   "drill": 4,
-   "rewire": 4,
-   "search": 1,
-   "terminal": 1,
-   "rest": 1
-  },
-  "prog": {
-   "wake": 0,
-   "drill": 0,
-   "rewire": 0,
-   "search": 0,
-   "terminal": 0,
-   "rest": 0
-  },
-  "cyc": {
-   "algae": 0.005139999999590694,
-   "scrap": 0.00410000000024513
-  },
-  "bat": {
-   "algae": 97,
-   "scrap": 30
-  },
-  "meal": 14.790000000000033,
-  "strain": 1.2752642857145833,
+  "done": {},
+  "prog": {},
+  "cyc": {},
+  "bat": {},
+  "meal": 0,
+  "strain": 1,
   "sec": 1,
   "job": null,
   "queue": [],
   "owned": {},
-  "order": [
-   "wake",
-   "search",
-   "terminal"
-  ],
+  "order": [],
   "foraging": false,
   "cur": null,
   "dead": false,
   "cause": ""
- },
- "vit": 38
+ }
 }
