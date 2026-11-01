@@ -200,8 +200,8 @@ input[type=range]{width:100%;accent-color:var(--amber)}
 
 /* tabs */
 #tabs{position:fixed;left:0;right:0;bottom:0;z-index:6;background:var(--panel);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
-#tabs .wrap{display:grid;grid-template-columns:repeat(6,1fr)}
-#tabs button{position:relative;padding:12px 0 13px;font-family:var(--f-disp);font-size:13px;letter-spacing:.05em;text-transform:uppercase;color:var(--dim);font-weight:600}
+#tabs .wrap{display:grid;grid-template-columns:repeat(7,1fr)}
+#tabs button{position:relative;padding:12px 0 13px;font-family:var(--f-disp);font-size:12px;letter-spacing:.03em;text-transform:uppercase;color:var(--dim);font-weight:600}
 #tabs button.on{color:var(--amber)}
 #tabs button.on::before{content:"";position:absolute;top:-1px;left:22%;right:22%;height:2px;background:var(--amber)}
 #tabs button.dot::after{content:"";position:absolute;top:9px;right:18%;width:6px;height:6px;border-radius:50%;background:var(--cyan)}
@@ -264,6 +264,17 @@ input[type=range]{width:100%;accent-color:var(--amber)}
 .task.cross .tm{border-color:var(--red)}
 .crossw{font-family:var(--f-disp);text-transform:uppercase;letter-spacing:.08em;font-size:11px;color:var(--red);margin-bottom:3px}
 .mn.passed{opacity:.25}
+.alist{display:grid;gap:8px}
+.arow{display:grid;grid-template-columns:1fr auto;gap:8px 12px;align-items:center;padding:10px;border:1px solid var(--line);border-radius:6px;background:var(--panel)}
+.arow.on{border-color:var(--cyan-soft)}
+.arow .an{display:grid;gap:4px;min-width:0}
+.arow .an b{font-weight:500;font-size:14px}
+.arow .an > span{display:flex;flex-wrap:wrap;gap:4px 6px;align-items:center;font-size:12px;color:var(--dim)}
+.aprio{grid-column:1 / -1;display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.aprio.note{display:block;font-size:12px;color:var(--dim)}
+.aprio button{font-family:var(--f-mono);font-size:13px;padding:7px 0;border:1px solid var(--line);border-radius:4px;color:var(--fg)}
+.aprio button.on{background:var(--amber);border-color:var(--amber);color:var(--bg)}
+.arow:not(.on) .aprio button.on{background:var(--panel2);color:var(--amber)}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 
@@ -290,6 +301,7 @@ input[type=range]{width:100%;accent-color:var(--amber)}
   <div class="wrap">
     <section class="view" id="v-tasks"></section>
     <section class="view" id="v-map" hidden></section>
+    <section class="view" id="v-auto" hidden></section>
     <section class="view" id="v-skills" hidden></section>
     <section class="view" id="v-gear" hidden></section>
     <section class="view" id="v-archive" hidden></section>
@@ -301,6 +313,7 @@ input[type=range]{width:100%;accent-color:var(--amber)}
   <div class="wrap">
     <button data-tab="tasks" class="on">Tasks</button>
     <button data-tab="map">Map</button>
+    <button data-tab="auto">Auto</button>
     <button data-tab="skills">Skills</button>
     <button data-tab="gear">Gear</button>
     <button data-tab="archive">Archive</button>
@@ -1506,7 +1519,8 @@ function renderLog(){
 function setTab(t){
   tab = t;
   document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === t));
-  ['tasks','map','skills','gear','archive','log'].forEach(v => $('#v-' + v).hidden = v !== t);
+  ['tasks','map','auto','skills','gear','archive','log'].forEach(v => $('#v-' + v).hidden = v !== t);
+  autoKey = '';
   mapKey = '';
   if (t === 'log') newLog = false;
   if (t === 'archive') newPerk = false;
@@ -1517,6 +1531,7 @@ function setTab(t){
 function renderView(force){
   if (tab === 'tasks') { renderTasks(); updateTasks(); }
   else if (tab === 'map') { renderMap(); updateMap(); }
+  else if (tab === 'auto') renderAuto();
   else if (tab === 'skills') renderSkills();
   else if (tab === 'gear') renderGear();
   else if (tab === 'archive') renderArchive(force);
@@ -1601,6 +1616,34 @@ document.addEventListener('click', e => {
   L.queue = [t.id, ...L.queue.filter(x => x !== t.id)]; L.foraging = false; taskKey = '';
   toast('Working on: ' + t.name);
 });
+
+/* ----- automation tab: every task whose automation is unlocked ----- */
+let autoKey = '';
+const KIND_LABEL = {job:'Job', act:'Action', train:'Training', rest:'Rest'};
+function renderAuto(){
+  const L = S.life;
+  const list = TASKS.filter(t => practiced(t));
+  const key = list.map(t => t.id + (S.auto[t.id] ? '*' : '') + prioOf(t)).join() + '|' + L.sec + '|' + S.gen;
+  if (key === autoKey) return; autoKey = key;
+  let h = `<div class="panel"><span class="h2">Automation</span><p class="note">Tasks practised in ${AUTO_LIVES} lives can run by themselves. Switch them on and set their priority here: 1 runs first, 5 last. Your own queue always comes first; rests fire on their own at strain ×${AUTO_REST_AT}.</p></div>`;
+  if (!list.length) {
+    h += `<p class="note">Nothing unlocked yet. Finish an action in ${AUTO_LIVES} different lives, or work a job for ${JOB_PRAC_BATCHES} batches in ${AUTO_LIVES} different lives, and it will appear here.</p>`;
+  }
+  ZONES.forEach(z => {
+    const zl = list.filter(t => t.z === z.id); if (!zl.length) return;
+    h += `<section class="zone"><header class="zh"><h2>${z.name}</h2><span>${z.id === L.sec ? 'you are here' : z.id < L.sec ? 'left behind this life' : 'ahead'}</span></header><div class="alist">`;
+    ['job','act','train','rest'].forEach(k => zl.filter(t => t.kind === k).forEach(t => {
+      const on = !!S.auto[t.id];
+      h += `<div class="arow${on ? ' on' : ''}"><div class="an"><b>${esc(t.name)}</b><span>${KIND_LABEL[t.kind]}${t.cross ? ' · crossing' : ''} · ${chips(t)}</span></div>
+        <button class="tog${on ? ' on' : ''}" data-auto="${t.id}" aria-pressed="${on}" aria-label="Automate ${esc(t.name)}"></button>
+        ${t.kind === 'rest' ? `<div class="aprio note">Runs at strain ×${AUTO_REST_AT}</div>` :
+          `<div class="aprio" role="group" aria-label="Priority for ${esc(t.name)}">${[1,2,3,4,5].map(n => `<button data-setprio="${t.id}" data-n="${n}" class="${prioOf(t) === n ? 'on' : ''}">${n}</button>`).join('')}</div>`}
+      </div>`;
+    }));
+    h += '</div></section>';
+  });
+  $('#v-auto').innerHTML = h;
+}
 
 /* ----- modals ----- */
 function showModal(h){ $('#mbox').innerHTML = h; $('#modal').hidden = false; }
@@ -1730,8 +1773,8 @@ document.addEventListener('click', e => {
     taskKey = ''; renderView(); return;
   }
   if (d.prio) { openPrio = openPrio === d.prio ? null : d.prio; taskKey = ''; renderView(); return; }
-  if (d.setprio) { S.prio[d.setprio] = +d.n; openPrio = null; toast('Priority ' + d.n + ': ' + T[d.setprio].name); taskKey = ''; renderView(); return; }
-  if (d.auto) { S.auto[d.auto] = !S.auto[d.auto]; toast((S.auto[d.auto] ? 'Automated: ' : 'Automation off: ') + T[d.auto].name); taskKey = ''; renderView(); return; }
+  if (d.setprio) { S.prio[d.setprio] = +d.n; openPrio = null; autoKey = ''; toast('Priority ' + d.n + ': ' + T[d.setprio].name); taskKey = ''; renderView(); return; }
+  if (d.auto) { autoKey = ''; S.auto[d.auto] = !S.auto[d.auto]; toast((S.auto[d.auto] ? 'Automated: ' : 'Automation off: ') + T[d.auto].name); taskKey = ''; renderView(); return; }
   if (d.showlock) { showLocked[d.showlock] = !showLocked[d.showlock]; taskKey = ''; renderView(); return; }
   if (d.unq) { L.queue = L.queue.filter(x => x !== d.unq); taskKey = ''; renderView(); return; }
   if ('clearq' in d) { L.queue = []; taskKey = ''; renderView(); return; }
