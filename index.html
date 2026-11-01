@@ -465,14 +465,14 @@ const TASKS = [
   {id:'pods', z:5, kind:'rest', name:'Cryo-nap in the drive crew pods', sk:['bio','res'], days:10, req:['warden']},
   {id:'crewlock', z:5, kind:'job', name:'Strip the drive crew lockers', sk:['eng','cbt'], prod:{salvage:1}, req:['warden']},
   {id:'pantry', z:5, kind:'job', name:'Ration the drive crew pantry', sk:['bio','res'], prod:{rations:0.3}, req:['warden']},
-  {id:'course', z:5, kind:'act', name:'Plot a course to Tessaly', sk:['nav'], days:6000, req:['warden'],
+  {id:'course', z:5, kind:'act', name:'Plot a course to Tessaly', sk:['nav'], days:8000, req:['warden'], perk:'promise',
     log:'Course plotted. Tessaly is fourteen years away at full burn. No single clone will live to see it. The line will.'},
-  {id:'injectors', z:5, kind:'act', name:'Rebuild the drive injectors', sk:['eng','res'], days:7000, haz:0.3, req:['warden'],
+  {id:'injectors', z:5, kind:'act', name:'Rebuild the drive injectors', sk:['eng','res'], days:5000, haz:0.3, req:['warden'],
     log:'The injectors hold pressure. The drive is ready, if someone will stand beside it when it lights.'},
-  {id:'ignite', z:5, kind:'act', name:'Ignite the main drive', sk:['nav','eng','res'], days:9000, req:['course','injectors'], win:true,
+  {id:'ignite', z:5, kind:'act', name:'Ignite the main drive', sk:['nav','eng','res'], days:6000, req:['course','injectors'], win:true,
     log:'The Long Patience shudders, then pushes. For the first time in sixty years, the ship is going somewhere.'},
 ];
-const ZDAYS = {1:0.3, 2:1, 3:2, 4:4, 5:6};
+const ZDAYS = {1:0.3, 2:1, 3:0.8, 4:1, 5:0.8};
 const TRAIN_CAP = 4, TRAIN_XP = 1.5;
 const T = {}; TASKS.forEach(t => { T[t.id] = t; t.reps = t.kind === 'train' ? TRAIN_CAP : (t.reps || 1); if (t.days) t.days = Math.round(t.days * ZDAYS[t.z]); });
 
@@ -482,13 +482,14 @@ const PERKS = [
   {id:'muscle',   name:'Muscle memory',         from:1, desc:'+15% skill XP.', eff:{xp:1.15}},
   {id:'chitin',   name:'Chitin lore',           from:1, desc:'Hazard damage −10%.', eff:{haz:0.9}},
   {id:'medrec',   name:'Medbay records',        from:2, desc:'Meals restore more health.', eff:{regen:2}},
-  {id:'telomere', name:'Telomere patch',        from:2, desc:'Clones live about 18 days longer.', eff:{life:4}},
+  {id:'telomere', name:'Telomere patch',        from:2, desc:'Clones live 2 days longer (lifespan never exceeds 30 days).', eff:{life:2}},
   {id:'transit',  name:'Ring transit',          from:2, desc:'+10% speed on every task.', eff:{spd:1.1}},
   {id:'hardened', name:'Radiation hardening',   from:3, desc:'Hazard damage −20%.', eff:{haz:0.8}},
   {id:'engram',   name:'Engram recorder',       from:3, desc:'New clones replay the task order of your last life. Toggle it in settings.'},
   {id:'clock',    name:'Bridge chronometer',    from:4, desc:'All work 10% faster.', eff:{spd:1.1}},
   {id:'starmem',  name:'Star memory',           from:4, desc:'+50% Navigation XP.', eff:{xpSk:{nav:1.5}}},
-  {id:'favor',    name:'WARDEN’s favour',  from:4, desc:'Clones live about 18 days longer; +25% skill XP.', eff:{life:4, xp:1.25}},
+  {id:'promise',  name:'Tessaly\u2019s promise',    from:5, desc:'With a destination at last, clones reach the full 30-day lifespan (+2 days).', eff:{life:2}},
+  {id:'favor',    name:'WARDEN’s favour',  from:4, desc:'+25% skill XP.', eff:{xp:1.25}},
 ];
 const PK = {}; PERKS.forEach(p => PK[p.id] = p);
 
@@ -503,7 +504,7 @@ const ITEMS = [
   {id:'lace',       name:'Neural lace',        cost:163,  req:'medbay',     desc:'+30% skill XP', eff:{xp:1.3}},
   {id:'stims',      name:'Stim injector',      cost:250,  req:'lift',       desc:'All work 15% faster', eff:{spd:1.15}},
   {id:'rifle',      name:'Armoury rifle',      cost:400,  req:'armory',     desc:'Combat work 50% faster, hazard damage −20%', eff:{sk:{cbt:1.5}, haz:0.8}},
-  {id:'cryo',       name:'Cryo-sleeve',        cost:700,  req:'vent',       desc:'This clone lives about 14 days longer', eff:{life:3}},
+  {id:'cryo',       name:'Cryo-sleeve',        cost:700,  req:'vent',       desc:'This clone lives 2 days longer (up to 30)', eff:{life:2}},
   {id:'visor',      name:'Nav visor',          cost:1125, req:'bridgepower',desc:'Navigation and Hacking work 30% faster', eff:{sk:{nav:1.3, hak:1.3}}},
   {id:'medkit',     name:'Command-deck medkit', cost:600,  req:'secdeck',    desc:'+25 max health, meals restore 50% more health', eff:{maxHp:25, regen:1.5}},
   {id:'exo',        name:'Exo-frame',          cost:1750, req:'navcore',    desc:'Engineering and Resolve work 30% faster, +40 max health', eff:{sk:{eng:1.3, res:1.3}, maxHp:40}},
@@ -530,9 +531,9 @@ function defaultState(){
   s.life = newLife(s);
   return s;
 }
-// The clone template is unstable at first: early clones die young. Each decanting refines it
-// by one year until it reaches the full 14 (death at 28). Lifespan records add on top.
-const TEMPLATE_MIN = 6, TEMPLATE_MAX = 14, TEMPLATE_STEP = 1;
+// Lifespans are in ship days. The template starts at 20 days and gains 1 per clone up to 26;
+// lifespan records add a few more, but no clone ever lives past MAX_LIFE days.
+const TEMPLATE_MIN = 20, TEMPLATE_MAX = 26, TEMPLATE_STEP = 1, MAX_LIFE = 30;
 function templateYears(){ return Math.min(TEMPLATE_MAX, TEMPLATE_MIN + TEMPLATE_STEP * (S.gen - 1)); }
 function mods(){
   const L = S.life, P = S.perks;
@@ -558,7 +559,7 @@ const echoMult = s => Math.pow(1.58, S.echo[s]);
 const isDone = id => (S.life.done[id] || 0) >= T[id].reps;
 const available = t => t.z === (S.life.sec || 1) && t.req.every(isDone);
 const complete = t => t.kind !== 'job' && isDone(t.id);
-const lifeDays = () => M.life * 365;
+const lifeDays = () => Math.min(MAX_LIFE, M.life) * TPD;
 function skF(s){ return (1 + 0.1 * S.life.lv[s]) * M.sk[s]; }
 // (The old last-quarter ageing slowdown was removed; strain alone limits a life.)
 function frailty(){ return 1; }   // ageing slowdown removed
@@ -1680,7 +1681,7 @@ function showIntro(){
       <li>Each automated task has a <b>priority</b> (P1\u2013P5, tap to change). P1 runs first.</li>
       <li><b>Jobs</b> repeat forever and make rations or salvage. The last job you tapped runs whenever the queue is empty.</li>
       <li>Health drains all the time. Your clone eats about <b>4 rations a day</b>, one meal every 6 hours, and each meal restores some health. <b>Strain</b> makes the drain grow, faster and faster as the clone ages; Resolve slows it, rests halve it, and food deeper in the ship restores more health. Each ship section has one rest per life that halves it. Every day a clone survives adds a quarter point of max health to all later clones. You wake with no food. Run out of rations and you starve. Storage is limited, so you can\u2019t stockpile much.</li>
-      <li> The first clones are unstable and die young; each new one lives a few days longer.</li>
+      <li> The first clones are unstable and die young; each new one lives a day longer. Reaching the full 30-day lifespan is one of the last things you will achieve.</li>
       <li>Time only moves while your clone is working. With nothing to do, the clock stops.</li>
       <li>When a clone dies, skill levels reset but their <b>echo</b> speeds up learning in every future clone.</li>
       <li><b>☰</b> opens the menu with save slots; the game waits while it is open. Time spent away is stored as a <b>+2×</b> boost you can switch on in the header.</li>
@@ -1699,7 +1700,7 @@ function showDeath(){
     <p>${esc(L.cause)}.</p><p class="d">Lived ${age.toFixed(1)} days · ${L.order.length} actions completed</p>
     <p class="d">Hardened genome: <span class="up">+${fmt(L.vitGain || 0)} max health</span> for every future clone (now ${100 + Math.floor(S.vit || 0)}).</p>
     <table class="dt">${rows}</table>
-    ${templateYears() < TEMPLATE_MAX ? `<p class="d">The clone template is still unstable. Clone ${S.gen + 1} will live about ${Math.round((Math.min(TEMPLATE_MAX, templateYears() + TEMPLATE_STEP) + (M.life - templateYears())) * 365 / TPD)} days.</p>` : ''}
+    ${templateYears() < TEMPLATE_MAX ? `<p class="d">The clone template is still unstable. Clone ${S.gen + 1} will live about ${Math.min(MAX_LIFE, Math.min(TEMPLATE_MAX, templateYears() + TEMPLATE_STEP) + (M.life - templateYears()))} days.</p>` : ''}
     ${S.perks.engram && S.set.replay ? '<p class="d">The engram recorder will queue this clone’s actions for the next one.</p>' : ''}
     <button class="btn pri" data-decant>Decant clone ${S.gen + 1}</button>`);
 }
