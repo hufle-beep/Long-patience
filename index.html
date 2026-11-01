@@ -275,6 +275,31 @@ input[type=range]{width:100%;accent-color:var(--amber)}
 .aprio button{font-family:var(--f-mono);font-size:13px;padding:7px 0;border:1px solid var(--line);border-radius:4px;color:var(--fg)}
 .aprio button.on{background:var(--amber);border-color:var(--amber);color:var(--bg)}
 .arow:not(.on) .aprio button.on{background:var(--panel2);color:var(--amber)}
+.seg{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.seg button{font-size:13px;padding:8px 0;border:1px solid var(--line);border-radius:4px;color:var(--fg)}
+.seg button.on{background:var(--amber);border-color:var(--amber);color:var(--bg);font-weight:600}
+.spd button.flip{font-size:14px;padding:3px 9px;color:var(--dim)}
+/* Horizontal layout: status sidebar on the left, tabs across the top, content in columns */
+html.horiz{--side:330px}
+@media (max-width:920px){html.horiz{--side:280px}}
+html.horiz #hud{position:fixed;top:0;bottom:0;left:0;width:var(--side);overflow-y:auto;border-bottom:0;border-right:1px solid var(--line);
+  padding-top:max(12px,env(safe-area-inset-top,0px));padding-bottom:max(12px,env(safe-area-inset-bottom,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:16px;box-sizing:border-box}
+html.horiz #hud .wrap{max-width:none;gap:10px}
+html.horiz .r1{flex-wrap:wrap}
+html.horiz .spd{justify-content:flex-start}
+html.horiz #tabs{top:0;bottom:auto;left:var(--side);border-top:0;border-bottom:1px solid var(--line);padding-top:env(safe-area-inset-top,0px);padding-bottom:0;padding-left:16px;padding-right:max(16px,env(safe-area-inset-right,0px))}
+html.horiz #tabs .wrap{max-width:none}
+html.horiz #tabs button{font-size:14px;letter-spacing:.08em}
+html.horiz #tabs button.on::before{top:auto;bottom:-1px}
+html.horiz main{margin-left:var(--side);padding-block:66px 32px;padding-left:20px;padding-right:max(20px,env(safe-area-inset-right,0px))}
+html.horiz main .wrap{max-width:1180px}
+html.horiz .zone{grid-template-columns:repeat(auto-fill,minmax(340px,1fr));column-gap:10px;align-items:start}
+html.horiz .zone > :not(.task){grid-column:1 / -1}
+html.horiz #v-map,html.horiz #v-auto{grid-template-columns:repeat(auto-fill,minmax(420px,1fr));align-items:start}
+html.horiz #v-map > .panel,html.horiz #v-map > p,html.horiz #v-auto > .panel,html.horiz #v-auto > p{grid-column:1 / -1}
+html.horiz #v-auto .zone{display:grid;grid-template-columns:1fr}
+html.horiz #v-gear,html.horiz #v-archive,html.horiz #v-log,html.horiz #v-skills{max-width:760px}
+html.horiz #toasts{left:var(--side);bottom:16px}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 
@@ -1156,7 +1181,7 @@ function showMenu(view){
       if (act) h += '<span class="ghst">Saves automatically every few seconds.</span>';
       h += '</div></div>';
     }
-    h += '</div>' + soundPanel().replace('panel set', 'panel set mpanel') + '<p class="d">\u201cSave here\u201d copies your current game into another slot as a save state. You keep playing in your current slot; load the copy later to go back to that moment.</p>';
+    h += '</div>' + soundPanel().replace('panel set', 'panel set mpanel') + displayPanel('mpanel') + '<p class="d">\u201cSave here\u201d copies your current game into another slot as a save state. You keep playing in your current slot; load the copy later to go back to that moment.</p>';
   }
   showModal(h);
 }
@@ -1359,12 +1384,13 @@ function jobBar(el, t, sp){
 }
 
 /* ----- HUD ----- */
+let lastSpd = '';
 function renderSpeed(){
   const opts = [1, 3]; if (S.perks.clock) opts.push(8);
   if (!opts.includes(S.set.speed)) S.set.speed = 1;
-  let h = `<button data-atog="musicOn" class="mus${ASET.musicOn ? ' on' : ''}" aria-label="Music ${ASET.musicOn ? 'on' : 'off'}">\u266a</button><button data-pause class="pause${S.set.paused ? ' on' : ''}" aria-label="${S.set.paused ? 'Resume' : 'Pause'}">${S.set.paused ? '▶ Resume' : '❚❚ Pause'}</button>` + opts.map(o => `<button data-speed="${o}" class="${S.set.speed === o ? 'on' : ''}">${o}×</button>`).join('');
+  let h = `<button data-flip class="flip" aria-label="Switch layout" title="Switch layout">\u21c4</button><button data-atog="musicOn" class="mus${ASET.musicOn ? ' on' : ''}" aria-label="Music ${ASET.musicOn ? 'on' : 'off'}">\u266a</button><button data-pause class="pause${S.set.paused ? ' on' : ''}" aria-label="${S.set.paused ? 'Resume' : 'Pause'}">${S.set.paused ? '▶ Resume' : '❚❚ Pause'}</button>` + opts.map(o => `<button data-speed="${o}" class="${S.set.speed === o ? 'on' : ''}">${o}×</button>`).join('');
   if (S.bank >= 1) h += `<button data-boost class="boost${S.set.boost ? ' on' : ''}" aria-label="Stasis boost, doubles speed">+2× ${fmtSecs(S.bank)}</button>`;
-  const el = $('#h-spd'); if (el.innerHTML !== h) el.innerHTML = h;
+  if (h !== lastSpd) { lastSpd = h; $('#h-spd').innerHTML = h; }
 }
 function updateHud(){
   const L = S.life;
@@ -1452,6 +1478,25 @@ function renderGear(){
   h += '</div>';
   $('#v-gear').innerHTML = h;
 }
+/* ----- layout: vertical (phone) or horizontal (sidebar) ----- */
+const LAYOUT_KEY = 'long-patience.layout.v1';
+let layoutPref = 'auto';
+try { layoutPref = localStorage.getItem(LAYOUT_KEY) || 'auto'; } catch(e) {}
+const wideMQ = window.matchMedia('(min-width: 860px) and (min-aspect-ratio: 5/4)');
+function isHoriz(){ return layoutPref === 'horizontal' || (layoutPref === 'auto' && wideMQ.matches); }
+function applyLayout(){
+  document.documentElement.classList.toggle('horiz', isHoriz());
+  mapKey = ''; 
+  document.querySelectorAll('[data-layout]').forEach(b => b.classList.toggle('on', b.dataset.layout === layoutPref));
+}
+try { wideMQ.addEventListener('change', applyLayout); } catch(e) { try { wideMQ.addListener(applyLayout); } catch(e2) {} }
+function setLayout(v){ layoutPref = v; try { localStorage.setItem(LAYOUT_KEY, v); } catch(e) {} applyLayout(); }
+function displayPanel(cls){
+  const opt = (v, l) => `<button data-layout="${v}" class="${layoutPref === v ? 'on' : ''}">${l}</button>`;
+  return `<div class="panel set ${cls || ''}"><span class="h2">Display</span>
+    <div class="row"><p>Layout<small>Vertical suits phones held upright. Horizontal puts the status panel in a sidebar for wide screens. Auto picks for you.</small></p></div>
+    <div class="seg">${opt('auto', 'Auto')}${opt('vertical', 'Vertical')}${opt('horizontal', 'Horizontal')}</div></div>`;
+}
 function soundPanel(){
   const row = (k, vk, label, note) => `<div class="row"><p>${label}<small>${note}</small></p><button class="tog${ASET[k] ? ' on' : ''}" data-atog="${k}" aria-label="${label}" aria-pressed="${ASET[k]}"></button></div>
     <div class="vol"><span class="lbl">Volume</span><input type="range" min="0" max="100" step="1" value="${Math.round(ASET[vk] * 100)}" data-avol="${vk}" aria-label="${label} volume"><b class="num" data-avv="${vk}">${Math.round(ASET[vk] * 100)}</b></div>`;
@@ -1495,7 +1540,7 @@ function renderArchive(force){
   if (S.perks.engram) {
     h += `<div class="row"><p>Engram replay<small>New clones queue the actions your last clone finished, in the same order.</small></p><button class="tog${S.set.replay ? ' on' : ''}" data-set="replay" aria-label="Engram replay" aria-pressed="${S.set.replay}"></button></div>`;
   }
-  h += '</div>' + soundPanel() + '<div class="panel set"><span class="h2">Clone</span>';
+  h += '</div>' + soundPanel() + displayPanel() + '<div class="panel set"><span class="h2">Clone</span>';
   h += `<div class="row"><p>Recycle this clone<small>End the current life now. Echoes are kept.</small></p><button class="btn warn" data-confirm="recycle">Recycle</button></div>
     <div class="row"><p>Restart this slot<small>Erases the game in this slot and starts over. Other slots are kept. The main menu has more options.</small></p><button class="btn warn" data-confirm="reset">Restart</button></div>
     <p class="note">Progress saves in this browser. Time spent away is stored as a stasis boost that doubles game speed.</p></div>`;
@@ -1737,6 +1782,8 @@ document.addEventListener('click', e => {
     toast('Slot ' + i + ' deleted');
     return showMenu();
   }
+  if (d.layout) { setLayout(d.layout); return; }
+  if ('flip' in d) { setLayout(isHoriz() ? 'vertical' : 'horizontal'); toast(isHoriz() ? 'Horizontal layout' : 'Vertical layout'); return; }
   if (d.atog) {
     ASET[d.atog] = !ASET[d.atog]; asave(); audioVolumes();
     document.querySelectorAll(`[data-atog="${d.atog}"]`).forEach(x => { x.classList.toggle('on', ASET[d.atog]); x.setAttribute('aria-pressed', ASET[d.atog]); });
@@ -1847,6 +1894,7 @@ document.addEventListener('visibilitychange', () => { if (document.hidden) save(
 window.addEventListener('pagehide', save);
 
 function boot(data){
+  applyLayout();
   const raw = (data && data.S) || loadSaved();
   S = mergeState(raw);
   M = mods();
