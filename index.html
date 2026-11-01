@@ -365,7 +365,7 @@ const EAT = 1 / MEAL_CD;   // average rations eaten per tick (used for estimates
 const HUNGER = 0.15;       // base health lost per tick, always, while time runs
 // Strain: the body wears down. The hunger drain is multiplied by strain, which climbs
 // steadily (+1 every STRAIN_RAMP ticks, about 9 days). Rest actions halve it again.
-const STRAIN_RAMP = 700, AUTO_REST_AT = 1.8;
+const STRAIN_RAMP = 700, AUTO_REST_AT = 2;
 const MAX_DRAIN = 1.2;     // most health a clone can lose per day: a full bar lasts at least ~2 min at 1x
 // A meal restores the hunger of one cooldown plus the old resting regeneration.
 function mealHp(){ return (HUNGER + M.regen) * MEAL_CD; }
