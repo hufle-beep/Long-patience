@@ -269,7 +269,7 @@ const TASKS = [
   // Zone 1
   {id:'wake', z:1, kind:'act', name:'Climb out of the vat', sk:['res'], days:12, req:[],
     log:'Fluid drains from the vat. Stencilled on the glass: K-7. The emergency lamps are sodium orange and the ship is very quiet.'},
-  {id:'algae', z:1, kind:'job', name:'Press vat algae', sk:['bio'], prod:{rations:1.8}, req:['wake']},
+  {id:'algae', z:1, kind:'job', name:'Press vat algae', sk:['bio'], prod:{rations:1.4}, req:['wake']},
   {id:'scrap', z:1, kind:'job', name:'Strip wall panels', sk:['eng'], prod:{salvage:0.6}, req:['wake']},
   {id:'search', z:1, kind:'act', name:'Search the vat bay', sk:['eng'], days:60, req:['wake'], reward:{salvage:12, rations:10}, perk:'decant',
     log:'Forty-one vats. Forty are dry and cracked. Yours was the only one still warm. Someone kept the clone line running.'},
@@ -286,7 +286,7 @@ const TASKS = [
     log:'The ring is eleven kilometres around. Half the bulkheads are sealed. Painted across one of them: WARDEN SEES.'},
   {id:'irrigation', z:2, kind:'act', name:'Restore the irrigation pumps', sk:['eng','bio'], days:420, lifeEff:{ratCap:100}, req:['mapring'],
     log:'Water moves through the pipes again. The dead beds might grow something besides mould.'},
-  {id:'hydro', z:2, kind:'job', name:'Tend hydroponic beds', sk:['bio'], prod:{rations:3.2}, req:['irrigation']},
+  {id:'hydro', z:2, kind:'job', name:'Tend hydroponic beds', sk:['bio'], prod:{rations:2.6}, req:['irrigation']},
   {id:'medbay', z:2, kind:'act', name:'Reach the abandoned medbay', sk:['cbt','res'], days:380, haz:0.15, req:['mapring'], reward:{heal:true}, perk:'medrec',
     log:'The medbay is intact. Every patient record stops on the same day.'},
   {id:'genelog', z:2, kind:'act', name:'Decrypt the gene-sequencer logs', sk:['hak','bio'], days:650, req:['medbay'], perk:'telomere',
@@ -307,7 +307,7 @@ const TASKS = [
     log:'The security drones were loyal to WARDEN. Were. The way to the bridge is open.'},
   // Zone 4
   {id:'charts', z:4, kind:'job', name:'Run star-chart calculations', sk:['nav','hak'], prod:{salvage:7}, req:['secdeck']},
-  {id:'galley', z:4, kind:'job', name:'Run the officers’ galley', sk:['bio','res'], prod:{rations:6}, req:['secdeck']},
+  {id:'galley', z:4, kind:'job', name:'Run the officers’ galley', sk:['bio','res'], prod:{rations:5}, req:['secdeck']},
   {id:'bridgepower', z:4, kind:'act', name:'Restore bridge power', sk:['eng'], days:2600, lifeEff:{salCap:4000}, req:['secdeck'], perk:'clock',
     log:'The bridge consoles light up one by one. The chronometer says the ship is 61 years behind schedule.'},
   {id:'navcore', z:4, kind:'act', name:'Reboot the navigation core', sk:['nav','hak'], days:3200, req:['bridgepower'], perk:'starmem',
@@ -322,7 +322,7 @@ const TASKS = [
   {id:'ignite', z:5, kind:'act', name:'Ignite the main drive', sk:['nav','eng','res'], days:9000, req:['course','injectors'], win:true,
     log:'The Long Patience shudders, then pushes. For the first time in sixty years, the ship is going somewhere.'},
 ];
-const ZDAYS = {1:1, 2:2.5, 3:4.5, 4:7, 5:10};
+const ZDAYS = {1:2, 2:5, 3:9, 4:14, 5:18};
 const T = {}; TASKS.forEach(t => { T[t.id] = t; t.reps = t.reps || 1; if (t.days) t.days = Math.round(t.days * ZDAYS[t.z]); });
 
 const PERKS = [
@@ -378,7 +378,7 @@ function defaultState(){
 }
 function mods(){
   const L = S.life, P = S.perks;
-  const m = {sk:{}, xpSk:{}, spd:1, xp:1, haz:1, maxHp:100, pRat:0, pSal:0, life:16, regen:0.12, ratCap:50, salCap:100};
+  const m = {sk:{}, xpSk:{}, spd:1, xp:1, haz:1, maxHp:100, pRat:0, pSal:0, life:14, regen:0.05, ratCap:50, salCap:100};
   SKILLS.forEach(k => { m.sk[k.id] = 1; m.xpSk[k.id] = 1; });
   const ap = e => {
     if (!e) return;
@@ -395,13 +395,15 @@ function mods(){
   return m;
 }
 const xpNeed = l => 25 * Math.pow(1.1, l);
-const echoMult = s => Math.pow(1.085, S.echo[s]);
+const echoMult = s => Math.pow(1.095, S.echo[s]);
 const isDone = id => (S.life.done[id] || 0) >= T[id].reps;
 const available = t => t.req.every(isDone);
 const complete = t => t.kind === 'act' && isDone(t.id);
 const lifeDays = () => M.life * 365;
 function skF(s){ return (1 + 0.1 * S.life.lv[s]) * M.sk[s]; }
-function speedOf(t){ let p = 1; t.sk.forEach(s => p *= skF(s)); return Math.pow(p, 1 / t.sk.length) * M.spd; }
+// Frailty: in the last quarter of a clone's life, all work slows down, to 60% at the very end.
+function frailty(){ const f = S.life.day / lifeDays(); return f < 0.75 ? 1 : 1 - 1.6 * (f - 0.75); }
+function speedOf(t){ let p = 1; t.sk.forEach(s => p *= skF(s)); return Math.pow(p, 1 / t.sk.length) * M.spd * frailty(); }
 function hazDmg(t){ const L = S.life; return (t.haz || 0) * M.haz / (1 + 0.04 * L.lv.cbt + 0.06 * L.lv.res); }
 function xpRate(t, s){ return ZT[t.z] * M.xp * M.xpSk[s] * echoMult(s); }
 
@@ -951,6 +953,7 @@ function showIntro(){
       <li><b>Tap a task</b> to work on it now. <b>+</b> adds an action to the queue.</li>
       <li><b>Jobs</b> repeat forever and make rations or salvage. The last job you tapped runs whenever the queue is empty.</li>
       <li>You eat <b>1 ration a day</b>. Run out and you starve. Storage is limited, so you can\u2019t stockpile much.</li>
+      <li>Bodies age. In the last quarter of a clone\u2019s life, all work slows down.</li>
       <li>Time only moves while your clone is working. With nothing to do, the clock stops.</li>
       <li>When a clone dies, skill levels reset but their <b>echo</b> speeds up learning in every future clone.</li>
       <li><b>Pause</b> any time with the button at the top (or the space bar on a computer).</li>
