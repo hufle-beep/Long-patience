@@ -3,76 +3,26 @@
  "rv": 3,
  "sv": 2,
  "pv": 2,
- "gen": 2,
- "ever": {
-  "wake": 1,
-  "search": 1,
-  "rest": 1,
-  "terminal": 1
- },
- "prac": {
-  "wake": 2,
-  "algae": 2,
-  "scrap": 2,
-  "search": 1,
-  "rest": 1,
-  "terminal": 1,
-  "drill": 1
- },
+ "gen": 1,
+ "ever": {},
+ "prac": {},
  "auto": {},
  "echo": {
-  "eng": 1,
-  "bio": 3,
-  "cbt": 1,
+  "eng": 0,
+  "bio": 0,
+  "cbt": 0,
   "hak": 0,
   "nav": 0,
-  "res": 1
+  "res": 0
  },
- "perks": {
-  "decant": true,
-  "survival": true
- },
+ "perks": {},
  "seen": {
-  "wake": 1,
-  "algae": 1,
-  "scrap": 1,
-  "search": 1,
-  "rest": 1,
-  "drill": 1,
-  "terminal": 1,
-  "hatch": 1
+  "wake": 1
  },
- "logged": {
-  "wake": 1,
-  "search": 1,
-  "terminal": 1
- },
- "log": [
-  {
-   "g": 1,
-   "a": 0,
-   "t": "Climb out of the vat",
-   "x": "Fluid drains from the vat. Stencilled on the glass: K-7. The emergency lamps are sodium orange and the ship is very quiet."
-  },
-  {
-   "g": 1,
-   "a": 6.5,
-   "t": "Search the vat bay",
-   "x": "Forty-one vats. Forty are dry and cracked. Yours was the only one still warm. Someone kept the clone line running."
-  },
-  {
-   "g": 1,
-   "a": 14.9,
-   "t": "Wake the bay terminal",
-   "x": "BAY LOG: Colony vessel LONG PATIENCE, 212 years out. Crew response: none. Clone protocol K active: decant a replacement on death, retain the neural echo."
-  }
- ],
- "lastOrder": [
-  "wake",
-  "search",
-  "terminal"
- ],
- "lastJob": "drill",
+ "logged": {},
+ "log": [],
+ "lastOrder": [],
+ "lastJob": null,
  "set": {
   "speed": 1,
   "autoFood": true,
@@ -83,74 +33,57 @@
  },
  "stats": {
   "bestAge": 0,
-  "deaths": 1,
-  "daysLived": 1543.3752000002346,
-  "bestDays": 19.292190000002932
+  "deaths": 0,
+  "daysLived": 0
  },
  "won": false,
  "winGen": 0,
  "bank": 0,
- "saved": 1793553189257,
+ "saved": 1793554037312,
  "intro": true,
  "life": {
-  "day": 712.8132000000851,
-  "hp": 90.52297453200427,
-  "rations": 8.320000000000023,
-  "salvage": 25,
+  "day": 0,
+  "hp": 100,
+  "rations": 0,
+  "salvage": 0,
   "lv": {
-   "eng": 2,
-   "bio": 4,
+   "eng": 0,
+   "bio": 0,
    "cbt": 0,
    "hak": 0,
    "nav": 0,
    "res": 0
   },
   "xp": {
-   "eng": 38.10738199999108,
-   "bio": 282.2954309471227,
+   "eng": 0,
+   "bio": 0,
    "cbt": 0,
    "hak": 0,
    "nav": 0,
-   "res": 3.220040000000002
+   "res": 0
   },
   "echo0": {
-   "eng": 1,
-   "bio": 3,
-   "cbt": 1,
+   "eng": 0,
+   "bio": 0,
+   "cbt": 0,
    "hak": 0,
    "nav": 0,
-   "res": 1
+   "res": 0
   },
-  "done": {
-   "wake": 1
-  },
-  "prog": {
-   "wake": 0,
-   "search": 16.553759999999784
-  },
-  "cyc": {
-   "algae": 0.24046500000006107,
-   "scrap": 0.008260000000005485
-  },
-  "bat": {
-   "algae": 67,
-   "scrap": 35
-  },
-  "meal": 1.6272000000001965,
-  "strain": 2.0183045714288586,
+  "done": {},
+  "prog": {},
+  "cyc": {},
+  "bat": {},
+  "meal": 0,
+  "strain": 1,
   "sec": 1,
   "job": null,
-  "queue": [
-   "search"
-  ],
+  "queue": [],
   "owned": {},
-  "order": [
-   "wake"
-  ],
-  "foraging": true,
-  "cur": "algae",
+  "order": [],
+  "foraging": false,
+  "cur": null,
   "dead": false,
   "cause": ""
- },
- "vit": 19
+ }
 }
