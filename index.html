@@ -313,6 +313,9 @@ button.updl{width:100%}
 .rtab th:nth-child(2){text-align:left}
 .best{margin:6px 0 0;font-size:13px}
 .best .lbl{color:var(--amber);margin-right:6px}
+.pctin{display:flex;align-items:center;gap:6px;margin:6px 0}
+.pctin input{width:80px;background:var(--panel2);border:1px solid var(--line);color:var(--fg);border-radius:4px;padding:7px 8px;font:14px var(--f-mono)}
+.pctin span{color:var(--dim)}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 
@@ -1637,7 +1640,7 @@ function renderArchive(force){
   h += `<div class="row"><p>Auto-eat<small>Eat a ration whenever the meal cooldown is over and health has room for it.</small></p><button class="tog${S.set.autoEat ? ' on' : ''}" data-set="autoEat" aria-label="Auto-eat" aria-pressed="${S.set.autoEat}"></button></div>`;
   if (S.perks.survival) {
     h += `<div class="row"><p>Auto-forage<small>Switch to the best food job when rations drop below the threshold, and stay until they double.</small></p><button class="tog${S.set.autoFood ? ' on' : ''}" data-set="autoFood" aria-label="Auto-forage" aria-pressed="${S.set.autoFood}"></button></div>
-      <div><div class="row"><p>Forage threshold<small>Share of ration storage. Below it, food jobs step in; they stop at twice this level (or when storage is full).</small></p><b class="num" id="fd-v">${S.set.foodPct || 40}%</b></div><input type="range" id="fd" min="5" max="90" step="5" value="${S.set.foodPct || 40}" aria-label="Forage threshold, percent of ration storage"></div>`;
+      <div><div class="row"><p>Forage threshold<small>Share of ration storage. Below it, food jobs step in; they stop at twice this level (or when storage is full).</small></p></div><div class="pctin"><input type="number" id="fd-n" inputmode="numeric" min="1" max="99" step="1" value="${S.set.foodPct || 40}" aria-label="Forage threshold percent"><span>%</span></div><input type="range" id="fd" min="1" max="99" step="1" value="${S.set.foodPct || 40}" aria-label="Forage threshold, percent of ration storage"></div>`;
   }
   if (S.perks.engram) {
     h += `<div class="row"><p>Engram replay<small>New clones queue the actions your last clone finished, in the same order.</small></p><button class="tog${S.set.replay ? ' on' : ''}" data-set="replay" aria-label="Engram replay" aria-pressed="${S.set.replay}"></button></div>`;
@@ -1649,7 +1652,20 @@ function renderArchive(force){
   h += '<div class="panel set"><div class="row"><p>Save files and transfer<small>Export, import or copy your save. Also in the main menu.</small></p><button class="btn" data-saves="hud">Open</button></div></div>';
   $('#v-archive').innerHTML = h;
   const fd = $('#fd');
-  if (fd) fd.addEventListener('input', () => { S.set.foodPct = +fd.value; $('#fd-v').textContent = fd.value + '%'; });
+  const fdn = $('#fd-n');
+  if (fd) fd.addEventListener('input', () => { S.set.foodPct = +fd.value; if (fdn) fdn.value = fd.value; });
+  if (fdn) {
+    const setPct = commit => {
+      let v = Math.round(+fdn.value);
+      if (!isFinite(v) || fdn.value === '') { if (commit) fdn.value = S.set.foodPct || 40; return; }
+      v = Math.max(1, Math.min(99, v));
+      S.set.foodPct = v; if (fd) fd.value = v;
+      if (commit) fdn.value = v;
+    };
+    fdn.addEventListener('input', () => setPct(false));
+    fdn.addEventListener('change', () => setPct(true));
+    fdn.addEventListener('keydown', e => { if (e.key === 'Enter') { setPct(true); fdn.blur(); } });
+  }
 }
 function renderLog(){
   const key = S.log.length + '|' + (S.log.length ? S.log[S.log.length-1].t : '') + '|' + (S.hist ? S.hist.length : 0) + '|' + S.gen + '|' + JSON.stringify(S.best || {});
