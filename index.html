@@ -377,7 +377,9 @@ const HUNGER = 0.15;       // base health lost per tick, always, while time runs
 // Strain: the body wears down. The hunger drain is multiplied by strain, which climbs
 // faster and faster as the clone ages: its growth rate starts at +1 per STRAIN_RAMP ticks and
 // rises by that much again every STRAIN_ACCEL ticks of wear. Rest actions halve strain but not wear, so the acceleration keeps building.
-const STRAIN_RAMP = 1000, STRAIN_ACCEL = 300, AUTO_REST_AT = 2.5;
+const STRAIN_RAMP = 1000, STRAIN_ACCEL = 300;
+// Automated rests fire at this strain (player setting in the Auto tab, default 2.5)
+const restAt = () => (S && S.set && S.set.restAt) || 2.5;
 // Resolve slows strain: early clones feel it most.
 const STRAIN_RES = 0.002;
 // Late wear: after a couple of weeks the growth rate climbs much faster (squared term), which keeps
@@ -549,7 +551,7 @@ function newLife(s){
 }
 function defaultState(){
   const s = {v:1, gprac:{}, gauto:{}, gprio:{}, ev:2, xpTot:{}, rv:4, sv:2, pv:2, vv:3, gen:1, prio:{}, ever:{}, prac:{}, auto:{}, echo:{}, perks:{}, seen:{}, logged:{}, log:[], lastOrder:[], lastJob:null,
-    set:{speed:1, autoFood:true, autoEat:true, foodDays:2, foodPct:40, replay:true, fillCross:false, autoFeed:false, boost:false},
+    set:{speed:1, autoFood:true, autoEat:true, foodDays:2, foodPct:40, restAt:2.5, replay:true, fillCross:false, autoFeed:false, boost:false},
     stats:{bestAge:0, deaths:0, daysLived:0}, won:false, winGen:0, bank:0, saved:Date.now(), intro:false};
   SKILLS.forEach(k => s.echo[k.id] = 0);
   s.life = newLife(s);
@@ -615,7 +617,7 @@ function active(){
   } else L.foraging = false;
   const feed = feedJob();
   if (feed) return feed;
-  if ((L.strain || 1) >= AUTO_REST_AT) { const r = TASKS.find(t => t.kind === 'rest' && isAuto(t) && available(t) && !complete(t)); if (r) return r; }
+  if ((L.strain || 1) >= restAt()) { const r = TASKS.find(t => t.kind === 'rest' && isAuto(t) && available(t) && !complete(t)); if (r) return r; }
   for (const id of L.queue) { const t = T[id]; if (available(t) && !complete(t)) return t; }
   // automated actions run on their own, in ship order, once the queue is done
   // automated actions and training: priority 1 (highest) to 5; ties go actions, then training, then crossings
@@ -1401,7 +1403,7 @@ function renderTasks(){
         h += `<div class="task act rest" data-id="${t.id}">
           <button class="tm" data-do="${t.id}"><div class="tf"></div>
             <div class="th"><span class="tn">${esc(t.name)}</span><span class="te num"></span></div>
-            <div class="tx">${chips(t)}<span>strain \u00f72</span>${practiced(t) ? `<span>auto at strain \u00d7${AUTO_REST_AT}</span>` : `<span class="num">practice ${S.prac[t.id] || 0}/${AUTO_LIVES} lives</span>`}</div>
+            <div class="tx">${chips(t)}<span>strain \u00f72</span>${practiced(t) ? `<span>auto at strain \u00d7${restAt()}</span>` : `<span class="num">practice ${S.prac[t.id] || 0}/${AUTO_LIVES} lives</span>`}</div>
           </button>
           <div class="side"><button class="tq${qi >= 0 ? ' in' : ''}" data-q="${t.id}" aria-label="${qi >= 0 ? 'Queued' : 'Add to queue'}">${qi >= 0 ? '#' + (qi+1) : '+'}</button>${autoBtn(t)}</div></div>` + prioPick(t);
       });
@@ -1795,9 +1797,10 @@ function renderAuto(){
   const L = S.life;
   const list = TASKS.filter(t => practiced(t));
   const glist = ITEMS.filter(gearPracticed);
-  const key = list.map(t => t.id + (S.auto[t.id] ? '*' : '') + prioOf(t)).join() + '|' + glist.map(i => i.id + (S.gauto[i.id] ? '*' : '') + gearPrio(i)).join() + '|' + L.sec + '|' + S.gen + '|' + !!S.set.fillCross + !!S.set.autoFeed;
+  const key = list.map(t => t.id + (S.auto[t.id] ? '*' : '') + prioOf(t)).join() + '|' + glist.map(i => i.id + (S.gauto[i.id] ? '*' : '') + gearPrio(i)).join() + '|' + L.sec + '|' + S.gen + '|' + !!S.set.fillCross + !!S.set.autoFeed + '|' + restAt();
   if (key === autoKey) return; autoKey = key;
-  let h = `<div class="panel"><span class="h2">Automation</span><p class="note">Tasks practised in ${AUTO_LIVES} lives can run by themselves, and gear built in ${AUTO_LIVES} lives can be built automatically (top priority first; the clone saves up for it before cheaper designs). Switch them on and set their priority here: 1 runs first, 5 last. Your own queue always comes first; rests fire on their own at strain ×${AUTO_REST_AT}, and also just before an automated crossing if the section\u2019s rest is still unused.</p>
+  let h = `<div class="panel"><span class="h2">Automation</span><p class="note">Tasks practised in ${AUTO_LIVES} lives can run by themselves, and gear built in ${AUTO_LIVES} lives can be built automatically (top priority first; the clone saves up for it before cheaper designs). Switch them on and set their priority here: 1 runs first, 5 last. Your own queue always comes first; rests fire on their own at strain ×${restAt()}, and also just before an automated crossing if the section\u2019s rest is still unused.</p>
+    <div class="fld"><label for="rest-at">Automated rests fire at strain \u00d7</label><div class="pctin"><input type="text" id="rest-at" inputmode="decimal" autocomplete="off" value="${restAt()}"><span>Rests also fire just before an automated crossing if still unused.</span></div></div>
     <div class="row"><p>Feed when needed<small>Automated food jobs step in when rations run low, or when health is low and meals can still heal faster than strain drains it. They refill to what is needed, then the interrupted task carries on.</small></p><button class="tog${S.set.autoFeed ? ' on' : ''}" data-set="autoFeed" aria-label="Feed when needed" aria-pressed="${!!S.set.autoFeed}"></button></div>
     <div class="row"><p>Fill storage before moving on<small>An automated crossing to the next section stops just before it finishes, works this section\u2019s jobs until ration and salvage storage are both full, then completes.</small></p><button class="tog${S.set.fillCross ? ' on' : ''}" data-set="fillCross" aria-label="Fill storage before moving on" aria-pressed="${!!S.set.fillCross}"></button></div></div>`;
   if (!list.length && !glist.length) {
@@ -1810,7 +1813,7 @@ function renderAuto(){
       const on = !!S.auto[t.id];
       h += `<div class="arow${on ? ' on' : ''}"><div class="an"><b>${esc(t.name)}</b><span>${KIND_LABEL[t.kind]}${t.cross ? ' · crossing' : ''} · ${chips(t)}</span></div>
         <button class="tog${on ? ' on' : ''}" data-auto="${t.id}" aria-pressed="${on}" aria-label="Automate ${esc(t.name)}"></button>
-        ${t.kind === 'rest' ? `<div class="aprio note">Runs at strain ×${AUTO_REST_AT}</div>` :
+        ${t.kind === 'rest' ? `<div class="aprio note">Runs at strain ×${restAt()}</div>` :
           `<div class="aprio" role="group" aria-label="Priority for ${esc(t.name)}">${[1,2,3,4,5].map(n => `<button data-setprio="${t.id}" data-n="${n}" class="${prioOf(t) === n ? 'on' : ''}">${n}</button>`).join('')}</div>`}
       </div>`;
     }));
@@ -1824,6 +1827,18 @@ function renderAuto(){
     h += '</div></section>';
   });
   $('#v-auto').innerHTML = h;
+  const ra = $('#rest-at');
+  if (ra) {
+    const setRA = commit => {
+      let v = parseFloat(String(ra.value).replace(',', '.'));
+      if (!isFinite(v)) { if (commit) ra.value = restAt(); return; }
+      v = Math.round(Math.max(1, Math.min(20, v)) * 10) / 10;
+      S.set.restAt = v; if (commit) { ra.value = v; autoKey = ''; taskKey = ''; }
+    };
+    ra.addEventListener('input', () => setRA(false));
+    ra.addEventListener('change', () => { setRA(true); renderAuto(); });
+    ra.addEventListener('keydown', e => { if (e.key === 'Enter') { setRA(true); ra.blur(); } });
+  }
 }
 
 /* ----- modals ----- */
