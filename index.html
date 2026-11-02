@@ -391,7 +391,7 @@ function addRations(a, q){
   L.ratQ = have + a > 0 ? (have * (L.ratQ || 1) + a * q) / (have + a) : q;
   L.rations += a;
 }
-const MEAL_MULT = 1.5;   // meals restore more than one meal-gap of hunger, to push back against strain
+const MEAL_MULT = 1.7;   // meals restore more than one meal-gap of hunger, to push back against strain
 function mealHp(){ return (HUNGER + M.regen) * MEAL_CD * MEAL_MULT * (S.life.ratQ || 1); }
 const START_AGE = 14;
 
@@ -512,19 +512,19 @@ const PERKS = [
 const PK = {}; PERKS.forEach(p => PK[p.id] = p);
 
 const ITEMS = [
-  {id:'locker',     name:'Cold locker',        cost:8,    req:'wake',       desc:'+5 ration storage', eff:{ratCap:5}},
+  {id:'locker',     name:'Cold locker',        cost:8,    req:'wake',       desc:'+2.5 ration storage', eff:{ratCap:2.5}},
   {id:'rebreather', name:'Patched rebreather', cost:4,    req:'wake',       desc:'+20 max health', eff:{maxHp:20}},
   {id:'toolkit',    name:'Scrap toolkit',      cost:10,   req:'wake',       desc:'Engineering work 25% faster', eff:{sk:{eng:1.25}}},
-  {id:'press',      name:'Algae press',        cost:18,   req:'search',     desc:'+1 ration every two days, passively', eff:{pRat:0.00625}},
+  {id:'press',      name:'Algae press',        cost:18,   req:'search',     desc:'+1 ration every four days, passively', eff:{pRat:0.003125}},
   {id:'baton',      name:'Shock baton',        cost:23,   req:'hatch',      desc:'Combat work 20% faster, hazard damage −25%', eff:{sk:{cbt:1.2}, haz:0.75}},
   {id:'chitinarm',  name:'Chitin armour',      cost:55,   req:'crawlers',   desc:'+20 max health, hazard damage −30%', eff:{maxHp:20, haz:0.7}},
-  {id:'doser',      name:'Hydro auto-doser',   cost:88,   req:'irrigation', desc:'+3 rations every two days, passively', eff:{pRat:0.01875}},
+  {id:'doser',      name:'Hydro auto-doser',   cost:88,   req:'irrigation', desc:'+3 rations every four days, passively', eff:{pRat:0.009375}},
   {id:'lace',       name:'Neural lace',        cost:163,  req:'medbay',     desc:'+30% skill XP', eff:{xp:1.3}},
   {id:'stims',      name:'Stim injector',      cost:250,  req:'lift',       desc:'All work 15% faster', eff:{spd:1.15}},
   {id:'rifle',      name:'Armoury rifle',      cost:400,  req:'armory',     desc:'Combat work 50% faster, hazard damage −20%', eff:{sk:{cbt:1.5}, haz:0.8}},
   {id:'cryo',       name:'Cryo-sleeve',        cost:700,  req:'vent',       desc:'Slows this clone\u2019s strain by 25%', eff:{strainMul:0.75}},
   {id:'visor',      name:'Nav visor',          cost:1125, req:'bridgepower',desc:'Navigation and Hacking work 30% faster', eff:{sk:{nav:1.3, hak:1.3}}},
-  {id:'medkit',     name:'Command-deck medkit', cost:600,  req:'secdeck',    desc:'+25 max health, meals restore 50% more health', eff:{maxHp:25, regen:1.5}},
+  {id:'medkit',     name:'Command-deck medkit', cost:600,  req:'secdeck',    desc:'+25 max health, meals restore 25% more health', eff:{maxHp:25, regen:1.25}},
   {id:'exo',        name:'Exo-frame',          cost:1750, req:'navcore',    desc:'Engineering and Resolve work 30% faster, +40 max health', eff:{sk:{eng:1.3, res:1.3}, maxHp:40}},
   {id:'hardsuit',   name:'Drive-crew hardsuit', cost:1200, req:'warden',     desc:'+30 max health, hazard damage \u221230%', eff:{maxHp:30, haz:0.7}},
   {id:'diagrig',    name:'Injector diagnostic rig', cost:1600, req:'course', desc:'Engineering and Navigation work 25% faster', eff:{sk:{eng:1.25, nav:1.25}}},
@@ -574,7 +574,7 @@ function mods(){
 const xpNeed = l => 152.6 * Math.pow(1.61051, l);
 // Neural echo: every point of XP a skill has ever gained, in any clone, adds to a flat speed
 // multiplier for that skill: x(1 + sqrt(total XP / ECHO_XP)). Diminishing returns, never resets.
-const ECHO_XP = 5200;
+const ECHO_XP = 15000;
 const echoSpeed = s => 1 + Math.sqrt(((S.xpTot && S.xpTot[s]) || 0) / ECHO_XP);
 const isDone = id => (S.life.done[id] || 0) >= T[id].reps;
 const available = t => t.z === (S.life.sec || 1) && t.req.every(isDone);
@@ -619,6 +619,8 @@ function active(){
   if (pick && pick.cross && crossHeld(pick)) {
     // An automated crossing stops just short of finishing while there is still something to do
     // in this section: refill storage (if that option is on), then use the section's rest.
+    const act = pendingActs()[0];
+    if (act) return act;
     const fill = S.set.fillCross ? fillJob() : null;
     if (fill) return fill;
     const rest = pendingRest();
@@ -660,7 +662,12 @@ function fillJob(){
 }
 const CROSS_HOLD = 0.5;   // ticks short of completion where an automated crossing waits
 function pendingRest(){ return TASKS.find(t => t.kind === 'rest' && isAuto(t) && available(t) && !complete(t)) || null; }
-function crossPending(t){ return !S.life.queue.includes(t.id) && isAuto(t) && ((S.set.fillCross && fillJob()) || pendingRest()); }
+// Automated actions and training in this section that are not finished or maxed, by priority
+function pendingActs(){
+  return TASKS.filter(t => (t.kind === 'train' || (t.kind === 'act' && !t.cross)) && isAuto(t) && available(t) && !complete(t))
+    .sort((a, b) => prioOf(a) - prioOf(b) || TASKS.indexOf(a) - TASKS.indexOf(b));
+}
+function crossPending(t){ return !S.life.queue.includes(t.id) && isAuto(t) && (pendingActs().length || (S.set.fillCross && fillJob()) || pendingRest()); }
 function crossHeld(t){ return (S.life.prog[t.id] || 0) >= t.days - CROSS_HOLD - 1e-9 && !!crossPending(t); }
 // Gear automation: a design built in AUTO_LIVES different lives can be built automatically.
 // Automated designs are built in priority order; the top one is saved up for before cheaper ones.
