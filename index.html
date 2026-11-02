@@ -597,7 +597,7 @@ function newLife(s){
 }
 function defaultState(){
   const s = {v:1, qpresets:[[], [], []], gprac:{}, gauto:{}, gprio:{}, ev:2, xpTot:{}, rv:4, sv:2, pv:2, vv:3, gen:1, prio:{}, ever:{}, prac:{}, auto:{}, echo:{}, perks:{}, seen:{}, logged:{}, log:[], lastOrder:[], lastJob:null,
-    set:{speed:1, autoFood:true, autoEat:true, foodDays:2, foodPct:40, restAt:2.5, keepQueue:true, deathScreen:true, deathPause:true, startPaused:false, replay:true, fillCross:false, autoFeed:false, boost:false},
+    set:{speed:1, autoFood:true, autoEat:true, foodDays:2, foodPct:40, restAt:2.5, keepQueue:true, deathScreen:true, deathPause:true, startPaused:false, bgPause:false, replay:true, fillCross:false, autoFeed:false, boost:false},
     stats:{bestAge:0, deaths:0, daysLived:0}, won:false, winGen:0, bank:0, saved:Date.now(), intro:false};
   SKILLS.forEach(k => s.echo[k.id] = 0);
   s.life = newLife(s);
@@ -1959,13 +1959,14 @@ function renderAuto(){
   const L = S.life;
   const list = TASKS.filter(t => practiced(t));
   const glist = ITEMS.filter(gearPracticed);
-  const key = list.map(t => t.id + (S.auto[t.id] ? '*' : '') + prioOf(t)).join() + '|' + glist.map(i => i.id + (S.gauto[i.id] ? '*' : '') + gearPrio(i)).join() + '|' + L.sec + '|' + S.gen + '|' + !!S.set.fillCross + !!S.set.autoFeed + '|' + restAt() + '|' + (S.set.deathScreen !== false) + (S.set.deathPause !== false) + !!S.set.startPaused + decantUnlocked() + (S.stats.deaths || 0);
+  const key = list.map(t => t.id + (S.auto[t.id] ? '*' : '') + prioOf(t)).join() + '|' + glist.map(i => i.id + (S.gauto[i.id] ? '*' : '') + gearPrio(i)).join() + '|' + L.sec + '|' + S.gen + '|' + !!S.set.fillCross + !!S.set.autoFeed + '|' + restAt() + '|' + (S.set.deathScreen !== false) + (S.set.deathPause !== false) + !!S.set.startPaused + !!S.set.bgPause + decantUnlocked() + (S.stats.deaths || 0);
   if (key === autoKey) return; autoKey = key;
   let h = `<div class="panel"><span class="h2">Automation</span><p class="note">Tasks practised in ${AUTO_LIVES} lives can run by themselves, and gear built in ${AUTO_LIVES} lives can be built automatically (top priority first; the clone saves up for it before cheaper designs). Switch them on and set their priority here: 1 runs first, 5 last. Your own queue always comes first; rests fire on their own at strain ×${restAt()}, and also just before an automated crossing if the section\u2019s rest is still unused.</p>
     ${decantUnlocked()
       ? `<div class="row"><p>Show the death screen<small>On: the game stops at each death until you decant the next clone. Off: the next clone is decanted at once and the run keeps going; a short message sums up the death.</small></p><button class="tog${S.set.deathScreen !== false ? ' on' : ''}" data-set="deathScreen" aria-label="Show the death screen" aria-pressed="${S.set.deathScreen !== false}"></button></div>`
       : `<div class="fld"><label>Death screen</label><small class="note">Automatic decanting unlocks after ${AUTO_LIVES} clones have died (${S.stats.deaths || 0}/${AUTO_LIVES}). Until then the game stops at each death.</small></div>`}
     <div class="row"><p>Start new clones paused<small>With the death screen on, the clone you decant from it waits paused until you press Resume, so you can plan its life first.</small></p><button class="tog${S.set.deathPause !== false ? ' on' : ''}" data-set="deathPause" aria-label="Start new clones paused" aria-pressed="${S.set.deathPause !== false}"></button></div>
+    <div class="row"><p>Pause in the background<small>When the game tab or app is hidden, the clock stops instead of running on, and there is no catch-up.</small></p><button class="tog${S.set.bgPause ? ' on' : ''}" data-set="bgPause" aria-label="Pause in the background" aria-pressed="${!!S.set.bgPause}"></button></div>
     <div class="row"><p>Start the game paused<small>When you open the game, the clock waits until you press Resume.</small></p><button class="tog${S.set.startPaused ? ' on' : ''}" data-set="startPaused" aria-label="Start the game paused" aria-pressed="${!!S.set.startPaused}"></button></div>
     <div class="fld"><label for="rest-at">Automated rests fire at strain \u00d7</label><div class="pctin"><input type="text" id="rest-at" inputmode="decimal" autocomplete="off" value="${restAt()}"><span>Rests also fire just before an automated crossing if still unused.</span></div></div>
     <div class="row"><p>Feed when needed<small>Automated food jobs step in when rations run low, or when health is low and meals can still heal faster than strain drains it. They refill to what is needed, then the interrupted task carries on.</small></p><button class="tog${S.set.autoFeed ? ' on' : ''}" data-set="autoFeed" aria-label="Feed when needed" aria-pressed="${!!S.set.autoFeed}"></button></div>
@@ -2080,7 +2081,14 @@ document.addEventListener('click', e => {
   if ('boost' in d) { S.set.boost = !S.set.boost; renderSpeed(); return; }
   if ('skiphold' in d) { skipHold(); taskKey = ''; toast('Crossing now.'); renderView(); return; }
   if ('histall' in d) { histAll = !histAll; logKey = ''; renderView(); return; }
-  if ('awayok' in d) { hideModal(); paused = false; if (S.life.dead && S.set.deathScreen !== false) showDeath(); return; }
+  if ('awayundo' in d) {
+    if (awayState) {
+      S = mergeState(JSON.parse(awayState)); M = mods(); resetViews(); pendingDecant = false;
+      last = performance.now(); save(); toast('Back to where you left off.');
+    }
+    awayState = null; hideModal(); paused = false; setTab(tab); return;
+  }
+  if ('awayok' in d) { awayState = null; hideModal(); paused = false; if (S.life.dead && S.set.deathScreen !== false) showDeath(); return; }
   if ('close' in d) { hideModal(); paused = false; S.intro = true; save(); return; }
   if ('decant' in d) { decant(); if (S.set.deathPause !== false) S.set.paused = true; hideModal(); taskKey = ''; setTab('tasks'); save(); return; }
   if (d.settings) { save(); showSettings(d.settings); return; }
@@ -2276,7 +2284,7 @@ function frame(now){
 }
 // While hidden, animation frames stop; this keeps the clock going (browsers allow about once a second,
 // or once a minute after a while, and the catch-up above fills the gaps).
-setInterval(() => { if (document.hidden && S) tick(performance.now()); }, 1000);
+setInterval(() => { if (document.hidden && S && !S.set.bgPause) tick(performance.now()); }, 1000);
 /* ----- catch-up screen: what happened while the game ran in the background ----- */
 let awaySnap = null;
 function snapshot(){
@@ -2316,12 +2324,19 @@ function showAway(a){
   }
   if (newPerks > 0) h += `<p class="d">New archive record${newPerks > 1 ? 's' : ''}: ${newPerks}.</p>`;
   if (newLogs.length) h += `<p class="d">Log: ${esc(newLogs.join(', '))}.</p>`;
-  h += '<p class="d">The game is paused until you continue.</p><button class="btn pri" data-awayok>Continue</button>';
+  h += '<p class="d">The game is paused until you choose.</p><div class="btns"><button class="btn pri" data-awayok>Keep this progress</button><button class="btn" data-awayundo>Discard it and go back</button></div>';
   paused = true; showModal(h);
   return true;
 }
+let awayState = null;   // the whole game as it was when the tab was hidden, to undo the away progress
 document.addEventListener('visibilitychange', () => {
-  if (document.hidden) { save(); if ($('#modal').hidden && !S.life.dead) awaySnap = snapshot(); return; }
+  if (document.hidden) {
+    save();
+    if (S.set.bgPause) return;   // option: nothing happens in the background
+    if ($('#modal').hidden && !S.life.dead) { awaySnap = snapshot(); awayState = JSON.stringify(S); }
+    return;
+  }
+  if (S.set.bgPause) { last = performance.now(); return; }   // skip the gap entirely
   if (!awaySnap) return;
   tick(performance.now());   // finish catching up first
   const a = awaySnap; awaySnap = null;
