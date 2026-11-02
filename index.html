@@ -675,7 +675,7 @@ function frailty(){ return 1; }   // ageing slowdown removed
 function speedOf(t){ let p = 1; t.sk.forEach(s => p *= skF(s)); return Math.pow(p, 1 / t.sk.length) * M.spd * frailty() * masteryF(t); }
 // Mastery: past the AUTO_LIVES lives of practice that unlock automation, every MASTER_STEP more lives
 // that finish a task cut its time by 20% (x0.8 each), down to half the time (double speed).
-// Jobs are not affected.
+// Jobs count too: they produce faster.
 const MASTER_STEP = 10, MASTER_CUT = 0.8, MASTER_MIN = 0.5;
 function masterySteps(t){ return Math.max(0, Math.floor((((S.prac || {})[t.id] || 0) - AUTO_LIVES) / MASTER_STEP)); }
 function masteryTxt(t){
@@ -683,7 +683,7 @@ function masteryTxt(t){
   if (f >= 1 / MASTER_MIN - 1e-9) return 'mastered \u00b7 \u00d72 speed';
   return (n ? 'mastery \u00d7' + f.toFixed(2) + ' \u00b7 ' : '') + 'next ' + p + '/' + (AUTO_LIVES + (n + 1) * MASTER_STEP) + ' lives';
 }
-function masteryF(t){ return t.kind === 'job' ? 1 : 1 / Math.max(MASTER_MIN, Math.pow(MASTER_CUT, masterySteps(t))); }
+function masteryF(t){ return 1 / Math.max(MASTER_MIN, Math.pow(MASTER_CUT, masterySteps(t))); }
 function hazDmg(t){ const L = S.life; return (t.haz || 0) * M.haz / (1 + 0.2 * L.lv.cbt + 0.3 * L.lv.res); }
 function xpRate(t, s){ return ZT[t.z] * M.xp * M.xpSk[s] * (t.kind === 'train' ? TRAIN_XP : 1); }
 
@@ -1698,7 +1698,7 @@ function renderTasks(){
         h += `<div class="task job${L.job === t.id ? ' fb' : ''}" data-id="${t.id}">
           <button class="tm" data-do="${t.id}"><div class="tf"></div>
             <div class="th"><span class="tn">${esc(t.name)}</span><span class="te num" data-r="${res}"></span></div>
-            <div class="tx">${chips(t)}${t.haz ? '<span class="haz">▲ hazard</span>' : ''}${!t.prod ? '<span>skill training only</span>' : '<span class="tt num"></span>'}${practiced(t) ? '' : '<span class="pr num"></span>'}</div>
+            <div class="tx">${chips(t)}${t.haz ? '<span class="haz">▲ hazard</span>' : ''}${!t.prod ? '<span>skill training only</span>' : '<span class="tt num"></span>'}<span class="pr num"></span></div>
           </button><div class="side"><button class="tq${L.queue.includes(t.id) ? ' in' : ''}" data-q="${t.id}" aria-label="${L.queue.includes(t.id) ? 'Queued' : 'Add to queue (runs until storage is full)'}">${L.queue.includes(t.id) ? '#' + (L.queue.indexOf(t.id) + 1) : '+'}</button>${autoBtn(t)}</div></div>` + prioPick(t);
       });
     }
@@ -1767,7 +1767,8 @@ function updateTasks(){
       if (r.rp) r.rp.textContent = (L.done[t.id] || 0) + '/' + t.reps;
     } else {
       jobBar(r.f, t, sp);
-      if (r.pr) { const b = Math.min(JOB_PRAC_BATCHES, L.bat[t.id] || 0); r.pr.textContent = 'practice ' + (S.prac[t.id] || 0) + '/' + AUTO_LIVES + ' lives' + (b < JOB_PRAC_BATCHES ? ' \u00b7 ' + b + '/' + JOB_PRAC_BATCHES + ' batches this life' : ' \u00b7 done this life'); }
+      if (r.pr && practiced(t)) r.pr.textContent = masteryTxt(t);
+      else if (r.pr) { const b = Math.min(JOB_PRAC_BATCHES, L.bat[t.id] || 0); r.pr.textContent = 'practice ' + (S.prac[t.id] || 0) + '/' + AUTO_LIVES + ' lives' + (b < JOB_PRAC_BATCHES ? ' \u00b7 ' + b + '/' + JOB_PRAC_BATCHES + ' batches this life' : ' \u00b7 done this life'); }
       if (t.prod) {
         const res = t.prod.rations ? 'rations' : 'salvage';
         const batch = t.prod[res] * JOB_CYCLE;
@@ -2228,7 +2229,7 @@ const FAQ_ALL = [
   ['What carries over when a clone dies?', 'Skill levels reset, but every bit of XP a skill has ever earned is kept as its <b>echo</b>, making that skill permanently faster. Each day a clone survives adds 0.8 to the base health of later clones, up to 500. <b>Archive records</b> found by finishing certain actions are permanent upgrades. Gear, rations, salvage and progress through the ship reset.'],
   ['What are sections?', 'The ship is split into five sections. A <b>red</b> action leads to the next one, and the way back is sealed for that clone, so finish what you need first (records, the rest, training, gear). Each new clone starts back in the Vat Bay.'],
   ['What is gear?', 'Gear is built from salvage in the <b>Gear</b> tab and lasts for one clone. Each section has designs to build. Salvage storage is limited; opening up more of the ship raises it.'],
-  ['What is mastery?', 'Once a task can be automated (finished in 10 lives), it keeps improving: every 10 more lives that finish it make it 20% quicker (time ×0.8 each step), up to double speed at 50 lives. Actions, crossings, training and rests count; jobs do not. The task card shows your mastery and the next step.'],
+  ['What is mastery?', 'Once a task can be automated (finished in 10 lives), it keeps improving: every 10 more lives that finish it make it 20% quicker (time ×0.8 each step), up to double speed at 50 lives. Actions, crossings, training, rests and jobs all count (a mastered job produces faster). The task card shows your mastery and the next step.'],
   ['How does automation work?', 'Finish an action in 10 different lives (or work a job for 10 batches in 10 lives, or build a design in 10 lives) and an <b>AUTO</b> switch appears. Automated tasks run by themselves when your queue is empty, in priority order: P1 first, P5 last. The <b>Auto</b> tab lists everything unlocked and has extra options: feeding when needed, filling storage before moving on, the strain level for automatic rests, the death screen and starting paused.'],
   ['What happens at a crossing with automation?', 'A queued or automated crossing stops just before it finishes and waits while the clone finishes automated actions and training, builds affordable automated gear, refills storage (if that option is on) and uses the section’s rest. Tap a crossing yourself to go at once.'],
   ['Pause, background and boost', 'Pause with the button at the top or the space bar. The game keeps running in a background tab and catches up when you return, then shows what happened while you were away. Time while the game is fully closed is stored as a <b>+2×</b> boost you can switch on in the header. Both start capped at 8 hours: at most 8 hours of background time is played out, and the boost holds at most 8 hours. Each <b>Stasis watch</b> record adds 8 hours to both; you get one the first time you finish each section (5 in all, up to 48 hours).'],
