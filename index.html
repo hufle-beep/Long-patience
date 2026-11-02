@@ -356,6 +356,7 @@ button.updl{width:100%}
 .hold b{color:var(--amber);font-weight:500}
 .hold .btn{justify-self:start;font-size:12px;padding:6px 10px}
 .asub{margin-top:6px}
+[data-awayundo] small{display:block;font-size:11px;color:var(--dim);font-weight:400}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 
@@ -2084,7 +2085,9 @@ document.addEventListener('click', e => {
   if ('awayundo' in d) {
     if (awayState) {
       S = mergeState(JSON.parse(awayState)); M = mods(); resetViews(); pendingDecant = false;
-      last = performance.now(); save(); toast('Back to where you left off.');
+      const gone = Math.max(0, (Date.now() - awayAt) / 1000);
+      S.bank = Math.min((S.bank || 0) + gone, 8*3600);   // the discarded time becomes stasis boost
+      last = performance.now(); save(); toast('Back to where you left off. ' + fmtSecs(gone) + ' added to the +2\u00d7 boost.');
     }
     awayState = null; hideModal(); paused = false; setTab(tab); return;
   }
@@ -2324,16 +2327,16 @@ function showAway(a){
   }
   if (newPerks > 0) h += `<p class="d">New archive record${newPerks > 1 ? 's' : ''}: ${newPerks}.</p>`;
   if (newLogs.length) h += `<p class="d">Log: ${esc(newLogs.join(', '))}.</p>`;
-  h += '<p class="d">The game is paused until you choose.</p><div class="btns"><button class="btn pri" data-awayok>Keep this progress</button><button class="btn" data-awayundo>Discard it and go back</button></div>';
+  h += '<p class="d">The game is paused until you choose.</p><div class="btns"><button class="btn pri" data-awayok>Keep this progress</button><button class="btn" data-awayundo>Discard it and go back<small>The time away becomes +2\u00d7 boost</small></button></div>';
   paused = true; showModal(h);
   return true;
 }
-let awayState = null;   // the whole game as it was when the tab was hidden, to undo the away progress
+let awayState = null, awayAt = 0;   // the whole game as it was when the tab was hidden, to undo the away progress
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) {
     save();
     if (S.set.bgPause) return;   // option: nothing happens in the background
-    if ($('#modal').hidden && !S.life.dead) { awaySnap = snapshot(); awayState = JSON.stringify(S); }
+    if ($('#modal').hidden && !S.life.dead) { awaySnap = snapshot(); awayState = JSON.stringify(S); awayAt = Date.now(); }
     return;
   }
   if (S.set.bgPause) { last = performance.now(); return; }   // skip the gap entirely
