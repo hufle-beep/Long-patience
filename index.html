@@ -474,7 +474,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
 
 <script id="logic">
 /* ===== Game data and rules (no DOM) ===== */
-const BUILD = '2026-11-02 · coherent tasks';   // shown in the main menu, to tell which version is loaded
+const BUILD = '2026-11-02 · Act II';   // shown in the main menu, to tell which version is loaded
 const DPS = 4;             // simulation ticks per real second at 1x
 // Time is simulated in ticks. 80 ticks make one ship day (18 minutes each), so a day lasts
 // 20 real seconds at 1x and a clone lives weeks, not years. Everything is shown in days and hours.
@@ -494,7 +494,7 @@ const STRAIN_RES = 0.002;
 // Late wear: after a couple of weeks the growth rate climbs much faster (squared term), which keeps
 // well-fed late clones to roughly a month.
 const STRAIN_LATE = 540;
-const strainRate = wear => (1 + wear / STRAIN_ACCEL + Math.pow(wear / STRAIN_LATE, 2)) / STRAIN_RAMP / (1 + STRAIN_RES * (S.life.lv.res || 0)) * (M ? M.strainMul : 1);
+const strainRate = wear => (1 + wear / STRAIN_ACCEL + Math.pow(wear / STRAIN_LATE, 2)) / STRAIN_RAMP / (1 + STRAIN_RES * (S.life.lv.res || 0)) * (M ? M.strainMul : 1) * (M && isA2(S.life.sec || 1) ? M.a2strain : 1);
 const MAX_DRAIN = 1.2;     // most health a clone can lose per day: a full bar lasts at least ~2 min at 1x
 // A meal restores the hunger of one cooldown plus the old resting regeneration.
 // Food deeper in the ship is better: each section past the first makes meals restore 12% more.
@@ -508,12 +508,16 @@ const FOODS = [
   {id:'field',  z:3, name:'Field rations', q:2,   cap:8},
   {id:'galley', z:4, name:'Galley meals',  q:2.6, cap:10},
   {id:'pantry', z:5, name:'Pantry stores', q:3.2, cap:10},
+  {id:'emerg',  z:6, name:'Emergency rations', q:3.8, cap:10},
+  {id:'nutri',  z:7, name:'Nutrient packs',  q:4.4, cap:10},
+  {id:'harvest', z:9, name:'Fresh harvest', q:3.8, cap:10},
+  {id:'seed',   z:10, name:'Colony seed stock', q:4.4, cap:10},
 ];
 const FD = {}; FOODS.forEach(f => FD[f.id] = f);
 const FOOD_OF = {}; FOODS.forEach(f => FOOD_OF[f.z] = f.id);   // section -> its food
 const FOOD_Q = {}; FOODS.forEach(f => FOOD_Q[f.z] = f.q);
 const jobFood = t => t && t.prod && t.prod.rations ? FOOD_OF[t.z] : null;
-function foodQ(f){ return FD[f].q * ((M && M.fq && M.fq[f]) || 1); }
+function foodQ(f){ return FD[f].q * ((M && M.fq && M.fq[f]) || 1) * (M && isA2(FD[f].z) ? M.a2food : 1); }
 function syncFood(){ const L = S.life; L.rations = FOODS.reduce((a, f) => a + Math.max(0, L.food[f.id] || 0), 0); }
 function addFood(f, a){
   const L = S.life; if (a <= 0 || !f) return;
@@ -526,7 +530,7 @@ function nextFood(){ const L = S.life; const f = FOODS.find(f => (L.food[f.id] |
 // Every kind of food the clone carries is eaten on its own timer. Richer food has a longer cooldown
 // (12 h x its quality), so at first each kind heals about the same per day; mastery of the job that
 // gathers it shortens the cooldown, down to the plain 12 h at full mastery (50 lives).
-const FOOD_JOB = {algae:'algae', greens:'hydro', field:'lockers', galley:'galley', pantry:'pantry'};
+const FOOD_JOB = {algae:'algae', greens:'hydro', field:'lockers', galley:'galley', pantry:'pantry', emerg:'emlockers', nutri:'synth', harvest:'beds', seed:'stores'};
 function mealCd(f){
   const job = T[FOOD_JOB[f]], fr = job ? masteryFrac(job) : 0;
   return MEAL_CD * (1 + (FD[f].q - 1) * (1 - fr));
@@ -549,7 +553,7 @@ function eatRate(){
 // Time until the next meal is possible
 function nextMealIn(){ const L = S.life; let m = Infinity; FOODS.forEach(f => { if ((L.food[f.id] || 0) >= 1) m = Math.min(m, (L.mcd || {})[f.id] || 0); }); return m; }
 // Food stores that matter now: this section's food and everything carried from earlier ones
-const foodsInPlay = () => FOODS.filter(f => f.z <= (S.life.sec || 1));
+const foodsInPlay = () => FOODS.filter(f => !zAfter(f.z, S.life.sec || 1));
 const MEAL_MULT = 1.58;   // meals restore more than one meal-gap of hunger, to push back against strain
 function mealHp(f){ f = f || readyFoods()[0] || nextFood() || FOOD_OF[S.life.sec || 1]; return (HUNGER + M.regen) * MEAL_CD * MEAL_MULT * foodQ(f); }
 const START_AGE = 14;
@@ -564,14 +568,36 @@ const SKILLS = [
 ];
 const SKN = {}; SKILLS.forEach(s => SKN[s.id] = s);
 
+// Sections. Act I runs 1-5 in a line; a run may then go into one Act II branch (see pathOf).
 const ZONES = [
   {id:1, name:'Vat Bay',            sub:'Deck 9 · clone stock',          tier:1},
   {id:2, name:'Hydroponics Ring',   sub:'Food system',                   tier:1.6},
   {id:3, name:'Engineering Spine',  sub:'Energy system',                 tier:2.4},
   {id:4, name:'Command Deck',       sub:'Bridge and WARDEN\u2019s core',  tier:3.4},
   {id:5, name:'Main Drive',         sub:'Stardrive',                     tier:4.6},
+  // Act II: after the drive is lit. Branch A (boarders) is 6-8, branch B (the long watch) is 9-11.
+  {id:6, name:'Hull Breach',        sub:'Act II \u00b7 Boarders',        tier:5, act:2, br:'A'},
+  {id:7, name:'Contested Decks',    sub:'Act II \u00b7 Boarders',        tier:5, act:2, br:'A'},
+  {id:8, name:'The Hive Ship',      sub:'Act II \u00b7 Boarders',        tier:5, act:2, br:'A'},
+  {id:9, name:'The Cruise',         sub:'Act II \u00b7 The long watch',  tier:5, act:2, br:'B'},
+  {id:10, name:'The Drift',         sub:'Act II \u00b7 The long watch',  tier:5, act:2, br:'B'},
+  {id:11, name:'Tessaly Orbit',     sub:'Act II \u00b7 The long watch',  tier:5, act:2, br:'B'},
 ];
 const ZT = {}; ZONES.forEach(z => ZT[z.id] = z.tier);
+const ZN = id => ZONES[id - 1];
+const zoneThe = z => /^The /.test(ZN(z).name) ? ZN(z).name : 'the ' + ZN(z).name;   // 'the Vat Bay', 'The Cruise'
+const ACT2 = 6;   // first Act II section id
+const isA2 = z => z >= ACT2;
+// This run's route through the ship: Act I, then the chosen branch (boarders can merge into the long watch)
+function pathOf(){
+  const p = [1, 2, 3, 4, 5], b = S && S.branch;
+  if (b === 'A') { p.push(6, 7, 8); if (S.merge) p.push(9, 10, 11); }
+  else if (b === 'B') p.push(9, 10, 11);
+  return p;
+}
+function zRank(z){ const i = pathOf().indexOf(z); return i < 0 ? 99 : i; }
+const zBefore = (a, b) => zRank(a) < zRank(b);   // section a comes before b on this run's route
+const zAfter = (a, b) => zRank(a) > zRank(b);
 
 const TASKS = [
   // Training: up to TRAIN_CAP sessions per life each, +50% XP, nothing else. Two per section.
@@ -648,8 +674,81 @@ const TASKS = [
     log:'The injectors hold pressure. Food, power and drive are nearly ready. Only the ignition remains.'},
   {id:'ignite', z:5, kind:'act', name:'Ignite the main drive', sk:['nav','eng','res'], days:6000, req:['course','injectors'], win:true,
     log:'The stardrive lights. WARDEN begins the wake cycle for 3,112 sleepers. Your vat is scheduled for recycling.'},
+
+  // ===== Act II, branch A: Boarders =====
+  // Hull Breach
+  {id:'seal6', z:6, kind:'act', name:'Seal the breached decks', sk:['eng','res'], days:300, haz:0.2, req:[],
+    log:'Alarms on every deck. Something has cut through the hull near the stasis bays. WARDEN wakes no one: “Maintenance unit, investigate.”'},
+  {id:'bulkhead', z:6, kind:'rest', name:'Sleep behind a sealed bulkhead', sk:['res'], days:30, req:['seal6']},
+  {id:'emlockers', z:6, kind:'job', name:'Crack the emergency lockers', sk:['bio','hak'], prod:{rations:0.17}, req:['seal6']},
+  {id:'sealdrill', z:6, kind:'train', name:'Pressure-seal drills', sk:['eng','res'], days:40, req:['seal6']},
+  {id:'track', z:6, kind:'act', name:'Track the boarders', sk:['nav','hak'], days:400, req:['seal6'],
+    log:'Clawed tracks in the frost of the corridors. They are heading for the sleepers.'},
+  {id:'bpod', z:6, kind:'job', name:'Scavenge the boarding pod', sk:['eng','cbt'], prod:{salvage:1.2}, haz:0.1, req:['track']},
+  {id:'ambush', z:6, kind:'act', name:'Ambush a boarding party', sk:['cbt'], days:250, reps:3, haz:0.35, req:['track'], perk:'scars'},
+  {id:'cqb', z:6, kind:'train', name:'Close-quarters drills', sk:['cbt','res'], days:40, req:['ambush']},
+  {id:'studyb', z:6, kind:'act', name:'Study a fallen boarder', sk:['bio','hak'], days:500, req:['ambush'], perk:'xeno',
+    log:'Chitin over muscle, grown, not born. Someone engineered these too. Disposable, like you.'},
+  {id:'racks', z:6, kind:'act', name:'Reclaim the armoury racks', sk:['cbt','hak'], days:600, req:['ambush'], perk:'armcodes'},
+  {id:'stair', z:6, kind:'act', cross:true, to:7, name:'Hold the stasis-deck stairwell', sk:['cbt','res'], days:900, haz:0.3, lifeEff:{salCap:1000}, req:['racks','studyb'],
+    log:'They came up the stairwell in a wave. The line held. Behind it, three thousand people slept through their own rescue.'},
+  // Contested Decks
+  {id:'protect', z:7, kind:'act', name:'Protect the sleeping crew', sk:['cbt','res'], days:900, haz:0.4, req:[]},
+  {id:'carapace', z:7, kind:'job', name:'Strip boarder carapace', sk:['cbt','eng'], prod:{salvage:1.5}, req:[]},
+  {id:'aisle', z:7, kind:'rest', name:'Sleep in a cleared stasis aisle', sk:['res','bio'], days:20, req:['protect']},
+  {id:'medb', z:7, kind:'act', name:'Retake the medbay', sk:['cbt','bio'], days:700, haz:0.2, req:['protect'], perk:'medcache'},
+  {id:'synth', z:7, kind:'job', name:'Run the nutrient synthesiser', sk:['bio','res'], prod:{rations:0.19}, req:['medb']},
+  {id:'triage', z:7, kind:'train', name:'Triage drills in the medbay', sk:['bio','res'], days:40, req:['medb']},
+  {id:'jam', z:7, kind:'act', name:'Jam the boarders’ signal', sk:['hak','nav'], days:900, req:['protect']},
+  {id:'traps', z:7, kind:'act', name:'Rig the decks with traps', sk:['eng','cbt'], days:800, req:['jam']},
+  {id:'trapdrill', z:7, kind:'train', name:'Trap-laying drills', sk:['eng','cbt'], days:40, req:['traps']},
+  {id:'traceship', z:7, kind:'act', cross:true, to:8, name:'Trace them to their ship', sk:['nav','hak'], days:1200, lifeEff:{salCap:1000}, req:['traps','medb'], perk:'hivemap',
+    log:'Their ship clings to the hull like a tick. A living thing, breathing through the docking seal.'},
+  // The Hive Ship
+  {id:'umbilical', z:8, kind:'act', name:'Cross the docking umbilical', sk:['res','nav'], days:900, haz:0.35, req:[]},
+  {id:'hivenap', z:8, kind:'rest', name:'Rest in a dead hive cell', sk:['res','bio'], days:15, req:['umbilical']},
+  {id:'chitinj', z:8, kind:'job', name:'Salvage hive chitin', sk:['cbt','bio'], prod:{salvage:1.8}, haz:0.1, req:['umbilical']},
+  {id:'hivedrill', z:8, kind:'train', name:'Hive-tunnel drills', sk:['cbt','nav'], days:40, req:['umbilical']},
+  {id:'cuthive', z:8, kind:'act', name:'Cut through the hive', sk:['cbt','eng'], days:1300, haz:0.4, req:['umbilical']},
+  {id:'hivemind', z:8, kind:'act', name:'Find the hive mind', sk:['bio','hak'], days:1400, req:['cuthive'],
+    log:'The hive mind is small and frightened. It was sent, like you were. It does not understand why either.'},
+  {id:'charge', z:8, kind:'act', name:'Plant the drive charge', sk:['eng','cbt'], days:1200, haz:0.3, req:['cuthive']},
+  {id:'cutloose', z:8, kind:'act', finale:'A', name:'Cut the hive loose', sk:['cbt','eng','res'], days:1600, req:['hivemind','charge'], perk:'hivecore',
+    log:'The hive ship tumbles away into the dark. The Long Patience flies on, quieter, with one more line of disposable things behind it.'},
+  // ===== Act II, branch B: The long watch =====
+  // The Cruise
+  {id:'patch', z:9, kind:'act', name:'Patch micrometeor holes', sk:['eng'], days:300, reps:3, req:[],
+    log:'The voyage is long, and the ship is old. Something always leaks. WARDEN assigns you to keep it from mattering.'},
+  {id:'blister', z:9, kind:'rest', name:'Sleep in the observation blister', sk:['res','nav'], days:30, req:[]},
+  {id:'beds', z:9, kind:'job', name:'Tend the regrown beds', sk:['bio'], prod:{rations:0.17}, req:[]},
+  {id:'trim', z:9, kind:'job', upkeep:true, name:'Trim the reactor', sk:['eng','res'], prod:{salvage:1.2}, req:[]},
+  {id:'watchdrill', z:9, kind:'train', name:'Damage-control drills', sk:['eng','res'], days:40, req:['patch']},
+  {id:'recal', z:9, kind:'act', name:'Recalibrate the stasis pods', sk:['bio','hak'], days:700, req:['patch'], perk:'podtel'},
+  {id:'podcheck', z:9, kind:'train', name:'Pod-maintenance rounds', sk:['bio','hak'], days:40, req:['recal']},
+  {id:'audit', z:9, kind:'act', name:'Audit WARDEN’s logs', sk:['hak','nav'], days:800, req:['patch'], perk:'wardenlog',
+    log:'Every clone of the K line is in here, filed under consumables. Next to each: hours worked, cause of failure. Someone kept count after all.'},
+  {id:'reroute', z:9, kind:'act', name:'Reroute the coolant loops', sk:['eng','res'], days:900, req:['recal']},
+  {id:'dust', z:9, kind:'act', cross:true, to:10, name:'Survive the dust belt', sk:['nav','res'], days:1100, haz:0.3, lifeEff:{salCap:1000}, req:['reroute','audit']},
+  // The Drift
+  {id:'drift', z:10, kind:'act', name:'Correct the drift', sk:['nav'], days:1000, req:[], perk:'driftrec'},
+  {id:'bunk', z:10, kind:'rest', name:'Sleep in the crew bunks', sk:['res'], days:20, req:[]},
+  {id:'rounds', z:10, kind:'job', upkeep:true, name:'Run the upkeep rounds', sk:['eng','bio'], prod:{salvage:1.5}, req:[]},
+  {id:'stores', z:10, kind:'job', name:'Open the colony seed stores', sk:['bio','hak'], prod:{rations:0.19}, req:['drift']},
+  {id:'navdrill', z:10, kind:'train', name:'Burn-plotting drills', sk:['nav','eng'], days:40, req:['drift']},
+  {id:'failpod', z:10, kind:'act', name:'Replace a failing pod', sk:['bio','eng'], days:900, req:['drift']},
+  {id:'talkw', z:10, kind:'act', name:'Talk WARDEN out of a shutdown', sk:['hak','res'], days:1200, req:['drift'],
+    log:'WARDEN wants to sleep too. “Maintenance of the K line exceeds projected cost.” You argue for the line again. It listens, this time.'},
+  {id:'burn', z:10, kind:'act', cross:true, to:11, name:'Burn for Tessaly', sk:['nav','eng'], days:1500, lifeEff:{salCap:1000}, req:['failpod','talkw']},
+  // Tessaly Orbit
+  {id:'mapsite', z:11, kind:'act', name:'Map the colony site', sk:['nav','hak'], days:1200, req:[]},
+  {id:'orbitnap', z:11, kind:'rest', name:'Sleep under the planet’s glow', sk:['res'], days:15, req:[]},
+  {id:'upkeep11', z:11, kind:'job', upkeep:true, name:'Keep the wake cycle running', sk:['bio','hak'], prod:{salvage:1.8}, req:[]},
+  {id:'landdrill', z:11, kind:'train', name:'Landing-site surveys', sk:['nav','bio'], days:40, req:['mapsite']},
+  {id:'prepwake', z:11, kind:'act', name:'Prepare the wake cycle', sk:['bio','res'], days:1500, req:['mapsite']},
+  {id:'wakefirst', z:11, kind:'act', finale:'B', name:'Wake the first sleeper', sk:['nav','bio','res'], days:1800, req:['prepwake'], perk:'tessaly2',
+    log:'The first sleeper opens her eyes and sees a maintenance clone. “Who are you?” You have never had to answer that before.'},
 ];
-const ZDAYS = {1:0.25, 2:0.8, 3:0.55, 4:0.4, 5:0.25};   // no skill transfer: later sections are short, and speed comes from familiarity
+const ZDAYS = {1:0.25, 2:0.8, 3:0.55, 4:0.4, 5:0.25, 6:0.75, 7:0.75, 8:0.75, 9:0.4, 10:0.4, 11:0.4};   // no skill transfer: later sections are short, and speed comes from familiarity
 const TRAIN_CAP = 4, TRAIN_XP = 1.5;
 const T = {}; TASKS.forEach(t => { T[t.id] = t; t.reps = t.kind === 'train' ? TRAIN_CAP : (t.reps || 1); if (t.days) t.days = Math.round(t.days * ZDAYS[t.z]); });
 
@@ -669,6 +768,17 @@ const PERKS = [
   {id:'starmem',  name:'Star memory',           from:4, desc:'+50% familiarity from Navigation work.', eff:{xpSk:{nav:1.5}}},
   {id:'promise',  name:'Tessaly\u2019s promise',    from:5, desc:'With the course set, WARDEN upgrades the clone template: +50 max health for every clone.', eff:{maxHp:50}},
   {id:'favor',    name:'WARDEN’s favour',  from:4, desc:'+25% familiarity from all work.', eff:{xp:1.25}},
+  // Act II records: permanent, they survive new game plus
+  {id:'scars',    act2:true, name:'Boarding scars',      desc:'+40 max health for every clone.', eff:{maxHp:40}},
+  {id:'xeno',     act2:true, name:'Xenobiology',         desc:'Act II hazard damage \u221220%.', eff:{a2haz:0.8}},
+  {id:'armcodes', act2:true, name:'Armoury codes',       desc:'Combat work 25% faster.', eff:{sk:{cbt:1.25}}},
+  {id:'medcache', act2:true, name:'Medbay cache',        desc:'Meals restore 15% more health.', eff:{regen:1.15}},
+  {id:'hivemap',  act2:true, name:'Hive charts',         desc:'+10% familiarity from Act II work.', eff:{a2fam:1.1}},
+  {id:'hivecore', act2:true, name:'Hive-mind fragment',  desc:'+20% familiarity from Act II work.', eff:{a2fam:1.2}},
+  {id:'podtel',   act2:true, name:'Pod telemetry',       desc:'Meals restore 15% more health.', eff:{regen:1.15}},
+  {id:'wardenlog',act2:true, name:'WARDEN\u2019s confession', desc:'+20% familiarity from Act II work.', eff:{a2fam:1.2}},
+  {id:'driftrec', act2:true, name:'Drift log',           desc:'Strain grows 10% slower.', eff:{strainMul:0.9}},
+  {id:'tessaly2', act2:true, name:'First contact',       desc:'+50 max health for every clone.', eff:{maxHp:50}},
   // Watch records: one for finishing each section (its crossing, or lighting the drive). Each adds 8 h of time away.
   {id:'watch1', name:'Stasis watch I',   secEnd:'hatch',   desc:'+8 hours of time away.'},
   {id:'watch2', name:'Stasis watch II',  secEnd:'lift',    desc:'+8 hours of time away.'},
@@ -677,6 +787,7 @@ const PERKS = [
   {id:'watch5', name:'Stasis watch V',   secEnd:'ignite',  desc:'+8 hours of time away.'},
 ];
 const PK = {}; PERKS.forEach(p => PK[p.id] = p);
+const hasPerk = p => !!(p.act2 ? ((S.a2 || {}).perks || {})[p.id] : (S.perks || {})[p.id]);
 // Each record's section comes from the action that awards it, so moving an action can't leave it misfiled.
 PERKS.forEach(p => { const t = TASKS.find(t => t.perk === p.id || t.id === p.secEnd); if (t) { p.from = t.z; p.by = t.id; } });
 const AWAY_BASE = 8 * 3600, AWAY_STEP = 8 * 3600;
@@ -704,6 +815,15 @@ const ITEMS = [
   {id:'exo',        name:'Exo-frame',          cost:1750, req:'navcore',    desc:'Engineering and Endurance work 30% faster, +40 max health', eff:{sk:{eng:1.3, res:1.3}, maxHp:40}},
   {id:'hardsuit',   name:'Drive-crew hardsuit', cost:1200, req:'warden',     desc:'+30 max health, hazard damage \u221230%', eff:{maxHp:30, haz:0.7}},
   {id:'seals',      name:'Vacuum pantry seals', cost:1000, req:'warden',    desc:'+5 pantry store storage, +1 pantry store every four days', eff:{fcap:{pantry:5}, pFood:{pantry:0.003125}}},
+  {id:'sealkit',    name:'Hull-patch kit',     cost:900,  req:'seal6',      desc:'+40 max health, hazard damage \u221215%', eff:{maxHp:40, haz:0.85}},
+  {id:'carbine',    name:'Boarding carbine',   cost:1500, req:'racks',      desc:'Combat work 40% faster, hazard damage \u221220%', eff:{sk:{cbt:1.4}, haz:0.8}},
+  {id:'turret',     name:'Deployable turret',  cost:2500, req:'traps',      desc:'Hazard damage \u221230%', eff:{haz:0.7}},
+  {id:'medpack',    name:'Field medpack',      cost:2000, req:'medb',       desc:'+50 max health, meals restore 20% more health', eff:{maxHp:50, regen:1.2}},
+  {id:'cutter',     name:'Plasma cutter',      cost:3000, req:'umbilical',  desc:'Combat and Engineering work 30% faster', eff:{sk:{cbt:1.3, eng:1.3}}},
+  {id:'upkit',      name:'Upkeep toolkit',     cost:1500, req:'patch',      desc:'Ship wear builds 30% slower, Engineering work 20% faster', eff:{wear:0.7, sk:{eng:1.2}}},
+  {id:'sprinkler',  name:'Bed sprinklers',     cost:1800, req:'recal',      desc:'+5 fresh harvest storage, +1 fresh harvest every four days', eff:{fcap:{harvest:5}, pFood:{harvest:0.003125}}},
+  {id:'gyro',       name:'Gyro-trimmer',       cost:2500, req:'drift',      desc:'Navigation work 40% faster', eff:{sk:{nav:1.4}}},
+  {id:'beacon',     name:'Colony beacon',      cost:3000, req:'mapsite',    desc:'All work 15% faster', eff:{spd:1.15}},
   {id:'diagrig',    name:'Injector diagnostic rig', cost:1600, req:'course', desc:'Engineering and Navigation work 25% faster', eff:{sk:{eng:1.25, nav:1.25}}},
 ];
 const IT = {}; ITEMS.forEach(i => IT[i.id] = i);
@@ -711,7 +831,7 @@ const IT = {}; ITEMS.forEach(i => IT[i.id] = i);
 const gearZone = i => T[i.req].cross ? T[i.req].z + 1 : T[i.req].z;
 
 let S, M;
-const HOOK = {log(){}, perk(){}, die(){}, win(){}, change(){}, stopped(){}, practiced(){}, done(){}, rested(){}, crossed(){}, bought(){}, qfull(){}};
+const HOOK = {log(){}, perk(){}, die(){}, win(){}, change(){}, stopped(){}, practiced(){}, done(){}, rested(){}, crossed(){}, bought(){}, qfull(){}, honour(){}, merge(){}};
 
 // Player preferences (switches, thresholds, boost speed) are stored once for the device, not per save:
 // a new game or another slot starts with the same settings.
@@ -722,7 +842,7 @@ function savePrefs(){ try { if (!S || !S.set) return; const o = {}; PREF_KEYS.fo
 function newLife(s){
   const p = s.perks;
   const L = {day:0, hp:100, rations:p.decant?1:0, food:{algae:p.decant?1:0}, salvage:0, lv:{}, xp:{}, echo0:{},
-    done:{}, prog:{}, cyc:{}, bat:{}, qdone:[], meal:0, strain:1, sec:1, job:null, queue:[], owned:{}, order:[], foraging:false, cur:null, dead:false, cause:''};
+    done:{}, prog:{}, cyc:{}, bat:{}, visited:{1:1}, qdone:[], meal:0, strain:1, sec:1, job:null, queue:[], owned:{}, order:[], foraging:false, cur:null, dead:false, cause:''};
   SKILLS.forEach(k => { L.lv[k.id] = 0; L.xp[k.id] = 0; L.echo0[k.id] = 0; });
   L.fam0 = Object.assign({}, s.fam || {});   // familiarity at the start of this life, for the death screen
   return L;
@@ -730,7 +850,7 @@ function newLife(s){
 function defaultState(){
   const s = {v:1, qpresets:[[], [], [], [], []], gprac:{}, gauto:{}, gprio:{}, ev:2, xpTot:{}, rv:4, sv:2, pv:3, vv:3, gen:1, prio:{}, fam:{}, ever:{}, prac:{}, auto:{}, echo:{}, perks:{}, seen:{}, logged:{}, log:[], lastOrder:[], lastJob:null,
     set:Object.assign({speed:1, autoFood:true, autoEat:true, foodDays:2, foodPct:40, restAt:2.5, keepQueue:true, deathScreen:true, deathPause:true, startPaused:false, bgPause:false, pauseCross:false, replay:true, fillCross:false, autoFeed:false, boost:false, boostX:2}, loadPrefs()),
-    stats:{bestAge:0, deaths:0, daysLived:0, played:0}, pr:{n:0, pts:0, growth:0, drain:0, hp:0, speed:0, carry:0, runs:[]}, won:false, winGen:0, bank:0, saved:Date.now(), intro:false};
+    stats:{bestAge:0, deaths:0, daysLived:0, played:0}, a2:{open:false, hon:0, lv:{}, perks:{}, fin:0}, branch:null, merge:null, a2run:{reached:{}, done:{}}, pr:{n:0, pts:0, growth:0, drain:0, hp:0, speed:0, carry:0, runs:[]}, won:false, winGen:0, bank:0, saved:Date.now(), intro:false};
   SKILLS.forEach(k => s.echo[k.id] = 0);
   s.life = newLife(s);
   return s;
@@ -765,7 +885,7 @@ const drainDiv = () => 1 + 0.8 * ngpLv('drain');   // new game plus drain dampen
 const ngpSpeed = () => 1 + 0.8 * ngpLv('speed');    // new game plus overclock: flat game speed, free
 function mods(){
   const L = S.life, P = S.perks;
-  const m = {sk:{}, xpSk:{}, spd:1, xp:1, haz:1, maxHp:Math.min(BASE_HP_MAX, 100 + Math.floor(S.vit || 0)), pRat:0, pSal:0, strainMul:1, regen:0.05, ratCap:5, salCap:25, fcap:{}, pFood:{}, fq:{}, foodSpd:1};
+  const m = {sk:{}, xpSk:{}, spd:1, xp:1, haz:1, maxHp:Math.min(BASE_HP_MAX, 100 + Math.floor(S.vit || 0)), pRat:0, pSal:0, strainMul:1, regen:0.05, ratCap:5, salCap:25, fcap:{}, pFood:{}, fq:{}, foodSpd:1, a2haz:1, a2strain:1, a2sal:1, a2food:1, a2fam:1, wear:1};
   FOODS.forEach(f => { m.fcap[f.id] = f.cap; m.pFood[f.id] = 0; m.fq[f.id] = 1; });
   SKILLS.forEach(k => { m.sk[k.id] = 1; m.xpSk[k.id] = 1; });
   const ap = e => {
@@ -781,14 +901,18 @@ function mods(){
     if (e.pFood) for (const f in e.pFood) m.pFood[f] += e.pFood[f];
     if (e.fq) for (const f in e.fq) m.fq[f] *= e.fq[f];
     if (e.foodSpd) m.foodSpd *= e.foodSpd;
+    if (e.a2haz) m.a2haz *= e.a2haz; if (e.a2fam) m.a2fam *= e.a2fam; if (e.wear) m.wear *= e.wear;
   };
-  PERKS.forEach(p => { if (P[p.id]) ap(p.eff); });
+  PERKS.forEach(p => { if (hasPerk(p)) ap(p.eff); });
+  // Act II rewards bought with Honours (5 levels each)
+  const lv = id => Math.min(5, ((S.a2 || {}).lv || {})[id] || 0);
+  m.a2haz *= 1 - 0.15 * lv('vet'); m.a2strain *= 1 - 0.08 * lv('rhythm'); m.a2sal *= 1 + 0.2 * lv('scav'); m.a2food *= 1 + 0.1 * lv('rations');
   m.xp *= 1 + NGP_GROWTH * Math.min(NGP_GROWTH_MAX, (S.pr && S.pr.growth) || 0);   // new game plus: deep echo
   m.maxHp += 100 * ngpLv('hp');   // new game plus: template upgrade
   ITEMS.forEach(i => { if (L.owned[i.id]) ap(i.eff); });
   TASKS.forEach(t => { if (t.lifeEff && isDone(t.id)) ap(t.lifeEff); });
   // ration totals for display: the stores in play (this section's food and earlier ones)
-  m.ratCap = FOODS.filter(f => f.z <= (L.sec || 1)).reduce((a, f) => a + m.fcap[f.id], 0);
+  m.ratCap = FOODS.filter(f => !zAfter(f.z, L.sec || 1)).reduce((a, f) => a + m.fcap[f.id], 0);
   m.pRat = FOODS.reduce((a, f) => a + m.pFood[f.id], 0);
   return m;
 }
@@ -820,11 +944,15 @@ const FAM_N0 = 90, FAM_RUN = 0.75, FAM_ECHO = 0.8;   // threshold in units; x0.7
 function compUnit(t){ return t.kind === 'job' ? JOB_UNIT : t.kind === 'train' ? TRAIN_CAP : t.kind === 'rest' ? 1 : (t.reps || 1); }
 // The automation requirement shrinks with the familiarity threshold (new game plus runs, Deep echo):
 // 10 lives' worth in a first run, then the same share of the current threshold, never below 1.
-const autoScale = () => famN0() / FAM_N0;
-const autoNeed = t => Math.max(1, Math.ceil(AUTO_LIVES * compUnit(t) * autoScale()));
-const gearNeed = () => Math.max(1, Math.ceil(AUTO_LIVES * autoScale()));
+// Act II has its own threshold: not lowered by new game plus, but x0.75 for every branch finished
+function famN0A2(){ return Math.max(1, FAM_N0 * Math.pow(FAM_RUN2, (S.a2 && S.a2.fin) || 0)); }
+const FAM_RUN2 = 0.75;
+const famN0Of = t => t && isA2(t.z) ? famN0A2() : famN0();
+const autoScale = t => famN0Of(t) / FAM_N0;
+const autoNeed = t => Math.max(1, Math.ceil(AUTO_LIVES * compUnit(t) * autoScale(t)));
+const gearNeed = it => Math.max(1, Math.ceil(AUTO_LIVES * (it && isA2(gearZone(it)) ? famN0A2() : famN0()) / FAM_N0));
 function famN0(){ const pr = S.pr || {}; return Math.max(1, FAM_N0 * Math.pow(FAM_RUN, pr.n || 0) * Math.pow(FAM_ECHO, Math.min(5, pr.growth || 0))); }
-const famNeed = t => famN0() * compUnit(t);
+const famNeed = t => famN0Of(t) * compUnit(t);
 const masterNeed = famNeed;
 function masteryFrac(t){ return Math.max(0, Math.min(1, ((S.fam || {})[t.id] || 0) / famNeed(t))); }
 function masteryFracOf(t, c){ return Math.max(0, Math.min(1, c / famNeed(t))); }
@@ -835,7 +963,7 @@ function masteryTxt(t){
   return '\u00d7' + f.toFixed(2) + ' \u00b7 ' + fmt(c) + '/' + fmt(famNeed(t)) + (t.kind === 'job' ? ' batches' : '') + ' to \u00d7' + Math.round(1 / MASTER_MIN);
 }
 // Familiarity gain: records and gear that used to boost skill XP now boost it (all tasks, or one type)
-function famGain(t){ let p = 1; t.sk.forEach(s => p *= M.xpSk[s]); return M.xp * Math.pow(p, 1 / t.sk.length); }
+function famGain(t){ let p = 1; t.sk.forEach(s => p *= M.xpSk[s]); return M.xp * Math.pow(p, 1 / t.sk.length) * (isA2(t.z) ? M.a2fam : 1); }
 function addFam(t, a){ if (!S.fam) S.fam = {}; S.fam[t.id] = (S.fam[t.id] || 0) + a; }
 // Drills: each session adds DRILL_CREDIT of a life's worth to every task that shares a type with it
 const DRILL_CREDIT = 0.25;
@@ -843,7 +971,7 @@ function drillCredit(d){
   TASKS.forEach(t => { if (t.kind !== 'train' && t.sk.some(k => d.sk.includes(k))) addFam(t, DRILL_CREDIT * compUnit(t) * famGain(t)); });
 }
 // hazards hurt less the more familiar the task is (up to /4, like the old combat and resolve levels)
-function hazDmg(t){ return (t.haz || 0) * M.haz / (1 + 3 * masteryFrac(t)); }
+function hazDmg(t){ return (t.haz || 0) * M.haz * (isA2(t.z) ? M.a2haz : 1) / (1 + 3 * masteryFrac(t)); }
 function xpRate(t, s){ return ZT[t.z] * M.xp * M.xpSk[s] * (t.kind === 'train' ? TRAIN_XP : 1); }
 
 function pickFood(){
@@ -1000,7 +1128,7 @@ function chainsOf(z){
   return out;
 }
 const sectionTasks = z => TASKS.filter(t => t.z === z && t.kind !== 'train');
-const sectionEnd = z => TASKS.find(t => t.z === z && (t.cross || t.win));
+const sectionEnd = z => TASKS.find(t => t.z === z && (t.cross || t.win || t.finale));
 const sectionGear = z => ITEMS.filter(i => gearZone(i) === z);
 const gearAuto = i => !!(S.gauto && S.gauto[i.id]) && gearPracticed(i);
 function sectionGate(z){
@@ -1084,7 +1212,7 @@ function holdTask(t){
 function crossHeld(t){ return (S.life.prog[t.id] || 0) >= t.days - CROSS_HOLD - 1e-9 && !!crossPending(t); }
 // Gear automation: a design built in AUTO_LIVES different lives can be built automatically.
 // Automated designs are built in priority order; the top one is saved up for before cheaper ones.
-const gearPracticed = it => ((S.gprac || {})[it.id] || 0) >= gearNeed();
+const gearPracticed = it => ((S.gprac || {})[it.id] || 0) >= gearNeed(it);
 const gearPrio = it => (S.gprio && S.gprio[it.id]) || 3;
 function buyItem(id, auto){
   const L = S.life, it = IT[id];
@@ -1093,8 +1221,8 @@ function buyItem(id, auto){
   if (it.eff.maxHp) L.hp += it.eff.maxHp;
   if (!S.gprac) S.gprac = {};
   S.gprac[id] = (S.gprac[id] || 0) + 1;
-  if (S.gprac[id] === gearNeed() && S.gauto[id] !== false) S.gauto[id] = true;   // on by default once unlocked
-  HOOK.bought(it, auto, S.gprac[id] === gearNeed());
+  if (S.gprac[id] === gearNeed(it) && S.gauto[id] !== false) S.gauto[id] = true;   // on by default once unlocked
+  HOOK.bought(it, auto, S.gprac[id] === gearNeed(it));
   return true;
 }
 function autoBuy(){
@@ -1165,13 +1293,15 @@ function finish(t){
   M = mods();
   clampRes();
   if (r.heal) L.hp = M.maxHp;
-  if (t.cross && complete(t)) { L.sec = t.z + 1; if (!L.secAt) L.secAt = {}; L.secAt[L.sec] = {d:L.day, r:L.real || 0}; { const stay = id => isCQ(id) ? cSteps(id).some(x => isGQ(x) ? gearZone(IT[x.slice(2)]) > t.z : T[x].z > t.z) : isGQ(id) ? (qItem(id) && (isDone(qItem(id).req) || gearZone(qItem(id)) > t.z)) : T[id].z > t.z; L.qdone.push(...L.queue.filter(id => !stay(id))); L.queue = L.queue.filter(stay); } if (L.job && T[L.job].z <= t.z) L.job = null; L.foraging = false; HOOK.crossed(t); }
+  if (t.cross && complete(t)) enterZone(t.to || t.z + 1, t.z);
   if (complete(t) && t.log && !S.logged[t.id]) { S.logged[t.id] = 1; HOOK.log(t.name, t.log); }
   HOOK.done(t);
-  if (complete(t) && t.perk && !S.perks[t.perk]) { S.perks[t.perk] = true; M = mods(); HOOK.perk(PK[t.perk]); }
+  if (complete(t) && t.perk && !hasPerk(PK[t.perk])) { if (PK[t.perk].act2) S.a2.perks[t.perk] = true; else S.perks[t.perk] = true; M = mods(); HOOK.perk(PK[t.perk]); }
   WATCH.forEach(p => { if (p.secEnd === t.id && complete(t) && !S.perks[p.id]) { S.perks[p.id] = true; HOOK.perk(p); } });
   if (t.win) { L.wonAt = {d:L.day, r:L.real || 0}; recordBest(L); }
-  if (t.win && !S.won) { S.won = true; S.winGen = S.gen; HOOK.win(); }
+  if (t.win && !S.won) { S.won = true; S.winGen = S.gen; S.a2.open = true; HOOK.win(); }
+  else if (t.win && S.branch && !L.dead) enterZone(S.branch === 'A' ? 6 : 9, 5);   // into the chosen Act II branch
+  if (t.finale && complete(t)) finishBranch(t);
   HOOK.change();
 }
 // Run history: each clone's furthest section and time, plus the best run so far.
@@ -1191,10 +1321,36 @@ function bestClone(g, fin){
   if (!b || n > bn || (n === bn && (last[0] < bl[0] - 1e-9 || (Math.abs(last[0] - bl[0]) < 1e-9 && last[1] < bl[1]))))
     S.bestAll = {g, ng:(S.pr && S.pr.n) || 0, fin:fin.slice()};
 }
+// Move the clone into section z (a crossing, or Act II after the drive / the boarders' finale)
+function enterZone(z, from){
+  const L = S.life;
+  L.sec = z; if (!L.secAt) L.secAt = {}; if (!L.secAt[z]) L.secAt[z] = {d:L.day, r:L.real || 0};
+  (L.visited = L.visited || {})[z] = 1;
+  const stay = id => isCQ(id) ? cSteps(id).some(x => isGQ(x) ? !zBefore(gearZone(IT[x.slice(2)]), z) : !zBefore(T[x].z, z)) : isGQ(id) ? (qItem(id) && (isDone(qItem(id).req) || !zBefore(gearZone(qItem(id)), z))) : !zBefore(T[id].z, z);
+  L.qdone.push(...L.queue.filter(id => !stay(id))); L.queue = L.queue.filter(stay);
+  if (L.job && zBefore(T[L.job].z, z)) L.job = null;
+  L.foraging = false; L.held = null;
+  if (isA2(z)) {   // Act II: an Honour for each section first reached in a run
+    S.a2run = S.a2run || {reached:{}, done:{}};
+    if (!S.a2run.reached[z]) { S.a2run.reached[z] = 1; S.a2.hon = (S.a2.hon || 0) + 1; HOOK.honour(1, 'reaching ' + zoneThe(z)); }
+  }
+  M = mods(); HOOK.crossed(z);
+}
+// How far a clone got: sections entered, plus one for lighting the drive
+function progOf(L){ return Object.keys(L.visited || {1:1}).length + (L.wonAt ? 1 : 0); }
+// An Act II branch finished: +2 Honours and a lower Act II threshold (first time each run)
+function finishBranch(t){
+  const L = S.life; S.a2run = S.a2run || {reached:{}, done:{}};
+  if (!S.a2run.done[t.finale]) { S.a2run.done[t.finale] = 1; S.a2.fin = (S.a2.fin || 0) + 1; S.a2.hon = (S.a2.hon || 0) + 2; HOOK.honour(2, 'finishing ' + (t.finale === 'A' ? 'the boarders' : 'the long watch')); }
+  if (t.finale === 'A') {
+    if (S.merge === true) enterZone(9, 8);
+    else if (S.merge == null) HOOK.merge();
+  }
+}
 function recordBest(L){
-  const sec = L.wonAt ? 6 : (L.sec || 1), at = L.wonAt || (L.secAt && L.secAt[L.sec]) || {d:0, r:0};
-  const b = S.best;
-  if (!b || sec > b.sec || (sec === b.sec && at.r < b.r)) S.best = {g:S.gen, sec, d:at.d, r:at.r};
+  const pr = progOf(L), z = L.sec || 1, at = (isA2(z) ? L.secAt && L.secAt[z] : L.wonAt) || (L.secAt && L.secAt[z]) || {d:0, r:0};
+  const b = S.best, bp = b ? (b.prog || b.sec) : 0;
+  if (!b || pr > bp || (pr === bp && at.r < b.r)) S.best = {g:S.gen, prog:pr, z, lit:!!L.wonAt, sec:Math.min(6, pr), d:at.d, r:at.r};
 }
 function die(cause){
   const L = S.life; L.dead = true; L.cause = cause; L.cur = null; L.cur2 = null;
@@ -1206,8 +1362,8 @@ function die(cause){
   S.stats.deaths++; S.stats.daysLived += L.day;
   if (!S.hist) S.hist = [];
   // when each section was finished: arriving in the next one, or lighting the drive for the last
-  const fin = ZONES.map(z => { const a = z.id < 5 ? (L.secAt || {})[z.id + 1] : L.wonAt; return a ? [+(a.d / TPD).toFixed(2), Math.round(a.r)] : null; });
-  S.hist.push({g:S.gen, sec:L.wonAt ? 6 : (L.sec || 1), d:L.day, r:L.real || 0, cause, fin});
+  const fin = [1, 2, 3, 4, 5].map(z => { const a = z < 5 ? (L.secAt || {})[z + 1] : L.wonAt; return a ? [+(a.d / TPD).toFixed(2), Math.round(a.r)] : null; });
+  S.hist.push({g:S.gen, sec:L.wonAt ? 6 : Math.min(5, L.sec || 1), z:L.sec || 1, lit:!!L.wonAt, prog:progOf(L), d:L.day, r:L.real || 0, cause, fin});
   bestFin(S.gen, fin);
   bestClone(S.gen, fin);
   if (S.hist.length > 50) S.hist.shift();
@@ -1229,7 +1385,9 @@ function step(dt){
   const h1 = t.haz ? hazDmg(t) : 0, h2 = 0, ht = t;
   L.wear = (L.wear || 0) + dt;
   L.strain = (L.strain || 1) + dt * strainRate(L.wear);
-  const drain = Math.min(HUNGER * L.strain + h1, MAX_DRAIN) / drainDiv();
+  // The long watch: the ship slowly wears out; wear adds to the drain until upkeep jobs bring it down
+  if (isWatch(L.sec)) L.shipWear = (L.shipWear || 0) + dt / TPD * M.wear;
+  const drain = Math.min(HUNGER * L.strain + h1, MAX_DRAIN) / drainDiv() * wearMul();
   L.hp -= drain * dt;
   if (!L.mcd) L.mcd = {};
   FOODS.forEach(f => { if (L.mcd[f.id]) L.mcd[f.id] = Math.max(0, L.mcd[f.id] - dt); });
@@ -1242,11 +1400,15 @@ function step(dt){
   L.day += dt;
   return true;
 }
+const isWatch = z => z >= 9 && z <= 11;
+const SHIP_WEAR = 0.06;   // extra drain per day of wear
+const wearMul = () => isWatch(S.life.sec) ? 1 + SHIP_WEAR * (S.life.shipWear || 0) : 1;
 function work(t, dt){
   const L = S.life;
   {
     const sp = speedOf(t);
     addFam(t, (t.kind === 'job' ? sp * dt / JOB_CYCLE : sp * dt / t.days) * famGain(t));
+    if (t.upkeep) L.shipWear = Math.max(0, (L.shipWear || 0) - sp * dt / TPD * 1.5);   // upkeep work repairs wear
     if (t.kind === 'job') {
       // Jobs work in batches: the bar fills over JOB_CYCLE days of work, then delivers and empties.
       L.cyc[t.id] = (L.cyc[t.id] || 0) + sp * dt / JOB_CYCLE;
@@ -1255,7 +1417,7 @@ function work(t, dt){
         L.cyc[t.id] -= n;
         const before = L.bat[t.id] || 0; L.bat[t.id] = before + n;
         addPractice(t, n);   // every batch counts
-        if (t.prod) { if (t.prod.rations) addFood(jobFood(t), t.prod.rations * JOB_CYCLE * n); if (t.prod.salvage) L.salvage += t.prod.salvage * JOB_CYCLE * n; }
+        if (t.prod) { if (t.prod.rations) addFood(jobFood(t), t.prod.rations * JOB_CYCLE * n); if (t.prod.salvage) L.salvage += t.prod.salvage * JOB_CYCLE * n * (isA2(t.z) ? M.a2sal : 1); }
       }
     } else {
       L.prog[t.id] = (L.prog[t.id] || 0) + sp * dt;
@@ -1316,7 +1478,7 @@ function cStepDone(id, x){
   if (isGQ(x)) return !!L.owned[x.slice(2)];
   const t = T[x];
   if (t.kind === 'job') return !!(L.cjd || {})[id + '#' + x];
-  return complete(t) || t.z < (L.sec || 1);
+  return complete(t) || zBefore(t.z, L.sec || 1);
 }
 function bestSalvageJob(ok){
   let job = null, br = 0;
@@ -1372,7 +1534,10 @@ function prestige(choice){
   const carry = Math.min(AWAY_CAP - AWAY_BASE, (pr.carry || 0) + AWAY_STEP * WATCH.filter(p => o.perks[p.id]).length);
   const ns = defaultState();
   ns.set = o.set; ns.set.paused = false; ns.set.boost = false;
-  ns.qpresets = o.qpresets; ns.bank = o.bank || 0; ns.intro = true; ns.bestAll = o.bestAll || null;   // the best clone ever survives new game plus
+  ns.qpresets = o.qpresets; ns.bank = o.bank || 0; ns.intro = true; ns.bestAll = o.bestAll || null;
+  ns.a2 = o.a2 || ns.a2;   // Act II familiarity, practice, records and Honours carry over; its sections are replayed
+  TASKS.forEach(t => { if (isA2(t.z)) { if ((o.fam || {})[t.id]) ns.fam[t.id] = o.fam[t.id]; if ((o.prac || {})[t.id]) ns.prac[t.id] = o.prac[t.id]; } });
+  ITEMS.forEach(i => { if (isA2(gearZone(i)) && (o.gprac || {})[i.id]) ns.gprac[i.id] = o.gprac[i.id]; });   // the best clone ever survives new game plus
   // automation settings carry over: on/off switches and priorities for tasks and gear (the queue does not)
   ns.auto = o.auto || {}; ns.prio = o.prio || {}; ns.gauto = o.gauto || {}; ns.gprio = o.gprio || {};
   ns.stats.played = o.stats.played || 0;
@@ -1757,6 +1922,11 @@ function mergeState(raw){
   WATCH.forEach(p => { if ((s.ever || {})[p.secEnd] || (s.logged || {})[p.secEnd] || (p.secEnd === 'ignite' && s.won) || (s.life && s.life.done && s.life.done[p.secEnd])) s.perks[p.id] = true; });
   delete s.perks.service1; delete s.perks.service2;
   if (!s.gprac) s.gprac = {}; if (!s.gauto) s.gauto = {}; if (!s.gprio) s.gprio = {};
+  if (!s.a2 || typeof s.a2 !== 'object') s.a2 = {open:false, hon:0, lv:{}, perks:{}, fin:0};
+  ['lv','perks'].forEach(k => { if (!s.a2[k]) s.a2[k] = {}; });
+  if ((s.won || (s.pr && s.pr.n)) && !s.a2.open) s.a2.open = true;   // Act II opens for anyone who has lit the drive
+  if (!s.a2run) s.a2run = {reached:{}, done:{}};
+  if (s.life && !s.life.visited) { s.life.visited = {}; for (let z = 1; z <= Math.min(5, s.life.sec || 1); z++) s.life.visited[z] = 1; }
   if (!s.autoDef) { s.autoDef = 1; const P = s.prac || {}; s.auto = s.auto || {};
     TASKS.forEach(t => { const u = t.kind === 'job' ? JOB_UNIT : t.kind === 'train' ? TRAIN_CAP : t.kind === 'rest' ? 1 : (t.reps || 1); if ((P[t.id] || 0) >= AUTO_LIVES * u && s.auto[t.id] == null) s.auto[t.id] = true; });
     ITEMS.forEach(i => { if ((s.gprac[i.id] || 0) >= AUTO_LIVES && s.gauto[i.id] == null) s.gauto[i.id] = true; }); }
@@ -1873,8 +2043,8 @@ HOOK.bought = (it, auto, unlocked) => {
   toast((auto ? 'Auto-built: ' : 'Built: ') + it.name);
   if (unlocked) toast('Automated: ' + it.name + (S.gauto[it.id] ? ' is now built automatically (switch it off with AUTO).' : ' can now be built automatically.'), true);
 };
-HOOK.crossed = t => { sfx('perk'); taskKey = ''; mapKey = ''; toast('You enter the ' + ZONES[t.z].name + '. The way back is sealed.', true);
-  if (S.set.pauseCross) { S.set.paused = true; toast('Paused on entering the ' + ZONES[t.z].name + '. Press Resume to carry on.'); } };
+HOOK.crossed = z => { sfx('perk'); taskKey = ''; mapKey = ''; toast('You enter ' + zoneThe(z) + '. The way back is sealed.', true);
+  if (S.set.pauseCross) { S.set.paused = true; toast('Paused on entering ' + zoneThe(z) + '. Press Resume to carry on.'); } };
 HOOK.rested = t => { sfx('eat'); toast('Rested. Strain halved to \u00d7' + (S.life.strain || 1).toFixed(2) + '.'); };
 HOOK.perk = p => { sfx('perk'); toast('Archive record: ' + p.name, true); if (tab !== 'archive') newPerk = true; archKey = ''; };
 HOOK.change = () => { taskKey = ''; gearKey = ''; };
@@ -1897,6 +2067,8 @@ function autoDecant(){
   save(); toast(msg);
 }
 HOOK.win = () => { save(); showWin(); };
+HOOK.merge = () => { save(); showMerge(); };
+HOOK.honour = (n, why) => { sfx('perk'); toast('+' + n + ' Honour' + (n > 1 ? 's' : '') + ' for ' + why + '.', true); archKey = ''; };
 
 function toast(msg, gold){
   const el = document.createElement('div');
@@ -2016,7 +2188,7 @@ function renderTasks(){
       const g = isGQ(id), t = g ? {name:qName(id)} : T[id], it = g ? qItem(id) : null;
       const bl = g ? (!isDone(it.req) || it.cost > M.salCap) : !available(t);
       const why = g ? (!isDone(it.req) ? 'after: ' + T[it.req].name : it.cost > M.salCap ? 'needs bigger salvage storage' : fmt(Math.min(L.salvage, it.cost)) + '/' + fmt(it.cost) + ' salvage')
-        : L.held === id ? 'on hold: wrapping up the section' : !bl ? '' : t.z > L.sec ? 'waits for the ' + ZONES[t.z - 1].name : t.z < L.sec ? 'left behind' : 'waiting for its requirements';
+        : L.held === id ? 'on hold: wrapping up the section' : !bl ? '' : zAfter(t.z, L.sec) ? 'waits for ' + zoneThe(t.z) : zBefore(t.z, L.sec) ? 'left behind' : 'waiting for its requirements';
       return `<li class="qrow${bl ? ' blocked' : ''}${g ? ' gq' : ''}" data-qid="${id}"><span class="qdrag" data-qdrag="${i}" aria-hidden="true" title="Drag to reorder">⠇</span><span class="qn">${i + 1}.</span><span class="qt">${esc(t.name)}${t.kind === 'job' ? ' <small>until full</small>' : ''}${why ? ` <small>${why}</small>` : ''}</span>
         <button data-qmove="${i}" data-dir="-1" ${i === 0 ? 'disabled' : ''} aria-label="Move ${esc(t.name)} up">\u2191</button><button data-qmove="${i}" data-dir="1" ${i === L.queue.length - 1 ? 'disabled' : ''} aria-label="Move ${esc(t.name)} down">\u2193</button><button data-unqi="${i}" aria-label="Remove ${esc(t.name)} from queue">\u2715</button></li>`;
     }).join('') + '</ol>';
@@ -2083,7 +2255,7 @@ function renderTasks(){
         const qi = L.queue.indexOf(t.id);
         const rb = rewardBits(t);
         h += `<div class="task act${t.cross ? ' cross' : ''}" data-id="${t.id}">
-          <button class="tm" data-do="${t.id}"><div class="tf"></div>${t.cross ? `<div class="crossw">Leads to the ${esc(ZONES[t.z].name)} \u00b7 no way back</div>` : ''}
+          <button class="tm" data-do="${t.id}"><div class="tf"></div>${t.cross ? `<div class="crossw">Leads to ${esc(zoneThe(t.to || t.z + 1))} \u00b7 no way back</div>` : ''}
             <div class="th"><span class="tn">${esc(t.name)}</span><span class="te num"></span></div>
             <div class="tx">${chips(t)}${t.reps > 1 ? `<span class="num rp"></span>` : ''}${t.haz ? '<span class="haz">▲ hazard</span>' : ''}${rb.length ? '<span>' + rb.join(' · ') + '</span>' : ''}<span class="num">${masteryTxt(t)}</span>${practiced(t) ? '' : `<span class="num">auto ${S.prac[t.id] || 0}/${autoNeed(t)}</span>`}</div>
           </button>
@@ -2092,7 +2264,7 @@ function renderTasks(){
     }
     {
       const gav = ITEMS.filter(i => gearZone(i) === z.id && isDone(i.req));
-      const gkn = ITEMS.filter(i => gearZone(i) === z.id && !isDone(i.req) && ((S.gprac || {})[i.id] || 0) > 0 && z.id >= (L.sec || 1));
+      const gkn = ITEMS.filter(i => gearZone(i) === z.id && !isDone(i.req) && ((S.gprac || {})[i.id] || 0) > 0 && !zBefore(z.id, L.sec || 1));
       if (gav.length || gkn.length) {
         h += '<div class="sub">Gear \u00b7 built from salvage, lasts this clone</div>';
         gav.forEach(i => { h += gearRow(i); });
@@ -2205,7 +2377,8 @@ function updateHud(){
   $('#t-ratt').textContent = !nextFood() ? 'no food: starving' : re.txt === 'empty in' ? 'all food gone in ' + both(re.days) : '';
   $('#t-ratt').classList.toggle('neg', true);
   $('#t-salt').textContent = se.txt === 'full' ? 'storage full' : se.txt === 'steady' ? '' : se.txt + ' ' + both(se.days);
-  const fl = FOODS.filter(f => f.z <= (L.sec || 1) || (L.food[f.id] || 0) > 0.005).map(f => {
+  const fl = FOODS.filter(f => f.z === (L.sec || 1) || (L.food[f.id] || 0) > 0.005 || (f.z === 1 && !isA2(L.sec || 1))).map(f => {   // what you carry, plus this section's food
+
     const v = L.food[f.id] || 0, cd = (L.mcd || {})[f.id] || 0;
     return `<span class="${v >= M.fcap[f.id] - 0.01 ? 'full' : ''}" title="${f.name}: heals ${fmt(mealHp(f.id))}, one every ${fmtDays(mealCd(f.id))}"><em>${f.id}</em> ${fmt(v)}/${M.fcap[f.id]}${v >= FOOD_MIN && cd > 0 ? ' <i>' + fmtDays(cd) + '</i>' : ''}</span>`;
   }).join('');
@@ -2265,7 +2438,7 @@ function qBtn(id, extra){
 }
 function gearRow(i){
   const L = S.life, pr = gearPracticed(i), on = !!(S.gauto && S.gauto[i.id]);
-  const st = pr ? (on ? 'built automatically when affordable' : 'can be automated') : 'built in ' + ((S.gprac || {})[i.id] || 0) + '/' + gearNeed() + ' lives';
+  const st = pr ? (on ? 'built automatically when affordable' : 'can be automated') : 'built in ' + ((S.gprac || {})[i.id] || 0) + '/' + gearNeed(i) + ' lives';
   return `<div class="item gitem"><div><h3>${esc(i.name)}</h3><p>${esc(i.desc)}</p><p class="num">${st}</p></div>` +
     (L.owned[i.id] ? '<span class="owned">Built</span>' : `<button class="buy" data-buy="${i.id}" ${L.salvage >= i.cost ? '' : 'disabled'}>${fmt(i.cost)} salvage${i.cost > M.salCap ? '<br><small>needs storage</small>' : ''}</button>${gqBtn(i)}`) +
     (pr ? `<button class="ta${on ? ' on' : ''}" data-gauto="${i.id}" aria-pressed="${on}" aria-label="Build ${esc(i.name)} automatically">AUTO</button>` : '') + '</div>';
@@ -2273,7 +2446,7 @@ function gearRow(i){
 function renderGear(){
   const L = S.life;
   const av = ITEMS.filter(i => isDone(i.req));
-  const known = ITEMS.filter(i => !isDone(i.req) && ((S.gprac || {})[i.id] || 0) > 0 && gearZone(i) >= (L.sec || 1));
+  const known = ITEMS.filter(i => !isDone(i.req) && ((S.gprac || {})[i.id] || 0) > 0 && !zBefore(gearZone(i), L.sec || 1));
   const key = M.salCap + '|' + L.queue.filter(isGQ).join() + '|' + known.map(i => i.id).join() + '|' + av.map(i => i.id + (L.owned[i.id] ? 'o' : (L.salvage >= i.cost ? 'y' : 'n')) + ((S.gprac || {})[i.id] || 0) + (S.gauto && S.gauto[i.id] ? '*' : '') + gearPrio(i)).join();
   if (key === gearKey) return; gearKey = key;
   let h = '<div class="panel"><span class="h2">Fabricator</span><p class="note">Gear is built from salvage and lasts for this clone only. New designs appear as you explore. Salvage storage is limited; opening up more of the ship raises it.</p></div><div>';
@@ -2335,6 +2508,27 @@ document.addEventListener('change', e => {
   else { S.set.boost = true; S.set.boostX = x; toast('Stasis boost \u00d7' + x + ': the bank lasts ' + fmtSecs(S.bank / (x - 1)) + ' of running time.'); }
   audioStart(); sfx('toggle'); save(); renderSpeed(); e.target.blur();
 });
+// Act II: the branch for this run, and Honours spent on Act II rewards (respec any time)
+const A2R = [
+  {id:'vet',     name:'Veteran template',  now:k => 'Act II hazard damage \u2212' + (15 * k) + '%'},
+  {id:'rhythm',  name:'Long-watch rhythm', now:k => 'strain in Act II \u2212' + (8 * k) + '%'},
+  {id:'scav',    name:'Scavenger\u2019s eye', now:k => 'Act II salvage +' + (20 * k) + '%'},
+  {id:'rations', name:'Field rations',     now:k => 'Act II food heals +' + (10 * k) + '%'},
+];
+function act2Panel(){
+  const a = S.a2, spent = Object.values(a.lv || {}).reduce((x, y) => x + y, 0), free = Math.max(0, (a.hon || 0) - spent);
+  let h = '<div class="panel ngp"><span class="h2">Act II</span>';
+  h += `<p class="note">After the drive is lit, a run can go on into Act II. Act II familiarity, automation, records and Honours are kept through new game plus; its sections are played again each run. Act II needs ${fmt(famN0A2())} lives' worth of a task for \u00d710 (a quarter less for every branch finished).</p>`;
+  if (!S.branch) h += S.won ? '<div class="ngpick"><button class="btn" data-act2="A">Act II: Boarders<small>Repel alien boarders; can merge into the long watch afterwards.</small></button><button class="btn" data-act2="B">Act II: The long watch<small>Keep the ship running all the way to Tessaly.</small></button></div>'
+                          : '<p class="note">Light the main drive in this run to choose an Act II branch.</p>';
+  else h += `<p class="note">This run: <b>${S.branch === 'A' ? 'Boarders' : 'The long watch'}</b>${S.branch === 'A' ? (S.merge ? ', then the long watch' : S.merge === false ? ' (ending there)' : '') : ''}.</p>` +
+    (S.branch === 'A' && S.merge === false ? '<div class="btns"><button class="btn" data-merge="1">Merge into the long watch after all</button></div>' : '');
+  h += `<div class="ngpts"><span class="lbl">Honours</span> <b class="num">${free}</b> unspent of ${a.hon || 0} \u00b7 one per Act II section first reached in a run, two per branch finished</div>`;
+  A2R.forEach(r => { const k = Math.min(5, (a.lv || {})[r.id] || 0);
+    h += `<div class="ngrow"><div><b>${r.name}</b> <span class="num">${k}/5</span><small>${k ? r.now(k) : 'not taken'}</small></div>
+      <button class="btn" data-a2adj="${r.id}" data-dd="-1" ${k ? '' : 'disabled'} aria-label="Remove an Honour from ${r.name}">\u2212</button><button class="btn" data-a2adj="${r.id}" data-dd="1" ${k < 5 && free ? '' : 'disabled'} aria-label="Add an Honour to ${r.name}">+</button></div>`; });
+  return h + '</div>';
+}
 function ngpPanel(){
   const pr = S.pr || {n:0};
   let h = '<div class="panel ngp"><span class="h2">New game plus</span>';
@@ -2371,16 +2565,17 @@ function showNgp(){
     <div class="btns"><button class="btn" data-close>Not yet</button></div>`);
 }
 function renderArchive(force){
-  const key = Object.keys(S.perks).join() + '|' + S.gen + '|' + JSON.stringify(S.set) + '|' + S.won + '|' + Math.floor((S.stats.played || 0) / 60) + '|' + JSON.stringify(S.pr);
+  const key = Object.keys(S.perks).join() + JSON.stringify(S.a2 || {}) + (S.branch || '') + S.merge + '|' + S.gen + '|' + JSON.stringify(S.set) + '|' + S.won + '|' + Math.floor((S.stats.played || 0) / 60) + '|' + JSON.stringify(S.pr);
   if (key === archKey && !force) return; archKey = key;
-  const got = PERKS.filter(p => S.perks[p.id]).length;
-  let h = `<div class="panel"><span class="h2">Archive records</span><p class="note">Permanent upgrades. Each is found the first time a clone finishes a certain action. ${got} of ${PERKS.length} recovered.</p></div><div>`;
+  const shown = PERKS.filter(p => !p.act2 || (S.a2 && S.a2.open)), got = shown.filter(hasPerk).length;
+  let h = `<div class="panel"><span class="h2">Archive records</span><p class="note">Permanent upgrades. Each is found the first time a clone finishes a certain action. ${got} of ${shown.length} recovered.</p></div><div>`;
   ZONES.forEach(z => {
+    if (isA2(z.id) && !(S.a2 && S.a2.open)) return;   // Act II stays hidden until the drive is first lit
     const zp = PERKS.filter(p => p.from === z.id); if (!zp.length) return;
-    const got = zp.filter(p => S.perks[p.id]).length;
+    const got = zp.filter(hasPerk).length;
     h += `<div class="sub" style="margin-top:10px">${z.name} \u00b7 ${got}/${zp.length}</div>`;
     zp.forEach(p => {
-      h += S.perks[p.id]
+      h += hasPerk(p)
         ? `<div class="perk"><h3>${esc(p.name)}</h3><p>${esc(p.desc)}${p.by && S.seen[p.by] ? ' <span class="by">From: ' + esc(T[p.by].name) + '</span>' : ''}</p></div>`
         : p.secEnd ? `<div class="perk no"><h3>${esc(p.name)}</h3><p>${p.secEnd === 'ignite' ? 'Light the main drive' : 'Leave the ' + z.name}: +8 hours of time away.</p></div>`
         : `<div class="perk no"><h3>Unrecovered record</h3><p>Somewhere in the ${z.name}.</p></div>`;
@@ -2397,6 +2592,7 @@ function renderArchive(force){
     <div><b>${awayMax() / 3600} h</b><span>Time away limit (max 168 h)</span></div>
     <div><b>${S.won ? 'Clone ' + S.winGen : 'Not yet'}</b><span>Drive ignited</span></div></div>`;
   if (S.won || (S.pr && S.pr.n)) h += ngpPanel();
+  if (S.a2 && S.a2.open) h += act2Panel();
   h += '<div class="panel set"><span class="h2">Settings</span>';
   h += `<div class="row"><p>Auto-eat<small>Eat each kind of food whenever its own meal cooldown is over and health has room for it.</small></p><button class="tog${S.set.autoEat ? ' on' : ''}" data-set="autoEat" aria-label="Auto-eat" aria-pressed="${S.set.autoEat}"></button></div>`;
   if (S.perks.survival) {
@@ -2433,6 +2629,7 @@ function renderLog(){
   const key = Math.floor((S.stats.played || 0) / 60) + '|' + S.log.length + '|' + (S.log.length ? S.log[S.log.length-1].t : '') + '|' + (S.hist ? S.hist.length : 0) + '|' + JSON.stringify(S.bestSec || 0) + JSON.stringify(S.bestAll || 0) + '|' + histAll + '|' + S.gen + '|' + JSON.stringify(S.best || {});
   if (key === logKey) return; logKey = key;
   const secName = n => n >= 6 ? 'Drive lit' : ZONES[n - 1].name;
+  const histName = e => e.z && isA2(e.z) ? ZN(e.z).name : secName(e.sec);
   const realT = r => fmtReal(r);
   const allH = S.hist || [], hist = allH.slice(histAll ? -50 : -5).reverse();
   // Play time: the whole save across new game plus, and how long each run took (from run start to
@@ -2447,7 +2644,7 @@ function renderLog(){
   h += '<div class="panel"><span class="h2">Recent clones</span>';
   if (allH.length > 5) h += `<button class="btn histm" data-histall>${histAll ? 'Show last 5' : 'Show all ' + allH.length}</button>`;
   if (!hist.length) h += '<p class="note">No clone has died yet. Each clone\u2019s furthest section and time will appear here.</p>';
-  else h += `<div class="rtab"><table class="dt"><thead><tr><th>Clone</th><th>Furthest</th><th>Days</th><th>Real</th></tr></thead><tbody>${hist.map(e => `<tr title="${esc(e.cause)}"><td>${e.g}</td><td>${secName(e.sec)}</td><td>${(e.d / TPD).toFixed(1)}</td><td>${realT(e.r)}</td></tr>`).join('')}</tbody></table></div>`;
+  else h += `<div class="rtab"><table class="dt"><thead><tr><th>Clone</th><th>Furthest</th><th>Days</th><th>Real</th></tr></thead><tbody>${hist.map(e => `<tr title="${esc(e.cause)}"><td>${e.g}</td><td>${histName(e)}</td><td>${(e.d / TPD).toFixed(1)}</td><td>${realT(e.r)}</td></tr>`).join('')}</tbody></table></div>`;
   if (hist.length) {
     // columns: when each section was first reached (unlocked) in a clone's life, and when the drive was lit
     const short = ['Ring', 'Spine', 'Deck', 'Drive', 'Lit'], longN = ['Reached the Hydroponics Ring', 'Reached the Engineering Spine', 'Reached the Command Deck', 'Reached the Main Drive', 'Lit the main drive'];
@@ -2455,7 +2652,7 @@ function renderLog(){
     h += `<div class="rtab"><table class="dt ft"><thead><tr><th>Clone</th>${short.map((n, i) => `<th title="${longN[i]}">${n}</th>`).join('')}</tr></thead><tbody>${S.bestAll ? `<tr class="ftbest ftall"><td>Best clone<small>#${S.bestAll.g}${S.bestAll.ng ? ' NG+' + S.bestAll.ng : ''}</small></td>${ZONES.map((z, i) => { const f = S.bestAll.fin[i]; return `<td>${f ? 'd' + f[0].toFixed(1) + '<small>' + realT(f[1]) + '</small>' : '\u2014'}</td>`; }).join('')}</tr>` : ''}${S.bestSec && S.bestSec.some(Boolean) ? `<tr class="ftbest"><td>Best</td>${ZONES.map((z, i) => { const b = S.bestSec[i]; return `<td>${b ? 'd' + b.d.toFixed(1) + '<small>' + realT(b.r) + '</small><small>clone ' + b.g + '</small>' : '\u2014'}</td>`; }).join('')}</tr>` : ''}${hist.map(e => `<tr><td>${e.g}</td>${ZONES.map((z, i) => { const f = e.fin && e.fin[i]; return `<td>${f ? 'd' + f[0].toFixed(1) + '<small>' + realT(f[1]) + '</small>' : '\u2014'}</td>`; }).join('')}</tr>`).join('')}</tbody></table></div>`;
   }
   const b = S.best;
-  h += b ? `<p class="best"><span class="lbl">Best run</span> Clone ${b.g} ${b.sec >= 6 ? 'lit the drive' : 'reached the ' + secName(b.sec)} after ${(b.d / TPD).toFixed(1)} days \u00b7 ${realT(b.r)} real</p>` : '';
+  h += b ? `<p class="best"><span class="lbl">Best run</span> Clone ${b.g} ${b.z && isA2(b.z) ? 'reached ' + ZN(b.z).name : b.sec >= 6 ? 'lit the drive' : 'reached the ' + secName(b.sec)} after ${(b.d / TPD).toFixed(1)} days \u00b7 ${realT(b.r)} real</p>` : '';
   h += '</div>';
   h += '<div class="panel"><span class="h2">Ship log</span><p class="note">What your clones have learned about the Long Patience, its sleeping crew and WARDEN.</p></div><div>';
   if (!S.log.length) h += '<p class="note">Nothing yet.</p>';
@@ -2549,11 +2746,11 @@ function updateMap(){
   const L = S.life;
   mapRefs.forEach(r => {
     const t = r.t, av = available(t), done = complete(t), cur = L.cur === t.id || L.cur2 === t.id;
-    r.g.classList.toggle('done', done); r.g.classList.toggle('cur', cur); r.g.classList.toggle('lock', !av && !done); r.g.classList.toggle('passed', t.z < L.sec && !done);
+    r.g.classList.toggle('done', done); r.g.classList.toggle('cur', cur); r.g.classList.toggle('lock', !av && !done); r.g.classList.toggle('passed', zBefore(t.z, L.sec) && !done);
     let p = done ? 1 : (L.prog[t.id] || 0) / t.days;
     r.f.setAttribute('width', (Math.min(1, p) * r.w).toFixed(1));
     const sp = speedOf(t);
-    r.s.textContent = done ? 'done' : t.z < L.sec ? 'left behind' : t.z > L.sec ? 'not reached' : !av ? 'locked' : t.kind === 'rest' ? 'rest · ' + fmtDays((t.days - (L.prog[t.id] || 0)) / sp)
+    r.s.textContent = done ? 'done' : zBefore(t.z, L.sec) ? 'left behind' : zAfter(t.z, L.sec) ? 'not reached' : !av ? 'locked' : t.kind === 'rest' ? 'rest · ' + fmtDays((t.days - (L.prog[t.id] || 0)) / sp)
       : (t.reps > 1 ? (L.done[t.id] || 0) + '/' + t.reps + ' · ' : '') + fmtDays((t.days * (t.reps - (L.done[t.id] || 0)) - (L.prog[t.id] || 0)) / sp);
   });
   document.querySelectorAll('#v-map .me').forEach(e => e.classList.toggle('lit', isDone(e.dataset.from)));
@@ -2561,7 +2758,7 @@ function updateMap(){
 document.addEventListener('click', e => {
   const g = e.target.closest && e.target.closest('[data-mapdo]'); if (!g) return;
   const L = S.life, t = T[g.dataset.mapdo];
-  if (L.dead || complete(t) || t.z < L.sec) { sfx('error'); return; }
+  if (L.dead || complete(t) || zBefore(t.z, L.sec)) { sfx('error'); return; }
   audioStart(); sfx('click');
   if (available(t)) { L.now = t.id; L.foraging = false; L.feeding = false; if (t.cross) L.crossNow = t.id; toast('Working on: ' + t.name); }
   else if (!L.queue.includes(t.id)) { if (qAdd(t.id)) toast('Queued: ' + t.name + ' (runs once it is available)'); }
@@ -2593,7 +2790,7 @@ function renderAuto(){
   }
   ZONES.forEach(z => {
     const zl = list.filter(t => t.z === z.id), gl = glist.filter(i => gearZone(i) === z.id); if (!zl.length && !gl.length) return;
-    h += `<section class="zone"><header class="zh"><h2>${z.name}</h2><span>${z.id === L.sec ? 'you are here' : z.id < L.sec ? 'left behind this life' : 'ahead'}</span></header>`;
+    h += `<section class="zone"><header class="zh"><h2>${z.name}</h2><span>${z.id === L.sec ? 'you are here' : zBefore(z.id, L.sec) ? 'left behind this life' : 'ahead'}</span></header>`;
     // section chain status, and the chains formed so far (links need both tasks automated and x2 familiar)
     const g = sectionGate(z.id);
     h += z.id === (L.sec || 1) ? secRunHtml(z.id) || `<div class="secrun dim"><span>Section chain: ${g.ok}/${g.n} parts ready.</span></div>` : `<div class="secrun dim"><span>Section chain: ${g.ok}/${g.n} parts ready${g.ready ? ' (ready)' : ''}.</span></div>`;
@@ -2658,11 +2855,12 @@ const FAQ_ALL = [
 ];
 // Shown only once new game plus is unlocked (it stays hidden until the drive is first lit).
 const FAQ_NGP = ['New game plus', 'After you light the main drive, <b>New game plus</b> opens in the Archive tab. It starts the whole ship over: clones, familiarity, archive records, practice and automation all reset. Each run you pick one step of a lasting reward. Each reward has five steps: <b>Deep echo</b> (each step cuts the familiarity every task needs for ×10 by a fifth, on top of the quarter every finished run already takes off), <b>Drain dampener</b> (health drain divided by 1.8, 2.6, 3.4, 4.2 and finally 5) <b>Template upgrade</b> (+100 max health for every clone per step, +500 in all) and <b>Overclocked line</b> (the whole game runs faster: ×1.8, ×2.6, ×3.4, ×4.2 and finally ×5, without using banked time; the stasis boost stacks on top). Each finished run earns one point and each level costs one point; you can move points between rewards at any time, even mid-run, from the Archive. Twenty points max everything out. Your settings, automation switches and priorities, queue presets and stasis boost carry over (the queue itself does not), and so does your time-away limit: the hours from Stasis watch records add up from run to run, up to 168 hours (one week).'];
+const FAQ_A2 = ['Act II', 'Once the main drive is lit, a run can carry on into <b>Act II</b>. Choose a branch: <b>Boarders</b> (alien boarders cut into the hull; three sections of fighting, ending on their ship, after which you can merge into the long watch) or <b>The long watch</b> (the voyage goes on; the ship slowly wears out, which adds to the health drain until upkeep jobs bring it down; three sections to Tessaly orbit). Every clone that lights the drive carries on into the chosen branch. Act II tasks have their own familiarity, which new game plus does not reduce: it starts at 90 lives\u2019 worth for \u00d710 and drops by a quarter for every branch you finish. Act II familiarity, automation, records and <b>Honours</b> are kept through new game plus; the sections are replayed. Honours (one per Act II section first reached in a run, two per branch finished) buy Act II rewards in the Archive, with free respec.'];
 let faqDone = '';
 function renderFaq(){
-  const k = String(!!(S.won || (S.pr && S.pr.n)));
+  const k = String(!!(S.won || (S.pr && S.pr.n))) + !!(S.a2 && S.a2.open);
   if (faqDone === k) return; faqDone = k;
-  const FAQ = k === 'true' ? FAQ_ALL.concat([FAQ_NGP]) : FAQ_ALL;
+  const FAQ = FAQ_ALL.concat(S.won || (S.pr && S.pr.n) ? [FAQ_NGP] : [], S.a2 && S.a2.open ? [FAQ_A2] : []);
   $('#v-faq').innerHTML = '<div class="panel"><span class="h2">FAQ</span><p class="note">How Long Patience works. Tap a question to open it.</p></div><div class="faq">' +
     FAQ.map(([q, a], i) => `<details${i < 2 ? ' open' : ''}><summary>${q}</summary><p>${a}</p></details>`).join('') + '</div>';
 }
@@ -2693,10 +2891,33 @@ function showDeath(){
 }
 function showWin(){
   paused = true;
-  showModal(`<h2>The ship is ready</h2>
-    <p>The food beds grow, the reactor holds and the stardrive burns for Tessaly. WARDEN begins waking the crew. It took ${S.gen} clone${S.gen > 1 ? 's' : ''} of K-7 to get here. None of them will be remembered.</p>
-    <p class="d">New game plus is now open in the Archive tab: start over with a new line of clones and a lasting reward. You can also keep playing this run first.</p>
-    <button class="btn pri" data-close>Keep going</button>`);
+  showModal(`<h2>The drive is lit</h2>
+    <p>The food beds grow, the reactor holds and the stardrive burns for Tessaly. It took ${S.gen} clone${S.gen > 1 ? 's' : ''} of K-7 to get here. None of them will be remembered.</p>
+    <p>WARDEN begins the wake cycle, then stops. Proximity alarms. Something is closing on the ship\u2026 or nothing is, and the long voyage simply goes on.</p>
+    <p class="d"><b>Act II</b> is open. Choose where this run goes next. Every clone that lights the drive carries on into it. New game plus (replay Act I) is in the Archive at any time.</p>
+    <div class="ngpick">
+      <button class="btn" data-act2="A">Act II: Boarders<small>Alien boarders cut into the hull while the crew sleeps. Three sections of fighting, ending on their ship. Afterwards you can merge into the long watch.</small></button>
+      <button class="btn" data-act2="B">Act II: The long watch<small>Nothing attacks. The voyage goes on and the ship wears out. Three sections of upkeep, all the way to Tessaly orbit.</small></button>
+      <button class="btn" data-ngp>New game plus<small>Replay Act I with a new line of clones and a lasting reward.</small></button>
+    </div>
+    <button class="btn" data-close>Decide later (keep going)</button>`);
+}
+// Pick this run's Act II branch; a clone standing at the lit drive goes straight in
+function chooseBranch(b){
+  if (S.branch) return;
+  S.branch = b; S.merge = b === 'B' ? null : S.merge;
+  const L = S.life;
+  if (!L.dead && L.sec === 5 && complete(T.ignite)) enterZone(b === 'A' ? 6 : 9, 5);
+  toast('Act II: ' + (b === 'A' ? 'Boarders' : 'The long watch') + '. Every clone that lights the drive carries on into it.', true);
+}
+function showMerge(){
+  paused = true;
+  showModal(`<h2>The hive ship is gone</h2>
+    <p>The boarders are repelled. The Long Patience flies on, scarred, with three thousand people still asleep and a long way still to go.</p>
+    <div class="ngpick">
+      <button class="btn" data-merge="1">Merge into the long watch<small>Carry on into The Cruise: this run (and every clone that gets this far) continues with the long watch.</small></button>
+      <button class="btn" data-merge="0">Stop here<small>The boarders were the end of this run. You can still change your mind in the Archive.</small></button>
+    </div>`);
 }
 
 /* ----- input ----- */
@@ -2800,6 +3021,13 @@ document.addEventListener('click', e => {
     return;
   }
   if ('ngp' in d) { if (S.won) showNgp(); return; }
+  if (d.act2) { chooseBranch(d.act2); hideModal(); paused = false; taskKey = ''; archKey = ''; renderView(); return; }
+  if (d.merge != null) { S.merge = d.merge === '1'; hideModal(); paused = false;
+    if (S.merge && S.life.sec === 8 && !S.life.dead && complete(T.cutloose)) enterZone(9, 8);
+    toast(S.merge ? 'The run continues into the long watch.' : 'The run ends with the boarders. You can still merge from the Archive.'); taskKey = ''; archKey = ''; renderView(); return; }
+  if (d.a2adj) { const k = d.a2adj, v = (S.a2.lv[k] || 0), dd = +d.dd, free = (S.a2.hon || 0) - Object.values(S.a2.lv).reduce((a, b) => a + b, 0);
+    if (dd > 0 && v < 5 && free > 0) S.a2.lv[k] = v + 1; else if (dd < 0 && v > 0) S.a2.lv[k] = v - 1; else return;
+    M = mods(); if (S.life.hp > M.maxHp) S.life.hp = M.maxHp; sfx('toggle'); archKey = ''; save(); renderView(true); return; }
   if (d.ngpadj) { if (ngpAdjust(d.ngpadj, +d.dd)) { sfx('toggle'); archKey = ''; save(); renderView(true); } return; }
   if (d.ngpick) {
     const pr0 = S.pr || {};
@@ -2845,7 +3073,7 @@ document.addEventListener('click', e => {
   if (d.qsave) { S.qpresets[+d.qsave] = qPlan(L).slice(0, QMAX); toast('Queue saved to preset ' + (+d.qsave + 1)); taskKey = ''; renderView(); return; }
   if (d.qload) {
     const p = (S.qpresets[+d.qload] || []).filter(id => qItem(id)).slice(0, QMAX);
-    L.qdone = []; L.queue = p.filter(id => isCQ(id) ? cSteps(id).some(x => !isGQ(x) && T[x].z >= L.sec) : isGQ(id) ? !L.owned[qItem(id).id] : !(T[id].kind !== 'job' && complete(T[id])) && T[id].z >= L.sec);
+    L.qdone = []; L.queue = p.filter(id => isCQ(id) ? cSteps(id).some(x => !isGQ(x) && !zBefore(T[x].z, L.sec)) : isGQ(id) ? !L.owned[qItem(id).id] : !(T[id].kind !== 'job' && complete(T[id])) && !zBefore(T[id].z, L.sec));
     toast('Loaded preset ' + (+d.qload + 1)); taskKey = ''; renderView(); return;
   }
   if ('secrun' in d) { if (sectionGate(L.sec || 1).ready) { L.chainRun = true; L.now = null; toast('Running the ' + ZONES[(L.sec || 1) - 1].name + ' as one chain'); } taskKey = ''; autoKey = ''; renderView(); return; }
@@ -2980,7 +3208,8 @@ function showAway(a){
   const ran = (S.hist || []).slice(Math.max(0, (S.hist || []).length - loops));
   if (loops) {
     const secName = n => n >= 6 ? 'Drive lit' : ZONES[n - 1].name;
-    h += `<div class="rtab"><table class="dt"><thead><tr><th>Clone</th><th>Furthest</th><th>Days</th><th>Cause</th></tr></thead><tbody>${ran.slice(-10).reverse().map(e => `<tr><td>${e.g}</td><td>${secName(e.sec)}</td><td>${(e.d / TPD).toFixed(1)}</td><td>${esc(e.cause)}</td></tr>`).join('')}</tbody></table></div>`;
+  const histName = e => e.z && isA2(e.z) ? ZN(e.z).name : secName(e.sec);
+    h += `<div class="rtab"><table class="dt"><thead><tr><th>Clone</th><th>Furthest</th><th>Days</th><th>Cause</th></tr></thead><tbody>${ran.slice(-10).reverse().map(e => `<tr><td>${e.g}</td><td>${histName(e)}</td><td>${(e.d / TPD).toFixed(1)}</td><td>${esc(e.cause)}</td></tr>`).join('')}</tbody></table></div>`;
     if (loops > 10) h += `<p class="d">Showing the last 10 of ${loops} loops.</p>`;
     const far = ran.reduce((m, e) => Math.max(m, e.sec), 0);
     S.log.push({g:b.gen, a:+(L.day / TPD).toFixed(1), t:'Background run', x:loops + ' loop' + (loops > 1 ? 's' : '') + ' ran while you were away (clones ' + a.gen + '\u2013' + (b.gen - 1) + '), furthest: ' + secName(far) + '.'});
