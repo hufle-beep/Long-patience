@@ -559,6 +559,9 @@ const PERKS = [
   {id:'starmem',  name:'Star memory',           from:4, desc:'+50% Navigation XP.', eff:{xpSk:{nav:1.5}}},
   {id:'promise',  name:'Tessaly\u2019s promise',    from:5, desc:'With the course set, WARDEN upgrades the clone template: +50 max health for every clone.', eff:{maxHp:50}},
   {id:'favor',    name:'WARDEN’s favour',  from:4, desc:'+25% skill XP.', eff:{xp:1.25}},
+  // Service records: earned by total time the clock has run in this save, not by an action.
+  {id:'service1', name:'Service log: 10 hours', from:0, play:10*3600, away:48*3600, desc:'WARDEN extends the stasis watch: up to 48 hours of time away is played out, and the +2\u00d7 boost holds up to 48 hours.'},
+  {id:'service2', name:'Service log: 20 hours', from:0, play:20*3600, away:72*3600, desc:'WARDEN extends the stasis watch again: up to 72 hours of time away is played out, and the +2\u00d7 boost holds up to 72 hours.'},
 ];
 const PK = {}; PERKS.forEach(p => PK[p.id] = p);
 // Each record's section comes from the action that awards it, so moving an action can't leave it misfiled.
@@ -599,7 +602,7 @@ function newLife(s){
 function defaultState(){
   const s = {v:1, qpresets:[[], [], []], gprac:{}, gauto:{}, gprio:{}, ev:2, xpTot:{}, rv:4, sv:2, pv:2, vv:3, gen:1, prio:{}, ever:{}, prac:{}, auto:{}, echo:{}, perks:{}, seen:{}, logged:{}, log:[], lastOrder:[], lastJob:null,
     set:{speed:1, autoFood:true, autoEat:true, foodDays:2, foodPct:40, restAt:2.5, keepQueue:true, deathScreen:true, deathPause:true, startPaused:false, bgPause:false, replay:true, fillCross:false, autoFeed:false, boost:false},
-    stats:{bestAge:0, deaths:0, daysLived:0}, won:false, winGen:0, bank:0, saved:Date.now(), intro:false};
+    stats:{bestAge:0, deaths:0, daysLived:0, played:0}, won:false, winGen:0, bank:0, saved:Date.now(), intro:false};
   SKILLS.forEach(k => s.echo[k.id] = 0);
   s.life = newLife(s);
   return s;
@@ -1183,6 +1186,7 @@ function fmtDays(t){
 }
 // Real time it takes for a number of in-game days to pass at the chosen speed
 function realSecs(days){ return days / (DPS * S.set.speed * (S.set.boost && S.bank > 0 ? 2 : 1)); }
+function fmtHours(sec){ const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60); return h + 'h ' + String(m).padStart(2, '0') + 'm'; }
 function fmtReal(sec){
   if (!isFinite(sec)) return '\u221e';
   sec = Math.max(0, Math.ceil(sec));
@@ -1316,6 +1320,7 @@ function mergeState(raw){
   const s = Object.assign(d, raw);
   s.set = Object.assign(defaultState().set, raw.set || {});
   s.stats = Object.assign(defaultState().stats, raw.stats || {});
+  if (raw.stats && raw.stats.played == null) s.stats.played = (raw.hist || []).reduce((a, e) => a + (e.r || 0), 0) + ((raw.life && !raw.life.dead && raw.life.real) || 0);
   if (Array.isArray(s.log)) s.log.forEach(e => { const t = TASKS.find(x => x.name === e.t || (x.id === 'warden' && e.t === 'Negotiate with WARDEN')); if (t && t.log) { e.t = t.name; e.x = t.log; } });
   if (!raw.ev) {   // v2 echo: estimate total XP from the old echo levels (capped), and rescale levels
     s.xpTot = {};
@@ -1775,7 +1780,7 @@ document.addEventListener('input', e => {
 });
 document.addEventListener('change', e => { if (e.target.dataset && e.target.dataset.avol) sfx('click'); });
 function renderArchive(force){
-  const key = Object.keys(S.perks).join() + '|' + S.gen + '|' + JSON.stringify(S.set) + '|' + S.won;
+  const key = Object.keys(S.perks).join() + '|' + S.gen + '|' + JSON.stringify(S.set) + '|' + S.won + '|' + Math.floor((S.stats.played || 0) / 60);
   if (key === archKey && !force) return; archKey = key;
   const got = PERKS.filter(p => S.perks[p.id]).length;
   let h = `<div class="panel"><span class="h2">Archive records</span><p class="note">Permanent upgrades. Each is found the first time a clone finishes a certain action. ${got} of ${PERKS.length} recovered.</p></div><div>`;
@@ -1789,6 +1794,13 @@ function renderArchive(force){
         : `<div class="perk no"><h3>Unrecovered record</h3><p>Somewhere in the ${z.name}.</p></div>`;
     });
   });
+  const sv = PERKS.filter(p => p.play);
+  h += `<div class="sub" style="margin-top:10px">Service records \u00b7 ${sv.filter(p => S.perks[p.id]).length}/${sv.length}</div>`;
+  sv.forEach(p => {
+    h += S.perks[p.id]
+      ? `<div class="perk"><h3>${esc(p.name)}</h3><p>${esc(p.desc)}</p></div>`
+      : `<div class="perk no"><h3>${esc(p.name)}</h3><p>Keep the clock running: ${fmtHours(S.stats.played || 0)} of ${p.play / 3600} hours played in this save. Reward: time away up to ${p.away / 3600} hours.</p></div>`;
+  });
   h += '</div>';
   const st = S.stats;
   h += `<div class="stats">
@@ -1796,6 +1808,7 @@ function renderArchive(force){
     <div><b>${st.bestDays ? st.bestDays.toFixed(1) : '—'}</b><span>Longest life (days)</span></div>
     <div><b>${Math.min(BASE_HP_MAX, 100 + Math.floor(S.vit || 0))}</b><span>Base health (max ${BASE_HP_MAX})</span></div>
     <div><b>${fmt(Object.values(S.xpTot || {}).reduce((a, b) => a + b, 0))}</b><span>Total echo XP</span></div>
+    <div><b>${fmtHours(S.stats.played || 0)}</b><span>Time played</span></div>
     <div><b>${S.won ? 'Clone ' + S.winGen : 'Not yet'}</b><span>Drive ignited</span></div></div>`;
   h += '<div class="panel set"><span class="h2">Settings</span>';
   h += `<div class="row"><p>Auto-eat<small>Eat a ration whenever the meal cooldown is over and health has room for it.</small></p><button class="tog${S.set.autoEat ? ' on' : ''}" data-set="autoEat" aria-label="Auto-eat" aria-pressed="${S.set.autoEat}"></button></div>`;
@@ -2025,7 +2038,7 @@ const FAQ = [
   ['What is gear?', 'Gear is built from salvage in the <b>Gear</b> tab and lasts for one clone. Each section has designs to build. Salvage storage is limited; opening up more of the ship raises it.'],
   ['How does automation work?', 'Finish an action in 10 different lives (or work a job for 10 batches in 10 lives, or build a design in 10 lives) and an <b>AUTO</b> switch appears. Automated tasks run by themselves when your queue is empty, in priority order: P1 first, P5 last. The <b>Auto</b> tab lists everything unlocked and has extra options: feeding when needed, filling storage before moving on, the strain level for automatic rests, the death screen and starting paused.'],
   ['What happens at a crossing with automation?', 'A queued or automated crossing stops just before it finishes and waits while the clone finishes automated actions and training, builds affordable automated gear, refills storage (if that option is on) and uses the section’s rest. Tap a crossing yourself to go at once.'],
-  ['Pause, background and boost', 'Pause with the button at the top or the space bar. The game keeps running in a background tab and catches up when you return, then shows what happened while you were away. Time while the game is fully closed is stored as a <b>+2×</b> boost you can switch on in the header. Both are capped at 24 hours: at most 24 hours of background time is played out, and the boost holds at most 24 hours.'],
+  ['Pause, background and boost', 'Pause with the button at the top or the space bar. The game keeps running in a background tab and catches up when you return, then shows what happened while you were away. Time while the game is fully closed is stored as a <b>+2×</b> boost you can switch on in the header. Both are capped at 24 hours: at most 24 hours of background time is played out, and the boost holds at most 24 hours. Two <b>service records</b> in the archive raise this to 48 and then 72 hours; they come from total time played in the save (10 and 20 hours of the clock actually running).'],
   ['Saves', 'The game saves itself every few seconds on this device, in three slots (☰ menu). Use <b>Save files and transfer</b> in the menu to export a save file, import one, or copy the save as text to move it between devices.'],
   ['Settings', 'The ⚙ button opens sound (music and effects), layout (vertical or horizontal) and, in the Android app, app updates. Gameplay options such as auto-eat and the forage threshold are in the Archive tab.'],
 ];
@@ -2086,7 +2099,7 @@ document.addEventListener('click', e => {
     if (awayState) {
       S = mergeState(JSON.parse(awayState)); M = mods(); resetViews(); pendingDecant = false;
       const gone = Math.max(0, (Date.now() - awayAt) / 1000);
-      S.bank = Math.min((S.bank || 0) + gone, BANK_MAX);   // the discarded time becomes stasis boost
+      S.bank = Math.min((S.bank || 0) + gone, awayMax());   // the discarded time becomes stasis boost
       last = performance.now(); save(); toast('Back to where you left off. ' + fmtSecs(gone) + ' added to the +2\u00d7 boost.');
     }
     awayState = null; hideModal(); paused = false; setTab(tab); return;
@@ -2250,9 +2263,11 @@ document.addEventListener('keydown', e => {
 let last = performance.now(), saveT = 0, viewT = 0;
 // The game keeps running when the tab is hidden: a slow timer keeps ticking, and any gap
 // (tab throttled, phone asleep) is simulated in one go when the page gets time again.
-// Gaps longer than CATCHUP_MAX are partly turned into stasis boost instead.
-const CATCHUP_MAX = 24 * 3600;   // at most 24 h of background time is played out
-const BANK_MAX = 24 * 3600;      // the +2\u00d7 stasis boost holds at most 24 h
+// Gaps longer than awayMax() are partly turned into stasis boost instead.
+// At most 24 h of background time is played out, and the +2\u00d7 boost holds at most 24 h.
+// Service records raise both to 48 h and 72 h.
+function awayMax(){ let m = 24 * 3600; PERKS.forEach(p => { if (p.away && S.perks[p.id]) m = Math.max(m, p.away); }); return m; }
+function checkService(){ PERKS.forEach(p => { if (p.play && !S.perks[p.id] && (S.stats.played || 0) >= p.play) { S.perks[p.id] = true; M = mods(); HOOK.perk(p); } }); }
 function simulate(dt){
   if (dt <= 0 || S.life.dead || paused || S.set.paused) return;
   let mult = S.set.speed;
@@ -2263,14 +2278,16 @@ function simulate(dt){
     const chunk = Math.min(left, 900), d0 = S.life.day;
     advance(chunk);
     const ran = S.life.day - d0;
-    if (ran > 0) S.life.real = (S.life.real || 0) + ran * perTick;   // real seconds this life actually ran
+    if (ran > 0) { S.life.real = (S.life.real || 0) + ran * perTick; S.stats.played = (S.stats.played || 0) + ran * perTick; }   // real seconds the clock actually ran
+    checkService();
     if (ran < chunk - 1e-6) break;   // stopped: idle, paused or dead
     left -= chunk;
   }
 }
 function tick(now){
   let dt = (now - last) / 1000; last = now;
-  if (dt > CATCHUP_MAX) { S.bank = Math.min(S.bank + dt - CATCHUP_MAX, BANK_MAX); dt = CATCHUP_MAX; }
+  const cap = awayMax();
+  if (dt > cap) { S.bank = Math.min(S.bank + dt - cap, cap); dt = cap; }
   simulate(dt);
   if (pendingDecant) { autoDecant(); simulate(0); }
   saveT += dt;
@@ -2414,7 +2431,7 @@ function boot(data){
   M = mods();
   if (!raw) S.life.hp = M.maxHp;
   if (S.set.startPaused && !S.life.dead) S.set.paused = true;   // option: open the game paused
-  if (raw && raw.saved) S.bank = Math.min((S.bank || 0) + Math.max(0, (Date.now() - raw.saved) / 1000), BANK_MAX);
+  if (raw && raw.saved) S.bank = Math.min((S.bank || 0) + Math.max(0, (Date.now() - raw.saved) / 1000), awayMax());
   setTab('tasks');
   if (raw) showMenu(); else startGame();
   last = performance.now();
