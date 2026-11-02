@@ -649,7 +649,7 @@ function active(){
       if (jobFull(t)) { L.queue = L.queue.filter(x => x !== id); HOOK.change(); continue; }
       return t;
     }
-    if (available(t) && !complete(t)) return t;
+    if (available(t) && !complete(t)) return t.cross ? (holdTask(t) || t) : t;
   }
   // Everything automated (actions, training, jobs, crossings) competes on priority alone:
   // P1 always beats P2, and so on. Ties go actions, then training, then jobs (emptiest storage
@@ -662,18 +662,7 @@ function active(){
     const k = prioOf(t) * 100 + kindRank(t) * 10 + (t.kind === 'job' ? storeRatio(t) : 0);
     if (k < pk) { pk = k; pick = t; }
   }
-  if (pick && pick.cross && crossHeld(pick)) {
-    // An automated crossing stops just short of finishing while there is still something to do
-    // in this section: refill storage (if that option is on), then use the section's rest.
-    const act = pendingActs()[0];
-    if (act) return act;
-    const gearJob = pendingGearJob();
-    if (gearJob) return gearJob;
-    const fill = S.set.fillCross ? fillJob() : null;
-    if (fill) return fill;
-    const rest = pendingRest();
-    if (rest) return rest;
-  }
+  if (pick && pick.cross) return holdTask(pick) || pick;
   if (pick) return pick;
   // Nothing automated left to do: the job you picked yourself, until its storage is full
   if (L.job && T[L.job].kind !== 'job') L.job = null;
@@ -725,7 +714,13 @@ function pendingGearJob(){
   }
   return job;
 }
-function crossPending(t){ return !S.life.queue.includes(t.id) && isAuto(t) && (pendingActs().length || pendingGearJob() || (S.set.fillCross && fillJob()) || pendingRest()); }
+// A crossing (queued or automated) stops just short of finishing while there is still something to
+// do in this section. Tapping the crossing yourself ("do it now") skips the wait.
+function crossPending(t){ return S.life.crossNow !== t.id && (pendingActs().length || pendingGearJob() || (S.set.fillCross && fillJob()) || pendingRest()); }
+function holdTask(t){
+  if (!crossHeld(t)) return null;
+  return pendingActs()[0] || pendingGearJob() || (S.set.fillCross ? fillJob() : null) || pendingRest() || null;
+}
 function crossHeld(t){ return (S.life.prog[t.id] || 0) >= t.days - CROSS_HOLD - 1e-9 && !!crossPending(t); }
 // Gear automation: a design built in AUTO_LIVES different lives can be built automatically.
 // Automated designs are built in priority order; the top one is saved up for before cheaper ones.
@@ -1902,7 +1897,7 @@ function renderAuto(){
     <div class="row"><p>Start the game paused<small>When you open the game, the clock waits until you press Resume.</small></p><button class="tog${S.set.startPaused ? ' on' : ''}" data-set="startPaused" aria-label="Start the game paused" aria-pressed="${!!S.set.startPaused}"></button></div>
     <div class="fld"><label for="rest-at">Automated rests fire at strain \u00d7</label><div class="pctin"><input type="text" id="rest-at" inputmode="decimal" autocomplete="off" value="${restAt()}"><span>Rests also fire just before an automated crossing if still unused.</span></div></div>
     <div class="row"><p>Feed when needed<small>Automated food jobs step in when rations run low, or when health is low and meals can still heal faster than strain drains it. They refill to what is needed, then the interrupted task carries on.</small></p><button class="tog${S.set.autoFeed ? ' on' : ''}" data-set="autoFeed" aria-label="Feed when needed" aria-pressed="${!!S.set.autoFeed}"></button></div>
-    <div class="row"><p>Fill storage before moving on<small>An automated crossing to the next section stops just before it finishes, works this section\u2019s jobs until ration and salvage storage are both full, then completes. (It always waits for unfinished automated actions and training, affordable automated gear, and the unused rest.)</small></p><button class="tog${S.set.fillCross ? ' on' : ''}" data-set="fillCross" aria-label="Fill storage before moving on" aria-pressed="${!!S.set.fillCross}"></button></div></div>`;
+    <div class="row"><p>Fill storage before moving on<small>A queued or automated crossing to the next section stops just before it finishes, works this section\u2019s jobs until ration and salvage storage are both full, then completes. It always waits for unfinished automated actions and training, affordable automated gear and the unused automated rest. Tap a crossing yourself to go at once.</small></p><button class="tog${S.set.fillCross ? ' on' : ''}" data-set="fillCross" aria-label="Fill storage before moving on" aria-pressed="${!!S.set.fillCross}"></button></div></div>`;
   if (!list.length && !glist.length) {
     h += `<p class="note">Nothing unlocked yet. Finish an action in ${AUTO_LIVES} different lives, or work a job for ${JOB_PRAC_BATCHES} batches in ${AUTO_LIVES} different lives, and it will appear here. Gear counts once built in ${AUTO_LIVES} different lives.</p>`;
   }
@@ -2081,6 +2076,7 @@ document.addEventListener('click', e => {
       if (q) toast('Set as fallback job. It runs once the queue is empty.');
     } else {
       qAdd(t.id, true);
+      if (t.cross) L.crossNow = t.id;   // started by hand: no waiting at the threshold
       L.foraging = false;
     }
     taskKey = ''; renderView(); return;
