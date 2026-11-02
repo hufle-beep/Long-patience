@@ -403,7 +403,7 @@ button.updl{width:100%}
 <header id="hud" class="gut">
   <div class="wrap">
     <div class="r1">
-      <div class="ident"><button class="menub" data-menu="open" aria-label="Main menu">☰</button><b>K-7</b><span id="h-gen">Clone 1</span><span id="h-day" class="num hday"></span></div>
+      <div class="ident"><button class="menub" data-menu="open" aria-label="Main menu">☰</button><b>K-7</b><span id="h-gen">Clone 1</span><span id="h-day" class="num hday" title="Ship days elapsed · real time spent on this clone"></span></div>
       <div class="spd" id="h-spd"></div>
     </div>
     <div class="meter"><span class="lbl" style="min-width:0;text-align:left">Health</span><div class="bar hp"><i id="b-hp"></i></div><span id="t-hp" class="num"></span></div>
@@ -1978,7 +1978,8 @@ function updateHud(){
   const L = S.life;
   const hg = 'Clone ' + S.gen + (S.pr && S.pr.n ? ' <span class="hng">NG+' + S.pr.n + (ngpLv('speed') ? ' \u00b7 \u00d7' + ngpSpeed().toFixed(1) : '') + '</span>' : '');
   if (hg !== lastHg) { lastHg = hg; $('#h-gen').innerHTML = hg; }
-  $('#h-day').textContent = 'day ' + (L.day / TPD).toFixed(1);
+  // time elapsed aboard (ship days) and real time spent on this clone
+  const hd = 'day ' + (L.day / TPD).toFixed(1) + ' \u00b7 ' + fmtReal(L.real || 0); const he = $('#h-day'); if (he.textContent !== hd) he.textContent = hd;
   $('#b-hp').style.width = Math.max(0, L.hp / M.maxHp * 100) + '%';
   $('#t-hp').textContent = Math.ceil(L.hp) + ' / ' + M.maxHp;
   const cur = L.cur ? T[L.cur] : null, cur2 = L.cur2 ? T[L.cur2] : null;
@@ -1987,7 +1988,7 @@ function updateHud(){
   if (L.dead) { $('#s-left').textContent = '0'; $('#s-real').textContent = ''; $('#s-why').textContent = 'dead'; }
   else {
     $('#s-left').textContent = fmtDays(sv.t);
-    $('#s-real').textContent = fmtReal(realSecs(sv.t)) + ' real' + (cur ? '' : ' once working');
+    $('#s-real').textContent = fmtReal(realSecs(sv.t)) + (cur ? '' : ' once working');
     $('#s-why').textContent = 'by ' + sv.why;
   }
   const st = L.strain || 1, se2 = $('#s-strain');
