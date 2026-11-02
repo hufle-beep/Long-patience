@@ -67,6 +67,9 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--amber);outline-
 .res>div{flex-wrap:wrap}
 .res small.rt{flex-basis:100%;margin-left:0;color:var(--dim);font-size:11px}
 .res small.rt.neg{color:var(--red)}
+.foods{flex-basis:100%;display:flex;flex-wrap:wrap;gap:3px 8px;font-size:11px;color:var(--dim);font-family:var(--f-mono)}
+.foods span.full{color:var(--amber)}
+.foods span i{font-style:normal;color:var(--faint)}
 .surv{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;font-size:12px}
 .surv b{font-size:14px;font-weight:500}
 .surv span{color:var(--dim)}
@@ -391,7 +394,7 @@ button.updl{width:100%}
     <div class="meter"><span class="lbl" style="min-width:0;text-align:left">Health</span><div class="bar hp"><i id="b-hp"></i></div><span id="t-hp" class="num"></span></div>
     <div class="surv" id="surv"><span class="lbl">Time left</span><b id="s-left" class="num"></b><span id="s-real" class="num"></span><em id="s-why"></em><span id="s-strain" class="num strain"></span></div>
     <div class="res">
-      <div><span class="lbl">Rations</span><b id="t-rat" class="num"></b><small id="t-ratr" class="num"></small><small id="t-ratt" class="rt num"></small><button id="eatb" class="eat num" data-eat>Eat</button></div>
+      <div><span class="lbl">Food</span><b id="t-rat" class="num"></b><small id="t-ratr" class="num"></small><small id="t-ratt" class="rt num"></small><span id="t-foods" class="foods"></span><button id="eatb" class="eat num" data-eat>Eat</button></div>
       <div><span class="lbl">Salvage</span><b id="t-sal" class="num"></b><small id="t-salr" class="num"></small><small id="t-salt" class="rt num"></small></div>
     </div>
     <div class="now" id="now"><div class="nf" id="n-fill"></div><span id="n-name"></span><span id="n-eta" class="num"></span></div>
@@ -441,30 +444,59 @@ const HUNGER = 0.15;       // base health lost per tick, always, while time runs
 // Strain: the body wears down. The hunger drain is multiplied by strain, which climbs
 // faster and faster as the clone ages: its growth rate starts at +1 per STRAIN_RAMP ticks and
 // rises by that much again every STRAIN_ACCEL ticks of wear. Rest actions halve strain but not wear, so the acceleration keeps building.
-const STRAIN_RAMP = 1000, STRAIN_ACCEL = 300;
+const STRAIN_RAMP = 1150, STRAIN_ACCEL = 300;
 // Automated rests fire at this strain (player setting in the Auto tab, default 2.5)
 const restAt = () => (S && S.set && S.set.restAt) || 2.5;
 // Resolve slows strain: early clones feel it most.
 const STRAIN_RES = 0.002;
 // Late wear: after a couple of weeks the growth rate climbs much faster (squared term), which keeps
 // well-fed late clones to roughly a month.
-const STRAIN_LATE = 400;
+const STRAIN_LATE = 430;
 const strainRate = wear => (1 + wear / STRAIN_ACCEL + Math.pow(wear / STRAIN_LATE, 2)) / STRAIN_RAMP / (1 + STRAIN_RES * (S.life.lv.res || 0)) * (M ? M.strainMul : 1);
 const MAX_DRAIN = 1.2;     // most health a clone can lose per day: a full bar lasts at least ~2 min at 1x
 // A meal restores the hunger of one cooldown plus the old resting regeneration.
 // Food deeper in the ship is better: each section past the first makes meals restore 12% more.
 const MEAL_SEC = 0;
-// Food quality: each section's food heals more (see FOOD_Q). Rations share one store, which keeps
-// the average quality of what is in it, so older food still works as a fallback, just weaker.
-const FOOD_Q = {1:1, 2:1.5, 3:2, 4:2.6, 5:3.2};
-function addRations(a, q){
-  const L = S.life; if (a <= 0) return;
-  const have = Math.max(0, L.rations);
-  L.ratQ = have + a > 0 ? (have * (L.ratQ || 1) + a * q) / (have + a) : q;
-  L.rations += a;
+// Food: every section has its own kind, each more filling than the last (q = how much a meal heals).
+// Each kind has its own store; food carries over from section to section until it is eaten.
+// The clone eats the weakest food it has first, saving the better food for later.
+const FOODS = [
+  {id:'algae',  z:1, name:'Algae paste',   q:1,   cap:5},
+  {id:'greens', z:2, name:'Hydro greens',  q:1.5, cap:8},
+  {id:'field',  z:3, name:'Field rations', q:2,   cap:8},
+  {id:'galley', z:4, name:'Galley meals',  q:2.6, cap:10},
+  {id:'pantry', z:5, name:'Pantry stores', q:3.2, cap:10},
+];
+const FD = {}; FOODS.forEach(f => FD[f.id] = f);
+const FOOD_OF = {}; FOODS.forEach(f => FOOD_OF[f.z] = f.id);   // section -> its food
+const FOOD_Q = {}; FOODS.forEach(f => FOOD_Q[f.z] = f.q);
+const jobFood = t => t && t.prod && t.prod.rations ? FOOD_OF[t.z] : null;
+function foodQ(f){ return FD[f].q * ((M && M.fq && M.fq[f]) || 1); }
+function syncFood(){ const L = S.life; L.rations = FOODS.reduce((a, f) => a + Math.max(0, L.food[f.id] || 0), 0); }
+function addFood(f, a){
+  const L = S.life; if (a <= 0 || !f) return;
+  L.food[f] = (L.food[f] || 0) + a; syncFood();
 }
+// Any food left at all (a whole portion)? Without it the clone starves.
+function nextFood(){ const L = S.life; const f = FOODS.find(f => (L.food[f.id] || 0) >= 1); return f ? f.id : null; }
+// Every kind of food the clone carries is eaten on its own timer. Richer food has a longer cooldown
+// (12 h x its quality), so at first each kind heals about the same per day; mastery of the job that
+// gathers it shortens the cooldown, down to the plain 12 h at full mastery (50 lives).
+const FOOD_JOB = {algae:'algae', greens:'hydro', field:'lockers', galley:'galley', pantry:'pantry'};
+function mealCd(f){
+  const job = T[FOOD_JOB[f]], st = job ? Math.min(4, masterySteps(job)) : 0;
+  return MEAL_CD * (1 + (FD[f].q - 1) * (1 - st / 4));
+}
+// Foods ready to eat now (stocked and off cooldown), best first
+function readyFoods(){ const L = S.life; return FOODS.filter(f => (L.food[f.id] || 0) >= 1 && ((L.mcd || {})[f.id] || 0) <= 0).map(f => f.id).reverse(); }
+// Average portions eaten per tick, for estimates: every stocked food at its own pace
+function eatRate(){ const L = S.life; return FOODS.reduce((a, f) => a + ((L.food[f.id] || 0) >= 1 ? 1 / mealCd(f.id) : 0), 0); }
+// Time until the next meal is possible
+function nextMealIn(){ const L = S.life; let m = Infinity; FOODS.forEach(f => { if ((L.food[f.id] || 0) >= 1) m = Math.min(m, (L.mcd || {})[f.id] || 0); }); return m; }
+// Food stores that matter now: this section's food and everything carried from earlier ones
+const foodsInPlay = () => FOODS.filter(f => f.z <= (S.life.sec || 1));
 const MEAL_MULT = 1.7;   // meals restore more than one meal-gap of hunger, to push back against strain
-function mealHp(){ return (HUNGER + M.regen) * MEAL_CD * MEAL_MULT * (S.life.ratQ || 1); }
+function mealHp(f){ f = f || readyFoods()[0] || nextFood() || FOOD_OF[S.life.sec || 1]; return (HUNGER + M.regen) * MEAL_CD * MEAL_MULT * foodQ(f); }
 const START_AGE = 14;
 
 const SKILLS = [
@@ -516,7 +548,7 @@ const TASKS = [
   {id:'husks', z:2, kind:'job', name:'Salvage drone husks', sk:['eng','cbt'], prod:{salvage:0.2}, haz:0.04, req:['hatch']},
   {id:'mapring', z:2, kind:'act', name:'Map the ring corridors', sk:['nav'], days:200, lifeEff:{salCap:125}, req:['hatch'],
     log:'Eleven kilometres of ring. Earlier units scratched their numbers into the bulkheads: K-3 WAS HERE. K-5 DIED HERE.'},
-  {id:'irrigation', z:2, kind:'act', name:'Restore the irrigation pumps', sk:['eng','bio'], days:260, lifeEff:{ratCap:10}, req:['mapring'],
+  {id:'irrigation', z:2, kind:'act', name:'Restore the irrigation pumps', sk:['eng','bio'], days:260, req:['mapring'], perk:'seedbank',
     log:'Water moves through the beds again. When the crew wakes, they will eat from them and never ask who fixed them.'},
   // No food in the ring until the pumps run again: arrive stocked, then race to the irrigation.
   {id:'hydro', z:2, kind:'job', name:'Tend hydroponic beds', sk:['bio'], prod:{rations:0.08}, req:['irrigation']},
@@ -531,7 +563,7 @@ const TASKS = [
   {id:'shield', z:3, kind:'rest', name:'Sleep against the warm reactor shielding', sk:['res','eng'], days:30, req:['lift']},
   {id:'lockers', z:3, kind:'job', name:'Crack sealed ration lockers', sk:['eng','hak'], prod:{rations:0.09}, req:['lift']},
   {id:'reactor', z:3, kind:'job', name:'Babysit the fusion bottle', sk:['eng','res'], prod:{salvage:0.5}, haz:0.08, req:['lift']},
-  {id:'drones', z:3, kind:'act', name:'Reprogram maintenance drones', sk:['hak','eng'], days:950, req:['lift'], lifeEff:{salCap:250, pSal:0.25},
+  {id:'drones', z:3, kind:'act', name:'Reprogram maintenance drones', sk:['hak','eng'], days:950, req:['lift'], lifeEff:{salCap:250, pSal:0.25}, perk:'manifest',
     log:'The maintenance drones stop circling and start working. Like you, they were never asked.'},
   {id:'vent', z:3, kind:'act', name:'Vent the reactor coolant', sk:['eng','res'], days:1300, haz:0.25, req:['lift'], perk:'hardened',
     log:'Coolant screams into the void. The reactor drops out of the red, and the hum of the stasis decks steadies.'},
@@ -539,7 +571,7 @@ const TASKS = [
     log:'Sealed rifles, crew access only. One rack is empty. A clone before you tried something. WARDEN logged it as a malfunction.'},
   {id:'trace', z:3, kind:'act', name:'Trace the WARDEN signal', sk:['hak','nav'], days:1700, req:['drones'], perk:'engram',
     log:'WARDEN\u2019s core sits behind the command deck. It has recorded every clone you have been, and keeps your engrams only because that is cheaper than starting over.'},
-  {id:'secdeck', z:3, kind:'act', cross:true, name:'Fight through the security deck', sk:['cbt','res'], days:2100, haz:0.32, lifeEff:{salCap:750, ratCap:15}, req:['armory'],
+  {id:'secdeck', z:3, kind:'act', cross:true, name:'Fight through the security deck', sk:['cbt','res'], days:2100, haz:0.32, lifeEff:{salCap:750}, req:['armory'],
     log:'The security drones were guarding the crew\u2019s command deck from its own maintenance staff. Not any more.'},
   // Zone 4
   {id:'quarters', z:4, kind:'rest', name:'Sleep in the captain\u2019s quarters', sk:['res','nav'], days:15, req:['secdeck']},
@@ -562,16 +594,18 @@ const TASKS = [
   {id:'ignite', z:5, kind:'act', name:'Ignite the main drive', sk:['nav','eng','res'], days:6000, req:['course','injectors'], win:true,
     log:'The stardrive lights. WARDEN begins the wake cycle for 3,112 sleepers. Your vat is scheduled for recycling.'},
 ];
-const ZDAYS = {1:0.3, 2:1, 3:0.95, 4:1.2, 5:1};   // later sections longer to offset mastery
+const ZDAYS = {1:0.3, 2:1, 3:1.05, 4:1.3, 5:1.1};   // later sections longer to offset mastery
 const TRAIN_CAP = 4, TRAIN_XP = 1.5;
 const T = {}; TASKS.forEach(t => { T[t.id] = t; t.reps = t.kind === 'train' ? TRAIN_CAP : (t.reps || 1); if (t.days) t.days = Math.round(t.days * ZDAYS[t.z]); });
 
 const PERKS = [
-  {id:'decant',   name:'Decant cache',          from:1, desc:'New clones wake with a stash of 1 ration.'},
-  {id:'survival', name:'Survival subroutine',   from:1, desc:'Unlocks auto-forage: your clone works the best food job whenever rations run low.'},
+  {id:'decant',   name:'Decant cache',          from:1, desc:'New clones wake with 1 algae paste.'},
+  {id:'survival', name:'Survival subroutine',   from:1, desc:'Unlocks auto-forage: your clone works the best food job whenever food runs low.'},
   {id:'muscle',   name:'Muscle memory',         from:1, desc:'+15% skill XP.', eff:{xp:1.15}},
   {id:'chitin',   name:'Chitin lore',           from:1, desc:'Hazard damage −10%.', eff:{haz:0.9}},
   {id:'medrec',   name:'Medbay records',        from:2, desc:'Meals restore more health.', eff:{regen:2}},
+  {id:'seedbank', name:'Seed-bank index',       from:2, desc:'Every food store holds 2 more.', eff:{fcapAll:2}},
+  {id:'manifest', name:'Supply manifests',      from:3, desc:'Food jobs work 20% faster.', eff:{foodSpd:1.2}},
   {id:'telomere', name:'Telomere patch',        from:2, desc:'+25 max health for every clone.', eff:{maxHp:25}},
   {id:'transit',  name:'Ring transit',          from:2, desc:'+10% speed on every task.', eff:{spd:1.1}},
   {id:'hardened', name:'Radiation hardening',   from:3, desc:'Hazard damage −20%.', eff:{haz:0.8}},
@@ -597,21 +631,24 @@ const AWAY_CAP = 168 * 3600;   // the limit never goes past one week, however ma
 function awayMax(){ return Math.min(AWAY_CAP, AWAY_BASE + ((S.pr && S.pr.carry) || 0) + AWAY_STEP * WATCH.filter(p => S.perks[p.id]).length); }
 
 const ITEMS = [
-  {id:'locker',     name:'Cold locker',        cost:8,    req:'wake',       desc:'+5 ration storage', eff:{ratCap:5}},
+  {id:'locker',     name:'Cold locker',        cost:8,    req:'wake',       desc:'+5 algae paste storage', eff:{fcap:{algae:5}}},
   {id:'rebreather', name:'Patched rebreather', cost:4,    req:'wake',       desc:'+20 max health', eff:{maxHp:20}},
   {id:'toolkit',    name:'Scrap toolkit',      cost:10,   req:'wake',       desc:'Engineering work 25% faster', eff:{sk:{eng:1.25}}},
-  {id:'press',      name:'Algae press',        cost:18,   req:'search',     desc:'+1 ration every four days, passively', eff:{pRat:0.003125}},
+  {id:'press',      name:'Algae press',        cost:18,   req:'search',     desc:'+1 algae paste every four days, passively', eff:{pFood:{algae:0.003125}}},
   {id:'baton',      name:'Shock baton',        cost:23,   req:'hatch',      desc:'Combat work 20% faster, hazard damage −25%', eff:{sk:{cbt:1.2}, haz:0.75}},
   {id:'chitinarm',  name:'Chitin armour',      cost:55,   req:'crawlers',   desc:'+20 max health, hazard damage −30%', eff:{maxHp:20, haz:0.7}},
-  {id:'doser',      name:'Hydro auto-doser',   cost:88,   req:'irrigation', desc:'+3 rations every four days, passively', eff:{pRat:0.009375}},
+  {id:'doser',      name:'Hydro auto-doser',   cost:88,   req:'irrigation', desc:'+3 hydro greens every four days, passively', eff:{pFood:{greens:0.009375}}},
   {id:'lace',       name:'Neural lace',        cost:163,  req:'medbay',     desc:'+30% skill XP', eff:{xp:1.3}},
   {id:'stims',      name:'Stim injector',      cost:250,  req:'lift',       desc:'All work 15% faster', eff:{spd:1.15}},
+  {id:'crate',      name:'Insulated crate',    cost:300,  req:'lift',       desc:'+5 storage for hydro greens and field rations', eff:{fcap:{greens:5, field:5}}},
   {id:'rifle',      name:'Armoury rifle',      cost:400,  req:'armory',     desc:'Combat work 50% faster, hazard damage −20%', eff:{sk:{cbt:1.5}, haz:0.8}},
   {id:'cryo',       name:'Cryo-sleeve',        cost:700,  req:'vent',       desc:'Slows this clone\u2019s strain by 25%', eff:{strainMul:0.75}},
   {id:'visor',      name:'Nav visor',          cost:1125, req:'bridgepower',desc:'Navigation and Hacking work 30% faster', eff:{sk:{nav:1.3, hak:1.3}}},
   {id:'medkit',     name:'Command-deck medkit', cost:600,  req:'secdeck',    desc:'+25 max health, meals restore 25% more health', eff:{maxHp:25, regen:1.25}},
+  {id:'warmer',     name:'Galley warmer',      cost:900,  req:'bridgepower',desc:'+5 galley meal storage, galley meals heal 20% more', eff:{fcap:{galley:5}, fq:{galley:1.2}}},
   {id:'exo',        name:'Exo-frame',          cost:1750, req:'navcore',    desc:'Engineering and Resolve work 30% faster, +40 max health', eff:{sk:{eng:1.3, res:1.3}, maxHp:40}},
   {id:'hardsuit',   name:'Drive-crew hardsuit', cost:1200, req:'warden',     desc:'+30 max health, hazard damage \u221230%', eff:{maxHp:30, haz:0.7}},
+  {id:'seals',      name:'Vacuum pantry seals', cost:1000, req:'warden',    desc:'+5 pantry store storage, +1 pantry store every four days', eff:{fcap:{pantry:5}, pFood:{pantry:0.003125}}},
   {id:'diagrig',    name:'Injector diagnostic rig', cost:1600, req:'course', desc:'Engineering and Navigation work 25% faster', eff:{sk:{eng:1.25, nav:1.25}}},
 ];
 const IT = {}; ITEMS.forEach(i => IT[i.id] = i);
@@ -623,7 +660,7 @@ const HOOK = {log(){}, perk(){}, die(){}, win(){}, change(){}, stopped(){}, prac
 
 function newLife(s){
   const p = s.perks;
-  const L = {day:0, hp:100, rations:p.decant?1:0, salvage:0, lv:{}, xp:{}, echo0:{},
+  const L = {day:0, hp:100, rations:p.decant?1:0, food:{algae:p.decant?1:0}, salvage:0, lv:{}, xp:{}, echo0:{},
     done:{}, prog:{}, cyc:{}, bat:{}, qplan:[], meal:0, strain:1, sec:1, job:null, queue:[], owned:{}, order:[], foraging:false, cur:null, dead:false, cause:''};
   SKILLS.forEach(k => { L.lv[k.id] = 0; L.xp[k.id] = 0; L.echo0[k.id] = (s.xpTot && s.xpTot[k.id]) || 0; });
   return L;
@@ -642,7 +679,8 @@ const BASE_HP_MAX = 500;
 const NGP_GROWTH = 0.2, NGP_GROWTH_MAX = 5, NGP_SLOT_AT = 6;   // second action slot: the 6th new game plus   // deep echo: +20% skill growth per pick, 5 picks (+100%)
 function mods(){
   const L = S.life, P = S.perks;
-  const m = {sk:{}, xpSk:{}, spd:1, xp:1, haz:1, maxHp:Math.min(BASE_HP_MAX, 100 + Math.floor(S.vit || 0)), pRat:0, pSal:0, strainMul:1, regen:0.05, ratCap:5, salCap:25};
+  const m = {sk:{}, xpSk:{}, spd:1, xp:1, haz:1, maxHp:Math.min(BASE_HP_MAX, 100 + Math.floor(S.vit || 0)), pRat:0, pSal:0, strainMul:1, regen:0.05, ratCap:5, salCap:25, fcap:{}, pFood:{}, fq:{}, foodSpd:1};
+  FOODS.forEach(f => { m.fcap[f.id] = f.cap; m.pFood[f.id] = 0; m.fq[f.id] = 1; });
   SKILLS.forEach(k => { m.sk[k.id] = 1; m.xpSk[k.id] = 1; });
   const ap = e => {
     if (!e) return;
@@ -652,11 +690,19 @@ function mods(){
     if (e.maxHp) m.maxHp += e.maxHp; if (e.pRat) m.pRat += e.pRat; if (e.pSal) m.pSal += e.pSal;
     if (e.strainMul) m.strainMul *= e.strainMul; if (e.regen) m.regen *= e.regen;
     if (e.ratCap) m.ratCap += e.ratCap; if (e.salCap) m.salCap += e.salCap;
+    if (e.fcap) for (const f in e.fcap) m.fcap[f] += e.fcap[f];
+    if (e.fcapAll) FOODS.forEach(f => m.fcap[f.id] += e.fcapAll);
+    if (e.pFood) for (const f in e.pFood) m.pFood[f] += e.pFood[f];
+    if (e.fq) for (const f in e.fq) m.fq[f] *= e.fq[f];
+    if (e.foodSpd) m.foodSpd *= e.foodSpd;
   };
   PERKS.forEach(p => { if (P[p.id]) ap(p.eff); });
   m.xp *= 1 + NGP_GROWTH * Math.min(NGP_GROWTH_MAX, (S.pr && S.pr.growth) || 0);   // new game plus: deep echo
   ITEMS.forEach(i => { if (L.owned[i.id]) ap(i.eff); });
   TASKS.forEach(t => { if (t.lifeEff && isDone(t.id)) ap(t.lifeEff); });
+  // ration totals for display: the stores in play (this section's food and earlier ones)
+  m.ratCap = FOODS.filter(f => f.z <= (L.sec || 1)).reduce((a, f) => a + m.fcap[f.id], 0);
+  m.pRat = FOODS.reduce((a, f) => a + m.pFood[f.id], 0);
   return m;
 }
 // Each level makes work 10% faster; levels come slowly.
@@ -672,7 +718,7 @@ const lifeDays = () => Infinity;   // no lifespan limit
 function skF(s){ return (1 + 0.1 * S.life.lv[s]) * echoSpeed(s) * M.sk[s]; }
 // (The old last-quarter ageing slowdown was removed; strain alone limits a life.)
 function frailty(){ return 1; }   // ageing slowdown removed
-function speedOf(t){ let p = 1; t.sk.forEach(s => p *= skF(s)); return Math.pow(p, 1 / t.sk.length) * M.spd * frailty() * masteryF(t); }
+function speedOf(t){ let p = 1; t.sk.forEach(s => p *= skF(s)); return Math.pow(p, 1 / t.sk.length) * M.spd * frailty() * masteryF(t) * (t.prod && t.prod.rations ? M.foodSpd : 1); }
 // Mastery: past the AUTO_LIVES lives of practice that unlock automation, every MASTER_STEP more lives
 // that finish a task make it faster by an equal factor, reaching 5x speed at 50 lives (4 steps:
 // x1.50, x2.24, x3.34, x5).
@@ -691,8 +737,8 @@ function xpRate(t, s){ return ZT[t.z] * M.xp * M.xpSk[s] * (t.kind === 'train' ?
 function pickFood(){
   let best = null, br = 0;
   TASKS.forEach(t => {
-    if (t.kind === 'job' && t.prod && t.prod.rations && available(t)) {
-      const r = t.prod.rations * speedOf(t); if (r > br) { br = r; best = t; }
+    if (t.kind === 'job' && t.prod && t.prod.rations && available(t) && !jobFull(t)) {
+      const r = t.prod.rations * speedOf(t) * foodQ(jobFood(t)); if (r > br) { br = r; best = t; }
     }
   });
   return best;
@@ -703,9 +749,10 @@ function active(ex){
   if (S.perks.survival && S.set.autoFood) {
     const food = pickFood();
     if (food) {
-      const low = M.ratCap * (S.set.foodPct || 40) / 100;
+      // Threshold: a share of the store the best food job fills; counts every meal you carry.
+      const f = jobFood(food), cap = M.fcap[f], low = cap * (S.set.foodPct || 40) / 100;
       if (L.rations < low) L.foraging = true;
-      if (L.foraging && L.rations >= Math.min(low * 2, M.ratCap - 0.5)) L.foraging = false;
+      if (L.foraging && (L.food[f] || 0) >= Math.min(low * 2, cap - 0.5)) L.foraging = false;
       if (L.foraging && ok(food)) return food;
     }
   } else L.foraging = false;
@@ -763,14 +810,14 @@ const AUTO_LIVES = 10, JOB_PRAC_BATCHES = 10;
 function practiced(t){ return (S.prac[t.id] || 0) >= AUTO_LIVES; }
 function addPractice(t){ S.prac[t.id] = (S.prac[t.id] || 0) + 1; if (S.prac[t.id] === AUTO_LIVES) HOOK.practiced(t); }
 function isAuto(t){ return !!S.auto[t.id] && practiced(t); }
-function storeRatio(t){ return t.prod && t.prod.rations ? S.life.rations / M.ratCap : t.prod && t.prod.salvage ? S.life.salvage / M.salCap : 0; }
+function storeRatio(t){ return t.prod && t.prod.rations ? (S.life.food[jobFood(t)] || 0) / M.fcap[jobFood(t)] : t.prod && t.prod.salvage ? S.life.salvage / M.salCap : 0; }
 const prioOf = t => (S.prio && S.prio[t.id]) || 3;
 // The best job in the current section for a storage that isn't full yet (rations first).
 function fillJob(){
   for (const res of ['rations', 'salvage']) {
     let best = null, br = 0;
     for (const t of TASKS) if (t.kind === 'job' && t.prod && t.prod[res] && available(t) && !jobFull(t)) {
-      const r = t.prod[res] * speedOf(t); if (r > br) { br = r; best = t; }
+      const r = t.prod[res] * speedOf(t) * (res === 'rations' ? foodQ(jobFood(t)) : 1); if (r > br) { br = r; best = t; }
     }
     if (best) return best;
   }
@@ -868,22 +915,23 @@ function feedJob(){
   if (!S.set.autoFeed) { L.feeding = false; return null; }
   let job = null, br = 0;
   for (const t of TASKS) if (t.kind === 'job' && t.prod && t.prod.rations && isAuto(t) && available(t) && !jobFull(t)) {
-    const r = t.prod.rations * speedOf(t); if (r > br) { br = r; job = t; }
+    const r = t.prod.rations * speedOf(t) * foodQ(jobFood(t)); if (r > br) { br = r; job = t; }
   }
   if (!job) { L.feeding = false; return null; }
-  const low = M.ratCap * (S.set.foodPct || 40) / 100;
+  const f = jobFood(job), cap = M.fcap[f], have = L.food[f] || 0;
+  const low = cap * (S.set.foodPct || 40) / 100;
   const drain = Math.min(HUNGER * (L.strain || 1), MAX_DRAIN);
-  const recoverable = mealHp() / MEAL_CD > drain;
-  const hpNeed = recoverable && L.hp < M.maxHp * 0.6 ? Math.ceil((M.maxHp - L.hp) / mealHp()) : 0;
-  const target = Math.min(M.ratCap - 0.01, Math.max(low * 2, hpNeed));
-  if (L.rations < low || (hpNeed > 0 && L.rations < Math.min(hpNeed, M.ratCap * 0.5))) L.feeding = true;
-  if (L.feeding && L.rations >= target) L.feeding = false;
+  const mh = mealHp(f), recoverable = mh / MEAL_CD > drain;
+  const hpNeed = recoverable && L.hp < M.maxHp * 0.6 ? Math.ceil((M.maxHp - L.hp) / mh) : 0;
+  const target = Math.min(cap - 0.01, Math.max(low * 2, hpNeed));
+  if (L.rations < low || (hpNeed > 0 && have < Math.min(hpNeed, cap * 0.5))) L.feeding = true;
+  if (L.feeding && have >= target) L.feeding = false;
   return L.feeding ? job : null;
 }
 function jobFull(t){
   if (!t.prod) return false;
   const L = S.life;
-  if (t.prod.rations) return L.rations >= M.ratCap - 0.01;
+  if (t.prod.rations) { const f = jobFood(t); return (L.food[f] || 0) >= M.fcap[f] - 0.01; }
   if (t.prod.salvage) return L.salvage >= M.salCap - 0.01;
   return false;
 }
@@ -914,7 +962,7 @@ function finish(t){
   }
   const r = t.reward || {};
   if (r.salvage) L.salvage += r.salvage;
-  if (r.rations) addRations(r.rations, FOOD_Q[t.z]);
+  if (r.rations) addFood(FOOD_OF[t.z], r.rations);
   if (!L.order.includes(t.id)) L.order.push(t.id);
   if (complete(t)) {
     L.queue = L.queue.filter(x => x !== t.id);
@@ -964,7 +1012,7 @@ function step(dt){
   if (!t) return false;      // nothing running: time stands still, like Increlution
   work(t, dt);
   if (t2 && available(t2) && !L.dead && (t2.kind === 'job' ? !jobFull(t2) : !complete(t2))) work(t2, dt);
-  if (M.pRat) addRations(M.pRat * dt, 1);
+  if (M.pRat) FOODS.forEach(f => { if (M.pFood[f.id]) addFood(f.id, M.pFood[f.id] * dt); });
   L.salvage += M.pSal * dt;
   clampRes();
   autoBuy();
@@ -974,11 +1022,12 @@ function step(dt){
   L.strain = (L.strain || 1) + dt * strainRate(L.wear);
   const drain = Math.min(HUNGER * L.strain + Math.max(h1, h2), MAX_DRAIN);
   L.hp -= drain * dt;
-  L.meal = Math.max(0, (L.meal || 0) - dt);
-  if (S.set.autoEat && L.meal <= 0 && L.rations >= 1 && L.hp <= M.maxHp - mealHp() / 2) eat();
+  if (!L.mcd) L.mcd = {};
+  FOODS.forEach(f => { if (L.mcd[f.id]) L.mcd[f.id] = Math.max(0, L.mcd[f.id] - dt); });
+  if (S.set.autoEat) readyFoods().forEach(f => { if (L.hp <= M.maxHp - mealHp(f) / 2) eat(f); });
   if (L.hp <= 0) {
     L.hp = 0;
-    die(L.rations < 1 ? 'Starved' : (h1 || h2 ? 'Killed while trying to ' + ht.name.charAt(0).toLowerCase() + ht.name.slice(1) : 'Collapsed from exhaustion'));
+    die(!nextFood() ? 'Starved' : (h1 || h2 ? 'Killed while trying to ' + ht.name.charAt(0).toLowerCase() + ht.name.slice(1) : 'Collapsed from exhaustion'));
     return;
   }
   L.day += dt;
@@ -997,7 +1046,7 @@ function work(t, dt){
         L.cyc[t.id] -= n;
         const before = L.bat[t.id] || 0; L.bat[t.id] = before + n;
         if (before < JOB_PRAC_BATCHES && L.bat[t.id] >= JOB_PRAC_BATCHES) addPractice(t);
-        if (t.prod) { if (t.prod.rations) addRations(t.prod.rations * JOB_CYCLE * n, FOOD_Q[t.z]); if (t.prod.salvage) L.salvage += t.prod.salvage * JOB_CYCLE * n; }
+        if (t.prod) { if (t.prod.rations) addFood(jobFood(t), t.prod.rations * JOB_CYCLE * n); if (t.prod.salvage) L.salvage += t.prod.salvage * JOB_CYCLE * n; }
       }
     } else {
       L.prog[t.id] = (L.prog[t.id] || 0) + sp * dt;
@@ -1006,15 +1055,20 @@ function work(t, dt){
     }
   }
 }
-function canEat(){ const L = S.life; return !L.dead && (L.meal || 0) <= 0 && L.rations >= 1; }
-function eat(){
+function canEat(){ const L = S.life; return !L.dead && readyFoods().length > 0; }
+function eat(f){
   const L = S.life; if (!canEat()) return false;
-  L.rations -= 1; L.hp = Math.min(M.maxHp, L.hp + mealHp()); L.meal = MEAL_CD;
+  f = f || readyFoods()[0];
+  if (!f || (L.food[f] || 0) < 1 || ((L.mcd || {})[f] || 0) > 0) return false;
+  const hp = mealHp(f);
+  L.food[f] -= 1; syncFood(); L.lastMeal = f; L.hp = Math.min(M.maxHp, L.hp + hp);
+  if (!L.mcd) L.mcd = {}; L.mcd[f] = mealCd(f);
   return true;
 }
 function clampRes(){
   const L = S.life;
-  if (L.rations > M.ratCap) L.rations = M.ratCap;
+  FOODS.forEach(f => { if ((L.food[f.id] || 0) > M.fcap[f.id]) L.food[f.id] = M.fcap[f.id]; });
+  syncFood();
   if (L.salvage > M.salCap) L.salvage = M.salCap;
 }
 function advance(days){
@@ -1302,7 +1356,7 @@ function fmtReal(sec){
 const both = days => isFinite(days) ? fmtDays(days) + ' \u00b7 ' + fmtReal(realSecs(days)) : '\u221e';
 // Net ration and salvage change per day if task t is the one being worked
 function rates(t, t2){
-  let rr = M.pRat - EAT, sr = M.pSal;
+  let rr = M.pRat - eatRate(), sr = M.pSal;
   [t, t2].forEach(j => {
     if (j && j.kind === 'job' && j.prod) {
       const sp = speedOf(j);
@@ -1322,17 +1376,24 @@ function survival(){
   const L = S.life, cur = L.cur ? T[L.cur] : null, cur2 = L.cur2 ? T[L.cur2] : null;
   const lifeLeft = 300 * TPD;   // look ahead at most 300 days
   // Step forward assuming the current task(s) keep running and no rest is taken.
-  const net = rates(cur, cur2).rr + EAT;           // rations gained per tick before eating
   const haz = Math.max(cur && cur.haz ? hazDmg(cur) : 0, cur2 && cur2.haz ? hazDmg(cur2) : 0);
-  let hp = L.hp, rat = L.rations, strain = L.strain || 1, meal = L.meal || 0, t = 0, why = '';
-  const dt = 5, eatOn = S.set.autoEat, mh = mealHp();
+  // each food: stock, gain per tick (jobs running + passive), cooldown, heal per meal
+  const fs = FOODS.map(f => {
+    let gain = M.pFood[f.id] || 0;
+    [cur, cur2].forEach(j => { if (j && jobFood(j) === f.id) gain += j.prod.rations * speedOf(j); });
+    return {stock:L.food[f.id] || 0, cap:M.fcap[f.id], gain, cd:(L.mcd || {})[f.id] || 0, full:mealCd(f.id), hp:mealHp(f.id)};
+  }).reverse();
+  let hp = L.hp, strain = L.strain || 1, t = 0, why = '';
+  const dt = 5, eatOn = S.set.autoEat;
   while (t < lifeLeft) {
     strain += dt * strainRate((L.wear || 0) + t);
     hp -= Math.min(HUNGER * strain + haz, MAX_DRAIN) * dt;
-    rat = Math.min(M.ratCap, rat + net * dt); meal -= dt;
-    if (eatOn && meal <= 0 && rat >= 1 && hp <= M.maxHp - mh / 2) { rat -= 1; hp = Math.min(M.maxHp, hp + mh); meal = MEAL_CD; }
+    fs.forEach(f => {
+      f.stock = Math.min(f.cap, f.stock + f.gain * dt); f.cd -= dt;
+      if (eatOn && f.cd <= 0 && f.stock >= 1 && hp <= M.maxHp - f.hp / 2) { f.stock -= 1; hp = Math.min(M.maxHp, hp + f.hp); f.cd = f.full; }
+    });
     t += dt;
-    if (hp <= 0) { why = haz ? 'injuries' : rat < 1 ? 'starvation' : 'strain'; break; }
+    if (hp <= 0) { why = haz ? 'injuries' : fs.every(f => f.stock < 1) ? 'starvation' : 'strain'; break; }
   }
   if (!why) t = Infinity;
   if (t >= lifeLeft) { t = Infinity; why = 'nothing soon'; }
@@ -1460,6 +1521,11 @@ function mergeState(raw){
   }
   if ((raw.rv || 0) < 4) { s.set.foodDays = Math.max(1, Math.round(s.set.foodDays / 2)); if (s.life) s.life.rations = (s.life.rations || 0) / 2; }   // v4: rations halved
   s.rv = 4;
+  if (s.life && !s.life.food) {   // v5: separate food stores; old rations become this section's food
+    s.life.food = {}; s.life.mcd = {};
+    const f = FOOD_OF[Math.min(5, s.life.sec || 1)];
+    s.life.food[f] = Math.max(0, s.life.rations || 0);
+  }
   if (!raw.sv) {   // skill levels rescaled 5:1 in v2
     SKILLS.forEach(k => {
       s.echo[k.id] = Math.floor((s.echo[k.id] || 0) / 5);
@@ -1470,7 +1536,7 @@ function mergeState(raw){
   s.sv = 2;
   SKILLS.forEach(k => { if (s.echo[k.id] == null) s.echo[k.id] = 0; });
   const L = s.life;
-  ['done','prog','cyc','bat','owned','lv','xp','echo0'].forEach(k => { if (!L[k]) L[k] = {}; });
+  ['done','prog','cyc','bat','owned','lv','xp','echo0','food','mcd'].forEach(k => { if (!L[k]) L[k] = {}; });
   SKILLS.forEach(k => { if (L.lv[k.id] == null) L.lv[k.id] = 0; if (L.xp[k.id] == null) L.xp[k.id] = 0; });
   if (!Array.isArray(L.queue)) L.queue = [];
   L.queue = L.queue.filter(id => qItem(id));
@@ -1555,7 +1621,7 @@ HOOK.rested = t => { sfx('eat'); toast('Rested. Strain halved to \u00d7' + (S.li
 HOOK.perk = p => { sfx('perk'); toast('Archive record: ' + p.name, true); if (tab !== 'archive') newPerk = true; archKey = ''; };
 HOOK.change = () => { taskKey = ''; gearKey = ''; };
 HOOK.practiced = t => { sfx('perk'); taskKey = ''; toast('Practised: \u201c' + t.name + '\u201d can now be automated (tap AUTO).', true); };
-HOOK.stopped = j => { sfx('error'); taskKey = ''; toast((j.prod.rations ? 'Ration' : 'Salvage') + ' storage full. Stopped \u201c' + j.name + '\u201d; time is stopped.'); };
+HOOK.stopped = j => { sfx('error'); taskKey = ''; toast((j.prod.rations ? FD[jobFood(j)].name : 'Salvage') + ' storage full. Stopped \u201c' + j.name + '\u201d; time is stopped.'); };
 // Death screen (on by default): the game waits on it until you decant. Once AUTO_LIVES clones have died
 // it can be switched off, and the next clone is decanted straight away and keeps running.
 const decantUnlocked = () => (S.stats.deaths || 0) >= AUTO_LIVES;
@@ -1587,11 +1653,11 @@ function rewardBits(t){
   const b = [];
   const r = t.reward || {};
   if (r.salvage) b.push('+' + r.salvage + ' salvage');
-  if (r.rations) b.push('+' + r.rations + ' rations');
+  if (r.rations) b.push('+' + r.rations + ' ' + FD[FOOD_OF[t.z]].name.toLowerCase());
   if (r.heal) b.push('full heal');
   if (t.lifeEff && t.lifeEff.pSal) b.push('+' + fmt(perDay(t.lifeEff.pSal)) + ' salvage/d');
   if (t.lifeEff && t.lifeEff.salCap) b.push('+' + fmt(t.lifeEff.salCap) + ' salvage storage');
-  if (t.lifeEff && t.lifeEff.ratCap) b.push('+' + t.lifeEff.ratCap + ' ration storage');
+
   if ((t.perk && !S.perks[t.perk]) || WATCH.some(p => p.secEnd === t.id && !S.perks[p.id])) b.push('<span class="star">★ archive record</span>');
   if (t.win) b.push('<span class="star">the end of the voyage</span>');
   return b;
@@ -1773,12 +1839,15 @@ function updateTasks(){
       if (t.prod) {
         const res = t.prod.rations ? 'rations' : 'salvage';
         const batch = t.prod[res] * JOB_CYCLE;
-        r.e.textContent = jobFast(sp) ? 'continuous \u00b7 +' + fmt(perDay(t.prod[res] * sp)) + '/d' : '+' + fmt(batch) + ' ' + res + ' every ' + fmtDays(JOB_CYCLE / sp);
+        const unit = res === 'rations' ? jobFood(t) : res;
+        r.e.textContent = jobFast(sp) ? 'continuous \u00b7 +' + fmt(perDay(t.prod[res] * sp)) + '/d' : '+' + fmt(batch) + ' ' + unit + ' every ' + fmtDays(JOB_CYCLE / sp);
         if (r.tt && res === 'rations') r.tt.dataset.q = FOOD_Q[t.z];
         if (r.tt) {
-          const rt = rates(t), isR = res === 'rations';
-          const e = storeEta(isR ? L.rations : L.salvage, isR ? M.ratCap : M.salCap, isR ? rt.rr : rt.sr);
-          r.tt.textContent = (res === 'rations' ? 'food \u00d7' + FOOD_Q[t.z] + ' \u00b7 ' : '') + (e.txt === 'full' ? 'storage full' : e.txt === 'steady' ? 'storage steady' : 'storage ' + e.txt + ' ' + both(e.days));
+          const rt = rates(t), isR = res === 'rations', f = jobFood(t);
+          // a food store fills at the job's rate (plus passive), minus what is eaten of that food
+          const fr = isR ? t.prod.rations * sp + (M.pFood[f] || 0) - ((L.food[f] || 0) >= 1 ? 1 / mealCd(f) : 0) : 0;
+          const e = isR ? storeEta(L.food[f] || 0, M.fcap[f], fr) : storeEta(L.salvage, M.salCap, rt.sr);
+          r.tt.textContent = (isR ? FD[f].name.toLowerCase() + ' \u00d7' + fmt(foodQ(f)) + ' \u00b7 every ' + fmtDays(mealCd(f)) + ' \u00b7 ' : '') + (e.txt === 'full' ? 'storage full' : e.txt === 'steady' ? 'storage steady' : 'storage ' + e.txt + ' ' + both(e.days));
         }
       } else {
         r.e.textContent = '×' + fmt(sp) + ' speed';
@@ -1829,12 +1898,17 @@ function updateHud(){
   $('#t-ratt').textContent = re.txt === 'full' ? 'storage full' : re.txt === 'empty' ? 'empty: starving' : re.txt === 'steady' ? '' : re.txt + ' ' + both(re.days);
   $('#t-ratt').classList.toggle('neg', re.txt === 'empty in' || re.txt === 'empty');
   $('#t-salt').textContent = se.txt === 'full' ? 'storage full' : se.txt === 'steady' ? '' : se.txt + ' ' + both(se.days);
-  $('#t-rat').innerHTML = fmt(L.rations) + '<span class="cap">/' + Math.round(M.ratCap) + '</span>' + (L.rations >= 0.05 ? '<span class="fq">food \u00d7' + (L.ratQ || 1).toFixed(1) + '</span>' : '');
+  $('#t-rat').innerHTML = fmt(L.rations) + '<span class="cap">/' + Math.round(M.ratCap) + '</span>';
+  const fl = FOODS.filter(f => f.z <= (L.sec || 1) || (L.food[f.id] || 0) > 0.005).map(f => {
+    const v = L.food[f.id] || 0, cd = (L.mcd || {})[f.id] || 0;
+    return `<span class="${v >= M.fcap[f.id] - 0.01 ? 'full' : ''}" title="${f.name}: heals ${fmt(mealHp(f.id))}, one every ${fmtDays(mealCd(f.id))}">${f.id} ${fmt(v)}/${M.fcap[f.id]}${v >= 1 && cd > 0 ? ' <i>' + fmtDays(cd) + '</i>' : ''}</span>`;
+  }).join('');
+  const tf = $('#t-foods'); if (tf.innerHTML !== fl) tf.innerHTML = fl;
   $('#t-rat').classList.toggle('full', L.rations >= M.ratCap - 0.01);
   const ra = $('#t-ratr'); ra.textContent = (rr >= 0 ? '+' : '−') + fmt(perDay(Math.abs(rr))) + '/d'; ra.className = 'num ' + (rr >= 0 ? 'pos' : 'neg');
-  const eb = $('#eatb'), mealLeft = L.meal || 0;
+  const eb = $('#eatb'), ready = readyFoods()[0];
   eb.disabled = !canEat();
-  eb.textContent = L.dead ? 'Eat' : mealLeft > 0 ? 'Next meal in ' + both(mealLeft) : L.rations < 1 ? 'No rations to eat' : 'Eat a ration (+' + fmt(mealHp()) + ' health)';
+  eb.textContent = L.dead ? 'Eat' : ready ? 'Eat ' + FD[ready].name.toLowerCase() + ' (+' + fmt(mealHp(ready)) + ' health)' : !nextFood() ? 'No food to eat' : 'Next meal in ' + both(nextMealIn());
   $('#t-sal').innerHTML = fmt(L.salvage) + '<span class="cap">/' + Math.round(M.salCap) + '</span>';
   $('#t-sal').classList.toggle('full', L.salvage >= M.salCap - 0.01);
   const sa = $('#t-salr'); sa.textContent = sr > 0 ? '+' + fmt(perDay(sr)) + '/d' : ''; sa.className = 'num pos';
@@ -2000,10 +2074,10 @@ function renderArchive(force){
     <div><b>${S.won ? 'Clone ' + S.winGen : 'Not yet'}</b><span>Drive ignited</span></div></div>`;
   if (S.won || (S.pr && S.pr.n)) h += ngpPanel();
   h += '<div class="panel set"><span class="h2">Settings</span>';
-  h += `<div class="row"><p>Auto-eat<small>Eat a ration whenever the meal cooldown is over and health has room for it.</small></p><button class="tog${S.set.autoEat ? ' on' : ''}" data-set="autoEat" aria-label="Auto-eat" aria-pressed="${S.set.autoEat}"></button></div>`;
+  h += `<div class="row"><p>Auto-eat<small>Eat each kind of food whenever its own meal cooldown is over and health has room for it.</small></p><button class="tog${S.set.autoEat ? ' on' : ''}" data-set="autoEat" aria-label="Auto-eat" aria-pressed="${S.set.autoEat}"></button></div>`;
   if (S.perks.survival) {
-    h += `<div class="row"><p>Auto-forage<small>Switch to the best food job when rations drop below the threshold, and stay until they double.</small></p><button class="tog${S.set.autoFood ? ' on' : ''}" data-set="autoFood" aria-label="Auto-forage" aria-pressed="${S.set.autoFood}"></button></div>
-      <div><div class="row"><p>Forage threshold<small>Share of ration storage. Below it, food jobs step in; they stop at twice this level (or when storage is full).</small></p></div><div class="pctin"><input type="number" id="fd-n" inputmode="numeric" min="1" max="99" step="1" value="${S.set.foodPct || 40}" aria-label="Forage threshold percent"><span>%</span></div><input type="range" id="fd" min="1" max="99" step="1" value="${S.set.foodPct || 40}" aria-label="Forage threshold, percent of ration storage"></div>`;
+    h += `<div class="row"><p>Auto-forage<small>Switch to the best food job when your food runs below the threshold, and stay until its store reaches twice that.</small></p><button class="tog${S.set.autoFood ? ' on' : ''}" data-set="autoFood" aria-label="Auto-forage" aria-pressed="${S.set.autoFood}"></button></div>
+      <div><div class="row"><p>Forage threshold<small>Share of the store the best food job fills. When all the food you carry drops below it, food jobs step in; they stop at twice this level (or when the store is full).</small></p></div><div class="pctin"><input type="number" id="fd-n" inputmode="numeric" min="1" max="99" step="1" value="${S.set.foodPct || 40}" aria-label="Forage threshold percent"><span>%</span></div><input type="range" id="fd" min="1" max="99" step="1" value="${S.set.foodPct || 40}" aria-label="Forage threshold, percent of ration storage"></div>`;
   }
   if (S.perks.engram) {
     h += `<div class="row"><p>Engram replay<small>New clones queue the actions your last clone finished, in the same order.</small></p><button class="tog${S.set.replay ? ' on' : ''}" data-set="replay" aria-label="Engram replay" aria-pressed="${S.set.replay}"></button></div>`;
@@ -2177,7 +2251,7 @@ function renderAuto(){
     <div class="row"><p>Pause in the background<small>When the game tab or app is hidden, the clock stops instead of running on, and there is no catch-up. The time away is added to the +2× boost instead.</small></p><button class="tog${S.set.bgPause ? ' on' : ''}" data-set="bgPause" aria-label="Pause in the background" aria-pressed="${!!S.set.bgPause}"></button></div>
     <div class="row"><p>Start the game paused<small>When you open the game, the clock waits until you press Resume.</small></p><button class="tog${S.set.startPaused ? ' on' : ''}" data-set="startPaused" aria-label="Start the game paused" aria-pressed="${!!S.set.startPaused}"></button></div>
     <div class="fld"><label for="rest-at">Automated rests fire at strain \u00d7</label><div class="pctin"><input type="text" id="rest-at" inputmode="decimal" autocomplete="off" value="${restAt()}"><span>Rests also fire just before an automated crossing if still unused.</span></div></div>
-    <div class="row"><p>Feed when needed<small>Automated food jobs step in when rations run low, or when health is low and meals can still heal faster than strain drains it. They refill to what is needed, then the interrupted task carries on.</small></p><button class="tog${S.set.autoFeed ? ' on' : ''}" data-set="autoFeed" aria-label="Feed when needed" aria-pressed="${!!S.set.autoFeed}"></button></div>
+    <div class="row"><p>Feed when needed<small>Automated food jobs step in when food runs low, or when health is low and meals can still heal faster than strain drains it. They refill to what is needed, then the interrupted task carries on.</small></p><button class="tog${S.set.autoFeed ? ' on' : ''}" data-set="autoFeed" aria-label="Feed when needed" aria-pressed="${!!S.set.autoFeed}"></button></div>
     <div class="row"><p>Fill storage before moving on<small>A queued or automated crossing stops just before it finishes and steps out of the queue while the section is wrapped up: unfinished automated actions and training (by priority), affordable automated gear, refilling ration and salvage storage, and the unused automated rest. Then it returns to the front of the queue and completes. The queue shows what is left and a button to skip it; tapping a crossing yourself also goes at once.</small></p><button class="tog${S.set.fillCross ? ' on' : ''}" data-set="fillCross" aria-label="Fill storage before moving on" aria-pressed="${!!S.set.fillCross}"></button></div></div>`;
   if (!list.length && !glist.length) {
     h += `<p class="note">Nothing unlocked yet. Finish an action in ${AUTO_LIVES} different lives, or work a job for ${JOB_PRAC_BATCHES} batches in ${AUTO_LIVES} different lives, and it will appear here. Gear counts once built in ${AUTO_LIVES} different lives.</p>`;
@@ -2223,9 +2297,9 @@ function renderAuto(){
 const FAQ_ALL = [
   ['What is the goal?', 'Restore the ship so WARDEN can wake the sleeping crew: the food system in the Hydroponics Ring, the energy system in the Engineering Spine and the stardrive in the Main Drive. The game ends when you ignite the drive. One clone cannot do it all; it takes many lives (around 50 with very good play).'],
   ['How do I start?', 'Tap a task to work on it right away. Climb out of the vat first, then press vat algae for food and strip wall panels for salvage. Time only moves while your clone is working: with nothing to do, the clock stops, so you can always read and plan.'],
-  ['What are jobs, actions, training and rests?', '<b>Jobs</b> repeat and make rations or salvage in batches; they stop when that storage is full. <b>Actions</b> are one-off tasks that unlock things and move the story on. <b>Training</b> builds skills faster (+50% XP) but each can be done only 4 times per life. <b>Rests</b> halve strain; each section has one, usable once per life.'],
+  ['What are jobs, actions, training and rests?', '<b>Jobs</b> repeat and make food or salvage in batches; they stop when that storage is full. <b>Actions</b> are one-off tasks that unlock things and move the story on. <b>Training</b> builds skills faster (+50% XP) but each can be done only 4 times per life. <b>Rests</b> halve strain; each section has one, usable once per life.'],
   ['How does the queue work?', 'Tap <b>+</b> on a task to add it to the end of the queue; tapping the task itself puts it first. The queue holds up to 20 items. Drag an item by the handle on its left to move it, or use the arrows; ✕ removes it. Queued jobs run until their storage is full. You can queue things you have seen before even if they are not available yet; they wait their turn. Gear can be queued too, with the <b>+</b> in the Gear tab: the clone works the best salvage job until it can afford the design, then builds it. Three presets save and load whole queues, and <b>Keep queue between clones</b> gives each new clone the queue you planned, minus anything that is automated and switched on.'],
-  ['Food and health', 'Health drains all the time. Your clone eats 2 rations a day, one meal every 12 hours, and each meal restores health. Food from deeper sections is richer (×1.5 in the ring up to ×3.2 at the drive); stored food keeps its average quality. Run out of rations and you starve. Storage is small, so you have to keep working food jobs. The Hydroponics Ring has no food until you restore its irrigation pumps, so arrive stocked.'],
+  ['Food and health', 'Health drains all the time and meals put it back. Every section has its own food, each richer than the last: algae paste (Vat Bay, ×1), hydro greens (Ring, ×1.5), field rations (Spine, ×2), galley meals (Command Deck, ×2.6) and pantry stores (Main Drive, ×3.2). Each kind has its own small store, and food you carry goes with you into the next section until it is eaten. <b>Every kind you carry is eaten on its own timer</b>, so carrying several kinds means more meals. Algae is eaten every 12 hours; richer food starts with a longer wait (12 h × its quality), which shrinks with mastery of the job that gathers it, down to 12 hours at full mastery. With no food left at all you starve. The Hydroponics Ring has no food until you restore its irrigation pumps, so arrive stocked.'],
   ['What is strain?', 'Strain multiplies the health drain. It grows faster and faster the longer a clone lives, which is what eventually kills every clone. Rests halve it; Resolve slows it a little; good food heals faster than strain can drain early on. Watch <b>Time left</b> at the top: it says how long the clone will last and what will kill it.'],
   ['What carries over when a clone dies?', 'Skill levels reset, but every bit of XP a skill has ever earned is kept as its <b>echo</b>, making that skill permanently faster. Each day a clone survives adds 0.8 to the base health of later clones, up to 500. <b>Archive records</b> found by finishing certain actions are permanent upgrades. Gear, rations, salvage and progress through the ship reset.'],
   ['What are sections?', 'The ship is split into five sections. A <b>red</b> action leads to the next one, and the way back is sealed for that clone, so finish what you need first (records, the rest, training, gear). Each new clone starts back in the Vat Bay.'],
@@ -2365,7 +2439,7 @@ document.addEventListener('click', e => {
     document.querySelectorAll(`[data-atog="${d.atog}"]`).forEach(x => { x.classList.toggle('on', ASET[d.atog]); x.setAttribute('aria-pressed', ASET[d.atog]); });
     renderSpeed(); return;
   }
-  if ('eat' in d) { if (eat()) sfx('eat'), toast('Ate a ration. +' + fmt(mealHp()) + ' health'); return; }
+  if ('eat' in d) { const f = readyFoods()[0]; if (f && eat(f)) sfx('eat'), toast('Ate ' + FD[f].name.toLowerCase() + '. +' + fmt(mealHp(f)) + ' health'); return; }
   if ('exportjson' in d) { exportJson(); return; }
   if ('copyjson' in d) {
     save(); const code = JSON.stringify(S, null, 1), ta = $('#save-code'); ta.value = code;
