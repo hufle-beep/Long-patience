@@ -559,13 +559,20 @@ const PERKS = [
   {id:'starmem',  name:'Star memory',           from:4, desc:'+50% Navigation XP.', eff:{xpSk:{nav:1.5}}},
   {id:'promise',  name:'Tessaly\u2019s promise',    from:5, desc:'With the course set, WARDEN upgrades the clone template: +50 max health for every clone.', eff:{maxHp:50}},
   {id:'favor',    name:'WARDEN’s favour',  from:4, desc:'+25% skill XP.', eff:{xp:1.25}},
-  // Service records: earned by total time the clock has run in this save, not by an action.
-  {id:'service1', name:'Service log: 10 hours', from:0, play:10*3600, away:48*3600, desc:'WARDEN extends the stasis watch: up to 48 hours of time away is played out, and the +2\u00d7 boost holds up to 48 hours.'},
-  {id:'service2', name:'Service log: 20 hours', from:0, play:20*3600, away:72*3600, desc:'WARDEN extends the stasis watch again: up to 72 hours of time away is played out, and the +2\u00d7 boost holds up to 72 hours.'},
+  // Watch records: one for finishing each section (its crossing, or lighting the drive). Each adds 8 h of time away.
+  {id:'watch1', name:'Stasis watch I',   secEnd:'hatch',   desc:'+8 hours of time away.'},
+  {id:'watch2', name:'Stasis watch II',  secEnd:'lift',    desc:'+8 hours of time away.'},
+  {id:'watch3', name:'Stasis watch III', secEnd:'secdeck', desc:'+8 hours of time away.'},
+  {id:'watch4', name:'Stasis watch IV',  secEnd:'warden',  desc:'+8 hours of time away.'},
+  {id:'watch5', name:'Stasis watch V',   secEnd:'ignite',  desc:'+8 hours of time away.'},
 ];
 const PK = {}; PERKS.forEach(p => PK[p.id] = p);
 // Each record's section comes from the action that awards it, so moving an action can't leave it misfiled.
-PERKS.forEach(p => { const t = TASKS.find(t => t.perk === p.id); if (t) { p.from = t.z; p.by = t.id; } });
+PERKS.forEach(p => { const t = TASKS.find(t => t.perk === p.id || t.id === p.secEnd); if (t) { p.from = t.z; p.by = t.id; } });
+const AWAY_BASE = 8 * 3600, AWAY_STEP = 8 * 3600;
+const WATCH = PERKS.filter(p => p.secEnd);
+// Time away that is played out, and the most the +2\u00d7 boost can hold: 8 h, +8 h per finished section (48 h max).
+function awayMax(){ return AWAY_BASE + AWAY_STEP * WATCH.filter(p => S.perks[p.id]).length; }
 
 const ITEMS = [
   {id:'locker',     name:'Cold locker',        cost:8,    req:'wake',       desc:'+5 ration storage', eff:{ratCap:5}},
@@ -874,6 +881,7 @@ function finish(t){
   if (complete(t) && t.log && !S.logged[t.id]) { S.logged[t.id] = 1; HOOK.log(t.name, t.log); }
   HOOK.done(t);
   if (complete(t) && t.perk && !S.perks[t.perk]) { S.perks[t.perk] = true; M = mods(); HOOK.perk(PK[t.perk]); }
+  WATCH.forEach(p => { if (p.secEnd === t.id && complete(t) && !S.perks[p.id]) { S.perks[p.id] = true; HOOK.perk(p); } });
   if (t.win) { L.wonAt = {d:L.day, r:L.real || 0}; recordBest(L); }
   if (t.win && !S.won) { S.won = true; S.winGen = S.gen; HOOK.win(); }
   HOOK.change();
@@ -1331,6 +1339,8 @@ function mergeState(raw){
   s.ev = 2;
   if (!Array.isArray(s.qpresets)) s.qpresets = [[], [], []];
   if (s.life && !Array.isArray(s.life.qplan)) s.life.qplan = (s.life.queue || []).slice();
+  WATCH.forEach(p => { if ((s.ever || {})[p.secEnd] || (s.logged || {})[p.secEnd] || (p.secEnd === 'ignite' && s.won) || (s.life && s.life.done && s.life.done[p.secEnd])) s.perks[p.id] = true; });
+  delete s.perks.service1; delete s.perks.service2;
   if (!s.gprac) s.gprac = {}; if (!s.gauto) s.gauto = {}; if (!s.gprio) s.gprio = {};
   if (!s.prac) s.prac = {}; if (!s.auto) s.auto = {}; if (!s.prio) s.prio = {};
   if (!raw.vv) s.vit = (s.vit || 0) / 4;   // genome bonus quartered (v3)
@@ -1480,7 +1490,7 @@ function rewardBits(t){
   if (t.lifeEff && t.lifeEff.pSal) b.push('+' + fmt(perDay(t.lifeEff.pSal)) + ' salvage/d');
   if (t.lifeEff && t.lifeEff.salCap) b.push('+' + fmt(t.lifeEff.salCap) + ' salvage storage');
   if (t.lifeEff && t.lifeEff.ratCap) b.push('+' + t.lifeEff.ratCap + ' ration storage');
-  if (t.perk && !S.perks[t.perk]) b.push('<span class="star">★ archive record</span>');
+  if ((t.perk && !S.perks[t.perk]) || WATCH.some(p => p.secEnd === t.id && !S.perks[p.id])) b.push('<span class="star">★ archive record</span>');
   if (t.win) b.push('<span class="star">the end of the voyage</span>');
   return b;
 }
@@ -1791,15 +1801,9 @@ function renderArchive(force){
     zp.forEach(p => {
       h += S.perks[p.id]
         ? `<div class="perk"><h3>${esc(p.name)}</h3><p>${esc(p.desc)}${p.by && S.seen[p.by] ? ' <span class="by">From: ' + esc(T[p.by].name) + '</span>' : ''}</p></div>`
+        : p.secEnd ? `<div class="perk no"><h3>${esc(p.name)}</h3><p>${p.secEnd === 'ignite' ? 'Light the main drive' : 'Leave the ' + z.name}: +8 hours of time away.</p></div>`
         : `<div class="perk no"><h3>Unrecovered record</h3><p>Somewhere in the ${z.name}.</p></div>`;
     });
-  });
-  const sv = PERKS.filter(p => p.play);
-  h += `<div class="sub" style="margin-top:10px">Service records \u00b7 ${sv.filter(p => S.perks[p.id]).length}/${sv.length}</div>`;
-  sv.forEach(p => {
-    h += S.perks[p.id]
-      ? `<div class="perk"><h3>${esc(p.name)}</h3><p>${esc(p.desc)}</p></div>`
-      : `<div class="perk no"><h3>${esc(p.name)}</h3><p>Keep the clock running: ${fmtHours(S.stats.played || 0)} of ${p.play / 3600} hours played in this save. Reward: time away up to ${p.away / 3600} hours.</p></div>`;
   });
   h += '</div>';
   const st = S.stats;
@@ -1809,6 +1813,7 @@ function renderArchive(force){
     <div><b>${Math.min(BASE_HP_MAX, 100 + Math.floor(S.vit || 0))}</b><span>Base health (max ${BASE_HP_MAX})</span></div>
     <div><b>${fmt(Object.values(S.xpTot || {}).reduce((a, b) => a + b, 0))}</b><span>Total echo XP</span></div>
     <div><b>${fmtHours(S.stats.played || 0)}</b><span>Time played</span></div>
+    <div><b>${awayMax() / 3600} h</b><span>Time away limit (max 48 h)</span></div>
     <div><b>${S.won ? 'Clone ' + S.winGen : 'Not yet'}</b><span>Drive ignited</span></div></div>`;
   h += '<div class="panel set"><span class="h2">Settings</span>';
   h += `<div class="row"><p>Auto-eat<small>Eat a ration whenever the meal cooldown is over and health has room for it.</small></p><button class="tog${S.set.autoEat ? ' on' : ''}" data-set="autoEat" aria-label="Auto-eat" aria-pressed="${S.set.autoEat}"></button></div>`;
@@ -2038,7 +2043,7 @@ const FAQ = [
   ['What is gear?', 'Gear is built from salvage in the <b>Gear</b> tab and lasts for one clone. Each section has designs to build. Salvage storage is limited; opening up more of the ship raises it.'],
   ['How does automation work?', 'Finish an action in 10 different lives (or work a job for 10 batches in 10 lives, or build a design in 10 lives) and an <b>AUTO</b> switch appears. Automated tasks run by themselves when your queue is empty, in priority order: P1 first, P5 last. The <b>Auto</b> tab lists everything unlocked and has extra options: feeding when needed, filling storage before moving on, the strain level for automatic rests, the death screen and starting paused.'],
   ['What happens at a crossing with automation?', 'A queued or automated crossing stops just before it finishes and waits while the clone finishes automated actions and training, builds affordable automated gear, refills storage (if that option is on) and uses the section’s rest. Tap a crossing yourself to go at once.'],
-  ['Pause, background and boost', 'Pause with the button at the top or the space bar. The game keeps running in a background tab and catches up when you return, then shows what happened while you were away. Time while the game is fully closed is stored as a <b>+2×</b> boost you can switch on in the header. Both are capped at 24 hours: at most 24 hours of background time is played out, and the boost holds at most 24 hours. Two <b>service records</b> in the archive raise this to 48 and then 72 hours; they come from total time played in the save (10 and 20 hours of the clock actually running).'],
+  ['Pause, background and boost', 'Pause with the button at the top or the space bar. The game keeps running in a background tab and catches up when you return, then shows what happened while you were away. Time while the game is fully closed is stored as a <b>+2×</b> boost you can switch on in the header. Both start capped at 8 hours: at most 8 hours of background time is played out, and the boost holds at most 8 hours. Each <b>Stasis watch</b> record adds 8 hours to both; you get one the first time you finish each section (5 in all, up to 48 hours).'],
   ['Saves', 'The game saves itself every few seconds on this device, in three slots (☰ menu). Use <b>Save files and transfer</b> in the menu to export a save file, import one, or copy the save as text to move it between devices.'],
   ['Settings', 'The ⚙ button opens sound (music and effects), layout (vertical or horizontal) and, in the Android app, app updates. Gameplay options such as auto-eat and the forage threshold are in the Archive tab.'],
 ];
@@ -2264,10 +2269,7 @@ let last = performance.now(), saveT = 0, viewT = 0;
 // The game keeps running when the tab is hidden: a slow timer keeps ticking, and any gap
 // (tab throttled, phone asleep) is simulated in one go when the page gets time again.
 // Gaps longer than awayMax() are partly turned into stasis boost instead.
-// At most 24 h of background time is played out, and the +2\u00d7 boost holds at most 24 h.
-// Service records raise both to 48 h and 72 h.
-function awayMax(){ let m = 24 * 3600; PERKS.forEach(p => { if (p.away && S.perks[p.id]) m = Math.max(m, p.away); }); return m; }
-function checkService(){ PERKS.forEach(p => { if (p.play && !S.perks[p.id] && (S.stats.played || 0) >= p.play) { S.perks[p.id] = true; M = mods(); HOOK.perk(p); } }); }
+// awayMax(): see the watch records next to PERKS.
 function simulate(dt){
   if (dt <= 0 || S.life.dead || paused || S.set.paused) return;
   let mult = S.set.speed;
@@ -2279,7 +2281,6 @@ function simulate(dt){
     advance(chunk);
     const ran = S.life.day - d0;
     if (ran > 0) { S.life.real = (S.life.real || 0) + ran * perTick; S.stats.played = (S.stats.played || 0) + ran * perTick; }   // real seconds the clock actually ran
-    checkService();
     if (ran < chunk - 1e-6) break;   // stopped: idle, paused or dead
     left -= chunk;
   }
