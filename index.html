@@ -93,6 +93,12 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--amber);outline-
 .ngp{border-color:var(--cyan-soft)}
 .ngp .h2{color:var(--cyan)}
 .ngpick{display:grid;gap:8px;margin:10px 0}
+.ngpts{margin:10px 0 4px;font-size:13px}
+.ngpts b{color:var(--cyan);font-size:15px}
+.ngrow{display:flex;gap:6px;align-items:center;padding:6px 0;border-bottom:1px solid var(--line)}
+.ngrow>div{flex:1;min-width:0;font-size:13px}
+.ngrow small{display:block;color:var(--dim);font-size:11.5px}
+.ngrow .btn{width:36px;height:34px;padding:0;font-size:16px}
 .ngpick .btn{text-align:left}
 .ngpick .btn small{display:block;font-size:12px;color:var(--dim);font-weight:400;margin-top:2px}
 .hng{font-family:var(--f-mono);font-size:11px;color:var(--cyan);border:1px solid var(--cyan-soft);border-radius:3px;padding:1px 4px}
@@ -674,7 +680,7 @@ function newLife(s){
 function defaultState(){
   const s = {v:1, qpresets:[[], [], []], gprac:{}, gauto:{}, gprio:{}, ev:2, xpTot:{}, rv:4, sv:2, pv:2, vv:3, gen:1, prio:{}, ever:{}, prac:{}, auto:{}, echo:{}, perks:{}, seen:{}, logged:{}, log:[], lastOrder:[], lastJob:null,
     set:{speed:1, autoFood:true, autoEat:true, foodDays:2, foodPct:40, restAt:2.5, keepQueue:true, deathScreen:true, deathPause:true, startPaused:false, bgPause:false, replay:true, fillCross:false, autoFeed:false, boost:false, boostX:2},
-    stats:{bestAge:0, deaths:0, daysLived:0, played:0}, pr:{n:0, growth:0, drain:0, hp:0, speed:0, carry:0, runs:[]}, won:false, winGen:0, bank:0, saved:Date.now(), intro:false};
+    stats:{bestAge:0, deaths:0, daysLived:0, played:0}, pr:{n:0, pts:0, growth:0, drain:0, hp:0, speed:0, carry:0, runs:[]}, won:false, winGen:0, bank:0, saved:Date.now(), intro:false};
   SKILLS.forEach(k => s.echo[k.id] = 0);
   s.life = newLife(s);
   return s;
@@ -691,6 +697,20 @@ const NGP = [
   {id:'speed',  name:'Overclocked line', max:5, now:k => 'game speed \u00d7' + (1 + 0.8 * k).toFixed(1), step:'The whole game runs faster, without using banked time (\u00d71.8, \u00d72.6, \u00d73.4, \u00d74.2, \u00d75 at the last step)'},
 ];
 const ngpLv = id => Math.min(5, ((S.pr || {})[id]) || 0);
+// Points: every finished run earns one. Each level of a reward costs one point, and points can be
+// moved between rewards at any time (respec), even mid-run.
+const ngpPts = () => { const pr = S.pr || {}; return pr.pts != null ? pr.pts : (pr.n || 0); };
+const ngpSpent = () => NGP.reduce((a, r) => a + ngpLv(r.id), 0);
+const ngpFree = () => Math.max(0, ngpPts() - ngpSpent());
+function ngpAdjust(id, d){
+  const r = NGP.find(x => x.id === id); if (!r || !S.pr) return false;
+  const k = ngpLv(id);
+  if (d > 0 && (k >= r.max || ngpFree() < 1)) return false;
+  if (d < 0 && k <= 0) return false;
+  S.pr[id] = k + d; M = mods();
+  if (S.life.hp > M.maxHp) S.life.hp = M.maxHp;
+  return true;
+}
 const drainDiv = () => 1 + 0.8 * ngpLv('drain');   // new game plus drain dampener
 const ngpSpeed = () => 1 + 0.8 * ngpLv('speed');    // new game plus overclock: flat game speed, free
 function mods(){
@@ -1162,7 +1182,7 @@ function prestige(choice){
   ns.set = o.set; ns.set.paused = false; ns.set.boost = false;
   ns.qpresets = o.qpresets; ns.bank = o.bank || 0; ns.intro = true;
   ns.stats.played = o.stats.played || 0;
-  ns.pr = {n:pr.n + 1, growth:(pr.growth || 0) + (choice === 'growth' ? 1 : 0), drain:(pr.drain || 0) + (choice === 'drain' ? 1 : 0), hp:(pr.hp || 0) + (choice === 'hp' ? 1 : 0), speed:(pr.speed || 0) + (choice === 'speed' ? 1 : 0), carry,
+  ns.pr = {n:pr.n + 1, pts:(pr.pts != null ? pr.pts : pr.n || 0) + 1, growth:Math.min(5, (pr.growth || 0) + (choice === 'growth' ? 1 : 0)), drain:Math.min(5, (pr.drain || 0) + (choice === 'drain' ? 1 : 0)), hp:Math.min(5, (pr.hp || 0) + (choice === 'hp' ? 1 : 0)), speed:Math.min(5, (pr.speed || 0) + (choice === 'speed' ? 1 : 0)), carry,
     runs:(pr.runs || []).concat([{clones:o.winGen || o.gen, played:Math.round(o.stats.played || 0), pick:choice}])};
   S = ns; M = mods(); S.life.hp = M.maxHp;
 }
@@ -2071,7 +2091,15 @@ function ngpPanel(){
   h += '<p class="note">Start the whole ship over with a new line of clones. Everything resets: clones, skills and echoes, archive records, practice and automation. You keep your new game plus rewards, settings and queue presets, the stasis boost, and the time-away limit you have earned, which keeps growing by 8 hours for every section you finish, run after run.</p>';
   h += '<table class="dt">';
   h += `<tr><td>Runs completed</td><td>${pr.n}</td></tr>`;
-  NGP.forEach(r => { const k = ngpLv(r.id); h += `<tr><td>${r.name}</td><td>${k ? r.now(k) + ' (' + k + '/' + r.max + ')' : 'none'}</td></tr>`; });
+  h += '</table>';
+  if (pr.n) {
+    const free = ngpFree();
+    h += `<div class="ngpts"><span class="lbl">Reward points</span> <b class="num">${free}</b> unspent of ${ngpPts()} \u00b7 move them freely, any time</div>`;
+    NGP.forEach(r => { const k = ngpLv(r.id);
+      h += `<div class="ngrow"><div><b>${r.name}</b> <span class="num">${k}/${r.max}</span><small>${k ? r.now(k) : 'not taken'}</small></div>
+        <button class="btn" data-ngpadj="${r.id}" data-dd="-1" ${k ? '' : 'disabled'} aria-label="Remove a point from ${r.name}">\u2212</button><button class="btn" data-ngpadj="${r.id}" data-dd="1" ${k < r.max && free ? '' : 'disabled'} aria-label="Add a point to ${r.name}">+</button></div>`; });
+  }
+  h += '<table class="dt">';
   h += `<tr><td>Time away carried over</td><td>${Math.min(pr.carry || 0, AWAY_CAP - AWAY_BASE) / 3600} h${awayMax() >= AWAY_CAP ? ' \u00b7 limit at the 168 h maximum' : ''}</td></tr>`;
   (pr.runs || []).forEach((r, i) => { h += `<tr><td>Run ${i + 1}</td><td>${r.clones} clone${r.clones === 1 ? '' : 's'} \u00b7 ${fmtHours(r.played)} played total</td></tr>`; });
   h += '</table>';
@@ -2083,11 +2111,11 @@ function showNgp(){
   const done = NGP.every(r => ngpLv(r.id) >= r.max);
   showModal(`<h2>New game plus</h2>
     <p>WARDEN files the ship as delivered and opens a fresh line of maintenance clones for the return voyage. Nothing of this line remains: no echoes, no records, no practice.</p>
-    <p class="d">Choose what the new line inherits:</p>
+    <p class="d">This run earns one reward point. Put it into a reward now (you can move points around later, any time):</p>
     <div class="ngpick">
       ${NGP.map(r => { const k = ngpLv(r.id), full = k >= r.max;
         return `<button class="btn" data-ngpick="${r.id}" ${full ? 'disabled' : ''}>${r.name} ${Math.min(k + 1, r.max)}/${r.max}<small>${full ? 'Fully upgraded: ' + r.now(k) + '.' : r.step + '. After this: ' + r.now(k + 1) + '.'}</small></button>`; }).join('')}
-      ${done ? '<button class="btn" data-ngpick="none">Start over without a reward<small>Every reward is collected. The time-away limit still carries over.</small></button>' : ''}
+      <button class="btn" data-ngpick="none">Keep the point unspent<small>${done ? 'Every reward is maxed out.' : 'Spend it later from the Archive; points can be moved between rewards at any time.'}</small></button>
     </div>
     <p class="d">Your current progress in this slot is erased. Export a save first if you want a copy.</p>
     <div class="btns"><button class="btn" data-close>Not yet</button></div>`);
@@ -2358,7 +2386,7 @@ const FAQ_ALL = [
   ['Settings', 'The ⚙ button opens sound (music and effects), layout (vertical or horizontal) and, in the Android app, app updates. Gameplay options such as auto-eat and the forage threshold are in the Archive tab.'],
 ];
 // Shown only once new game plus is unlocked (it stays hidden until the drive is first lit).
-const FAQ_NGP = ['New game plus', 'After you light the main drive, <b>New game plus</b> opens in the Archive tab. It starts the whole ship over: clones, skills and echoes, archive records, practice and automation all reset. Each run you pick one step of a lasting reward. Each reward has five steps: <b>Deep echo</b> (+20% skill growth per step, +100% in all), <b>Drain dampener</b> (health drain divided by 1.8, 2.6, 3.4, 4.2 and finally 5) <b>Template upgrade</b> (+100 max health for every clone per step, +500 in all) and <b>Overclocked line</b> (the whole game runs faster: ×1.8, ×2.6, ×3.4, ×4.2 and finally ×5, without using banked time; the stasis boost stacks on top). Twenty runs collect everything. Your settings, queue presets and stasis boost carry over, and so does your time-away limit: the hours from Stasis watch records add up from run to run, up to 168 hours (one week).'];
+const FAQ_NGP = ['New game plus', 'After you light the main drive, <b>New game plus</b> opens in the Archive tab. It starts the whole ship over: clones, skills and echoes, archive records, practice and automation all reset. Each run you pick one step of a lasting reward. Each reward has five steps: <b>Deep echo</b> (+20% skill growth per step, +100% in all), <b>Drain dampener</b> (health drain divided by 1.8, 2.6, 3.4, 4.2 and finally 5) <b>Template upgrade</b> (+100 max health for every clone per step, +500 in all) and <b>Overclocked line</b> (the whole game runs faster: ×1.8, ×2.6, ×3.4, ×4.2 and finally ×5, without using banked time; the stasis boost stacks on top). Each finished run earns one point and each level costs one point; you can move points between rewards at any time, even mid-run, from the Archive. Twenty points max everything out. Your settings, queue presets and stasis boost carry over, and so does your time-away limit: the hours from Stasis watch records add up from run to run, up to 168 hours (one week).'];
 let faqDone = '';
 function renderFaq(){
   const k = String(!!(S.won || (S.pr && S.pr.n)));
@@ -2503,12 +2531,13 @@ document.addEventListener('click', e => {
     return;
   }
   if ('ngp' in d) { if (S.won) showNgp(); return; }
+  if (d.ngpadj) { if (ngpAdjust(d.ngpadj, +d.dd)) { sfx('toggle'); archKey = ''; save(); renderView(true); } return; }
   if (d.ngpick) {
     const pr0 = S.pr || {};
     const rw = NGP.find(r => r.id === d.ngpick), allDone = NGP.every(r => ngpLv(r.id) >= r.max);
-    if (!S.won || (rw ? ngpLv(rw.id) >= rw.max : !(d.ngpick === 'none' && allDone))) return;
+    if (!S.won || (rw ? ngpLv(rw.id) >= rw.max : d.ngpick !== 'none')) return;
     prestige(d.ngpick); resetViews(); hideModal(); paused = false; save(); setTab('tasks');
-    toast('New game plus ' + S.pr.n + ' begins. ' + (rw ? rw.name + ' ' + ngpLv(rw.id) + '/' + rw.max + ': ' + rw.now(ngpLv(rw.id)) + '.' : 'No new reward this time.'), true);
+    toast('New game plus ' + S.pr.n + ' begins. ' + (rw ? rw.name + ' ' + ngpLv(rw.id) + '/' + rw.max + ': ' + rw.now(ngpLv(rw.id)) + '.' : 'Point kept unspent; spend it in the Archive.'), true);
     return;
   }
   if (L.dead && !d.confirm) return;
