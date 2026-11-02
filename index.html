@@ -84,6 +84,8 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--amber);outline-
 .surv span{color:var(--dim)}
 .surv em{font-style:normal;color:var(--dim)}
 .surv .strain{flex-basis:100%;color:var(--dim)}
+.surv .plan{flex-basis:100%;color:var(--cyan)}
+.surv .plan.over{color:var(--amber)}
 .surv .strain.hi{color:var(--red)}
 .task.rest .tm{border-style:dashed}
 .task.train .tm{border-style:dotted}
@@ -126,6 +128,7 @@ main .wrap{display:grid;gap:18px}
 /* queue */
 .qp{display:grid;gap:8px;padding:10px;border:1px dashed var(--line);border-radius:6px}
 .qh{display:flex;justify-content:space-between;align-items:center}
+.qh .qeta{color:var(--cyan);letter-spacing:0;text-transform:none;font-weight:400}
 .secrun{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:8px 10px;margin:4px 0 8px;border:1px solid var(--cyan-soft);border-radius:4px;font-size:12.5px;color:var(--fg)}
 .secrun.on{border-color:var(--cyan)}
 .secrun.dim{color:var(--dim)}
@@ -435,7 +438,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
       <div class="spd" id="h-spd"></div>
     </div>
     <div class="meter"><span class="lbl" style="min-width:0;text-align:left">Health</span><div class="bar hp"><i id="b-hp"></i></div><span id="t-hp" class="num"></span></div>
-    <div class="surv" id="surv"><span class="lbl">Outlook</span><em id="s-why"></em><span id="s-strain" class="num strain"></span></div>
+    <div class="surv" id="surv"><span class="lbl">Outlook</span><em id="s-why"></em><span id="s-plan" class="num plan" title="Planned work: the tapped task and everything in the queue, at today&#39;s speeds"></span><span id="s-strain" class="num strain"></span></div>
     <div class="res">
       <div><span class="lbl">Food</span><span id="t-foods" class="foods"></span><small id="t-ratt" class="rt num"></small><button id="eatb" class="eat num" data-eat>Eat</button></div>
       <div><span class="lbl">Salvage</span><b id="t-sal" class="num"></b><small id="t-salr" class="num"></small><small id="t-salt" class="rt num"></small></div>
@@ -1480,6 +1483,34 @@ function cStepDone(id, x){
   if (t.kind === 'job') return !!(L.cjd || {})[id + '#' + x];
   return complete(t) || zBefore(t.z, L.sec || 1);
 }
+// Rough time (ticks) the planned work would take at today's speeds: the tapped task, then every queue
+// entry (actions: what is left of them; jobs: filling their store; gear: earning the missing salvage;
+// chains: their unfinished steps). Familiarity gained on the way is not counted, so it is an upper bound.
+function taskLeft(t){
+  const L = S.life, sp = speedOf(t);
+  if (t.kind === 'job') {
+    if (!t.prod) return 0;
+    if (t.prod.salvage) { const r = t.prod.salvage * sp * (isA2(t.z) ? M.a2sal : 1); return r > 0 ? Math.max(0, M.salCap - L.salvage) / r : 0; }
+    const f = jobFood(t), r = t.prod.rations * sp; return r > 0 ? Math.max(0, M.fcap[f] - (L.food[f] || 0)) / r : 0;
+  }
+  if (complete(t)) return 0;
+  return Math.max(0, t.days * (t.reps - (L.done[t.id] || 0)) - (L.prog[t.id] || 0)) / sp;
+}
+function gearLeft(it){
+  const L = S.life; if (L.owned[it.id]) return 0;
+  const need = Math.max(0, it.cost - L.salvage); if (!need) return 0;
+  const j = bestSalvageJob(); return j ? need / (j.prod.salvage * speedOf(j)) : 0;
+}
+function plannedTicks(){
+  const L = S.life; let tot = 0;
+  if (L.now && T[L.now]) tot += taskLeft(T[L.now]);
+  L.queue.forEach(id => {
+    if (isCQ(id)) cSteps(id).forEach(x => { if (!cStepDone(id, x)) tot += isGQ(x) ? gearLeft(IT[x.slice(2)]) : taskLeft(T[x]); });
+    else if (isGQ(id)) tot += gearLeft(IT[id.slice(2)]);
+    else if (T[id]) tot += taskLeft(T[id]);
+  });
+  return tot;
+}
 function bestSalvageJob(ok){
   let job = null, br = 0;
   for (const t of TASKS) if (t.kind === 'job' && t.prod && t.prod.salvage && available(t) && !jobFull(t) && (!ok || ok(t))) {
@@ -2175,7 +2206,7 @@ function renderTasks(){
   if (key === taskKey) return;
   taskKey = key;
 
-  let h = '<div class="qp"><div class="qh"><span class="lbl">Queue <span class="num qcount">' + L.queue.length + '/' + QMAX + '</span></span><span class="qhb">' + (L.queue.length || (L.qdone || []).length ? '<button class="qclear" data-clearq aria-label="Clear the whole queue">\u2715 Clear queue</button>' : '') + '</span></div>';
+  let h = '<div class="qp"><div class="qh"><span class="lbl">Queue <span class="num qcount">' + L.queue.length + '/' + QMAX + '</span> <span class="num qeta" id="q-eta"></span></span><span class="qhb">' + (L.queue.length || (L.qdone || []).length ? '<button class="qclear" data-clearq aria-label="Clear the whole queue">\u2715 Clear queue</button>' : '') + '</span></div>';
   if (L.held) {
     const left = holdList();
     h += `<div class="hold"><div><b>${esc(T[L.held].name)}</b> is on hold until this section is wrapped up. Still to do: ${esc(left.join(', ') || 'nothing')}. Drag tasks above it in the queue to run them first.</div><button class="btn" data-skiphold>Skip the rest and cross now</button></div>`;
@@ -2349,7 +2380,7 @@ function renderSpeed(){
     if (t.textContent !== txt) t.textContent = txt;
   }
 }
-let lastHg = '';
+let lastHg = '', planT = 0;
 function updateHud(){
   const L = S.life;
   const hg = 'Clone ' + S.gen + (S.pr && S.pr.n ? ' <span class="hng">NG+' + S.pr.n + (ngpLv('speed') ? ' \u00b7 \u00d7' + ngpSpeed().toFixed(1) : '') + '</span>' : '');
@@ -2367,6 +2398,14 @@ function updateHud(){
     const lt = (isFinite(sv.t) ? fmtDays(sv.t) + ' \u00b7 ' + fmtReal(realSecs(sv.t)) : '\u221e') + ' left';
     if (hl.textContent !== lt) hl.textContent = lt;
     $('#s-why').textContent = (isFinite(sv.t) ? 'ends by ' + sv.why : 'nothing ends it soon') + (cur ? '' : ' (time left counts once working)');
+    if (performance.now() - planT > 400) {   // planned work, refreshed a few times a second
+      planT = performance.now();
+      const pt = plannedTicks(), pe = $('#s-plan'), qe = $('#q-eta');
+      if (qe) { const qt = pt > 0.5 ? '\u2248 ' + fmtDays(pt) + ' \u00b7 ' + fmtReal(realSecs(pt)) : ''; if (qe.textContent !== qt) qe.textContent = qt; }
+      const txt = pt > 0.5 ? 'Planned work \u2248 ' + fmtDays(pt) + ' \u00b7 ' + fmtReal(realSecs(pt)) + (isFinite(sv.t) && pt > sv.t ? ' (more than this clone has left)' : '') : (L.queue.length ? 'Planned work: waiting on locked items' : 'Queue empty');
+      if (pe.textContent !== txt) pe.textContent = txt;
+      pe.classList.toggle('over', isFinite(sv.t) && pt > sv.t);
+    }
   }
   const st = L.strain || 1, se2 = $('#s-strain');
   se2.textContent = 'strain \u00d7' + st.toFixed(2);
