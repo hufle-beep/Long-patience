@@ -83,6 +83,14 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--amber);outline-
 .res .fq{display:block;font-size:11px;color:var(--green);font-family:var(--f-mono);font-weight:400;margin-top:2px}
 .res small{font-size:11px;margin-left:auto;white-space:nowrap}
 .pos{color:var(--green)} .neg{color:var(--red)}
+.now2{margin-top:-3px}
+.now2 #n2-name::before{content:'2 \00b7 ';color:var(--faint)}
+.ngp{border-color:var(--cyan-soft)}
+.ngp .h2{color:var(--cyan)}
+.ngpick{display:grid;gap:8px;margin:10px 0}
+.ngpick .btn{text-align:left}
+.ngpick .btn small{display:block;font-size:12px;color:var(--dim);font-weight:400;margin-top:2px}
+.hng{font-family:var(--f-mono);font-size:11px;color:var(--cyan);border:1px solid var(--cyan-soft);border-radius:3px;padding:1px 4px}
 .now{position:relative;overflow:hidden;border:1px solid var(--line);border-radius:4px;padding:7px 9px;display:flex;justify-content:space-between;gap:10px;align-items:center;min-height:34px}
 .now .nf{position:absolute;inset:0 auto 0 0;width:0;background:var(--amber-fill)}
 .now span{position:relative;min-width:0}
@@ -379,6 +387,7 @@ button.updl{width:100%}
       <div><span class="lbl">Salvage</span><b id="t-sal" class="num"></b><small id="t-salr" class="num"></small><small id="t-salt" class="rt num"></small></div>
     </div>
     <div class="now" id="now"><div class="nf" id="n-fill"></div><span id="n-name"></span><span id="n-eta" class="num"></span></div>
+    <div class="now now2" id="now2" hidden><div class="nf" id="n2-fill"></div><span id="n2-name"></span><span id="n2-eta" class="num"></span></div>
   </div>
 </header>
 
@@ -576,7 +585,7 @@ PERKS.forEach(p => { const t = TASKS.find(t => t.perk === p.id || t.id === p.sec
 const AWAY_BASE = 8 * 3600, AWAY_STEP = 8 * 3600;
 const WATCH = PERKS.filter(p => p.secEnd);
 // Time away that is played out, and the most the +2\u00d7 boost can hold: 8 h, +8 h per finished section (48 h max).
-function awayMax(){ return AWAY_BASE + AWAY_STEP * WATCH.filter(p => S.perks[p.id]).length; }
+function awayMax(){ return AWAY_BASE + ((S.pr && S.pr.carry) || 0) + AWAY_STEP * WATCH.filter(p => S.perks[p.id]).length; }
 
 const ITEMS = [
   {id:'locker',     name:'Cold locker',        cost:8,    req:'wake',       desc:'+5 ration storage', eff:{ratCap:5}},
@@ -613,7 +622,7 @@ function newLife(s){
 function defaultState(){
   const s = {v:1, qpresets:[[], [], []], gprac:{}, gauto:{}, gprio:{}, ev:2, xpTot:{}, rv:4, sv:2, pv:2, vv:3, gen:1, prio:{}, ever:{}, prac:{}, auto:{}, echo:{}, perks:{}, seen:{}, logged:{}, log:[], lastOrder:[], lastJob:null,
     set:{speed:1, autoFood:true, autoEat:true, foodDays:2, foodPct:40, restAt:2.5, keepQueue:true, deathScreen:true, deathPause:true, startPaused:false, bgPause:false, replay:true, fillCross:false, autoFeed:false, boost:false},
-    stats:{bestAge:0, deaths:0, daysLived:0, played:0}, won:false, winGen:0, bank:0, saved:Date.now(), intro:false};
+    stats:{bestAge:0, deaths:0, daysLived:0, played:0}, pr:{n:0, growth:0, slot2:false, carry:0, runs:[]}, won:false, winGen:0, bank:0, saved:Date.now(), intro:false};
   SKILLS.forEach(k => s.echo[k.id] = 0);
   s.life = newLife(s);
   return s;
@@ -621,6 +630,7 @@ function defaultState(){
 // Clones have no fixed lifespan: strain alone ends a life. Base health grows with the hardened
 // genome but stops at BASE_HP_MAX; archive records and gear add on top.
 const BASE_HP_MAX = 500;
+const NGP_GROWTH = 0.5;
 function mods(){
   const L = S.life, P = S.perks;
   const m = {sk:{}, xpSk:{}, spd:1, xp:1, haz:1, maxHp:Math.min(BASE_HP_MAX, 100 + Math.floor(S.vit || 0)), pRat:0, pSal:0, strainMul:1, regen:0.05, ratCap:5, salCap:25};
@@ -635,6 +645,7 @@ function mods(){
     if (e.ratCap) m.ratCap += e.ratCap; if (e.salCap) m.salCap += e.salCap;
   };
   PERKS.forEach(p => { if (P[p.id]) ap(p.eff); });
+  m.xp *= 1 + NGP_GROWTH * ((S.pr && S.pr.growth) || 0);   // new game plus: deep echo, +50% skill growth each
   ITEMS.forEach(i => { if (L.owned[i.id]) ap(i.eff); });
   TASKS.forEach(t => { if (t.lifeEff && isDone(t.id)) ap(t.lifeEff); });
   return m;
@@ -665,31 +676,33 @@ function pickFood(){
   });
   return best;
 }
-function active(){
-  const L = S.life;
+// What runs now. `ex` (new game plus second slot) lists tasks already taken by the other slot.
+function active(ex){
+  const L = S.life, ok = t => !!t && !(ex && ex.has(t.id));
   if (S.perks.survival && S.set.autoFood) {
     const food = pickFood();
     if (food) {
       const low = M.ratCap * (S.set.foodPct || 40) / 100;
       if (L.rations < low) L.foraging = true;
       if (L.foraging && L.rations >= Math.min(low * 2, M.ratCap - 0.5)) L.foraging = false;
-      if (L.foraging) return food;
+      if (L.foraging && ok(food)) return food;
     }
   } else L.foraging = false;
   const feed = feedJob();
-  if (feed) return feed;
-  if ((L.strain || 1) >= restAt()) { const r = TASKS.find(t => t.kind === 'rest' && isAuto(t) && available(t) && !complete(t)); if (r) return r; }
+  if (ok(feed)) return feed;
+  if ((L.strain || 1) >= restAt()) { const r = TASKS.find(t => t.kind === 'rest' && isAuto(t) && available(t) && !complete(t) && ok(t)); if (r) return r; }
   const held = heldStep();
-  if (held) return held;
+  if (ok(held)) return held;
   // Your queue: actions run until done; queued jobs run until their storage is full, then drop out
   for (const id of L.queue.slice()) {
     const t = T[id];
     if (t.kind === 'job') {
       if (!available(t)) continue;
       if (jobFull(t)) { L.queue = L.queue.filter(x => x !== id); HOOK.change(); continue; }
-      return t;
+      if (ok(t)) return t;
+      continue;
     }
-    if (available(t) && !complete(t)) return t.cross ? (holdCross(t) || t) : t;
+    if (available(t) && !complete(t)) { const r = t.cross ? (holdCross(t) || t) : t; if (ok(r)) return r; }
   }
   // Everything automated (actions, training, jobs, crossings) competes on priority alone:
   // P1 always beats P2, and so on. Ties go actions, then training, then jobs (emptiest storage
@@ -697,16 +710,16 @@ function active(){
   const kindRank = t => t.cross ? 3 : t.kind === 'job' ? 2 : t.kind === 'train' ? 1 : 0;
   let pick = null, pk = Infinity;
   for (const t of TASKS) {
-    if (!isAuto(t) || !available(t)) continue;
+    if (!isAuto(t) || !available(t) || !ok(t)) continue;
     if (t.kind === 'job' ? jobFull(t) : (t.kind === 'rest' || complete(t))) continue;
     const k = prioOf(t) * 100 + kindRank(t) * 10 + (t.kind === 'job' ? storeRatio(t) : 0);
     if (k < pk) { pk = k; pick = t; }
   }
-  if (pick && pick.cross) return holdCross(pick) || pick;
-  if (pick) return pick;
+  if (pick && pick.cross) { const r = holdCross(pick) || pick; if (ok(r)) return r; }
+  else if (pick) return pick;
   // Nothing automated left to do: the job you picked yourself, until its storage is full
   if (L.job && T[L.job].kind !== 'job') L.job = null;
-  if (L.job && available(T[L.job])) {
+  if (L.job && available(T[L.job]) && ok(T[L.job])) {
     const j = T[L.job];
     if (!jobFull(j)) return j;
     L.job = null; HOOK.stopped(j);   // storage full: unselect it
@@ -898,7 +911,7 @@ function recordBest(L){
   if (!b || sec > b.sec || (sec === b.sec && at.r < b.r)) S.best = {g:S.gen, sec, d:at.d, r:at.r};
 }
 function die(cause){
-  const L = S.life; L.dead = true; L.cause = cause; L.cur = null;
+  const L = S.life; L.dead = true; L.cause = cause; L.cur = null; L.cur2 = null;
   const age = L.day / TPD;
   SKILLS.forEach(k => { if (L.lv[k.id] > S.echo[k.id]) S.echo[k.id] = L.lv[k.id]; });
   // Hardened genome: every full day a clone survives adds 0.8 max health to all later clones (base caps at 500).
@@ -915,9 +928,34 @@ function die(cause){
 function step(dt){
   const L = S.life;
   const t = active(); L.cur = t ? t.id : null;
+  // New game plus: a second action slot works on the next thing in line at the same time.
+  const t2 = t && S.pr && S.pr.slot2 ? active(new Set([t.id])) : null; L.cur2 = t2 ? t2.id : null;
   if (!t) return false;      // nothing running: time stands still, like Increlution
-  let hurt = false;
-  if (t) {
+  work(t, dt);
+  if (t2 && available(t2) && !L.dead && (t2.kind === 'job' ? !jobFull(t2) : !complete(t2))) work(t2, dt);
+  if (M.pRat) addRations(M.pRat * dt, 1);
+  L.salvage += M.pSal * dt;
+  clampRes();
+  autoBuy();
+  // Health drains all the time; hazards add to it (with two slots, the worse of the two). Meals put some back.
+  const h1 = t.haz ? hazDmg(t) : 0, h2 = t2 && t2.haz ? hazDmg(t2) : 0, ht = h2 > h1 ? t2 : t;
+  L.wear = (L.wear || 0) + dt;
+  L.strain = (L.strain || 1) + dt * strainRate(L.wear);
+  const drain = Math.min(HUNGER * L.strain + Math.max(h1, h2), MAX_DRAIN);
+  L.hp -= drain * dt;
+  L.meal = Math.max(0, (L.meal || 0) - dt);
+  if (S.set.autoEat && L.meal <= 0 && L.rations >= 1 && L.hp <= M.maxHp - mealHp() / 2) eat();
+  if (L.hp <= 0) {
+    L.hp = 0;
+    die(L.rations < 1 ? 'Starved' : (h1 || h2 ? 'Killed while trying to ' + ht.name.charAt(0).toLowerCase() + ht.name.slice(1) : 'Collapsed from exhaustion'));
+    return;
+  }
+  L.day += dt;
+  return true;
+}
+function work(t, dt){
+  const L = S.life;
+  {
     const sp = speedOf(t);
     t.sk.forEach(s => gainXp(s, xpRate(t, s) * dt));
     if (t.kind === 'job') {
@@ -936,24 +974,6 @@ function step(dt){
       if (L.prog[t.id] >= t.days) { L.prog[t.id] = 0; finish(t); }
     }
   }
-  if (M.pRat) addRations(M.pRat * dt, 1);
-  L.salvage += M.pSal * dt;
-  clampRes();
-  autoBuy();
-  // Health drains all the time; hazards add to it. Meals put some back.
-  L.wear = (L.wear || 0) + dt;
-  L.strain = (L.strain || 1) + dt * strainRate(L.wear);
-  const drain = Math.min(HUNGER * L.strain + (t && t.haz ? hazDmg(t) : 0), MAX_DRAIN);
-  L.hp -= drain * dt;
-  L.meal = Math.max(0, (L.meal || 0) - dt);
-  if (S.set.autoEat && L.meal <= 0 && L.rations >= 1 && L.hp <= M.maxHp - mealHp() / 2) eat();
-  if (L.hp <= 0) {
-    L.hp = 0;
-    die(L.rations < 1 ? 'Starved' : (t && t.haz ? 'Killed while trying to ' + t.name.charAt(0).toLowerCase() + t.name.slice(1) : 'Collapsed from exhaustion'));
-    return;
-  }
-  L.day += dt;
-  return true;
 }
 function canEat(){ const L = S.life; return !L.dead && (L.meal || 0) <= 0 && L.rations >= 1; }
 function eat(){
@@ -1000,6 +1020,19 @@ function qMoveTo(id, to){
   p.forEach((x, k) => { if (L.queue.includes(x)) slots.push(k); });
   const order = L.queue.filter(x => p.includes(x));
   slots.forEach((k, n) => { p[k] = order[n]; });
+}
+// New game plus: everything resets except the rewards, settings, presets, the +2\u00d7 boost and the
+// time-away limit, which carries over and keeps adding up (+8 h per section finished, every run).
+function prestige(choice){
+  const o = S, pr = o.pr || {n:0, growth:0, slot2:false, carry:0, runs:[]};
+  const carry = (pr.carry || 0) + AWAY_STEP * WATCH.filter(p => o.perks[p.id]).length;
+  const ns = defaultState();
+  ns.set = o.set; ns.set.paused = false; ns.set.boost = false;
+  ns.qpresets = o.qpresets; ns.bank = o.bank || 0; ns.intro = true;
+  ns.stats.played = o.stats.played || 0;
+  ns.pr = {n:pr.n + 1, growth:(pr.growth || 0) + (choice === 'growth' ? 1 : 0), slot2:!!pr.slot2 || choice === 'slot2', carry,
+    runs:(pr.runs || []).concat([{clones:o.winGen || o.gen, played:Math.round(o.stats.played || 0), pick:choice}])};
+  S = ns; M = mods(); S.life.hp = M.maxHp;
 }
 function decant(){
   const prev = S.life;
@@ -1219,13 +1252,15 @@ function fmtReal(sec){
 }
 const both = days => isFinite(days) ? fmtDays(days) + ' \u00b7 ' + fmtReal(realSecs(days)) : '\u221e';
 // Net ration and salvage change per day if task t is the one being worked
-function rates(t){
+function rates(t, t2){
   let rr = M.pRat - EAT, sr = M.pSal;
-  if (t && t.kind === 'job' && t.prod) {
-    const sp = speedOf(t);
-    if (t.prod.rations) rr += t.prod.rations * sp;
-    if (t.prod.salvage) sr += t.prod.salvage * sp;
-  }
+  [t, t2].forEach(j => {
+    if (j && j.kind === 'job' && j.prod) {
+      const sp = speedOf(j);
+      if (j.prod.rations) rr += j.prod.rations * sp;
+      if (j.prod.salvage) sr += j.prod.salvage * sp;
+    }
+  });
   return {rr, sr};
 }
 function storeEta(val, cap, rate){
@@ -1235,11 +1270,11 @@ function storeEta(val, cap, rate){
 }
 // How long the clone lives if the current task keeps going: strain, starvation or injuries
 function survival(){
-  const L = S.life, cur = L.cur ? T[L.cur] : null;
+  const L = S.life, cur = L.cur ? T[L.cur] : null, cur2 = L.cur2 ? T[L.cur2] : null;
   const lifeLeft = 300 * TPD;   // look ahead at most 300 days
-  // Step forward assuming the current task keeps running and no rest is taken.
-  const net = rates(cur).rr + EAT;           // rations gained per tick before eating
-  const haz = cur && cur.haz ? hazDmg(cur) : 0;
+  // Step forward assuming the current task(s) keep running and no rest is taken.
+  const net = rates(cur, cur2).rr + EAT;           // rations gained per tick before eating
+  const haz = Math.max(cur && cur.haz ? hazDmg(cur) : 0, cur2 && cur2.haz ? hazDmg(cur2) : 0);
   let hp = L.hp, rat = L.rations, strain = L.strain || 1, meal = L.meal || 0, t = 0, why = '';
   const dt = 5, eatOn = S.set.autoEat, mh = mealHp();
   while (t < lifeLeft) {
@@ -1284,7 +1319,7 @@ function slotInfo(raw){
   const age = ((raw.life.day || 0) / TPD).toFixed(1);
   const rec = Object.keys(raw.perks || {}).length;
   const when = raw.saved ? new Date(raw.saved).toLocaleString([], {month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'}) : '';
-  return 'Clone ' + raw.gen + (raw.life.dead ? ' (dead)' : ', day ' + age) + ' \u00b7 ' + rec + '/' + PERKS.length + ' records' + (raw.won ? ' \u00b7 drive lit' : '') + (when ? ' \u00b7 ' + when : '');
+  return 'Clone ' + raw.gen + (raw.life.dead ? ' (dead)' : ', day ' + age) + ' \u00b7 ' + rec + '/' + PERKS.length + ' records' + (raw.pr && raw.pr.n ? ' \u00b7 NG+' + raw.pr.n : '') + (raw.won ? ' \u00b7 drive lit' : '') + (when ? ' \u00b7 ' + when : '');
 }
 /* ----- saves are local: text helpers, and old GitHub settings are wiped ----- */
 const b64enc = str => btoa(unescape(encodeURIComponent(str)));
@@ -1670,7 +1705,7 @@ function renderTasks(){
 function updateTasks(){
   const L = S.life;
   refs.forEach(r => {
-    const t = r.t, on = L.cur === t.id;
+    const t = r.t, on = L.cur === t.id || L.cur2 === t.id;
     r.el.classList.toggle('on', on);
     const sp = speedOf(t);
     if (t.kind !== 'job') {
@@ -1720,12 +1755,12 @@ function renderSpeed(){
 }
 function updateHud(){
   const L = S.life;
-  $('#h-gen').textContent = 'Clone ' + S.gen;
+  $('#h-gen').innerHTML = 'Clone ' + S.gen + (S.pr && S.pr.n ? ' <span class="hng">NG+' + S.pr.n + '</span>' : '');
   $('#h-day').textContent = 'day ' + (L.day / TPD).toFixed(1);
   $('#b-hp').style.width = Math.max(0, L.hp / M.maxHp * 100) + '%';
   $('#t-hp').textContent = Math.ceil(L.hp) + ' / ' + M.maxHp;
-  const cur = L.cur ? T[L.cur] : null;
-  const {rr, sr} = rates(cur);
+  const cur = L.cur ? T[L.cur] : null, cur2 = L.cur2 ? T[L.cur2] : null;
+  const {rr, sr} = rates(cur, cur2);
   const sv = survival(), surv = $('#surv');
   if (L.dead) { $('#s-left').textContent = '0'; $('#s-real').textContent = ''; $('#s-why').textContent = 'dead'; }
   else {
@@ -1768,6 +1803,14 @@ function updateHud(){
       const sp = speedOf(cur); jobBar($('#n-fill'), cur, sp);
       $('#n-eta').textContent = cur.prod ? (jobFast(sp) ? 'continuous' : 'next batch ' + both((1 - (L.cyc[cur.id] || 0)) * JOB_CYCLE / sp)) : 'training';
     }
+  }
+  const n2 = $('#now2'), has2 = !!(S.pr && S.pr.slot2);
+  n2.hidden = !has2;
+  if (has2) {
+    const f2 = $('#n2-fill');
+    if (!cur2 || L.dead || S.set.paused) { $('#n2-name').textContent = L.dead ? 'Second slot' : S.set.paused ? 'Paused' + (cur2 ? ': ' + cur2.name : '') : 'Second slot: nothing else to do'; $('#n2-eta').textContent = ''; if (!cur2) f2.style.width = '0'; f2.classList.remove('fast'); }
+    else if (cur2.kind !== 'job') { const sp = speedOf(cur2); f2.classList.remove('fast'); $('#n2-name').textContent = cur2.name; f2.style.width = ((L.prog[cur2.id] || 0) / cur2.days * 100).toFixed(1) + '%'; $('#n2-eta').textContent = both((cur2.days - (L.prog[cur2.id] || 0)) / sp); }
+    else { const sp = speedOf(cur2); $('#n2-name').textContent = cur2.name; jobBar(f2, cur2, sp); $('#n2-eta').textContent = cur2.prod ? (jobFast(sp) ? 'continuous' : 'next batch ' + both((1 - (L.cyc[cur2.id] || 0)) * JOB_CYCLE / sp)) : 'training'; }
   }
   renderSpeed();
   audioMood(L.dead ? 0 : L.hp / M.maxHp, paused || !!S.set.paused);
@@ -1839,8 +1882,35 @@ document.addEventListener('input', e => {
   document.querySelectorAll(`[data-avv="${k}"]`).forEach(x => x.textContent = e.target.value);
 });
 document.addEventListener('change', e => { if (e.target.dataset && e.target.dataset.avol) sfx('click'); });
+function ngpPanel(){
+  const pr = S.pr || {n:0, growth:0, slot2:false};
+  let h = '<div class="panel ngp"><span class="h2">New game plus</span>';
+  h += '<p class="note">Start the whole ship over with a new line of clones. Everything resets: clones, skills and echoes, archive records, practice and automation. You keep your new game plus rewards, settings and queue presets, the +2\u00d7 boost, and the time-away limit you have earned, which keeps growing by 8 hours for every section you finish, run after run.</p>';
+  h += '<table class="dt">';
+  h += `<tr><td>Runs completed</td><td>${pr.n}</td></tr>`;
+  h += `<tr><td>Deep echo</td><td>${pr.growth ? '+' + Math.round(pr.growth * NGP_GROWTH * 100) + '% skill growth (\u00d7' + pr.growth + ')' : 'none'}</td></tr>`;
+  h += `<tr><td>Second action slot</td><td>${pr.slot2 ? 'yes' : 'no'}</td></tr>`;
+  h += `<tr><td>Time away carried over</td><td>${((pr.carry || 0) / 3600)} h</td></tr>`;
+  (pr.runs || []).forEach((r, i) => { h += `<tr><td>Run ${i + 1}</td><td>${r.clones} clone${r.clones === 1 ? '' : 's'} \u00b7 ${fmtHours(r.played)} played total</td></tr>`; });
+  h += '</table>';
+  h += S.won ? '<div class="btns"><button class="btn pri" data-ngp>Begin new game plus</button></div>'
+             : '<p class="note">Light the main drive in this run to begin the next one.</p>';
+  return h + '</div>';
+}
+function showNgp(){
+  const pr = S.pr || {};
+  showModal(`<h2>New game plus</h2>
+    <p>WARDEN files the ship as delivered and opens a fresh line of maintenance clones for the return voyage. Nothing of this line remains: no echoes, no records, no practice.</p>
+    <p class="d">Choose what the new line inherits:</p>
+    <div class="ngpick">
+      <button class="btn" data-ngpick="growth">Deep echo<small>+50% skill growth for every skill${pr.growth ? ' (you have +' + Math.round(pr.growth * NGP_GROWTH * 100) + '%; this stacks)' : ''}.</small></button>
+      <button class="btn" data-ngpick="slot2" ${pr.slot2 ? 'disabled' : ''}>Second action slot<small>${pr.slot2 ? 'Already yours.' : 'Your clone works on two things at once: the next task in line runs alongside the first.'}</small></button>
+    </div>
+    <p class="d">Your current progress in this slot is erased. Export a save first if you want a copy.</p>
+    <div class="btns"><button class="btn" data-close>Not yet</button></div>`);
+}
 function renderArchive(force){
-  const key = Object.keys(S.perks).join() + '|' + S.gen + '|' + JSON.stringify(S.set) + '|' + S.won + '|' + Math.floor((S.stats.played || 0) / 60);
+  const key = Object.keys(S.perks).join() + '|' + S.gen + '|' + JSON.stringify(S.set) + '|' + S.won + '|' + Math.floor((S.stats.played || 0) / 60) + '|' + JSON.stringify(S.pr);
   if (key === archKey && !force) return; archKey = key;
   const got = PERKS.filter(p => S.perks[p.id]).length;
   let h = `<div class="panel"><span class="h2">Archive records</span><p class="note">Permanent upgrades. Each is found the first time a clone finishes a certain action. ${got} of ${PERKS.length} recovered.</p></div><div>`;
@@ -1863,8 +1933,9 @@ function renderArchive(force){
     <div><b>${Math.min(BASE_HP_MAX, 100 + Math.floor(S.vit || 0))}</b><span>Base health (max ${BASE_HP_MAX})</span></div>
     <div><b>${fmt(Object.values(S.xpTot || {}).reduce((a, b) => a + b, 0))}</b><span>Total echo XP</span></div>
     <div><b>${fmtHours(S.stats.played || 0)}</b><span>Time played</span></div>
-    <div><b>${awayMax() / 3600} h</b><span>Time away limit (max 48 h)</span></div>
+    <div><b>${awayMax() / 3600} h</b><span>Time away limit</span></div>
     <div><b>${S.won ? 'Clone ' + S.winGen : 'Not yet'}</b><span>Drive ignited</span></div></div>`;
+  if (S.won || (S.pr && S.pr.n)) h += ngpPanel();
   h += '<div class="panel set"><span class="h2">Settings</span>';
   h += `<div class="row"><p>Auto-eat<small>Eat a ration whenever the meal cooldown is over and health has room for it.</small></p><button class="tog${S.set.autoEat ? ' on' : ''}" data-set="autoEat" aria-label="Auto-eat" aria-pressed="${S.set.autoEat}"></button></div>`;
   if (S.perks.survival) {
@@ -2001,7 +2072,7 @@ function renderMap(){
 function updateMap(){
   const L = S.life;
   mapRefs.forEach(r => {
-    const t = r.t, av = available(t), done = complete(t), cur = L.cur === t.id;
+    const t = r.t, av = available(t), done = complete(t), cur = L.cur === t.id || L.cur2 === t.id;
     r.g.classList.toggle('done', done); r.g.classList.toggle('cur', cur); r.g.classList.toggle('lock', !av && !done); r.g.classList.toggle('passed', t.z < L.sec && !done);
     let p = done ? 1 : (L.prog[t.id] || 0) / t.days;
     r.f.setAttribute('width', (Math.min(1, p) * r.w).toFixed(1));
@@ -2081,7 +2152,7 @@ function renderAuto(){
 
 
 /* ----- FAQ ----- */
-const FAQ = [
+const FAQ_ALL = [
   ['What is the goal?', 'Restore the ship so WARDEN can wake the sleeping crew: the food system in the Hydroponics Ring, the energy system in the Engineering Spine and the stardrive in the Main Drive. The game ends when you ignite the drive. One clone cannot do it all; it takes many lives (around 50 with very good play).'],
   ['How do I start?', 'Tap a task to work on it right away. Climb out of the vat first, then press vat algae for food and strip wall panels for salvage. Time only moves while your clone is working: with nothing to do, the clock stops, so you can always read and plan.'],
   ['What are jobs, actions, training and rests?', '<b>Jobs</b> repeat and make rations or salvage in batches; they stop when that storage is full. <b>Actions</b> are one-off tasks that unlock things and move the story on. <b>Training</b> builds skills faster (+50% XP) but each can be done only 4 times per life. <b>Rests</b> halve strain; each section has one, usable once per life.'],
@@ -2097,9 +2168,13 @@ const FAQ = [
   ['Saves', 'The game saves itself every few seconds on this device, in three slots (☰ menu). Use <b>Save files and transfer</b> in the menu to export a save file, import one, or copy the save as text to move it between devices.'],
   ['Settings', 'The ⚙ button opens sound (music and effects), layout (vertical or horizontal) and, in the Android app, app updates. Gameplay options such as auto-eat and the forage threshold are in the Archive tab.'],
 ];
-let faqDone = false;
+// Shown only once new game plus is unlocked (it stays hidden until the drive is first lit).
+const FAQ_NGP = ['New game plus', 'After you light the main drive, <b>New game plus</b> opens in the Archive tab. It starts the whole ship over: clones, skills and echoes, archive records, practice and automation all reset. Each run you pick one lasting reward: <b>Deep echo</b> (+50% skill growth for every skill, stacks each time you pick it) or a <b>second action slot</b> (once; your clone works on the next task in line at the same time as the first). Your settings, queue presets and +2× boost carry over, and so does your time-away limit: the hours from Stasis watch records add up from run to run.'];
+let faqDone = '';
 function renderFaq(){
-  if (faqDone) return; faqDone = true;
+  const k = String(!!(S.won || (S.pr && S.pr.n)));
+  if (faqDone === k) return; faqDone = k;
+  const FAQ = k === 'true' ? FAQ_ALL.concat([FAQ_NGP]) : FAQ_ALL;
   $('#v-faq').innerHTML = '<div class="panel"><span class="h2">FAQ</span><p class="note">How Long Patience works. Tap a question to open it.</p></div><div class="faq">' +
     FAQ.map(([q, a], i) => `<details${i < 2 ? ' open' : ''}><summary>${q}</summary><p>${a}</p></details>`).join('') + '</div>';
 }
@@ -2134,7 +2209,7 @@ function showWin(){
   paused = true;
   showModal(`<h2>The ship is ready</h2>
     <p>The food beds grow, the reactor holds and the stardrive burns for Tessaly. WARDEN begins waking the crew. It took ${S.gen} clone${S.gen > 1 ? 's' : ''} of K-7 to get here. None of them will be remembered.</p>
-    <p class="d">You can keep playing to push your echoes higher, or erase progress from the Archive tab to start again.</p>
+    <p class="d">New game plus is now open in the Archive tab: start over with a new line of clones and a lasting reward. You can also keep playing this run first.</p>
     <button class="btn pri" data-close>Keep going</button>`);
 }
 
@@ -2235,6 +2310,13 @@ document.addEventListener('click', e => {
     const ta = $('#save-code'); ta.value = code;
     const fallback = () => { ta.focus(); ta.select(); toast('Save code selected. Copy it from the box.'); };
     try { navigator.clipboard.writeText(code).then(() => toast('Save code copied'), fallback); } catch(e) { fallback(); }
+    return;
+  }
+  if ('ngp' in d) { if (S.won) showNgp(); return; }
+  if (d.ngpick) {
+    if (!S.won || (d.ngpick === 'slot2' && S.pr && S.pr.slot2)) return;
+    prestige(d.ngpick); resetViews(); hideModal(); paused = false; save(); setTab('tasks');
+    toast('New game plus ' + S.pr.n + ' begins. ' + (d.ngpick === 'slot2' ? 'Second action slot unlocked.' : 'Deep echo: +' + Math.round(S.pr.growth * NGP_GROWTH * 100) + '% skill growth.'), true);
     return;
   }
   if (L.dead && !d.confirm) return;
