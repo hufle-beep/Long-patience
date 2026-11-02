@@ -127,6 +127,8 @@ main .wrap{display:grid;gap:18px}
 .qlist.dragmode .qrow:not(.dragging){transition:transform .12s ease}
 .qlist.dragmode{user-select:none;-webkit-user-select:none}
 .qh .qhb button{font-size:12px;color:var(--dim);padding:3px 6px}
+.qh .qhb button.qclear{color:var(--fg);border:1px solid var(--line);border-radius:4px;padding:5px 10px;font-size:12.5px}
+.qh .qhb button.qclear:hover{border-color:var(--red);color:var(--red)}
 .qbody{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:start}
 .qmain{min-width:0;display:grid;gap:6px}
 .qpre{display:grid;gap:6px;padding-left:10px;border-left:1px dashed var(--line)}
@@ -1730,7 +1732,7 @@ function renderTasks(){
   if (key === taskKey) return;
   taskKey = key;
 
-  let h = '<div class="qp"><div class="qh"><span class="lbl">Queue <span class="num qcount">' + L.queue.length + '/' + QMAX + '</span></span><span class="qhb">' + (L.queue.length || (L.qdone || []).length ? '<button data-clearq>Reset queue</button>' : '') + '</span></div>';
+  let h = '<div class="qp"><div class="qh"><span class="lbl">Queue <span class="num qcount">' + L.queue.length + '/' + QMAX + '</span></span><span class="qhb">' + (L.queue.length || (L.qdone || []).length ? '<button class="qclear" data-clearq aria-label="Clear the whole queue">\u2715 Clear queue</button>' : '') + '</span></div>';
   if (L.held) {
     const left = holdList();
     h += `<div class="hold"><div><b>${esc(T[L.held].name)}</b> is on hold until this section is wrapped up. Still to do: ${esc(left.join(', ') || 'nothing')}. Drag tasks above it in the queue to run them first.</div><button class="btn" data-skiphold>Skip the rest and cross now</button></div>`;
@@ -2515,7 +2517,7 @@ document.addEventListener('click', e => {
     L.qdone = []; L.queue = p.filter(id => isGQ(id) ? !L.owned[qItem(id).id] : !(T[id].kind !== 'job' && complete(T[id])) && T[id].z >= L.sec);
     toast('Loaded preset ' + (+d.qload + 1)); taskKey = ''; renderView(); return;
   }
-  if ('clearq' in d) { L.queue = []; L.qdone = []; taskKey = ''; renderView(); return; }
+  if ('clearq' in d) { L.queue = []; L.qdone = []; if (L.held) L.held = null; toast('Queue cleared'); taskKey = ''; renderView(); return; }
   if (d.buy) {
     if (buyItem(d.buy, false)) renderView();
     return;
