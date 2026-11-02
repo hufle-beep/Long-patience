@@ -674,7 +674,7 @@ function newLife(s){
 function defaultState(){
   const s = {v:1, qpresets:[[], [], []], gprac:{}, gauto:{}, gprio:{}, ev:2, xpTot:{}, rv:4, sv:2, pv:2, vv:3, gen:1, prio:{}, ever:{}, prac:{}, auto:{}, echo:{}, perks:{}, seen:{}, logged:{}, log:[], lastOrder:[], lastJob:null,
     set:{speed:1, autoFood:true, autoEat:true, foodDays:2, foodPct:40, restAt:2.5, keepQueue:true, deathScreen:true, deathPause:true, startPaused:false, bgPause:false, replay:true, fillCross:false, autoFeed:false, boost:false, boostX:2},
-    stats:{bestAge:0, deaths:0, daysLived:0, played:0}, pr:{n:0, growth:0, drain:0, hp:0, carry:0, runs:[]}, won:false, winGen:0, bank:0, saved:Date.now(), intro:false};
+    stats:{bestAge:0, deaths:0, daysLived:0, played:0}, pr:{n:0, growth:0, drain:0, hp:0, speed:0, carry:0, runs:[]}, won:false, winGen:0, bank:0, saved:Date.now(), intro:false};
   SKILLS.forEach(k => s.echo[k.id] = 0);
   s.life = newLife(s);
   return s;
@@ -688,9 +688,11 @@ const NGP = [
   {id:'growth', name:'Deep echo',       max:5, now:k => '+' + Math.round(k * 20) + '% skill growth', step:'+20% skill growth for every skill'},
   {id:'drain',  name:'Drain dampener',  max:5, now:k => 'health drain \u00f7' + (1 + 0.8 * k).toFixed(1), step:'Divides all health drain (\u00f71.8, \u00f72.6, \u00f73.4, \u00f74.2, \u00f75 at the last step)'},
   {id:'hp',     name:'Template upgrade',max:5, now:k => '+' + (100 * k) + ' starting max health', step:'+100 max health for every clone'},
+  {id:'speed',  name:'Overclocked line', max:5, now:k => 'game speed \u00d7' + (1 + 0.8 * k).toFixed(1), step:'The whole game runs faster, without using banked time (\u00d71.8, \u00d72.6, \u00d73.4, \u00d74.2, \u00d75 at the last step)'},
 ];
 const ngpLv = id => Math.min(5, ((S.pr || {})[id]) || 0);
 const drainDiv = () => 1 + 0.8 * ngpLv('drain');   // new game plus drain dampener
+const ngpSpeed = () => 1 + 0.8 * ngpLv('speed');    // new game plus overclock: flat game speed, free
 function mods(){
   const L = S.life, P = S.perks;
   const m = {sk:{}, xpSk:{}, spd:1, xp:1, haz:1, maxHp:Math.min(BASE_HP_MAX, 100 + Math.floor(S.vit || 0)), pRat:0, pSal:0, strainMul:1, regen:0.05, ratCap:5, salCap:25, fcap:{}, pFood:{}, fq:{}, foodSpd:1};
@@ -1160,7 +1162,7 @@ function prestige(choice){
   ns.set = o.set; ns.set.paused = false; ns.set.boost = false;
   ns.qpresets = o.qpresets; ns.bank = o.bank || 0; ns.intro = true;
   ns.stats.played = o.stats.played || 0;
-  ns.pr = {n:pr.n + 1, growth:(pr.growth || 0) + (choice === 'growth' ? 1 : 0), drain:(pr.drain || 0) + (choice === 'drain' ? 1 : 0), hp:(pr.hp || 0) + (choice === 'hp' ? 1 : 0), carry,
+  ns.pr = {n:pr.n + 1, growth:(pr.growth || 0) + (choice === 'growth' ? 1 : 0), drain:(pr.drain || 0) + (choice === 'drain' ? 1 : 0), hp:(pr.hp || 0) + (choice === 'hp' ? 1 : 0), speed:(pr.speed || 0) + (choice === 'speed' ? 1 : 0), carry,
     runs:(pr.runs || []).concat([{clones:o.winGen || o.gen, played:Math.round(o.stats.played || 0), pick:choice}])};
   S = ns; M = mods(); S.life.hp = M.maxHp;
 }
@@ -1375,7 +1377,7 @@ function fmtDays(t){
 // Real time it takes for a number of in-game days to pass at the chosen speed
 const BOOST_RATES = [2, 5, 10];
 function boostX(){ const x = +(S.set.boostX || 2); return BOOST_RATES.includes(x) ? x : 2; }
-function realSecs(days){ return days / (DPS * S.set.speed * (S.set.boost && S.bank > 0 ? boostX() : 1)); }
+function realSecs(days){ return days / (DPS * S.set.speed * ngpSpeed() * (S.set.boost && S.bank > 0 ? boostX() : 1)); }
 function fmtHours(sec){ const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60); return h + 'h ' + String(m).padStart(2, '0') + 'm'; }
 function fmtReal(sec){
   if (!isFinite(sec)) return '\u221e';
@@ -1916,9 +1918,11 @@ function renderSpeed(){
     if (t.textContent !== txt) t.textContent = txt;
   }
 }
+let lastHg = '';
 function updateHud(){
   const L = S.life;
-  $('#h-gen').innerHTML = 'Clone ' + S.gen + (S.pr && S.pr.n ? ' <span class="hng">NG+' + S.pr.n + '</span>' : '');
+  const hg = 'Clone ' + S.gen + (S.pr && S.pr.n ? ' <span class="hng">NG+' + S.pr.n + (ngpLv('speed') ? ' \u00b7 \u00d7' + ngpSpeed().toFixed(1) : '') + '</span>' : '');
+  if (hg !== lastHg) { lastHg = hg; $('#h-gen').innerHTML = hg; }
   $('#h-day').textContent = 'day ' + (L.day / TPD).toFixed(1);
   $('#b-hp').style.width = Math.max(0, L.hp / M.maxHp * 100) + '%';
   $('#t-hp').textContent = Math.ceil(L.hp) + ' / ' + M.maxHp;
@@ -2354,7 +2358,7 @@ const FAQ_ALL = [
   ['Settings', 'The ⚙ button opens sound (music and effects), layout (vertical or horizontal) and, in the Android app, app updates. Gameplay options such as auto-eat and the forage threshold are in the Archive tab.'],
 ];
 // Shown only once new game plus is unlocked (it stays hidden until the drive is first lit).
-const FAQ_NGP = ['New game plus', 'After you light the main drive, <b>New game plus</b> opens in the Archive tab. It starts the whole ship over: clones, skills and echoes, archive records, practice and automation all reset. Each run you pick one step of a lasting reward. Each reward has five steps: <b>Deep echo</b> (+20% skill growth per step, +100% in all), <b>Drain dampener</b> (health drain divided by 1.8, 2.6, 3.4, 4.2 and finally 5) and <b>Template upgrade</b> (+100 max health for every clone per step, +500 in all). Fifteen runs collect everything. Your settings, queue presets and stasis boost carry over, and so does your time-away limit: the hours from Stasis watch records add up from run to run, up to 168 hours (one week).'];
+const FAQ_NGP = ['New game plus', 'After you light the main drive, <b>New game plus</b> opens in the Archive tab. It starts the whole ship over: clones, skills and echoes, archive records, practice and automation all reset. Each run you pick one step of a lasting reward. Each reward has five steps: <b>Deep echo</b> (+20% skill growth per step, +100% in all), <b>Drain dampener</b> (health drain divided by 1.8, 2.6, 3.4, 4.2 and finally 5) <b>Template upgrade</b> (+100 max health for every clone per step, +500 in all) and <b>Overclocked line</b> (the whole game runs faster: ×1.8, ×2.6, ×3.4, ×4.2 and finally ×5, without using banked time; the stasis boost stacks on top). Twenty runs collect everything. Your settings, queue presets and stasis boost carry over, and so does your time-away limit: the hours from Stasis watch records add up from run to run, up to 168 hours (one week).'];
 let faqDone = '';
 function renderFaq(){
   const k = String(!!(S.won || (S.pr && S.pr.n)));
@@ -2595,7 +2599,7 @@ let last = performance.now(), saveT = 0, viewT = 0;
 // awayMax(): see the watch records next to PERKS.
 function simulate(dt){
   if (dt <= 0 || S.life.dead || paused || S.set.paused) return;
-  let mult = S.set.speed, extra = 0;
+  let mult = S.set.speed * ngpSpeed(), extra = 0;
   // Stasis boost at xN: each real second plays N seconds; the banked time pays for the extra N-1.
   if (S.set.boost && S.bank > 0) { const x = boostX(); extra = Math.min(S.bank, dt * (x - 1)); mult *= (dt + extra) / dt; S.bank = Math.max(0, S.bank - extra); }
   let left = dt * DPS * mult, done = 0;
