@@ -1714,7 +1714,7 @@ function renderArchive(force){
   h += '<div class="row"><p>Sound, layout and app updates<small>These are in the settings menu.</small></p><button class="btn" data-settings="hud">Open</button></div></div><div class="panel set"><span class="h2">Clone</span>';
   h += `<div class="row"><p>Recycle this clone<small>End the current life now. Echoes are kept.</small></p><button class="btn warn" data-confirm="recycle">Recycle</button></div>
     <div class="row"><p>Restart this slot<small>Erases the game in this slot and starts over. Other slots are kept. The main menu has more options.</small></p><button class="btn warn" data-confirm="reset">Restart</button></div>
-    <p class="note">Progress is saved on this device only (this browser or the app). Use the save file below to back it up or move it. Time spent away is stored as a stasis boost that doubles game speed.</p></div>`;
+    <p class="note">Progress is saved on this device only (this browser or the app). Use the save file below to back it up or move it. The game keeps running in a background tab. Time while it is fully closed is stored as a stasis boost that doubles game speed.</p></div>`;
   h += '<div class="panel set"><div class="row"><p>Save files and transfer<small>Export, import or copy your save. Also in the main menu.</small></p><button class="btn" data-saves="hud">Open</button></div></div>';
   $('#v-archive').innerHTML = h;
   const fd = $('#fd');
@@ -1924,7 +1924,7 @@ function showIntro(){
       <li>Health drains all the time. Your clone eats <b>2 rations a day</b>, one meal every 12 hours, and each meal restores some health. Food from deeper sections is richer (\u00d71.5 in the ring up to \u00d73.2 at the drive); stored food keeps its average quality, so older food still works, just weaker. <b>Strain</b> makes the drain grow, faster and faster as the clone ages; rests halve it and Resolve slows it a little. Each ship section has one rest per life that halves it. Every day a clone survives adds 0.8 max health to all later clones, up to a base of 500. Clones have no fixed lifespan: strain decides how long they last. You wake with no food. Run out of rations and you starve. Storage is limited, so you can\u2019t stockpile much.</li>
       <li>Time only moves while your clone is working. With nothing to do, the clock stops.</li>
       <li>When a clone dies, skill levels reset but their <b>echo</b> speeds up learning in every future clone.</li>
-      <li><b>Pause</b> any time with the button at the top (or the space bar on a computer). <b>☰</b> opens the menu with save slots; the game waits while it is open. Time spent away is stored as a <b>+2×</b> boost you can switch on in the header.</li>
+      <li><b>Pause</b> any time with the button at the top (or the space bar on a computer). <b>☰</b> opens the menu with save slots; the game waits while it is open. The game keeps running in a background tab; time while it is closed is stored as a <b>+2×</b> boost you can switch on in the header.</li>
       <li>Goal: restore the food system (Hydroponics Ring), the energy system (Engineering Spine) and the stardrive (Main Drive), then light the drive so WARDEN can wake the crew.</li>
     </ul>
     <button class="btn pri" data-close>Begin the work cycle</button>`);
@@ -2117,25 +2117,45 @@ document.addEventListener('keydown', e => {
 
 /* ----- loop ----- */
 let last = performance.now(), saveT = 0, viewT = 0;
-function frame(now){
-  let dt = (now - last) / 1000; last = now;
-  if (dt > 1.5) { S.bank = Math.min(S.bank + dt, 8*3600); dt = 0; }
-  if (dt > 0 && !S.life.dead && !paused && !S.set.paused) {
-    let mult = S.set.speed;
-    if (S.set.boost && S.bank > 0) { mult *= 2; S.bank = Math.max(0, S.bank - dt); if (S.bank <= 0) S.set.boost = false; }
-    const d0 = S.life.day;
-    advance(dt * DPS * mult);
-    if (S.life.day > d0) S.life.real = (S.life.real || 0) + dt;   // real seconds this life actually ran
+// The game keeps running when the tab is hidden: a slow timer keeps ticking, and any gap
+// (tab throttled, phone asleep) is simulated in one go when the page gets time again.
+// Gaps longer than CATCHUP_MAX are partly turned into stasis boost instead.
+const CATCHUP_MAX = 12 * 3600;
+function simulate(dt){
+  if (dt <= 0 || S.life.dead || paused || S.set.paused) return;
+  let mult = S.set.speed;
+  if (S.set.boost && S.bank > 0) { mult *= 2; S.bank = Math.max(0, S.bank - dt); if (S.bank <= 0) S.set.boost = false; }
+  let left = dt * DPS * mult;
+  const perTick = dt / left;
+  while (left > 1e-9 && !S.life.dead) {
+    const chunk = Math.min(left, 900), d0 = S.life.day;
+    advance(chunk);
+    const ran = S.life.day - d0;
+    if (ran > 0) S.life.real = (S.life.real || 0) + ran * perTick;   // real seconds this life actually ran
+    if (ran < chunk - 1e-6) break;   // stopped: idle, paused or dead
+    left -= chunk;
   }
+}
+function tick(now){
+  let dt = (now - last) / 1000; last = now;
+  if (dt > CATCHUP_MAX) { S.bank = Math.min(S.bank + dt - CATCHUP_MAX, 8*3600); dt = CATCHUP_MAX; }
+  simulate(dt);
+  saveT += dt;
+  if (saveT > 5) { saveT = 0; save(); }
+  return dt;
+}
+function frame(now){
+  const dt = tick(now);
   updateHud();
   viewT += dt;
   if (tab === 'tasks') { renderTasks(); updateTasks(); }
   if (tab === 'map') { renderMap(); updateMap(); }
   if (viewT > 0.4) { viewT = 0; renderView(); }
-  saveT += dt;
-  if (saveT > 5) { saveT = 0; save(); }
   requestAnimationFrame(frame);
 }
+// While hidden, animation frames stop; this keeps the clock going (browsers allow about once a second,
+// or once a minute after a while, and the catch-up above fills the gaps).
+setInterval(() => { if (document.hidden && S) tick(performance.now()); }, 1000);
 document.addEventListener('visibilitychange', () => { if (document.hidden) save(); });
 window.addEventListener('pagehide', save);
 
