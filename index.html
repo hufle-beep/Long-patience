@@ -667,6 +667,8 @@ function active(){
     // in this section: refill storage (if that option is on), then use the section's rest.
     const act = pendingActs()[0];
     if (act) return act;
+    const gearJob = pendingGearJob();
+    if (gearJob) return gearJob;
     const fill = S.set.fillCross ? fillJob() : null;
     if (fill) return fill;
     const rest = pendingRest();
@@ -709,7 +711,21 @@ function pendingActs(){
   return TASKS.filter(t => (t.kind === 'train' || (t.kind === 'act' && !t.cross)) && isAuto(t) && available(t) && !complete(t))
     .sort((a, b) => prioOf(a) - prioOf(b) || TASKS.indexOf(a) - TASKS.indexOf(b));
 }
-function crossPending(t){ return !S.life.queue.includes(t.id) && isAuto(t) && (pendingActs().length || (S.set.fillCross && fillJob()) || pendingRest()); }
+// Automated gear that can still be built in this life before leaving: work the best salvage job
+// until the top-priority one is affordable (autoBuy then builds it).
+function pendingGearJob(){
+  const L = S.life;
+  if (!S.gauto) return null;
+  const want = ITEMS.filter(it => S.gauto[it.id] && gearPracticed(it) && !L.owned[it.id] && isDone(it.req) && it.cost <= M.salCap)
+    .sort((a, b) => gearPrio(a) - gearPrio(b) || ITEMS.indexOf(a) - ITEMS.indexOf(b))[0];
+  if (!want || L.salvage >= want.cost) return null;
+  let job = null, br = 0;
+  for (const t of TASKS) if (t.kind === 'job' && t.prod && t.prod.salvage && available(t) && !jobFull(t)) {
+    const r = t.prod.salvage * speedOf(t); if (r > br) { br = r; job = t; }
+  }
+  return job;
+}
+function crossPending(t){ return !S.life.queue.includes(t.id) && isAuto(t) && (pendingActs().length || pendingGearJob() || (S.set.fillCross && fillJob()) || pendingRest()); }
 function crossHeld(t){ return (S.life.prog[t.id] || 0) >= t.days - CROSS_HOLD - 1e-9 && !!crossPending(t); }
 // Gear automation: a design built in AUTO_LIVES different lives can be built automatically.
 // Automated designs are built in priority order; the top one is saved up for before cheaper ones.
@@ -1885,7 +1901,7 @@ function renderAuto(){
       : `<div class="fld"><label>Death screen</label><small class="note">Automatic decanting unlocks after ${AUTO_LIVES} clones have died (${S.stats.deaths || 0}/${AUTO_LIVES}). Until then the game stops at each death.</small></div>`}
     <div class="fld"><label for="rest-at">Automated rests fire at strain \u00d7</label><div class="pctin"><input type="text" id="rest-at" inputmode="decimal" autocomplete="off" value="${restAt()}"><span>Rests also fire just before an automated crossing if still unused.</span></div></div>
     <div class="row"><p>Feed when needed<small>Automated food jobs step in when rations run low, or when health is low and meals can still heal faster than strain drains it. They refill to what is needed, then the interrupted task carries on.</small></p><button class="tog${S.set.autoFeed ? ' on' : ''}" data-set="autoFeed" aria-label="Feed when needed" aria-pressed="${!!S.set.autoFeed}"></button></div>
-    <div class="row"><p>Fill storage before moving on<small>An automated crossing to the next section stops just before it finishes, works this section\u2019s jobs until ration and salvage storage are both full, then completes.</small></p><button class="tog${S.set.fillCross ? ' on' : ''}" data-set="fillCross" aria-label="Fill storage before moving on" aria-pressed="${!!S.set.fillCross}"></button></div></div>`;
+    <div class="row"><p>Fill storage before moving on<small>An automated crossing to the next section stops just before it finishes, works this section\u2019s jobs until ration and salvage storage are both full, then completes. (It always waits for unfinished automated actions and training, affordable automated gear, and the unused rest.)</small></p><button class="tog${S.set.fillCross ? ' on' : ''}" data-set="fillCross" aria-label="Fill storage before moving on" aria-pressed="${!!S.set.fillCross}"></button></div></div>`;
   if (!list.length && !glist.length) {
     h += `<p class="note">Nothing unlocked yet. Finish an action in ${AUTO_LIVES} different lives, or work a job for ${JOB_PRAC_BATCHES} batches in ${AUTO_LIVES} different lives, and it will appear here. Gear counts once built in ${AUTO_LIVES} different lives.</p>`;
   }
