@@ -1021,8 +1021,8 @@ function active(ex){
     if (!g.ready || !end || complete(end)) { L.chainRun = false; HOOK.change(); }
     else {
       const step = pendingActs()[0] || pendingGearJob() || fillJob() || pendingRest();
-      if (step) { if (ok(step)) return step; }
-      else if (available(end)) { L.crossNow = end.id; if (ok(end)) return end; }
+      if (step) { if (ok(step)) { L.viaChain = true; return step; } }
+      else if (available(end)) { L.crossNow = end.id; if (ok(end)) { L.viaChain = true; return end; } }
     }
   }
   // Automation goes ahead of your queue (crossings excepted: they wait their turn below).
@@ -1058,7 +1058,7 @@ function active(ex){
         if (t.kind === 'job') { if (jobFull(t)) { (L.cjd = L.cjd || {})[id + '#' + x] = 1; continue; } next = t; break; }
         next = t.cross ? (holdCross(t) || t) : t; break;
       }
-      if (next) { if (ok(next)) return next; continue; }
+      if (next) { if (ok(next)) { L.viaChain = true; return next; } continue; }
       if (cSteps(id).every(x => cStepDone(id, x))) { qConsume(id); if (L.cjd) Object.keys(L.cjd).forEach(k => { if (k.startsWith(id + '#')) delete L.cjd[k]; }); HOOK.change(); }
       continue;
     }
@@ -1376,10 +1376,11 @@ function die(cause){
 }
 function step(dt){
   const L = S.life;
+  L.viaChain = false;
   const t = active(); L.cur = t ? t.id : null;
   const t2 = null; L.cur2 = null;
   if (!t) return false;      // nothing running: time stands still, like Increlution
-  work(t, dt);
+  work(t, dt, L.viaChain);
   if (M.pRat) FOODS.forEach(f => { if (M.pFood[f.id]) addFood(f.id, M.pFood[f.id] * dt); });
   L.salvage += M.pSal * dt;
   clampRes();
@@ -1403,13 +1404,19 @@ function step(dt){
   L.day += dt;
   return true;
 }
+// Chain flow: a save-wide knack for working through chains. Steps run as part of a chain (a queued
+// chain entry or a one-click section run) get faster, by up to x2, as chained work piles up
+// (half of the bonus after 20 ship days of chained work). Kept through new game plus.
+const FLOW_MAX = 1, FLOW_HALF = 20 * TPD;
+const flowMul = () => 1 + FLOW_MAX * (S.flow || 0) / ((S.flow || 0) + FLOW_HALF);
 const isWatch = z => z >= 9 && z <= 11;
 const SHIP_WEAR = 0.06;   // extra drain per day of wear
 const wearMul = () => isWatch(S.life.sec) ? 1 + SHIP_WEAR * (S.life.shipWear || 0) : 1;
-function work(t, dt){
+function work(t, dt, chained){
   const L = S.life;
   {
-    const sp = speedOf(t);
+    const sp = speedOf(t) * (chained ? flowMul() : 1);
+    if (chained) S.flow = (S.flow || 0) + dt;   // chain flow grows with every tick of chained work
     addFam(t, (t.kind === 'job' ? sp * dt / JOB_CYCLE : sp * dt / t.days) * famGain(t));
     if (t.upkeep) L.shipWear = Math.max(0, (L.shipWear || 0) - sp * dt / TPD * 1.5);   // upkeep work repairs wear
     if (t.kind === 'job') {
@@ -1565,7 +1572,7 @@ function prestige(choice){
   const carry = Math.min(AWAY_CAP - AWAY_BASE, (pr.carry || 0) + AWAY_STEP * WATCH.filter(p => o.perks[p.id]).length);
   const ns = defaultState();
   ns.set = o.set; ns.set.paused = false; ns.set.boost = false;
-  ns.qpresets = o.qpresets; ns.bank = o.bank || 0; ns.intro = true; ns.bestAll = o.bestAll || null;
+  ns.qpresets = o.qpresets; ns.bank = o.bank || 0; ns.intro = true; ns.flow = o.flow || 0; ns.bestAll = o.bestAll || null;
   ns.a2 = o.a2 || ns.a2;   // Act II familiarity, practice, records and Honours carry over; its sections are replayed
   TASKS.forEach(t => { if (isA2(t.z)) { if ((o.fam || {})[t.id]) ns.fam[t.id] = o.fam[t.id]; if ((o.prac || {})[t.id]) ns.prac[t.id] = o.prac[t.id]; } });
   ITEMS.forEach(i => { if (isA2(gearZone(i)) && (o.gprac || {})[i.id]) ns.gprac[i.id] = o.gprac[i.id]; });   // the best clone ever survives new game plus
@@ -2139,7 +2146,7 @@ function chainRow(id, i){
   const sub = open ? '<ol class="csub">' + st.map(x => { const d = cStepDone(id, x);
     return `<li class="${d ? 'done' : x === cur ? 'cur' : ''}">${d ? '\u2713' : x === cur ? '\u25b8' : '\u00b7'} ${esc(stepName(x))}${!isGQ(x) && T[x].kind === 'job' ? ' <small>fill</small>' : ''}</li>`; }).join('') + '</ol>' : '';
   return `<li class="qrow cq" data-qid="${id}"><span class="qdrag" data-qdrag="${i}" aria-hidden="true" title="Drag to reorder">\u2807</span><span class="qn">${i + 1}.</span>
-    <span class="qt"><button class="cqt" data-qopen="${id}" aria-expanded="${open}">${open ? '\u25be' : '\u25b8'} Chain \u00b7 ${esc(stepName(st[0]))}${st.length > 1 ? ' \u2192 \u2026 \u2192 ' + esc(stepName(st[st.length - 1])) : ''}</button> <small>${done}/${st.length} steps${cur ? ' \u00b7 now: ' + esc(stepName(cur)) : ''}</small>${sub}</span>
+    <span class="qt"><button class="cqt" data-qopen="${id}" aria-expanded="${open}">${open ? '\u25be' : '\u25b8'} Chain \u00b7 ${esc(stepName(st[0]))}${st.length > 1 ? ' \u2192 \u2026 \u2192 ' + esc(stepName(st[st.length - 1])) : ''}</button> <small>${done}/${st.length} steps${cur ? ' \u00b7 now: ' + esc(stepName(cur)) : ''} \u00b7 flow \u00d7${flowMul().toFixed(2)}</small>${sub}</span>
     <button data-qmove="${i}" data-dir="-1" ${i === 0 ? 'disabled' : ''} aria-label="Move chain up">\u2191</button><button data-qmove="${i}" data-dir="1" ${i === L.queue.length - 1 ? 'disabled' : ''} aria-label="Move chain down">\u2193</button><button data-unqi="${i}" aria-label="Remove chain from queue">\u2715</button></li>`;
 }
 // The one-click section chain: a Run button once the section is fully chained, else its progress
@@ -2447,13 +2454,13 @@ function updateHud(){
   else if (S.set.paused) { $('#n-name').textContent = 'Paused' + (cur ? ': ' + cur.name : ''); $('#n-eta').textContent = 'tap Resume'; }
   else if (!cur) { $('#n-name').textContent = 'Time stopped. Pick a task below.'; $('#n-eta').textContent = ''; $('#n-fill').style.width = '0'; }
   else {
-    $('#n-name').textContent = (L.feeding ? 'Restocking food: ' : L.foraging ? 'Foraging: ' : '') + cur.name;
+    $('#n-name').textContent = (L.viaChain ? '\u26d3 \u00d7' + flowMul().toFixed(2) + ' \u00b7 ' : '') + (L.feeding ? 'Restocking food: ' : L.foraging ? 'Foraging: ' : '') + cur.name;
     if (cur.kind !== 'job') {
-      const sp = speedOf(cur);
+      const sp = speedOf(cur) * (L.viaChain ? flowMul() : 1);
       $('#n-fill').style.width = ((L.prog[cur.id] || 0) / cur.days * 100).toFixed(1) + '%';
       $('#n-eta').textContent = both((cur.days - (L.prog[cur.id] || 0)) / sp);
     } else {
-      const sp = speedOf(cur); jobBar($('#n-fill'), cur, sp);
+      const sp = speedOf(cur) * (L.viaChain ? flowMul() : 1); jobBar($('#n-fill'), cur, sp);
       $('#n-eta').textContent = cur.prod ? (jobFast(sp) ? 'continuous' : 'next batch ' + both((1 - (L.cyc[cur.id] || 0)) * JOB_CYCLE / sp)) : 'training';
     }
   }
@@ -2464,7 +2471,7 @@ function updateHud(){
 /* ----- other views ----- */
 function renderSkills(){
   const L = S.life;
-  let h = `<div class="panel"><span class="h2">Familiarity</span><p class="note">Every task gets faster the more of it your clones have done, counting unfinished attempts too: speed = 1 + 9 \u00d7 (familiarity \u00f7 needed), up to \u00d710. Familiarity is kept between clones. This run needs ${fmt(famN0())} lives' worth of a task for \u00d710; every finished run (and each Deep echo step) lowers it. Drills add familiarity to every task of their types.</p></div>`;
+  let h = `<div class="panel"><span class="h2">Familiarity</span><p class="note">Every task gets faster the more of it your clones have done, counting unfinished attempts too: speed = 1 + 9 \u00d7 (familiarity \u00f7 needed), up to \u00d710. Familiarity is kept between clones. This run needs ${fmt(famN0())} lives' worth of a task for \u00d710; every finished run (and each Deep echo step) lowers it. Drills add familiarity to every task of their types.</p><p class="note"><b>Chain flow \u00d7${flowMul().toFixed(2)}</b> (max \u00d7${1 + FLOW_MAX}): steps run as part of a chain (a queued chain or a one-click section run) work this much faster. It grows with every bit of chained work and is kept through new game plus.</p></div>`;
   ZONES.forEach(z => {
     const ts = TASKS.filter(t => t.z === z.id && (S.ever[t.id] || (S.seen || {})[t.id]));   // only tasks you have seen
     if (!ts.length) return;
@@ -2845,6 +2852,7 @@ function renderAuto(){
     h += z.id === (L.sec || 1) ? secRunHtml(z.id) || `<div class="secrun dim"><span>Section chain: ${g.ok}/${g.n} parts ready.</span></div>` : `<div class="secrun dim"><span>Section chain: ${g.ok}/${g.n} parts ready${g.ready ? ' (ready)' : ''}.</span></div>`;
     const missing = sectionTasks(z.id).filter(t => !(isAuto(t) && masteryF(t) >= SECTION_F)).map(t => t.name).concat(sectionGear(z.id).filter(i => !gearAuto(i)).map(i => i.name));
     if (missing.length && missing.length <= 8) h += `<p class="note">Still needed for the one-click section: ${esc(missing.join(', '))}.</p>`;
+    if (z.id === (L.sec || 1)) h += `<p class="note">Chain flow \u00d7${flowMul().toFixed(2)}: chained steps (queued chains, section runs) work this much faster; it grows as you use chains, up to \u00d7${1 + FLOW_MAX}.</p>`;
     chainsOf(z.id).forEach(c => {
       const gear = sectionGear(z.id).filter(i => gearAuto(i) && c.some(t => t.id === i.req) && masteryF(T[i.req]) >= LINK_F);
       if (c.length < 2 && !gear.length) return;
@@ -2896,7 +2904,7 @@ const FAQ_ALL = [
   ['What are sections?', 'The ship is split into five sections. A <b>red</b> action leads to the next one, and the way back is sealed for that clone, so finish what you need first (records, the rest, training, gear). Each new clone starts back in the Vat Bay.'],
   ['What is gear?', 'Gear is built from salvage in the <b>Gear</b> tab and lasts for one clone. Each section has designs to build. Salvage storage is limited; opening up more of the ship raises it.'],
   ['What is familiarity?', 'There are no skills: each task gets faster on its own the more of it your clones have done. Familiarity counts work in completions, including attempts a clone died in the middle of, and is kept between clones. Speed rises smoothly from ×1 to ×10 once you have done enough of a task: in a first run, 90 lives’ worth of it (90 finishes of an action, 1800 batches of a job). Every finished run lowers that by a quarter, and so does each step of the new game plus <b>Deep echo</b> reward (by a fifth), down to a single life’s worth. Familiar tasks also hurt less (hazard damage up to ÷4), and a familiar food job lets its food be eaten more often. <b>Drills</b> spread familiarity to every task of their types. The Speed tab lists every task.'],
-  ['How does automation work?', 'Every completion counts: finish an action 10 times (a multi-rep action 10 times its reps), a training session 40 times or a rest 10 times, work a job for 200 batches, or build a design in 10 lives, and its automation <b>switches on by itself</b>. In new game plus runs these counts shrink along with the familiarity threshold (a quarter less per finished run, a fifth less per Deep echo step), never below one; tap <b>AUTO</b> (or its switch in the Auto tab) to turn it off, and it stays off. Automated tasks run by themselves <b>ahead of your queue</b>, in chain order (each after the tasks it needs). Automated tasks <b>link into chains</b> when one requires the other and both are at least ×2 familiar. When every action, crossing, job and rest of a section is automated and ×5 familiar, and all its gear designs are automated, the whole section becomes <b>one chain</b>: press <b>▶ Run section</b> (top of the section in the Tasks tab) and the clone works through everything, builds the gear, fills its stores and crosses, carrying on into the next section if that one is ready too. An automated job steps in when its store drops below the forage threshold and fills it up. Automated <b>crossings</b> are the exception: they wait until your queue is done. A task you tap runs before everything. The <b>Auto</b> tab lists everything unlocked and has extra options: feeding when needed, filling storage before moving on, the strain level for automatic rests, the death screen and starting paused.'],
+  ['How does automation work?', 'Every completion counts: finish an action 10 times (a multi-rep action 10 times its reps), a training session 40 times or a rest 10 times, work a job for 200 batches, or build a design in 10 lives, and its automation <b>switches on by itself</b>. In new game plus runs these counts shrink along with the familiarity threshold (a quarter less per finished run, a fifth less per Deep echo step), never below one; tap <b>AUTO</b> (or its switch in the Auto tab) to turn it off, and it stays off. Automated tasks run by themselves <b>ahead of your queue</b>, in chain order (each after the tasks it needs). Automated tasks <b>link into chains</b> when one requires the other and both are at least ×2 familiar. When every action, crossing, job and rest of a section is automated and ×5 familiar, and all its gear designs are automated, the whole section becomes <b>one chain</b>: press <b>▶ Run section</b> (top of the section in the Tasks tab) and the clone works through everything, builds the gear, fills its stores and crosses, carrying on into the next section if that one is ready too. Work done as part of a chain (a queued chain or a section run) builds <b>chain flow</b>, which makes chained steps up to twice as fast; it is kept through new game plus. An automated job steps in when its store drops below the forage threshold and fills it up. Automated <b>crossings</b> are the exception: they wait until your queue is done. A task you tap runs before everything. The <b>Auto</b> tab lists everything unlocked and has extra options: feeding when needed, filling storage before moving on, the strain level for automatic rests, the death screen and starting paused.'],
   ['What happens at a crossing with automation?', 'A queued or automated crossing stops just before it finishes and waits while the clone finishes automated actions and training, builds affordable automated gear, refills storage (if that option is on) and uses the section’s rest. Tap a crossing yourself to go at once.'],
   ['Pause, background and boost', 'Pause with the button at the top or the space bar. The game keeps running in a background tab and catches up when you return, then shows what happened while you were away. Time while the game is fully closed is banked as a <b>stasis boost</b> you can switch on in the header. Pick Off, ×2, ×5 or ×10 from its menu: at ×5 every real second plays five, and the bank pays for the extra four, so faster boost spends the bank faster. Both start capped at 8 hours: at most 8 hours of background time is played out, and the boost holds at most 8 hours. Each <b>Stasis watch</b> record adds 8 hours to both; you get one the first time you finish each section (5 in all, up to 48 hours).'],
   ['Saves', 'The game saves itself every few seconds on this device, in three slots (☰ menu). Use <b>Save files and transfer</b> in the menu to export a save file, import one, or copy the save as text to move it between devices.'],
