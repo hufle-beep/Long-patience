@@ -546,7 +546,7 @@ function newLife(s){
 }
 function defaultState(){
   const s = {v:1, gprac:{}, gauto:{}, gprio:{}, ev:2, xpTot:{}, rv:4, sv:2, pv:2, vv:3, gen:1, prio:{}, ever:{}, prac:{}, auto:{}, echo:{}, perks:{}, seen:{}, logged:{}, log:[], lastOrder:[], lastJob:null,
-    set:{speed:1, autoFood:true, autoEat:true, foodDays:2, replay:true, fillCross:false, boost:false},
+    set:{speed:1, autoFood:true, autoEat:true, foodDays:2, replay:true, fillCross:false, autoFeed:false, boost:false},
     stats:{bestAge:0, deaths:0, daysLived:0}, won:false, winGen:0, bank:0, saved:Date.now(), intro:false};
   SKILLS.forEach(k => s.echo[k.id] = 0);
   s.life = newLife(s);
@@ -610,6 +610,8 @@ function active(){
       if (L.foraging) return food;
     }
   } else L.foraging = false;
+  const feed = feedJob();
+  if (feed) return feed;
   if ((L.strain || 1) >= AUTO_REST_AT) { const r = TASKS.find(t => t.kind === 'rest' && isAuto(t) && available(t) && !complete(t)); if (r) return r; }
   for (const id of L.queue) { const t = T[id]; if (available(t) && !complete(t)) return t; }
   // automated actions run on their own, in ship order, once the queue is done
@@ -692,6 +694,26 @@ function autoBuy(){
   const c = ITEMS.filter(it => S.gauto[it.id] && gearPracticed(it) && !L.owned[it.id] && isDone(it.req) && it.cost <= M.salCap)
     .sort((a, b) => gearPrio(a) - gearPrio(b) || ITEMS.indexOf(a) - ITEMS.indexOf(b));
   if (c.length && L.salvage >= c[0].cost) buyItem(c[0].id, true);
+}
+// Feed when needed (Auto tab option, automated food jobs only): interrupt whatever is running when
+// food is short, or when health is low but meals can still out-heal the current drain; refill to the
+// level needed, then let the interrupted task carry on where it stopped.
+function feedJob(){
+  const L = S.life;
+  if (!S.set.autoFeed) { L.feeding = false; return null; }
+  let job = null, br = 0;
+  for (const t of TASKS) if (t.kind === 'job' && t.prod && t.prod.rations && isAuto(t) && available(t) && !jobFull(t)) {
+    const r = t.prod.rations * speedOf(t); if (r > br) { br = r; job = t; }
+  }
+  if (!job) { L.feeding = false; return null; }
+  const low = Math.min(S.set.foodDays, M.ratCap * 0.5);
+  const drain = Math.min(HUNGER * (L.strain || 1), MAX_DRAIN);
+  const recoverable = mealHp() / MEAL_CD > drain;
+  const hpNeed = recoverable && L.hp < M.maxHp * 0.6 ? Math.ceil((M.maxHp - L.hp) / mealHp()) : 0;
+  const target = Math.min(M.ratCap - 0.01, Math.max(low * 2, hpNeed));
+  if (L.rations < low || (hpNeed > 0 && L.rations < Math.min(hpNeed, M.ratCap * 0.5))) L.feeding = true;
+  if (L.feeding && L.rations >= target) L.feeding = false;
+  return L.feeding ? job : null;
 }
 function jobFull(t){
   if (!t.prod) return false;
@@ -1512,7 +1534,7 @@ function updateHud(){
   else if (S.set.paused) { $('#n-name').textContent = 'Paused' + (cur ? ': ' + cur.name : ''); $('#n-eta').textContent = 'tap Resume'; }
   else if (!cur) { $('#n-name').textContent = 'Time stopped. Pick a task below.'; $('#n-eta').textContent = ''; $('#n-fill').style.width = '0'; }
   else {
-    $('#n-name').textContent = (L.foraging ? 'Foraging: ' : '') + cur.name;
+    $('#n-name').textContent = (L.feeding ? 'Restocking food: ' : L.foraging ? 'Foraging: ' : '') + cur.name;
     if (cur.kind !== 'job') {
       const sp = speedOf(cur);
       $('#n-fill').style.width = ((L.prog[cur.id] || 0) / cur.days * 100).toFixed(1) + '%';
@@ -1757,9 +1779,10 @@ function renderAuto(){
   const L = S.life;
   const list = TASKS.filter(t => practiced(t));
   const glist = ITEMS.filter(gearPracticed);
-  const key = list.map(t => t.id + (S.auto[t.id] ? '*' : '') + prioOf(t)).join() + '|' + glist.map(i => i.id + (S.gauto[i.id] ? '*' : '') + gearPrio(i)).join() + '|' + L.sec + '|' + S.gen + '|' + !!S.set.fillCross;
+  const key = list.map(t => t.id + (S.auto[t.id] ? '*' : '') + prioOf(t)).join() + '|' + glist.map(i => i.id + (S.gauto[i.id] ? '*' : '') + gearPrio(i)).join() + '|' + L.sec + '|' + S.gen + '|' + !!S.set.fillCross + !!S.set.autoFeed;
   if (key === autoKey) return; autoKey = key;
   let h = `<div class="panel"><span class="h2">Automation</span><p class="note">Tasks practised in ${AUTO_LIVES} lives can run by themselves, and gear built in ${AUTO_LIVES} lives can be built automatically (top priority first; the clone saves up for it before cheaper designs). Switch them on and set their priority here: 1 runs first, 5 last. Your own queue always comes first; rests fire on their own at strain ×${AUTO_REST_AT}, and also just before an automated crossing if the section\u2019s rest is still unused.</p>
+    <div class="row"><p>Feed when needed<small>Automated food jobs step in when rations run low, or when health is low and meals can still heal faster than strain drains it. They refill to what is needed, then the interrupted task carries on.</small></p><button class="tog${S.set.autoFeed ? ' on' : ''}" data-set="autoFeed" aria-label="Feed when needed" aria-pressed="${!!S.set.autoFeed}"></button></div>
     <div class="row"><p>Fill storage before moving on<small>An automated crossing to the next section stops just before it finishes, works this section\u2019s jobs until ration and salvage storage are both full, then completes.</small></p><button class="tog${S.set.fillCross ? ' on' : ''}" data-set="fillCross" aria-label="Fill storage before moving on" aria-pressed="${!!S.set.fillCross}"></button></div></div>`;
   if (!list.length && !glist.length) {
     h += `<p class="note">Nothing unlocked yet. Finish an action in ${AUTO_LIVES} different lives, or work a job for ${JOB_PRAC_BATCHES} batches in ${AUTO_LIVES} different lives, and it will appear here. Gear counts once built in ${AUTO_LIVES} different lives.</p>`;
