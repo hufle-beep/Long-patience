@@ -111,6 +111,10 @@ main .wrap{display:grid;gap:18px}
 .qrow small{color:var(--dim);font-size:11px}
 .qrow button{width:28px;height:30px;flex:0 0 auto;border:1px solid var(--line);border-radius:4px;color:var(--dim);font-size:14px}
 .qrow button:disabled{opacity:.3;cursor:default}
+.qrow .qdrag{flex:0 0 auto;width:22px;height:30px;margin-left:-4px;display:grid;place-items:center;color:var(--faint);font-size:18px;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}
+.qrow.dragging{position:relative;z-index:5;border-color:var(--amber);background:var(--panel);box-shadow:0 6px 16px rgba(0,0,0,.45);transition:none}
+.qlist.dragmode .qrow:not(.dragging){transition:transform .12s ease}
+.qlist.dragmode{user-select:none;-webkit-user-select:none}
 .qh .qhb button{font-size:12px;color:var(--dim);padding:3px 6px}
 .qbody{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:start}
 .qmain{min-width:0;display:grid;gap:6px}
@@ -985,6 +989,18 @@ function qMove(id, dir){
   const p = L.qplan || [], a = p.indexOf(id), b = p.indexOf(other);
   if (a >= 0 && b >= 0) [p[a], p[b]] = [p[b], p[a]];
 }
+// Move a queued item to position `to`; the planned queue keeps the same relative order.
+function qMoveTo(id, to){
+  const L = S.life, i = L.queue.indexOf(id);
+  if (i < 0) return;
+  to = Math.max(0, Math.min(L.queue.length - 1, to));
+  if (to === i) return;
+  L.queue.splice(i, 1); L.queue.splice(to, 0, id);
+  const p = L.qplan || [], slots = [];
+  p.forEach((x, k) => { if (L.queue.includes(x)) slots.push(k); });
+  const order = L.queue.filter(x => p.includes(x));
+  slots.forEach((k, n) => { p[k] = order[n]; });
+}
 function decant(){
   const prev = S.life;
   S.lastOrder = prev.order.slice(); S.lastJob = prev.job;
@@ -1508,7 +1524,40 @@ function prioPick(t){
 }
 function chips(t){ return t.sk.map(s => `<span class="chip c-${s}">${SKN[s].ab}</span>`).join(''); }
 
+// Drag to reorder the queue (mouse and touch): grab the handle at the left of a row.
+let qDrag = null;
+document.addEventListener('pointerdown', e => {
+  const hnd = e.target.closest && e.target.closest('[data-qdrag]');
+  if (!hnd || qDrag || e.button > 0) return;
+  const row = hnd.closest('.qrow'), list = row.parentElement, rows = [...list.children];
+  e.preventDefault();
+  qDrag = {id: hnd.dataset.qdrag, row, list, rows, from: rows.indexOf(row), to: rows.indexOf(row), y0: e.clientY,
+    mids: rows.map(r => { const b = r.getBoundingClientRect(); return b.top + b.height / 2; }), h: row.getBoundingClientRect().height + 4, pid: e.pointerId};
+  try { hnd.setPointerCapture(e.pointerId); } catch (_) {}
+  row.classList.add('dragging'); list.classList.add('dragmode');
+});
+document.addEventListener('pointermove', e => {
+  const d = qDrag; if (!d || e.pointerId !== d.pid) return;
+  e.preventDefault();
+  const dy = e.clientY - d.y0, y = d.mids[d.from] + dy;
+  let to = 0; d.mids.forEach((m, k) => { if (k !== d.from && y > m) to++; });
+  d.to = to;
+  d.row.style.transform = `translateY(${dy}px)`;
+  d.rows.forEach((r, k) => { if (r === d.row) return;
+    const shift = d.from < d.to && k > d.from && k <= d.to ? -d.h : d.from > d.to && k >= d.to && k < d.from ? d.h : 0;
+    r.style.transform = shift ? `translateY(${shift}px)` : ''; });
+}, {passive: false});
+function qDragEnd(e){
+  const d = qDrag; if (!d || (e && e.pointerId !== d.pid)) return;
+  qDrag = null;
+  d.rows.forEach(r => { r.style.transform = ''; }); d.row.classList.remove('dragging'); d.list.classList.remove('dragmode');
+  if (e && e.type === 'pointerup' && d.to !== d.from && S.life.queue.includes(d.id)) { qMoveTo(d.id, d.to); sfx('click'); save(); }
+  taskKey = ''; renderView();
+}
+document.addEventListener('pointerup', qDragEnd);
+document.addEventListener('pointercancel', qDragEnd);
 function renderTasks(){
+  if (qDrag) return;   // don't rebuild the list under the finger
   const L = S.life;
   const vis = [], locked = [];
   TASKS.forEach(t => {
@@ -1531,7 +1580,7 @@ function renderTasks(){
     h += '<ol class="qlist">' + L.queue.map((id, i) => {
       const t = T[id], bl = !available(t);
       const why = !bl ? '' : t.z > L.sec ? 'waits for the ' + ZONES[t.z - 1].name : t.z < L.sec ? 'left behind' : 'waiting for its requirements';
-      return `<li class="qrow${bl ? ' blocked' : ''}"><span class="qn">${i + 1}.</span><span class="qt">${esc(t.name)}${t.kind === 'job' ? ' <small>until full</small>' : ''}${why ? ` <small>${why}</small>` : ''}</span>
+      return `<li class="qrow${bl ? ' blocked' : ''}" data-qid="${id}"><span class="qdrag" data-qdrag="${id}" aria-hidden="true" title="Drag to reorder">⠇</span><span class="qn">${i + 1}.</span><span class="qt">${esc(t.name)}${t.kind === 'job' ? ' <small>until full</small>' : ''}${why ? ` <small>${why}</small>` : ''}</span>
         <button data-qmove="${id}" data-dir="-1" ${i === 0 ? 'disabled' : ''} aria-label="Move ${esc(t.name)} up">\u2191</button><button data-qmove="${id}" data-dir="1" ${i === L.queue.length - 1 ? 'disabled' : ''} aria-label="Move ${esc(t.name)} down">\u2193</button><button data-unq="${id}" aria-label="Remove ${esc(t.name)} from queue">\u2715</button></li>`;
     }).join('') + '</ol>';
   } else {
@@ -2035,7 +2084,7 @@ const FAQ = [
   ['What is the goal?', 'Restore the ship so WARDEN can wake the sleeping crew: the food system in the Hydroponics Ring, the energy system in the Engineering Spine and the stardrive in the Main Drive. The game ends when you ignite the drive. One clone cannot do it all; it takes many lives (around 50 with very good play).'],
   ['How do I start?', 'Tap a task to work on it right away. Climb out of the vat first, then press vat algae for food and strip wall panels for salvage. Time only moves while your clone is working: with nothing to do, the clock stops, so you can always read and plan.'],
   ['What are jobs, actions, training and rests?', '<b>Jobs</b> repeat and make rations or salvage in batches; they stop when that storage is full. <b>Actions</b> are one-off tasks that unlock things and move the story on. <b>Training</b> builds skills faster (+50% XP) but each can be done only 4 times per life. <b>Rests</b> halve strain; each section has one, usable once per life.'],
-  ['How does the queue work?', 'Tap <b>+</b> on a task to add it to the end of the queue; tapping the task itself puts it first. The queue holds up to 20 items. Use the arrows to reorder and ✕ to remove. Queued jobs run until their storage is full. You can queue things you have seen before even if they are not available yet; they wait their turn. Three presets save and load whole queues, and <b>Keep queue between clones</b> gives each new clone the queue you planned.'],
+  ['How does the queue work?', 'Tap <b>+</b> on a task to add it to the end of the queue; tapping the task itself puts it first. The queue holds up to 20 items. Drag an item by the handle on its left to move it, or use the arrows; ✕ removes it. Queued jobs run until their storage is full. You can queue things you have seen before even if they are not available yet; they wait their turn. Three presets save and load whole queues, and <b>Keep queue between clones</b> gives each new clone the queue you planned.'],
   ['Food and health', 'Health drains all the time. Your clone eats 2 rations a day, one meal every 12 hours, and each meal restores health. Food from deeper sections is richer (×1.5 in the ring up to ×3.2 at the drive); stored food keeps its average quality. Run out of rations and you starve. Storage is small, so you have to keep working food jobs. The Hydroponics Ring has no food until you restore its irrigation pumps, so arrive stocked.'],
   ['What is strain?', 'Strain multiplies the health drain. It grows faster and faster the longer a clone lives, which is what eventually kills every clone. Rests halve it; Resolve slows it a little; good food heals faster than strain can drain early on. Watch <b>Time left</b> at the top: it says how long the clone will last and what will kill it.'],
   ['What carries over when a clone dies?', 'Skill levels reset, but every bit of XP a skill has ever earned is kept as its <b>echo</b>, making that skill permanently faster. Each day a clone survives adds 0.8 to the base health of later clones, up to 500. <b>Archive records</b> found by finishing certain actions are permanent upgrades. Gear, rations, salvage and progress through the ship reset.'],
