@@ -339,6 +339,7 @@ button.updl{width:100%}
 .pctin input{width:80px;background:var(--panel2);border:1px solid var(--line);color:var(--fg);border-radius:4px;padding:7px 8px;font:14px var(--f-mono)}
 .pctin span{color:var(--dim)}
 .qcount{color:var(--faint);letter-spacing:0;margin-left:4px}
+.histm{justify-self:start;font-size:12px;padding:5px 10px}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 
@@ -1759,13 +1760,15 @@ function renderArchive(force){
     fdn.addEventListener('keydown', e => { if (e.key === 'Enter') { setPct(true); fdn.blur(); } });
   }
 }
+let histAll = false;
 function renderLog(){
-  const key = S.log.length + '|' + (S.log.length ? S.log[S.log.length-1].t : '') + '|' + (S.hist ? S.hist.length : 0) + '|' + S.gen + '|' + JSON.stringify(S.best || {});
+  const key = S.log.length + '|' + (S.log.length ? S.log[S.log.length-1].t : '') + '|' + (S.hist ? S.hist.length : 0) + '|' + histAll + '|' + S.gen + '|' + JSON.stringify(S.best || {});
   if (key === logKey) return; logKey = key;
   const secName = n => n >= 6 ? 'Drive lit' : ZONES[n - 1].name;
   const realT = r => fmtReal(r);
-  const hist = (S.hist || []).slice(-5).reverse();
+  const allH = S.hist || [], hist = allH.slice(histAll ? -50 : -5).reverse();
   let h = '<div class="panel"><span class="h2">Recent clones</span>';
+  if (allH.length > 5) h += `<button class="btn histm" data-histall>${histAll ? 'Show last 5' : 'Show all ' + allH.length}</button>`;
   if (!hist.length) h += '<p class="note">No clone has died yet. Each clone\u2019s furthest section and time will appear here.</p>';
   else h += `<div class="rtab"><table class="dt"><thead><tr><th>Clone</th><th>Furthest</th><th>Days</th><th>Real</th></tr></thead><tbody>${hist.map(e => `<tr title="${esc(e.cause)}"><td>${e.g}</td><td>${secName(e.sec)}</td><td>${(e.d / TPD).toFixed(1)}</td><td>${realT(e.r)}</td></tr>`).join('')}</tbody></table></div>`;
   const b = S.best;
@@ -1993,6 +1996,7 @@ document.addEventListener('click', e => {
   if (d.speed) { S.set.speed = +d.speed; S.set.paused = false; renderSpeed(); return; }
   if ('pause' in d) { togglePause(); return; }
   if ('boost' in d) { S.set.boost = !S.set.boost; renderSpeed(); return; }
+  if ('histall' in d) { histAll = !histAll; logKey = ''; renderView(); return; }
   if ('awayok' in d) { hideModal(); paused = false; if (S.life.dead && S.set.deathScreen !== false) showDeath(); return; }
   if ('close' in d) { hideModal(); paused = false; S.intro = true; save(); return; }
   if ('decant' in d) { decant(); if (S.set.deathPause !== false) S.set.paused = true; hideModal(); taskKey = ''; setTab('tasks'); save(); return; }
@@ -2195,7 +2199,7 @@ let awaySnap = null;
 function snapshot(){
   return {t:Date.now(), gen:S.gen, days:(S.stats.daysLived || 0) + S.life.day, rations:S.life.rations, salvage:S.life.salvage,
     xp:Object.assign({}, S.xpTot || {}), deaths:S.stats.deaths || 0, log:S.log.length, perks:Object.keys(S.perks).length,
-    sec:S.life.sec, hp:S.life.hp, owned:Object.keys(S.life.owned).length};
+    sec:S.life.sec, hp:S.life.hp, owned:Object.keys(S.life.owned).length, hist:(S.hist || []).length};
 }
 function showAway(a){
   const L = S.life, b = snapshot();
@@ -2206,7 +2210,8 @@ function showAway(a){
   const newLogs = S.log.slice(a.log).map(e => e.t);
   const newPerks = Object.keys(S.perks).length - a.perks;
   let h = `<h2>While you were away</h2><p class="d">${fmtSecs(secs)} in the background \u00b7 ${days.toFixed(1)} days aboard</p><table class="dt">`;
-  if (b.gen !== a.gen) h += `<tr><td>Clones</td><td>${b.gen - a.gen} died; now clone ${b.gen}</td></tr>`;
+  const loops = b.gen - a.gen;
+  h += `<tr><td>Loops run</td><td>${loops}${loops ? ' \u00b7 now clone ' + b.gen : ''}</td></tr>`;
   h += `<tr><td>Section</td><td>${ZONES[(L.sec || 1) - 1].name}${(L.sec || 1) !== a.sec && b.gen === a.gen ? ' (new)' : ''}</td></tr>`;
   h += `<tr><td>Health</td><td>${Math.ceil(L.hp)} / ${M.maxHp}</td></tr>`;
   if (b.gen === a.gen) {
@@ -2215,6 +2220,17 @@ function showAway(a){
   }
   xpRows.forEach(r => { h += `<tr><td>${r.k.name} XP</td><td><span class="up">+${fmt(r.g)}</span> \u00b7 echo \u00d7${fmt(echoSpeed(r.k.id))}</td></tr>`; });
   h += '</table>';
+  // the clones that lived and died while away (also kept in the Log tab's run history)
+  const ran = (S.hist || []).slice(Math.max(0, (S.hist || []).length - loops));
+  if (loops) {
+    const secName = n => n >= 6 ? 'Drive lit' : ZONES[n - 1].name;
+    h += `<div class="rtab"><table class="dt"><thead><tr><th>Clone</th><th>Furthest</th><th>Days</th><th>Cause</th></tr></thead><tbody>${ran.slice(-10).reverse().map(e => `<tr><td>${e.g}</td><td>${secName(e.sec)}</td><td>${(e.d / TPD).toFixed(1)}</td><td>${esc(e.cause)}</td></tr>`).join('')}</tbody></table></div>`;
+    if (loops > 10) h += `<p class="d">Showing the last 10 of ${loops} loops.</p>`;
+    const far = ran.reduce((m, e) => Math.max(m, e.sec), 0);
+    S.log.push({g:b.gen, a:+(L.day / TPD).toFixed(1), t:'Background run', x:loops + ' loop' + (loops > 1 ? 's' : '') + ' ran while you were away (clones ' + a.gen + '\u2013' + (b.gen - 1) + '), furthest: ' + secName(far) + '.'});
+    if (S.log.length > 120) S.log.shift();
+    logKey = '';
+  }
   if (newPerks > 0) h += `<p class="d">New archive record${newPerks > 1 ? 's' : ''}: ${newPerks}.</p>`;
   if (newLogs.length) h += `<p class="d">Log: ${esc(newLogs.join(', '))}.</p>`;
   h += '<p class="d">The game is paused until you continue.</p><button class="btn pri" data-awayok>Continue</button>';
