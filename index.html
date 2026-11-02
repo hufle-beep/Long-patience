@@ -140,6 +140,7 @@ main .wrap{display:grid;gap:18px}
 .qh button{font-size:12px;color:var(--dim);padding:3px 6px}
 .qlist{display:flex;flex-wrap:wrap;gap:6px}
 .qlist{list-style:none;margin:0;padding:0;display:grid;gap:4px}
+.qlist.long{max-height:55vh;overflow-y:auto;overscroll-behavior:contain;padding-right:2px}
 .qrow{display:flex;align-items:center;gap:6px;padding:4px 4px 4px 8px;border-radius:4px;background:var(--panel2);border:1px solid var(--line);font-size:13px}
 .qrow.blocked{opacity:.6}
 .qrow .qn{color:var(--faint);font-family:var(--f-mono);font-size:12px}
@@ -1251,7 +1252,7 @@ function advance(days){
 }
 // The queue plan: everything you queued this life, in order, including items already finished.
 // It is what carries over to the next clone (Keep queue between clones) and what presets save.
-const QMAX = 20;   // most items the queue (and a queue plan) can hold
+const QMAX = 100;   // most items the queue (and a queue plan) can hold: enough for every task and design, with copies
 const QPRESETS = 5;   // saved queue presets
 // Gear can be queued too, as 'g:<item id>': the clone works the best salvage job until it can afford
 // the design, builds it, and moves on.
@@ -1883,14 +1884,19 @@ document.addEventListener('pointerdown', e => {
   const row = hnd.closest('.qrow'), list = row.parentElement, rows = [...list.children];
   e.preventDefault();
   qDrag = {id: S.life.queue[+hnd.dataset.qdrag], row, list, rows, from: rows.indexOf(row), to: rows.indexOf(row), y0: e.clientY,
-    mids: rows.map(r => { const b = r.getBoundingClientRect(); return b.top + b.height / 2; }), h: row.getBoundingClientRect().height + 4, pid: e.pointerId};
+    mids: rows.map(r => { const b = r.getBoundingClientRect(); return b.top + b.height / 2; }), h: row.getBoundingClientRect().height + 4, pid: e.pointerId, st0: list.scrollTop};
   try { hnd.setPointerCapture(e.pointerId); } catch (_) {}
   row.classList.add('dragging'); list.classList.add('dragmode');
 });
 document.addEventListener('pointermove', e => {
   const d = qDrag; if (!d || e.pointerId !== d.pid) return;
   e.preventDefault();
-  const dy = e.clientY - d.y0, y = d.mids[d.from] + dy;
+  // long queues scroll: drag near the list's top or bottom edge to scroll it
+  const lr = d.list.getBoundingClientRect();
+  if (d.list.scrollHeight > d.list.clientHeight) {
+    if (e.clientY < lr.top + 36) d.list.scrollTop -= 10; else if (e.clientY > lr.bottom - 36) d.list.scrollTop += 10;
+  }
+  const sc = d.list.scrollTop - d.st0, dy = e.clientY - d.y0 + sc, y = d.mids[d.from] + dy;
   let to = 0; d.mids.forEach((m, k) => { if (k !== d.from && y > m) to++; });
   d.to = to;
   d.row.style.transform = `translateY(${dy}px)`;
@@ -1929,7 +1935,7 @@ function renderTasks(){
   if (L.now && T[L.now]) h += `<div class="qnow"><span>Running now: <b>${esc(T[L.now].name)}</b>${T[L.now].kind === 'job' ? ' (until full)' : ''}. The queue continues after it.</span><button class="btn" data-stopnow>Stop</button></div>`;
   h += '<div class="qbody"><div class="qmain">';
   if (L.queue.length) {
-    h += '<ol class="qlist">' + L.queue.map((id, i) => {
+    h += '<ol class="qlist' + (L.queue.length > 12 ? ' long' : '') + '">' + L.queue.map((id, i) => {
       const g = isGQ(id), t = g ? {name:qName(id)} : T[id], it = g ? qItem(id) : null;
       const bl = g ? (!isDone(it.req) || it.cost > M.salCap) : !available(t);
       const why = g ? (!isDone(it.req) ? 'after: ' + T[it.req].name : it.cost > M.salCap ? 'needs bigger salvage storage' : fmt(Math.min(L.salvage, it.cost)) + '/' + fmt(it.cost) + ' salvage')
@@ -2556,7 +2562,7 @@ const FAQ_ALL = [
   ['What is the goal?', 'Restore the ship so WARDEN can wake the sleeping crew: the food system in the Hydroponics Ring, the energy system in the Engineering Spine and the stardrive in the Main Drive. The game ends when you ignite the drive. One clone cannot do it all; it takes many lives (around 50 with very good play).'],
   ['How do I start?', 'Tap a task to work on it right away. Climb out of the vat first, then press vat algae for food and strip wall panels for salvage. Time only moves while your clone is working: with nothing to do, the clock stops, so you can always read and plan.'],
   ['What are jobs, actions, training and rests?', '<b>Jobs</b> repeat and make food or salvage in batches; they stop when that storage is full. <b>Actions</b> are one-off tasks that unlock things and move the story on. <b>Drills</b> each add a quarter of a life’s worth of familiarity to every task of their two types (shown as coloured tags), up to 4 sessions per life. <b>Rests</b> halve strain; each section has one, usable once per life.'],
-  ['How does the queue work?', 'Tapping a task runs it right away, ahead of the queue (a job runs until its store is full); it is not added to the queue. <b>+</b> adds a task to the end of the queue; drag it or use the arrows to move it up. You can queue the same task several times at different places: tap + again for another copy. A task queued once runs until it is done; with several copies, each copy covers one repetition (one training session, one rep, or one fill of a store). The queue holds up to 20 items. Drag an item by the handle on its left to move it, or use the arrows; ✕ removes it. Queued jobs run until their storage is full. You can queue things you have seen before even if they are not available yet; they wait their turn. Gear can be queued too, with the <b>+</b> on its card (gear is listed in each section of the Tasks tab): the clone works the best salvage job until it can afford the design, then builds it. Five presets save and load whole queues, and <b>Keep queue between clones</b> gives each new clone the queue you planned, minus anything that is automated and switched on.'],
+  ['How does the queue work?', 'Tapping a task runs it right away, ahead of the queue (a job runs until its store is full); it is not added to the queue. <b>+</b> adds a task to the end of the queue; drag it or use the arrows to move it up. You can queue the same task several times at different places: tap + again for another copy. A task queued once runs until it is done; with several copies, each copy covers one repetition (one training session, one rep, or one fill of a store). The queue holds up to 100 items. Drag an item by the handle on its left to move it, or use the arrows; ✕ removes it. Queued jobs run until their storage is full. You can queue things you have seen before even if they are not available yet; they wait their turn. Gear can be queued too, with the <b>+</b> on its card (gear is listed in each section of the Tasks tab): the clone works the best salvage job until it can afford the design, then builds it. Five presets save and load whole queues, and <b>Keep queue between clones</b> gives each new clone the queue you planned, minus anything that is automated and switched on.'],
   ['Food and health', 'Health drains all the time and meals put it back. Every section has its own food, each richer than the last: algae paste (Vat Bay, ×1), hydro greens (Ring, ×1.5), field rations (Spine, ×2), galley meals (Command Deck, ×2.6) and pantry stores (Main Drive, ×3.2). Each kind has its own small store, and food you carry goes with you into the next section until it is eaten. <b>Every kind you carry is eaten on its own timer</b>, so carrying several kinds means more meals. Meals are always whole portions, and the clone only eats when it needs to: when a whole meal fits under full health, or sooner once health is down to half. At full health no food is used. Algae is eaten every 12 hours; richer food starts with a longer wait (12 h × its quality), which shrinks with mastery of the job that gathers it, down to 12 hours at full mastery. With no food left at all you starve. The Hydroponics Ring has no food until you restore its irrigation pumps, so arrive stocked.'],
   ['What is strain?', 'Strain multiplies the health drain. It grows faster and faster the longer a clone lives, which is what eventually kills every clone. Rests halve it; Resolve slows it a little; good food heals faster than strain can drain early on. Watch <b>Time left</b> at the top: it says how long the clone will last and what will kill it.'],
   ['What carries over when a clone dies?', '<b>Familiarity</b> is kept: every task stays as fast as your clones have made it (see the Speed tab). Each day a clone survives adds 0.8 to the base health of later clones, up to 500. <b>Archive records</b> found by finishing certain actions are permanent upgrades. Gear, rations, salvage and progress through the ship reset.'],
