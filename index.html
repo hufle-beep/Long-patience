@@ -103,6 +103,23 @@ main .wrap{display:grid;gap:18px}
 .qh{display:flex;justify-content:space-between;align-items:center}
 .qh button{font-size:12px;color:var(--dim);padding:3px 6px}
 .qlist{display:flex;flex-wrap:wrap;gap:6px}
+.qlist{list-style:none;margin:0;padding:0;display:grid;gap:4px}
+.qrow{display:flex;align-items:center;gap:6px;padding:4px 4px 4px 8px;border-radius:4px;background:var(--panel2);border:1px solid var(--line);font-size:13px}
+.qrow.blocked{opacity:.6}
+.qrow .qn{color:var(--faint);font-family:var(--f-mono);font-size:12px}
+.qrow .qt{flex:1;min-width:0}
+.qrow small{color:var(--dim);font-size:11px}
+.qrow button{width:32px;height:30px;border:1px solid var(--line);border-radius:4px;color:var(--dim);font-size:14px}
+.qrow button:disabled{opacity:.3;cursor:default}
+.qh .qhb button{font-size:12px;color:var(--dim);padding:3px 6px}
+.qpre{display:grid;gap:6px}
+.qps{display:grid;grid-template-columns:20px 1fr auto auto;gap:6px;align-items:center;font-size:12px}
+.qps b{font-family:var(--f-mono);color:var(--amber)}
+.qps small{color:var(--dim)}
+.qps button{font-size:12px;padding:5px 10px;border:1px solid var(--line);border-radius:4px;color:var(--fg)}
+.qps button:disabled{opacity:.35;cursor:default}
+.qkeep p{font-size:12px}
+.lockq{visibility:visible!important}
 .qchip{font-size:12px;padding:5px 8px;border-radius:4px;background:var(--panel2);border:1px solid var(--line);text-align:left}
 .qchip small{color:var(--dim);font-size:11px}
 .qchip i{font-style:normal;color:var(--faint);margin-left:6px}
@@ -546,13 +563,13 @@ const HOOK = {log(){}, perk(){}, die(){}, win(){}, change(){}, stopped(){}, prac
 function newLife(s){
   const p = s.perks;
   const L = {day:0, hp:100, rations:p.decant?1:0, salvage:0, lv:{}, xp:{}, echo0:{},
-    done:{}, prog:{}, cyc:{}, bat:{}, meal:0, strain:1, sec:1, job:null, queue:[], owned:{}, order:[], foraging:false, cur:null, dead:false, cause:''};
+    done:{}, prog:{}, cyc:{}, bat:{}, qplan:[], meal:0, strain:1, sec:1, job:null, queue:[], owned:{}, order:[], foraging:false, cur:null, dead:false, cause:''};
   SKILLS.forEach(k => { L.lv[k.id] = 0; L.xp[k.id] = 0; L.echo0[k.id] = (s.xpTot && s.xpTot[k.id]) || 0; });
   return L;
 }
 function defaultState(){
-  const s = {v:1, gprac:{}, gauto:{}, gprio:{}, ev:2, xpTot:{}, rv:4, sv:2, pv:2, vv:3, gen:1, prio:{}, ever:{}, prac:{}, auto:{}, echo:{}, perks:{}, seen:{}, logged:{}, log:[], lastOrder:[], lastJob:null,
-    set:{speed:1, autoFood:true, autoEat:true, foodDays:2, foodPct:40, restAt:2.5, replay:true, fillCross:false, autoFeed:false, boost:false},
+  const s = {v:1, qpresets:[[], [], []], gprac:{}, gauto:{}, gprio:{}, ev:2, xpTot:{}, rv:4, sv:2, pv:2, vv:3, gen:1, prio:{}, ever:{}, prac:{}, auto:{}, echo:{}, perks:{}, seen:{}, logged:{}, log:[], lastOrder:[], lastJob:null,
+    set:{speed:1, autoFood:true, autoEat:true, foodDays:2, foodPct:40, restAt:2.5, keepQueue:true, replay:true, fillCross:false, autoFeed:false, boost:false},
     stats:{bestAge:0, deaths:0, daysLived:0}, won:false, winGen:0, bank:0, saved:Date.now(), intro:false};
   SKILLS.forEach(k => s.echo[k.id] = 0);
   s.life = newLife(s);
@@ -861,13 +878,31 @@ function advance(days){
   let left = days, n = 0;
   while (left > 1e-9 && !S.life.dead && n < 500) { const d = Math.min(left, 2); if (step(d) === false) break; left -= d; n++; }
 }
+// The queue plan: everything you queued this life, in order, including items already finished.
+// It is what carries over to the next clone (Keep queue between clones) and what presets save.
+function qAdd(id, front){
+  const L = S.life; if (!L.qplan) L.qplan = [];
+  L.queue = front ? [id, ...L.queue.filter(x => x !== id)] : (L.queue.includes(id) ? L.queue : [...L.queue, id]);
+  if (front) L.qplan = [id, ...L.qplan.filter(x => x !== id)]; else if (!L.qplan.includes(id)) L.qplan.push(id);
+}
+function qRemove(id){ const L = S.life; L.queue = L.queue.filter(x => x !== id); L.qplan = (L.qplan || []).filter(x => x !== id); }
+function qMove(id, dir){
+  const L = S.life, i = L.queue.indexOf(id), j = i + dir;
+  if (i < 0 || j < 0 || j >= L.queue.length) return;
+  const other = L.queue[j];
+  [L.queue[i], L.queue[j]] = [L.queue[j], L.queue[i]];
+  const p = L.qplan || [], a = p.indexOf(id), b = p.indexOf(other);
+  if (a >= 0 && b >= 0) [p[a], p[b]] = [p[b], p[a]];
+}
 function decant(){
   const prev = S.life;
   S.lastOrder = prev.order.slice(); S.lastJob = prev.job;
   S.gen++;
   S.life = newLife(S);
   M = mods(); S.life.hp = M.maxHp;
-  if (S.perks.engram && S.set.replay) S.life.queue = S.lastOrder.filter(id => T[id] && T[id].kind === 'act');
+  const keep = S.set.keepQueue !== false ? (prev.qplan || prev.queue || []).filter(id => T[id]) : [];
+  S.life.queue = keep.slice(); S.life.qplan = keep.slice();
+  if (S.perks.engram && S.set.replay) S.lastOrder.filter(id => T[id] && T[id].kind === 'act' && !S.life.queue.includes(id)).forEach(id => qAdd(id));
   // No fallback job carries over: a new clone waits for orders unless automation or a record says otherwise.
   HOOK.change();
 }
@@ -1209,6 +1244,8 @@ function mergeState(raw){
   }
   if (!s.xpTot) s.xpTot = {};
   s.ev = 2;
+  if (!Array.isArray(s.qpresets)) s.qpresets = [[], [], []];
+  if (s.life && !Array.isArray(s.life.qplan)) s.life.qplan = (s.life.queue || []).slice();
   if (!s.gprac) s.gprac = {}; if (!s.gauto) s.gauto = {}; if (!s.gprio) s.gprio = {};
   if (!s.prac) s.prac = {}; if (!s.auto) s.auto = {}; if (!s.prio) s.prio = {};
   if (!raw.vv) s.vit = (s.vit || 0) / 4;   // genome bonus quartered (v3)
@@ -1369,20 +1406,27 @@ function renderTasks(){
     if (av && !complete(t)) vis.push(t.id);
     else if (!av && S.seen[t.id]) locked.push(t.id);
   });
-  const key = vis.join() + '|' + locked.join() + '|' + L.queue.join() + '|' + L.job + '|' + Object.keys(S.perks).join() + '|' + S.gen + '|' + JSON.stringify(showLocked) + '|' + L.sec + '|' + TASKS.filter(t => practiced(t)).map(t => t.id + (S.auto[t.id] ? '*' : '') + prioOf(t)).join() + '|' + openPrio;
+  const key = vis.join() + '|' + locked.join() + '|' + L.queue.join() + '|' + L.job + '|' + Object.keys(S.perks).join() + '|' + S.gen + '|' + JSON.stringify(showLocked) + '|' + L.sec + '|' + JSON.stringify(S.qpresets) + (L.qplan || []).length + (S.set.keepQueue !== false) + '|' + TASKS.filter(t => practiced(t)).map(t => t.id + (S.auto[t.id] ? '*' : '') + prioOf(t)).join() + '|' + openPrio;
   if (key === taskKey) return;
   taskKey = key;
 
-  let h = '<div class="qp"><div class="qh"><span class="lbl">Queue</span>' + (L.queue.length ? '<button data-clearq>Clear</button>' : '') + '</div>';
+  let h = '<div class="qp"><div class="qh"><span class="lbl">Queue</span><span class="qhb">' + (L.queue.length || (L.qplan || []).length ? '<button data-clearq>Reset queue</button>' : '') + '</span></div>';
   if (L.queue.length) {
-    h += '<div class="qlist">' + L.queue.map((id, i) => {
-      const t = T[id]; const bl = !available(t);
-      return `<button class="qchip${bl ? ' blocked' : ''}" data-unq="${id}" aria-label="Remove ${esc(t.name)} from queue">${i+1}. ${esc(t.name)}${t.kind === 'job' ? ' <small>until full</small>' : ''}<i>✕</i></button>`;
-    }).join('') + '</div>';
+    h += '<ol class="qlist">' + L.queue.map((id, i) => {
+      const t = T[id], bl = !available(t);
+      const why = !bl ? '' : t.z > L.sec ? 'waits for the ' + ZONES[t.z - 1].name : t.z < L.sec ? 'left behind' : 'waiting for its requirements';
+      return `<li class="qrow${bl ? ' blocked' : ''}"><span class="qn">${i + 1}.</span><span class="qt">${esc(t.name)}${t.kind === 'job' ? ' <small>until full</small>' : ''}${why ? ` <small>${why}</small>` : ''}</span>
+        <button data-qmove="${id}" data-dir="-1" ${i === 0 ? 'disabled' : ''} aria-label="Move ${esc(t.name)} up">\u2191</button><button data-qmove="${id}" data-dir="1" ${i === L.queue.length - 1 ? 'disabled' : ''} aria-label="Move ${esc(t.name)} down">\u2193</button><button data-unq="${id}" aria-label="Remove ${esc(t.name)} from queue">\u2715</button></li>`;
+    }).join('') + '</ol>';
   } else {
     h += '<div class="qnote">Empty. Tap a task to start it now, or + to add it to the end. Queued jobs run until their storage is full.</div>';
   }
-  h += `<div class="qnote">Fallback job: <b>${L.job ? esc(T[L.job].name) : 'none'}</b>. It runs whenever the queue is empty.</div></div>`;
+  h += `<div class="qnote">Fallback job: <b>${L.job ? esc(T[L.job].name) : 'none'}</b>. It runs whenever the queue is empty.</div>`;
+  h += '<div class="qpre"><span class="lbl">Presets</span>' + [0, 1, 2].map(i => {
+    const n = (S.qpresets[i] || []).length;
+    return `<div class="qps"><b>${i + 1}</b><small>${n ? n + ' item' + (n > 1 ? 's' : '') : 'empty'}</small><button data-qsave="${i}">Save</button><button data-qload="${i}" ${n ? '' : 'disabled'}>Load</button></div>`;
+  }).join('') + '</div>';
+  h += `<div class="row qkeep"><p>Keep queue between clones<small>A new clone starts with the queue you planned this life.</small></p><button class="tog${S.set.keepQueue !== false ? ' on' : ''}" data-set="keepQueue" aria-label="Keep queue between clones" aria-pressed="${S.set.keepQueue !== false}"></button></div></div>`;
 
   ZONES.forEach(z => {
     if (z.id !== L.sec) return;
@@ -1448,7 +1492,7 @@ function renderTasks(){
     if (showLocked[z.id]) lk.forEach(t => {
       const need = t.req.filter(r => !isDone(r)).map(r => S.seen[r] ? T[r].name : 'something unseen');
       h += `<div class="task lock" data-lock="${t.id}"><div class="tm"><div class="th"><span class="tn">${esc(t.name)}</span></div>
-        <div class="tx">${chips(t)}<span>Needs: ${esc(need.join(', '))}</span></div></div><span class="tq"></span></div>`;
+        <div class="tx">${chips(t)}<span>Needs: ${esc(need.join(', '))}</span></div></div><button class="tq lockq${L.queue.includes(t.id) ? ' in' : ''}" data-q="${t.id}" aria-label="Queue for when it unlocks">${L.queue.includes(t.id) ? '#' + (L.queue.indexOf(t.id) + 1) : '+'}</button></div>`;
     });
     h += '</section>';
   });
@@ -1794,10 +1838,11 @@ function updateMap(){
 document.addEventListener('click', e => {
   const g = e.target.closest && e.target.closest('[data-mapdo]'); if (!g) return;
   const L = S.life, t = T[g.dataset.mapdo];
-  if (L.dead || !available(t) || complete(t)) { sfx('error'); return; }
+  if (L.dead || complete(t) || t.z < L.sec) { sfx('error'); return; }
   audioStart(); sfx('click');
-  L.queue = [t.id, ...L.queue.filter(x => x !== t.id)]; L.foraging = false; taskKey = '';
-  toast('Working on: ' + t.name);
+  if (available(t)) { qAdd(t.id, true); L.foraging = false; toast('Working on: ' + t.name); }
+  else if (!L.queue.includes(t.id)) { qAdd(t.id); toast('Queued: ' + t.name + ' (runs once it is available)'); }
+  taskKey = '';
 });
 
 /* ----- automation tab: every task whose automation is unlocked ----- */
@@ -1990,7 +2035,7 @@ document.addEventListener('click', e => {
       const q = L.queue.some(id => available(T[id]) && !complete(T[id]));
       if (q) toast('Set as fallback job. It runs once the queue is empty.');
     } else {
-      L.queue = [t.id, ...L.queue.filter(x => x !== t.id)];
+      qAdd(t.id, true);
       L.foraging = false;
     }
     taskKey = ''; renderView(); return;
@@ -1998,17 +2043,24 @@ document.addEventListener('click', e => {
   if (d.q) {
     if (!L.queue.includes(d.q)) {
       if (T[d.q].kind === 'job' && jobFull(T[d.q])) { toast('Storage is full already. Spend or use some first.'); return; }
-      L.queue.push(d.q); toast('Queued: ' + T[d.q].name + (T[d.q].kind === 'job' ? ' (until storage is full)' : ''));
+      qAdd(d.q); toast('Queued: ' + T[d.q].name + (T[d.q].kind === 'job' ? ' (until storage is full)' : available(T[d.q]) ? '' : ' (runs once it is available)'));
     }
-    else { L.queue = L.queue.filter(x => x !== d.q); }
+    else { qRemove(d.q); }
     taskKey = ''; renderView(); return;
   }
   if (d.prio) { openPrio = openPrio === d.prio ? null : d.prio; taskKey = ''; renderView(); return; }
   if (d.setprio) { S.prio[d.setprio] = +d.n; openPrio = null; autoKey = ''; toast('Priority ' + d.n + ': ' + T[d.setprio].name); taskKey = ''; renderView(); return; }
   if (d.auto) { autoKey = ''; S.auto[d.auto] = !S.auto[d.auto]; toast((S.auto[d.auto] ? 'Automated: ' : 'Automation off: ') + T[d.auto].name); taskKey = ''; renderView(); return; }
   if (d.showlock) { showLocked[d.showlock] = !showLocked[d.showlock]; taskKey = ''; renderView(); return; }
-  if (d.unq) { L.queue = L.queue.filter(x => x !== d.unq); taskKey = ''; renderView(); return; }
-  if ('clearq' in d) { L.queue = []; taskKey = ''; renderView(); return; }
+  if (d.unq) { qRemove(d.unq); taskKey = ''; renderView(); return; }
+  if (d.qmove) { qMove(d.qmove, +d.dir); taskKey = ''; renderView(); return; }
+  if (d.qsave) { S.qpresets[+d.qsave] = ((L.qplan && L.qplan.length) ? L.qplan : L.queue).slice(); toast('Queue saved to preset ' + (+d.qsave + 1)); taskKey = ''; renderView(); return; }
+  if (d.qload) {
+    const p = (S.qpresets[+d.qload] || []).filter(id => T[id]);
+    L.qplan = p.slice(); L.queue = p.filter(id => !(T[id].kind !== 'job' && complete(T[id])) && T[id].z >= L.sec);
+    toast('Loaded preset ' + (+d.qload + 1)); taskKey = ''; renderView(); return;
+  }
+  if ('clearq' in d) { L.queue = []; L.qplan = []; taskKey = ''; renderView(); return; }
   if (d.buy) {
     if (buyItem(d.buy, false)) renderView();
     return;
