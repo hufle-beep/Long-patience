@@ -619,12 +619,16 @@ function active(){
   if (feed) return feed;
   if ((L.strain || 1) >= restAt()) { const r = TASKS.find(t => t.kind === 'rest' && isAuto(t) && available(t) && !complete(t)); if (r) return r; }
   for (const id of L.queue) { const t = T[id]; if (available(t) && !complete(t)) return t; }
-  // automated actions run on their own, in ship order, once the queue is done
-  // automated actions and training: priority 1 (highest) to 5; ties go actions, then training, then crossings
-  const kindRank = t => t.cross ? 2 : t.kind === 'train' ? 1 : 0;
-  let pick = null;
-  for (const t of TASKS) if ((t.kind === 'act' || t.kind === 'train') && isAuto(t) && available(t) && !complete(t)) {
-    if (!pick || prioOf(t) < prioOf(pick) || (prioOf(t) === prioOf(pick) && kindRank(t) < kindRank(pick))) pick = t;
+  // Everything automated (actions, training, jobs, crossings) competes on priority alone:
+  // P1 always beats P2, and so on. Ties go actions, then training, then jobs (emptiest storage
+  // first), then crossings, then ship order.
+  const kindRank = t => t.cross ? 3 : t.kind === 'job' ? 2 : t.kind === 'train' ? 1 : 0;
+  let pick = null, pk = Infinity;
+  for (const t of TASKS) {
+    if (!isAuto(t) || !available(t)) continue;
+    if (t.kind === 'job' ? jobFull(t) : (t.kind === 'rest' || complete(t))) continue;
+    const k = prioOf(t) * 100 + kindRank(t) * 10 + (t.kind === 'job' ? storeRatio(t) : 0);
+    if (k < pk) { pk = k; pick = t; }
   }
   if (pick && pick.cross && crossHeld(pick)) {
     // An automated crossing stops just short of finishing while there is still something to do
@@ -637,18 +641,14 @@ function active(){
     if (rest) return rest;
   }
   if (pick) return pick;
+  // Nothing automated left to do: the job you picked yourself, until its storage is full
   if (L.job && T[L.job].kind !== 'job') L.job = null;
   if (L.job && available(T[L.job])) {
     const j = T[L.job];
     if (!jobFull(j)) return j;
     L.job = null; HOOK.stopped(j);   // storage full: unselect it
   }
-  // automated jobs: the one whose storage is emptiest; stop when all are full
-  let best = null, br = 99;
-  for (const t of TASKS) if (t.kind === 'job' && isAuto(t) && available(t) && !jobFull(t)) {
-    const r = prioOf(t) * 10 + (t.prod ? storeRatio(t) : 1.5); if (r < br) { br = r; best = t; }
-  }
-  return best;
+  return null;
 }
 // Practice is counted in lives: an action counts once per life when finished; a job counts once per
 // life after JOB_PRAC_BATCHES batches in that life. AUTO_LIVES practised lives unlock automation.
