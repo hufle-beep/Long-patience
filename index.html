@@ -109,14 +109,18 @@ main .wrap{display:grid;gap:18px}
 .qrow .qn{color:var(--faint);font-family:var(--f-mono);font-size:12px}
 .qrow .qt{flex:1;min-width:0}
 .qrow small{color:var(--dim);font-size:11px}
-.qrow button{width:32px;height:30px;border:1px solid var(--line);border-radius:4px;color:var(--dim);font-size:14px}
+.qrow button{width:28px;height:30px;flex:0 0 auto;border:1px solid var(--line);border-radius:4px;color:var(--dim);font-size:14px}
 .qrow button:disabled{opacity:.3;cursor:default}
 .qh .qhb button{font-size:12px;color:var(--dim);padding:3px 6px}
-.qpre{display:grid;gap:6px}
-.qps{display:grid;grid-template-columns:20px 1fr auto auto;gap:6px;align-items:center;font-size:12px}
+.qbody{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:start}
+.qmain{min-width:0;display:grid;gap:6px}
+.qpre{display:grid;gap:6px;padding-left:10px;border-left:1px dashed var(--line)}
+.qps{display:grid;gap:3px;font-size:12px}
+.qpl{display:flex;gap:6px;align-items:baseline}
+.qpb{display:flex;gap:4px}
 .qps b{font-family:var(--f-mono);color:var(--amber)}
-.qps small{color:var(--dim)}
-.qps button{font-size:12px;padding:5px 10px;border:1px solid var(--line);border-radius:4px;color:var(--fg)}
+.qps small{color:var(--dim);font-size:11px}
+.qps button{font-size:11px;padding:4px 7px;border:1px solid var(--line);border-radius:4px;color:var(--fg)}
 .qps button:disabled{opacity:.35;cursor:default}
 .qkeep p{font-size:12px}
 .lockq{visibility:visible!important}
@@ -1411,6 +1415,7 @@ function renderTasks(){
   taskKey = key;
 
   let h = '<div class="qp"><div class="qh"><span class="lbl">Queue</span><span class="qhb">' + (L.queue.length || (L.qplan || []).length ? '<button data-clearq>Reset queue</button>' : '') + '</span></div>';
+  h += '<div class="qbody"><div class="qmain">';
   if (L.queue.length) {
     h += '<ol class="qlist">' + L.queue.map((id, i) => {
       const t = T[id], bl = !available(t);
@@ -1421,11 +1426,11 @@ function renderTasks(){
   } else {
     h += '<div class="qnote">Empty. Tap a task to start it now, or + to add it to the end. Queued jobs run until their storage is full.</div>';
   }
-  h += `<div class="qnote">Fallback job: <b>${L.job ? esc(T[L.job].name) : 'none'}</b>. It runs whenever the queue is empty.</div>`;
-  h += '<div class="qpre"><span class="lbl">Presets</span>' + [0, 1, 2].map(i => {
+  h += '</div><div class="qpre" aria-label="Queue presets"><span class="lbl">Presets</span>' + [0, 1, 2].map(i => {
     const n = (S.qpresets[i] || []).length;
-    return `<div class="qps"><b>${i + 1}</b><small>${n ? n + ' item' + (n > 1 ? 's' : '') : 'empty'}</small><button data-qsave="${i}">Save</button><button data-qload="${i}" ${n ? '' : 'disabled'}>Load</button></div>`;
-  }).join('') + '</div>';
+    return `<div class="qps"><span class="qpl"><b>${i + 1}</b><small>${n ? n + ' item' + (n > 1 ? 's' : '') : 'empty'}</small></span><span class="qpb"><button data-qsave="${i}" aria-label="Save queue to preset ${i + 1}">Save</button><button data-qload="${i}" ${n ? '' : 'disabled'} aria-label="Load preset ${i + 1}">Load</button></span></div>`;
+  }).join('') + '</div></div>';
+  h += `<div class="qnote">Fallback job: <b>${L.job ? esc(T[L.job].name) : 'none'}</b>. It runs whenever the queue is empty.</div>`;
   h += `<div class="row qkeep"><p>Keep queue between clones<small>A new clone starts with the queue you planned this life.</small></p><button class="tog${S.set.keepQueue !== false ? ' on' : ''}" data-set="keepQueue" aria-label="Keep queue between clones" aria-pressed="${S.set.keepQueue !== false}"></button></div></div>`;
 
   ZONES.forEach(z => {
