@@ -1256,9 +1256,10 @@ function survival(){
 }
 function fmtSecs(s){
   s = Math.floor(s);
+  const p2 = n => String(n).padStart(2, '0');
   if (s < 60) return s + 's';
-  if (s < 3600) return Math.floor(s/60) + 'm';
-  return Math.floor(s/3600) + 'h ' + Math.floor((s%3600)/60) + 'm';
+  if (s < 3600) return Math.floor(s/60) + 'm ' + p2(s%60) + 's';
+  return Math.floor(s/3600) + 'h ' + p2(Math.floor((s%3600)/60)) + 'm ' + p2(s%60) + 's';
 }
 const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
 
@@ -2152,9 +2153,12 @@ document.addEventListener('click', e => {
   if ('awayundo' in d) {
     if (awayState) {
       S = mergeState(JSON.parse(awayState)); M = mods(); resetViews(); pendingDecant = false;
-      const gone = Math.max(0, (Date.now() - awayAt) / 1000);
-      S.bank = Math.min((S.bank || 0) + gone, awayMax());   // the discarded time becomes stasis boost
-      last = performance.now(); save(); toast('Back to where you left off. ' + fmtSecs(gone) + ' added to the +2\u00d7 boost.');
+      // The discarded time becomes stasis boost: exactly the time the tab was hidden (not the time this screen was open).
+      const before = S.bank || 0;
+      S.bank = Math.min(before + awayGone, awayMax());
+      const added = S.bank - before;
+      last = performance.now(); save();
+      toast('Back to where you left off. +' + fmtSecs(added) + ' added to the +2\u00d7 boost (now ' + fmtSecs(S.bank) + ')' + (added < awayGone - 1 ? '; the boost is full at ' + fmtSecs(awayMax()) + '.' : '.'));
     }
     awayState = null; hideModal(); paused = false; setTab(tab); return;
   }
@@ -2363,6 +2367,12 @@ function snapshot(){
     xp:Object.assign({}, S.xpTot || {}), deaths:S.stats.deaths || 0, log:S.log.length, perks:Object.keys(S.perks).length,
     sec:S.life.sec, hp:S.life.hp, owned:Object.keys(S.life.owned).length, hist:(S.hist || []).length};
 }
+function awayBoostNote(){
+  if (!awayState) return 'The time away becomes +2\u00d7 boost';
+  const old = JSON.parse(awayState), was = old.bank || 0, cap = AWAY_BASE + AWAY_STEP * WATCH.filter(p => (old.perks || {})[p.id]).length;
+  const add = Math.max(0, Math.min(was + awayGone, cap) - was);
+  return '+' + fmtSecs(add) + ' of +2\u00d7 boost' + (add < awayGone - 1 ? ' (boost full at ' + fmtSecs(cap) + ')' : '');
+}
 function showAway(a){
   const L = S.life, b = snapshot();
   const days = (b.days - a.days) / TPD, secs = (b.t - a.t) / 1000;
@@ -2395,11 +2405,11 @@ function showAway(a){
   }
   if (newPerks > 0) h += `<p class="d">New archive record${newPerks > 1 ? 's' : ''}: ${newPerks}.</p>`;
   if (newLogs.length) h += `<p class="d">Log: ${esc(newLogs.join(', '))}.</p>`;
-  h += '<p class="d">The game is paused until you choose.</p><div class="btns"><button class="btn pri" data-awayok>Keep this progress</button><button class="btn" data-awayundo>Discard it and go back<small>The time away becomes +2\u00d7 boost</small></button></div>';
+  h += '<p class="d">The game is paused until you choose.</p><div class="btns"><button class="btn pri" data-awayok>Keep this progress</button><button class="btn" data-awayundo>Discard it and go back<small>' + awayBoostNote() + '</small></button></div>';
   paused = true; showModal(h);
   return true;
 }
-let awayState = null, awayAt = 0;   // the whole game as it was when the tab was hidden, to undo the away progress
+let awayState = null, awayAt = 0, awayGone = 0;   // the whole game as it was when the tab was hidden, to undo the away progress
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) {
     save();
@@ -2409,6 +2419,7 @@ document.addEventListener('visibilitychange', () => {
   }
   if (S.set.bgPause) { last = performance.now(); return; }   // skip the gap entirely
   if (!awaySnap) return;
+  awayGone = Math.max(0, (Date.now() - awayAt) / 1000);   // how long the tab was hidden
   tick(performance.now());   // finish catching up first
   const a = awaySnap; awaySnap = null;
   if ($('#modal').hidden || S.life.dead) showAway(a);
