@@ -509,8 +509,8 @@ function nextFood(){ const L = S.life; const f = FOODS.find(f => (L.food[f.id] |
 // gathers it shortens the cooldown, down to the plain 12 h at full mastery (50 lives).
 const FOOD_JOB = {algae:'algae', greens:'hydro', field:'lockers', galley:'galley', pantry:'pantry'};
 function mealCd(f){
-  const job = T[FOOD_JOB[f]], st = job ? Math.min(4, masterySteps(job)) : 0;
-  return MEAL_CD * (1 + (FD[f].q - 1) * (1 - st / 4));
+  const job = T[FOOD_JOB[f]], fr = job ? masteryFrac(job) : 0;
+  return MEAL_CD * (1 + (FD[f].q - 1) * (1 - fr));
 }
 // Foods ready to eat now (stocked and off cooldown), best first
 function readyFoods(){ const L = S.life; return FOODS.filter(f => (L.food[f.id] || 0) >= 1 && ((L.mcd || {})[f.id] || 0) <= 0).map(f => f.id).reverse(); }
@@ -630,7 +630,7 @@ const TASKS = [
   {id:'ignite', z:5, kind:'act', name:'Ignite the main drive', sk:['nav','eng','res'], days:6000, req:['course','injectors'], win:true,
     log:'The stardrive lights. WARDEN begins the wake cycle for 3,112 sleepers. Your vat is scheduled for recycling.'},
 ];
-const ZDAYS = {1:0.3, 2:1.1, 3:1.3, 4:1.7, 5:1.55};   // later sections longer to offset mastery
+const ZDAYS = {1:0.3, 2:1.25, 3:1.55, 4:2.05, 5:1.9};   // later sections longer to offset mastery
 const TRAIN_CAP = 4, TRAIN_XP = 1.5;
 const T = {}; TASKS.forEach(t => { T[t.id] = t; t.reps = t.kind === 'train' ? TRAIN_CAP : (t.reps || 1); if (t.days) t.days = Math.round(t.days * ZDAYS[t.z]); });
 
@@ -702,7 +702,7 @@ function newLife(s){
   return L;
 }
 function defaultState(){
-  const s = {v:1, qpresets:[[], [], [], [], []], gprac:{}, gauto:{}, gprio:{}, ev:2, xpTot:{}, rv:4, sv:2, pv:2, vv:3, gen:1, prio:{}, ever:{}, prac:{}, auto:{}, echo:{}, perks:{}, seen:{}, logged:{}, log:[], lastOrder:[], lastJob:null,
+  const s = {v:1, qpresets:[[], [], [], [], []], gprac:{}, gauto:{}, gprio:{}, ev:2, xpTot:{}, rv:4, sv:2, pv:3, vv:3, gen:1, prio:{}, ever:{}, prac:{}, auto:{}, echo:{}, perks:{}, seen:{}, logged:{}, log:[], lastOrder:[], lastJob:null,
     set:{speed:1, autoFood:true, autoEat:true, foodDays:2, foodPct:40, restAt:2.5, keepQueue:true, deathScreen:true, deathPause:true, startPaused:false, bgPause:false, replay:true, fillCross:false, autoFeed:false, boost:false, boostX:2},
     stats:{bestAge:0, deaths:0, daysLived:0, played:0}, pr:{n:0, pts:0, growth:0, drain:0, hp:0, speed:0, carry:0, runs:[]}, won:false, winGen:0, bank:0, saved:Date.now(), intro:false};
   SKILLS.forEach(k => s.echo[k.id] = 0);
@@ -780,19 +780,23 @@ function skF(s){ return (1 + 0.1 * S.life.lv[s]) * echoSpeed(s) * M.sk[s]; }
 // (The old last-quarter ageing slowdown was removed; strain alone limits a life.)
 function frailty(){ return 1; }   // ageing slowdown removed
 function speedOf(t){ let p = 1; t.sk.forEach(s => p *= skF(s)); return Math.pow(p, 1 / t.sk.length) * M.spd * frailty() * masteryF(t) * (t.prod && t.prod.rations ? M.foodSpd : 1); }
-// Mastery: past the AUTO_LIVES lives of practice that unlock automation, every MASTER_STEP more lives
-// that finish a task add the same speed bonus, reaching 10x speed at 50 lives (4 rungs:
-// x3.25, x5.5, x7.75, x10).
-// Jobs count too: they produce faster.
-const MASTER_STEP = 10, MASTER_MIN = 0.1, MASTER_RUNGS = 4;
-function masterySteps(t){ return Math.max(0, Math.floor((((S.prac || {})[t.id] || 0) - AUTO_LIVES) / MASTER_STEP)); }
+// Practice and mastery count completions directly: every finished action (each rep), training
+// session, rest or job batch adds one. A task's "unit" is one life's worth of it (an action's reps,
+// 4 training sessions, 1 rest, JOB_UNIT job batches). AUTO_LIVES units unlock automation; from there
+// speed rises smoothly with every completion, reaching x10 at MASTER_LIVES units.
+const MASTER_MIN = 0.1, MASTER_LIVES = 50, MASTER_STEP = 10, MASTER_RUNGS = 4;
+const JOB_UNIT = 20;   // about what a life of steady work on a job delivers
+function compUnit(t){ return t.kind === 'job' ? JOB_UNIT : t.kind === 'train' ? TRAIN_CAP : t.kind === 'rest' ? 1 : (t.reps || 1); }
+const autoNeed = t => AUTO_LIVES * compUnit(t);
+const masterNeed = t => MASTER_LIVES * compUnit(t);
+function masteryFrac(t){ const c = (S.prac || {})[t.id] || 0, a = autoNeed(t); return Math.max(0, Math.min(1, (c - a) / (masterNeed(t) - a))); }
+function masterySteps(t){ return masteryFrac(t) * MASTER_RUNGS; }   // kept for older callers: 0..4, fractional
 function masteryTxt(t){
-  const n = masterySteps(t), f = masteryF(t), p = (S.prac || {})[t.id] || 0;
-  if (f >= 1 / MASTER_MIN - 1e-9) return 'mastered \u00b7 \u00d7' + Math.round(1 / MASTER_MIN) + ' speed';
-  return (n ? 'mastery \u00d7' + f.toFixed(2) + ' \u00b7 ' : '') + 'next ' + p + '/' + (AUTO_LIVES + (n + 1) * MASTER_STEP) + ' lives';
+  const f = masteryF(t), p = (S.prac || {})[t.id] || 0;
+  if (masteryFrac(t) >= 1) return 'mastered \u00b7 \u00d7' + Math.round(1 / MASTER_MIN) + ' speed';
+  return 'mastery \u00d7' + f.toFixed(2) + ' \u00b7 ' + p + '/' + masterNeed(t) + (t.kind === 'job' ? ' batches' : '') + ' to \u00d7' + Math.round(1 / MASTER_MIN);
 }
-// even split: every rung adds the same amount of speed (+2.25x), from x1 to x10
-function masteryF(t){ return 1 + (1 / MASTER_MIN - 1) * Math.min(MASTER_RUNGS, masterySteps(t)) / MASTER_RUNGS; }
+function masteryF(t){ return 1 + (1 / MASTER_MIN - 1) * masteryFrac(t); }
 function hazDmg(t){ const L = S.life; return (t.haz || 0) * M.haz / (1 + 0.2 * L.lv.cbt + 0.3 * L.lv.res); }
 function xpRate(t, s){ return ZT[t.z] * M.xp * M.xpSk[s] * (t.kind === 'train' ? TRAIN_XP : 1); }
 
@@ -889,11 +893,11 @@ function active(ex){
   return null;
 }
 // Practice is counted in lives: an action counts once per life when finished; a job counts once per
-// life after JOB_PRAC_BATCHES batches in that life. AUTO_LIVES practised lives unlock automation.
+// (Practice is now counted in completions; see compUnit / autoNeed.)
 // can be automated.
 const AUTO_LIVES = 10, JOB_PRAC_BATCHES = 10;
-function practiced(t){ return (S.prac[t.id] || 0) >= AUTO_LIVES; }
-function addPractice(t){ S.prac[t.id] = (S.prac[t.id] || 0) + 1; if (S.prac[t.id] === AUTO_LIVES) HOOK.practiced(t); }
+function practiced(t){ return (S.prac[t.id] || 0) >= autoNeed(t); }
+function addPractice(t, n){ const b = S.prac[t.id] || 0, need = autoNeed(t); S.prac[t.id] = b + (n || 1); if (b < need && S.prac[t.id] >= need) HOOK.practiced(t); }
 function isAuto(t){ return !!S.auto[t.id] && practiced(t); }
 function storeRatio(t){ return t.prod && t.prod.rations ? (S.life.food[jobFood(t)] || 0) / M.fcap[jobFood(t)] : t.prod && t.prod.salvage ? S.life.salvage / M.salCap : 0; }
 const prioOf = t => (S.prio && S.prio[t.id]) || 3;
@@ -1032,8 +1036,8 @@ function finish(t){
   L.done[t.id] = (L.done[t.id] || 0) + 1;
   if (!S.ever) S.ever = {};
   S.ever[t.id] = 1;
+  addPractice(t);   // every completion counts toward automation and mastery
   if (t.kind === 'train') {
-    if (L.done[t.id] === 1) addPractice(t);
     if (complete(t)) qConsumeAll(t.id); else qConsumeRep(t.id);
     HOOK.change();
     return;
@@ -1041,7 +1045,6 @@ function finish(t){
   if (t.kind === 'rest') {
     L.strain = (L.strain || 1) / 2;   // may drop below 1
     qConsumeAll(t.id);
-    if (L.done[t.id] === 1) addPractice(t);
     HOOK.rested(t); HOOK.change();
     return;
   }
@@ -1049,10 +1052,7 @@ function finish(t){
   if (r.salvage) L.salvage += r.salvage;
   if (r.rations) addFood(FOOD_OF[t.z], r.rations);
   if (!L.order.includes(t.id)) L.order.push(t.id);
-  if (complete(t)) {
-    qConsumeAll(t.id);
-    addPractice(t);
-  } else qConsumeRep(t.id);
+  if (complete(t)) qConsumeAll(t.id); else qConsumeRep(t.id);
   M = mods();
   clampRes();
   if (r.heal) L.hp = M.maxHp;
@@ -1145,7 +1145,7 @@ function work(t, dt){
       if (n > 0) {
         L.cyc[t.id] -= n;
         const before = L.bat[t.id] || 0; L.bat[t.id] = before + n;
-        if (before < JOB_PRAC_BATCHES && L.bat[t.id] >= JOB_PRAC_BATCHES) addPractice(t);
+        addPractice(t, n);   // every batch counts
         if (t.prod) { if (t.prod.rations) addFood(jobFood(t), t.prod.rations * JOB_CYCLE * n); if (t.prod.salvage) L.salvage += t.prod.salvage * JOB_CYCLE * n; }
       }
     } else {
@@ -1631,7 +1631,8 @@ function mergeState(raw){
   if (!raw.pv) {   // v2 practice: counted in lives (acts kept as-is, job days become at most 1 life)
     TASKS.forEach(t => { if (t.kind === 'job' && s.prac[t.id] != null) s.prac[t.id] = s.prac[t.id] >= 200 ? 1 : 0; });
   }
-  s.pv = 2;
+  if ((raw.pv || 0) < 3) TASKS.forEach(t => { if (s.prac[t.id] != null) s.prac[t.id] = Math.round(s.prac[t.id] * compUnit(t)); });   // v3: practice in completions
+  s.pv = 3;
   if (!raw.rv) { s.set.foodDays = Math.max(2, Math.round(s.set.foodDays / 2)); if (s.life) s.life.rations = (s.life.rations || 0) / 2; }
   if ((raw.rv || 0) < 3) {   // v3: rations x0.4, salvage x0.25
     s.set.foodDays = Math.max(1, Math.round(s.set.foodDays * 0.4));
@@ -1895,7 +1896,7 @@ function renderTasks(){
         h += `<div class="task act rest" data-id="${t.id}">
           <button class="tm" data-do="${t.id}"><div class="tf"></div>
             <div class="th"><span class="tn">${esc(t.name)}</span><span class="te num"></span></div>
-            <div class="tx">${chips(t)}<span>strain \u00f72</span>${practiced(t) ? `<span>auto at strain \u00d7${restAt()}</span><span class="num">${masteryTxt(t)}</span>` : `<span class="num">practice ${S.prac[t.id] || 0}/${AUTO_LIVES} lives</span>`}</div>
+            <div class="tx">${chips(t)}<span>strain \u00f72</span>${practiced(t) ? `<span>auto at strain \u00d7${restAt()}</span><span class="num">${masteryTxt(t)}</span>` : `<span class="num">practice ${S.prac[t.id] || 0}/${autoNeed(t)}</span>`}</div>
           </button>
           <div class="side">${qBtn(t.id)}${autoBtn(t)}</div></div>` + prioPick(t);
       });
@@ -1907,7 +1908,7 @@ function renderTasks(){
         h += `<div class="task act train" data-id="${t.id}">
           <button class="tm" data-do="${t.id}"><div class="tf"></div>
             <div class="th"><span class="tn">${esc(t.name)}</span><span class="te num"></span></div>
-            <div class="tx">${chips(t)}<span class="num rp"></span>${practiced(t) ? `<span class="num">${masteryTxt(t)}</span>` : `<span class="num">practice ${S.prac[t.id] || 0}/${AUTO_LIVES} lives</span>`}</div>
+            <div class="tx">${chips(t)}<span class="num rp"></span>${practiced(t) ? `<span class="num">${masteryTxt(t)}</span>` : `<span class="num">practice ${S.prac[t.id] || 0}/${autoNeed(t)}</span>`}</div>
           </button>
           <div class="side">${qBtn(t.id)}${autoBtn(t)}</div></div>` + prioPick(t);
       });
@@ -1920,7 +1921,7 @@ function renderTasks(){
         h += `<div class="task act${t.cross ? ' cross' : ''}" data-id="${t.id}">
           <button class="tm" data-do="${t.id}"><div class="tf"></div>${t.cross ? `<div class="crossw">Leads to the ${esc(ZONES[t.z].name)} \u00b7 no way back</div>` : ''}
             <div class="th"><span class="tn">${esc(t.name)}</span><span class="te num"></span></div>
-            <div class="tx">${chips(t)}${t.reps > 1 ? `<span class="num rp"></span>` : ''}${t.haz ? '<span class="haz">▲ hazard</span>' : ''}${rb.length ? '<span>' + rb.join(' · ') + '</span>' : ''}${practiced(t) ? `<span class="num">${masteryTxt(t)}</span>` : `<span class="num">practice ${S.prac[t.id] || 0}/${AUTO_LIVES} lives</span>`}</div>
+            <div class="tx">${chips(t)}${t.reps > 1 ? `<span class="num rp"></span>` : ''}${t.haz ? '<span class="haz">▲ hazard</span>' : ''}${rb.length ? '<span>' + rb.join(' · ') + '</span>' : ''}${practiced(t) ? `<span class="num">${masteryTxt(t)}</span>` : `<span class="num">practice ${S.prac[t.id] || 0}/${autoNeed(t)}</span>`}</div>
           </button>
           <div class="side">${qBtn(t.id)}${autoBtn(t)}</div></div>` + prioPick(t);
       });
@@ -1954,7 +1955,7 @@ function updateTasks(){
     } else {
       jobBar(r.f, t, sp);
       if (r.pr && practiced(t)) r.pr.textContent = masteryTxt(t);
-      else if (r.pr) { const b = Math.min(JOB_PRAC_BATCHES, L.bat[t.id] || 0); r.pr.textContent = 'practice ' + (S.prac[t.id] || 0) + '/' + AUTO_LIVES + ' lives' + (b < JOB_PRAC_BATCHES ? ' \u00b7 ' + b + '/' + JOB_PRAC_BATCHES + ' batches this life' : ' \u00b7 done this life'); }
+      else if (r.pr) r.pr.textContent = 'practice ' + (S.prac[t.id] || 0) + '/' + autoNeed(t) + ' batches';
       if (t.prod) {
         const res = t.prod.rations ? 'rations' : 'salvage';
         const batch = t.prod[res] * JOB_CYCLE;
@@ -2384,7 +2385,7 @@ function renderAuto(){
   const glist = ITEMS.filter(gearPracticed);
   const key = list.map(t => t.id + (S.auto[t.id] ? '*' : '') + prioOf(t)).join() + '|' + glist.map(i => i.id + (S.gauto[i.id] ? '*' : '') + gearPrio(i)).join() + '|' + L.sec + '|' + S.gen + '|' + !!S.set.fillCross + !!S.set.autoFeed + '|' + restAt() + '|' + (S.set.deathScreen !== false) + (S.set.deathPause !== false) + !!S.set.startPaused + !!S.set.bgPause + decantUnlocked() + (S.stats.deaths || 0);
   if (key === autoKey) return; autoKey = key;
-  let h = `<div class="panel"><span class="h2">Automation</span><p class="note">Tasks practised in ${AUTO_LIVES} lives can run by themselves, and gear built in ${AUTO_LIVES} lives can be built automatically (top priority first; the clone saves up for it before cheaper designs). Switch them on and set their priority here: 1 runs first, 5 last. Automated tasks run ahead of your queue (automated jobs when their store drops below the forage threshold); automated crossings wait until the queue is done. Rests fire on their own at strain ×${restAt()}, and also just before an automated crossing if the section\u2019s rest is still unused.</p>
+  let h = `<div class="panel"><span class="h2">Automation</span><p class="note">Tasks finished often enough can run by themselves (10 lives' worth: an action 10 times, a training session 40 times, a job ${AUTO_LIVES * JOB_UNIT} batches), and gear built in ${AUTO_LIVES} lives can be built automatically (top priority first; the clone saves up for it before cheaper designs). Switch them on and set their priority here: 1 runs first, 5 last. Automated tasks run ahead of your queue (automated jobs when their store drops below the forage threshold); automated crossings wait until the queue is done. Rests fire on their own at strain ×${restAt()}, and also just before an automated crossing if the section\u2019s rest is still unused.</p>
     ${decantUnlocked()
       ? `<div class="row"><p>Show the death screen<small>On: the game stops at each death until you decant the next clone. Off: the next clone is decanted at once and the run keeps going; a short message sums up the death.</small></p><button class="tog${S.set.deathScreen !== false ? ' on' : ''}" data-set="deathScreen" aria-label="Show the death screen" aria-pressed="${S.set.deathScreen !== false}"></button></div>`
       : `<div class="fld"><label>Death screen</label><small class="note">Automatic decanting unlocks after ${AUTO_LIVES} clones have died (${S.stats.deaths || 0}/${AUTO_LIVES}). Until then the game stops at each death.</small></div>`}
@@ -2395,7 +2396,7 @@ function renderAuto(){
     <div class="row"><p>Feed when needed<small>Automated food jobs step in when food runs low, or when health is low and meals can still heal faster than strain drains it. They refill to what is needed, then the interrupted task carries on.</small></p><button class="tog${S.set.autoFeed ? ' on' : ''}" data-set="autoFeed" aria-label="Feed when needed" aria-pressed="${!!S.set.autoFeed}"></button></div>
     <div class="row"><p>Fill storage before moving on<small>A queued or automated crossing stops just before it finishes and steps out of the queue while the section is wrapped up: unfinished automated actions and training (by priority), affordable automated gear, refilling ration and salvage storage, and the unused automated rest. Then it returns to the front of the queue and completes. The queue shows what is left and a button to skip it; tapping a crossing yourself also goes at once.</small></p><button class="tog${S.set.fillCross ? ' on' : ''}" data-set="fillCross" aria-label="Fill storage before moving on" aria-pressed="${!!S.set.fillCross}"></button></div></div>`;
   if (!list.length && !glist.length) {
-    h += `<p class="note">Nothing unlocked yet. Finish an action in ${AUTO_LIVES} different lives, or work a job for ${JOB_PRAC_BATCHES} batches in ${AUTO_LIVES} different lives, and it will appear here. Gear counts once built in ${AUTO_LIVES} different lives.</p>`;
+    h += `<p class="note">Nothing unlocked yet. Finish an action 10 times (a multi-rep action 10 times its reps), a training session 40 times, or work a job for ${AUTO_LIVES * JOB_UNIT} batches, and it will appear here. Gear counts once built in ${AUTO_LIVES} different lives.</p>`;
   }
   ZONES.forEach(z => {
     const zl = list.filter(t => t.z === z.id), gl = glist.filter(i => gearZone(i) === z.id); if (!zl.length && !gl.length) return;
@@ -2445,8 +2446,8 @@ const FAQ_ALL = [
   ['What carries over when a clone dies?', 'Skill levels reset, but every bit of XP a skill has ever earned is kept as its <b>echo</b>, making that skill permanently faster. Each day a clone survives adds 0.8 to the base health of later clones, up to 500. <b>Archive records</b> found by finishing certain actions are permanent upgrades. Gear, rations, salvage and progress through the ship reset.'],
   ['What are sections?', 'The ship is split into five sections. A <b>red</b> action leads to the next one, and the way back is sealed for that clone, so finish what you need first (records, the rest, training, gear). Each new clone starts back in the Vat Bay.'],
   ['What is gear?', 'Gear is built from salvage in the <b>Gear</b> tab and lasts for one clone. Each section has designs to build. Salvage storage is limited; opening up more of the ship raises it.'],
-  ['What is mastery?', 'Once a task can be automated (finished in 10 lives), it keeps improving: every 10 more lives that finish it make it faster, by the same amount each time: ×3.25 at 20 lives, ×5.5 at 30, ×7.75 at 40 and ×10 at 50. Actions, crossings, training, rests and jobs all count (a mastered job produces faster). The task card shows your mastery and the next step.'],
-  ['How does automation work?', 'Finish an action in 10 different lives (or work a job for 10 batches in 10 lives, or build a design in 10 lives) and an <b>AUTO</b> switch appears. Automated tasks run by themselves <b>ahead of your queue</b>, in priority order: P1 first, P5 last. An automated job steps in when its store drops below the forage threshold and fills it up. Automated <b>crossings</b> are the exception: they wait until your queue is done. A task you tap runs before everything. The <b>Auto</b> tab lists everything unlocked and has extra options: feeding when needed, filling storage before moving on, the strain level for automatic rests, the death screen and starting paused.'],
+  ['What is mastery?', 'Once a task can be automated, every further completion makes it a little faster, straight away: speed climbs evenly from ×1 to ×10, reached at five times the automation count (an action 50 times, a training session 200 times, a job 1000 batches). Actions, crossings, training, rests and jobs all count (a mastered job produces faster, and its food can be eaten more often). The task card shows your mastery and how far it is to ×10.'],
+  ['How does automation work?', 'Every completion counts: finish an action 10 times (a multi-rep action 10 times its reps), a training session 40 times or a rest 10 times, work a job for 200 batches, or build a design in 10 lives, and an <b>AUTO</b> switch appears. Automated tasks run by themselves <b>ahead of your queue</b>, in priority order: P1 first, P5 last. An automated job steps in when its store drops below the forage threshold and fills it up. Automated <b>crossings</b> are the exception: they wait until your queue is done. A task you tap runs before everything. The <b>Auto</b> tab lists everything unlocked and has extra options: feeding when needed, filling storage before moving on, the strain level for automatic rests, the death screen and starting paused.'],
   ['What happens at a crossing with automation?', 'A queued or automated crossing stops just before it finishes and waits while the clone finishes automated actions and training, builds affordable automated gear, refills storage (if that option is on) and uses the section’s rest. Tap a crossing yourself to go at once.'],
   ['Pause, background and boost', 'Pause with the button at the top or the space bar. The game keeps running in a background tab and catches up when you return, then shows what happened while you were away. Time while the game is fully closed is banked as a <b>stasis boost</b> you can switch on in the header. Pick Off, ×2, ×5 or ×10 from its menu: at ×5 every real second plays five, and the bank pays for the extra four, so faster boost spends the bank faster. Both start capped at 8 hours: at most 8 hours of background time is played out, and the boost holds at most 8 hours. Each <b>Stasis watch</b> record adds 8 hours to both; you get one the first time you finish each section (5 in all, up to 48 hours).'],
   ['Saves', 'The game saves itself every few seconds on this device, in three slots (☰ menu). Use <b>Save files and transfer</b> in the menu to export a save file, import one, or copy the save as text to move it between devices.'],
