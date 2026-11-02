@@ -197,6 +197,7 @@ main .wrap{display:grid;gap:18px}
 .perk{padding:9px 0;border-bottom:1px solid var(--line);display:grid;gap:2px}
 .perk h3{margin:0;font-size:14px;font-weight:500;color:var(--amber)}
 .perk p{margin:0;font-size:12px;color:var(--dim)}
+.perk .by{display:block;color:var(--faint);font-size:11px;margin-top:2px}
 .perk.no h3{color:var(--faint)}
 .stats{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .stats div{background:var(--panel2);border-radius:4px;padding:8px}
@@ -558,6 +559,8 @@ const PERKS = [
   {id:'favor',    name:'WARDEN’s favour',  from:4, desc:'+25% skill XP.', eff:{xp:1.25}},
 ];
 const PK = {}; PERKS.forEach(p => PK[p.id] = p);
+// Each record's section comes from the action that awards it, so moving an action can't leave it misfiled.
+PERKS.forEach(p => { const t = TASKS.find(t => t.perk === p.id); if (t) { p.from = t.z; p.by = t.id; } });
 
 const ITEMS = [
   {id:'locker',     name:'Cold locker',        cost:8,    req:'wake',       desc:'+5 ration storage', eff:{ratCap:5}},
@@ -1772,11 +1775,15 @@ function renderArchive(force){
   if (key === archKey && !force) return; archKey = key;
   const got = PERKS.filter(p => S.perks[p.id]).length;
   let h = `<div class="panel"><span class="h2">Archive records</span><p class="note">Permanent upgrades. Each is found the first time a clone finishes a certain action. ${got} of ${PERKS.length} recovered.</p></div><div>`;
-  PERKS.forEach(p => {
-    const z = ZONES.find(z => z.id === p.from);
-    h += S.perks[p.id]
-      ? `<div class="perk"><h3>${esc(p.name)}</h3><p>${esc(p.desc)}</p></div>`
-      : `<div class="perk no"><h3>Unrecovered record</h3><p>Somewhere in the ${z.name}.</p></div>`;
+  ZONES.forEach(z => {
+    const zp = PERKS.filter(p => p.from === z.id); if (!zp.length) return;
+    const got = zp.filter(p => S.perks[p.id]).length;
+    h += `<div class="sub" style="margin-top:10px">${z.name} \u00b7 ${got}/${zp.length}</div>`;
+    zp.forEach(p => {
+      h += S.perks[p.id]
+        ? `<div class="perk"><h3>${esc(p.name)}</h3><p>${esc(p.desc)}${p.by && S.seen[p.by] ? ' <span class="by">From: ' + esc(T[p.by].name) + '</span>' : ''}</p></div>`
+        : `<div class="perk no"><h3>Unrecovered record</h3><p>Somewhere in the ${z.name}.</p></div>`;
+    });
   });
   h += '</div>';
   const st = S.stats;
@@ -1784,7 +1791,7 @@ function renderArchive(force){
     <div><b>${S.gen}</b><span>Clones decanted</span></div>
     <div><b>${st.bestDays ? st.bestDays.toFixed(1) : '—'}</b><span>Longest life (days)</span></div>
     <div><b>${Math.min(BASE_HP_MAX, 100 + Math.floor(S.vit || 0))}</b><span>Base health (max ${BASE_HP_MAX})</span></div>
-    <div><b>${Object.values(S.echo).reduce((a,b)=>a+b,0)}</b><span>Total echo levels</span></div>
+    <div><b>${fmt(Object.values(S.xpTot || {}).reduce((a, b) => a + b, 0))}</b><span>Total echo XP</span></div>
     <div><b>${S.won ? 'Clone ' + S.winGen : 'Not yet'}</b><span>Drive ignited</span></div></div>`;
   h += '<div class="panel set"><span class="h2">Settings</span>';
   h += `<div class="row"><p>Auto-eat<small>Eat a ration whenever the meal cooldown is over and health has room for it.</small></p><button class="tog${S.set.autoEat ? ' on' : ''}" data-set="autoEat" aria-label="Auto-eat" aria-pressed="${S.set.autoEat}"></button></div>`;
