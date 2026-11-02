@@ -346,6 +346,12 @@ html.horiz #toasts{left:var(--side);bottom:16px}
 .mbox .panel{gap:8px}
 button.updl{width:100%}
 .rtab{overflow-x:auto}
+.dt.ft{width:100%}
+.dt.ft td{white-space:nowrap;padding-left:8px;font-size:12px}
+.dt.ft td:first-child{padding-left:0}
+.dt.ft td small{display:block;color:var(--dim);font-size:11px}
+.rtab .dt.ft td:nth-child(2){text-align:right!important;font-family:var(--f-mono)!important}
+.rtab .dt.ft th:nth-child(2){text-align:right}
 .rtab th{font-family:var(--f-disp);text-transform:uppercase;letter-spacing:.06em;font-size:11px;color:var(--dim);font-weight:600;text-align:left;padding:4px 0;border-bottom:1px solid var(--line)}
 .rtab th:not(:first-child){text-align:right}
 .rtab td:nth-child(2){text-align:left!important;font-family:var(--f-body)!important}
@@ -930,7 +936,9 @@ function die(cause){
   S.vit = (S.vit || 0) + L.vitGain;
   S.stats.deaths++; S.stats.daysLived += L.day;
   if (!S.hist) S.hist = [];
-  S.hist.push({g:S.gen, sec:L.wonAt ? 6 : (L.sec || 1), d:L.day, r:L.real || 0, cause});
+  // when each section was finished: arriving in the next one, or lighting the drive for the last
+  const fin = ZONES.map(z => { const a = z.id < 5 ? (L.secAt || {})[z.id + 1] : L.wonAt; return a ? [+(a.d / TPD).toFixed(2), Math.round(a.r)] : null; });
+  S.hist.push({g:S.gen, sec:L.wonAt ? 6 : (L.sec || 1), d:L.day, r:L.real || 0, cause, fin});
   if (S.hist.length > 50) S.hist.shift();
   recordBest(L);
   if (age > (S.stats.bestDays || 0)) S.stats.bestDays = age;
@@ -2020,6 +2028,11 @@ function renderLog(){
   if (allH.length > 5) h += `<button class="btn histm" data-histall>${histAll ? 'Show last 5' : 'Show all ' + allH.length}</button>`;
   if (!hist.length) h += '<p class="note">No clone has died yet. Each clone\u2019s furthest section and time will appear here.</p>';
   else h += `<div class="rtab"><table class="dt"><thead><tr><th>Clone</th><th>Furthest</th><th>Days</th><th>Real</th></tr></thead><tbody>${hist.map(e => `<tr title="${esc(e.cause)}"><td>${e.g}</td><td>${secName(e.sec)}</td><td>${(e.d / TPD).toFixed(1)}</td><td>${realT(e.r)}</td></tr>`).join('')}</tbody></table></div>`;
+  if (hist.length) {
+    const short = ['Vat', 'Ring', 'Spine', 'Deck', 'Drive'];
+    h += '<span class="lbl" style="display:block;margin-top:12px">Section finish times</span><p class="note">In-game day and real time when each clone finished a section (left it, or lit the drive).</p>';
+    h += `<div class="rtab"><table class="dt ft"><thead><tr><th>Clone</th>${ZONES.map((z, i) => `<th title="${esc(z.name)}">${short[i]}</th>`).join('')}</tr></thead><tbody>${hist.map(e => `<tr><td>${e.g}</td>${ZONES.map((z, i) => { const f = e.fin && e.fin[i]; return `<td>${f ? 'd' + f[0].toFixed(1) + '<small>' + realT(f[1]) + '</small>' : '\u2014'}</td>`; }).join('')}</tr>`).join('')}</tbody></table></div>`;
+  }
   const b = S.best;
   h += b ? `<p class="best"><span class="lbl">Best run</span> Clone ${b.g} ${b.sec >= 6 ? 'lit the drive' : 'reached the ' + secName(b.sec)} after ${(b.d / TPD).toFixed(1)} days \u00b7 ${realT(b.r)} real</p>` : '';
   h += '</div>';
