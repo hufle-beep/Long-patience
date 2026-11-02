@@ -351,6 +351,9 @@ button.updl{width:100%}
 .faq details p{margin:0 0 12px;font-size:13px;color:var(--dim);max-width:65ch;line-height:1.5}
 .faq details p b{color:var(--fg);font-weight:500}
 .faqwarn{border:1px solid var(--amber);border-radius:5px;padding:9px 11px;font-size:13px;color:var(--fg)}
+.hold{display:grid;gap:8px;border:1px solid var(--amber);border-radius:5px;padding:9px 10px;font-size:12.5px;background:var(--amber-soft)}
+.hold b{color:var(--amber);font-weight:500}
+.hold .btn{justify-self:start;font-size:12px;padding:6px 10px}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 
@@ -655,6 +658,8 @@ function active(){
   const feed = feedJob();
   if (feed) return feed;
   if ((L.strain || 1) >= restAt()) { const r = TASKS.find(t => t.kind === 'rest' && isAuto(t) && available(t) && !complete(t)); if (r) return r; }
+  const held = heldStep();
+  if (held) return held;
   // Your queue: actions run until done; queued jobs run until their storage is full, then drop out
   for (const id of L.queue.slice()) {
     const t = T[id];
@@ -663,7 +668,7 @@ function active(){
       if (jobFull(t)) { L.queue = L.queue.filter(x => x !== id); HOOK.change(); continue; }
       return t;
     }
-    if (available(t) && !complete(t)) return t.cross ? (holdTask(t) || t) : t;
+    if (available(t) && !complete(t)) return t.cross ? (holdCross(t) || t) : t;
   }
   // Everything automated (actions, training, jobs, crossings) competes on priority alone:
   // P1 always beats P2, and so on. Ties go actions, then training, then jobs (emptiest storage
@@ -676,7 +681,7 @@ function active(){
     const k = prioOf(t) * 100 + kindRank(t) * 10 + (t.kind === 'job' ? storeRatio(t) : 0);
     if (k < pk) { pk = k; pick = t; }
   }
-  if (pick && pick.cross) return holdTask(pick) || pick;
+  if (pick && pick.cross) return holdCross(pick) || pick;
   if (pick) return pick;
   // Nothing automated left to do: the job you picked yourself, until its storage is full
   if (L.job && T[L.job].kind !== 'job') L.job = null;
@@ -731,6 +736,41 @@ function pendingGearJob(){
 // A crossing (queued or automated) stops just short of finishing while there is still something to
 // do in this section. Tapping the crossing yourself ("do it now") skips the wait.
 function crossPending(t){ return S.life.crossNow !== t.id && (pendingActs().length || pendingGearJob() || (S.set.fillCross && fillJob()) || pendingRest()); }
+// Section-end hold: when a crossing reaches its threshold with work left, it is taken out of the
+// queue (L.held) while the missing items run in priority order; once nothing is left it goes
+// back to the front of the queue and completes. "Skip and cross now" ends the hold early.
+function holdCross(t){
+  const L = S.life, task = holdTask(t);
+  if (!task) return null;
+  L.held = t.id;
+  L.queue = L.queue.filter(x => x !== t.id);
+  return task;
+}
+function heldStep(){
+  const L = S.life;
+  if (!L.held) return null;
+  const c = T[L.held];
+  if (!c || complete(c) || !available(c)) { L.held = null; return null; }
+  const task = holdTask(c);
+  if (task) return task;
+  L.held = null; qAdd(c.id, true); HOOK.change();   // everything done: the crossing is back, first in line
+  return c;
+}
+function skipHold(){
+  const L = S.life; if (!L.held) return;
+  const id = L.held; L.held = null; L.crossNow = id; qAdd(id, true);
+}
+// What a held crossing is still waiting for, for the queue panel
+function holdList(){
+  const L = S.life; if (!L.held) return [];
+  const out = pendingActs().map(t => t.name);
+  const g = ITEMS.filter(it => S.gauto && S.gauto[it.id] && gearPracticed(it) && !L.owned[it.id] && isDone(it.req) && it.cost <= M.salCap)
+    .sort((a, b) => gearPrio(a) - gearPrio(b))[0];
+  if (g && pendingGearJob()) out.push('build ' + g.name);
+  if (S.set.fillCross && fillJob()) out.push('refill storage');
+  const r = pendingRest(); if (r) out.push(r.name);
+  return out;
+}
 function holdTask(t){
   if (!crossHeld(t)) return null;
   return pendingActs()[0] || pendingGearJob() || (S.set.fillCross ? fillJob() : null) || pendingRest() || null;
@@ -1455,11 +1495,15 @@ function renderTasks(){
     if (av && !complete(t)) vis.push(t.id);
     else if (!av && S.seen[t.id]) locked.push(t.id);
   });
-  const key = vis.join() + '|' + locked.join() + '|' + L.queue.join() + '|' + L.job + '|' + Object.keys(S.perks).join() + '|' + S.gen + '|' + JSON.stringify(showLocked) + '|' + L.sec + '|' + JSON.stringify(S.qpresets) + (L.qplan || []).length + (S.set.keepQueue !== false) + '|' + TASKS.filter(t => practiced(t)).map(t => t.id + (S.auto[t.id] ? '*' : '') + prioOf(t)).join() + '|' + openPrio;
+  const key = vis.join() + '|' + locked.join() + '|' + L.queue.join() + '|' + L.job + '|' + Object.keys(S.perks).join() + '|' + S.gen + '|' + JSON.stringify(showLocked) + '|' + L.sec + '|' + (L.held || '') + holdList().join() + '|' + JSON.stringify(S.qpresets) + (L.qplan || []).length + (S.set.keepQueue !== false) + '|' + TASKS.filter(t => practiced(t)).map(t => t.id + (S.auto[t.id] ? '*' : '') + prioOf(t)).join() + '|' + openPrio;
   if (key === taskKey) return;
   taskKey = key;
 
   let h = '<div class="qp"><div class="qh"><span class="lbl">Queue <span class="num qcount">' + L.queue.length + '/' + QMAX + '</span></span><span class="qhb">' + (L.queue.length || (L.qplan || []).length ? '<button data-clearq>Reset queue</button>' : '') + '</span></div>';
+  if (L.held) {
+    const left = holdList();
+    h += `<div class="hold"><div><b>${esc(T[L.held].name)}</b> is on hold until this section is wrapped up. Still to do: ${esc(left.join(', ') || 'nothing')}. It returns to the queue when they are done.</div><button class="btn" data-skiphold>Skip the rest and cross now</button></div>`;
+  }
   h += '<div class="qbody"><div class="qmain">';
   if (L.queue.length) {
     h += '<ol class="qlist">' + L.queue.map((id, i) => {
@@ -1915,7 +1959,7 @@ function renderAuto(){
     <div class="row"><p>Start the game paused<small>When you open the game, the clock waits until you press Resume.</small></p><button class="tog${S.set.startPaused ? ' on' : ''}" data-set="startPaused" aria-label="Start the game paused" aria-pressed="${!!S.set.startPaused}"></button></div>
     <div class="fld"><label for="rest-at">Automated rests fire at strain \u00d7</label><div class="pctin"><input type="text" id="rest-at" inputmode="decimal" autocomplete="off" value="${restAt()}"><span>Rests also fire just before an automated crossing if still unused.</span></div></div>
     <div class="row"><p>Feed when needed<small>Automated food jobs step in when rations run low, or when health is low and meals can still heal faster than strain drains it. They refill to what is needed, then the interrupted task carries on.</small></p><button class="tog${S.set.autoFeed ? ' on' : ''}" data-set="autoFeed" aria-label="Feed when needed" aria-pressed="${!!S.set.autoFeed}"></button></div>
-    <div class="row"><p>Fill storage before moving on<small>A queued or automated crossing to the next section stops just before it finishes, works this section\u2019s jobs until ration and salvage storage are both full, then completes. It always waits for unfinished automated actions and training, affordable automated gear and the unused automated rest. Tap a crossing yourself to go at once.</small></p><button class="tog${S.set.fillCross ? ' on' : ''}" data-set="fillCross" aria-label="Fill storage before moving on" aria-pressed="${!!S.set.fillCross}"></button></div></div>`;
+    <div class="row"><p>Fill storage before moving on<small>A queued or automated crossing stops just before it finishes and steps out of the queue while the section is wrapped up: unfinished automated actions and training (by priority), affordable automated gear, refilling ration and salvage storage, and the unused automated rest. Then it returns to the front of the queue and completes. The queue shows what is left and a button to skip it; tapping a crossing yourself also goes at once.</small></p><button class="tog${S.set.fillCross ? ' on' : ''}" data-set="fillCross" aria-label="Fill storage before moving on" aria-pressed="${!!S.set.fillCross}"></button></div></div>`;
   if (!list.length && !glist.length) {
     h += `<p class="note">Nothing unlocked yet. Finish an action in ${AUTO_LIVES} different lives, or work a job for ${JOB_PRAC_BATCHES} batches in ${AUTO_LIVES} different lives, and it will appear here. Gear counts once built in ${AUTO_LIVES} different lives.</p>`;
   }
@@ -2023,6 +2067,7 @@ document.addEventListener('click', e => {
   if (d.speed) { S.set.speed = +d.speed; S.set.paused = false; renderSpeed(); return; }
   if ('pause' in d) { togglePause(); return; }
   if ('boost' in d) { S.set.boost = !S.set.boost; renderSpeed(); return; }
+  if ('skiphold' in d) { skipHold(); taskKey = ''; toast('Crossing now.'); renderView(); return; }
   if ('histall' in d) { histAll = !histAll; logKey = ''; renderView(); return; }
   if ('awayok' in d) { hideModal(); paused = false; if (S.life.dead && S.set.deathScreen !== false) showDeath(); return; }
   if ('close' in d) { hideModal(); paused = false; S.intro = true; save(); return; }
