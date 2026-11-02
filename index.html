@@ -2035,7 +2035,7 @@ function renderAuto(){
       ? `<div class="row"><p>Show the death screen<small>On: the game stops at each death until you decant the next clone. Off: the next clone is decanted at once and the run keeps going; a short message sums up the death.</small></p><button class="tog${S.set.deathScreen !== false ? ' on' : ''}" data-set="deathScreen" aria-label="Show the death screen" aria-pressed="${S.set.deathScreen !== false}"></button></div>`
       : `<div class="fld"><label>Death screen</label><small class="note">Automatic decanting unlocks after ${AUTO_LIVES} clones have died (${S.stats.deaths || 0}/${AUTO_LIVES}). Until then the game stops at each death.</small></div>`}
     <div class="row"><p>Start new clones paused<small>With the death screen on, the clone you decant from it waits paused until you press Resume, so you can plan its life first.</small></p><button class="tog${S.set.deathPause !== false ? ' on' : ''}" data-set="deathPause" aria-label="Start new clones paused" aria-pressed="${S.set.deathPause !== false}"></button></div>
-    <div class="row"><p>Pause in the background<small>When the game tab or app is hidden, the clock stops instead of running on, and there is no catch-up.</small></p><button class="tog${S.set.bgPause ? ' on' : ''}" data-set="bgPause" aria-label="Pause in the background" aria-pressed="${!!S.set.bgPause}"></button></div>
+    <div class="row"><p>Pause in the background<small>When the game tab or app is hidden, the clock stops instead of running on, and there is no catch-up. The time away is added to the +2× boost instead.</small></p><button class="tog${S.set.bgPause ? ' on' : ''}" data-set="bgPause" aria-label="Pause in the background" aria-pressed="${!!S.set.bgPause}"></button></div>
     <div class="row"><p>Start the game paused<small>When you open the game, the clock waits until you press Resume.</small></p><button class="tog${S.set.startPaused ? ' on' : ''}" data-set="startPaused" aria-label="Start the game paused" aria-pressed="${!!S.set.startPaused}"></button></div>
     <div class="fld"><label for="rest-at">Automated rests fire at strain \u00d7</label><div class="pctin"><input type="text" id="rest-at" inputmode="decimal" autocomplete="off" value="${restAt()}"><span>Rests also fire just before an automated crossing if still unused.</span></div></div>
     <div class="row"><p>Feed when needed<small>Automated food jobs step in when rations run low, or when health is low and meals can still heal faster than strain drains it. They refill to what is needed, then the interrupted task carries on.</small></p><button class="tog${S.set.autoFeed ? ' on' : ''}" data-set="autoFeed" aria-label="Feed when needed" aria-pressed="${!!S.set.autoFeed}"></button></div>
@@ -2409,15 +2409,25 @@ function showAway(a){
   paused = true; showModal(h);
   return true;
 }
-let awayState = null, awayAt = 0, awayGone = 0;   // the whole game as it was when the tab was hidden, to undo the away progress
+let awayState = null, awayAt = 0, awayGone = 0, bgHideAt = 0;   // the whole game as it was when the tab was hidden, to undo the away progress
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) {
     save();
-    if (S.set.bgPause) return;   // option: nothing happens in the background
+    if (S.set.bgPause) { bgHideAt = Date.now(); return; }   // option: nothing happens in the background
     if ($('#modal').hidden && !S.life.dead) { awaySnap = snapshot(); awayState = JSON.stringify(S); awayAt = Date.now(); }
     return;
   }
-  if (S.set.bgPause) { last = performance.now(); return; }   // skip the gap entirely
+  if (S.set.bgPause) {   // skip the gap, but the hidden time becomes +2\u00d7 boost
+    last = performance.now();
+    if (bgHideAt) {
+      const gone = Math.max(0, (Date.now() - bgHideAt) / 1000), before = S.bank || 0;
+      bgHideAt = 0;
+      S.bank = Math.min(before + gone, awayMax());
+      const added = S.bank - before;
+      if (added >= 1) { save(); renderSpeed(); toast('Paused while away: +' + fmtSecs(added) + ' added to the +2\u00d7 boost (now ' + fmtSecs(S.bank) + ')' + (added < gone - 1 ? '; the boost is full.' : '.')); }
+    }
+    return;
+  }
   if (!awaySnap) return;
   awayGone = Math.max(0, (Date.now() - awayAt) / 1000);   // how long the tab was hidden
   tick(performance.now());   // finish catching up first
