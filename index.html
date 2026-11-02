@@ -562,7 +562,7 @@ const TASKS = [
   {id:'ignite', z:5, kind:'act', name:'Ignite the main drive', sk:['nav','eng','res'], days:6000, req:['course','injectors'], win:true,
     log:'The stardrive lights. WARDEN begins the wake cycle for 3,112 sleepers. Your vat is scheduled for recycling.'},
 ];
-const ZDAYS = {1:0.3, 2:1, 3:0.9, 4:1.15, 5:0.9};   // later sections longer to offset mastery
+const ZDAYS = {1:0.3, 2:1, 3:0.95, 4:1.2, 5:1};   // later sections longer to offset mastery
 const TRAIN_CAP = 4, TRAIN_XP = 1.5;
 const T = {}; TASKS.forEach(t => { T[t.id] = t; t.reps = t.kind === 'train' ? TRAIN_CAP : (t.reps || 1); if (t.days) t.days = Math.round(t.days * ZDAYS[t.z]); });
 
@@ -674,13 +674,14 @@ function skF(s){ return (1 + 0.1 * S.life.lv[s]) * echoSpeed(s) * M.sk[s]; }
 function frailty(){ return 1; }   // ageing slowdown removed
 function speedOf(t){ let p = 1; t.sk.forEach(s => p *= skF(s)); return Math.pow(p, 1 / t.sk.length) * M.spd * frailty() * masteryF(t); }
 // Mastery: past the AUTO_LIVES lives of practice that unlock automation, every MASTER_STEP more lives
-// that finish a task cut its time by 20% (x0.8 each), down to half the time (double speed).
+// that finish a task make it faster by an equal factor, reaching 5x speed at 50 lives (4 steps:
+// x1.50, x2.24, x3.34, x5).
 // Jobs count too: they produce faster.
-const MASTER_STEP = 10, MASTER_CUT = 0.8, MASTER_MIN = 0.5;
+const MASTER_STEP = 10, MASTER_MIN = 0.2, MASTER_CUT = Math.pow(MASTER_MIN, 1 / 4);
 function masterySteps(t){ return Math.max(0, Math.floor((((S.prac || {})[t.id] || 0) - AUTO_LIVES) / MASTER_STEP)); }
 function masteryTxt(t){
   const n = masterySteps(t), f = masteryF(t), p = (S.prac || {})[t.id] || 0;
-  if (f >= 1 / MASTER_MIN - 1e-9) return 'mastered \u00b7 \u00d72 speed';
+  if (f >= 1 / MASTER_MIN - 1e-9) return 'mastered \u00b7 \u00d7' + Math.round(1 / MASTER_MIN) + ' speed';
   return (n ? 'mastery \u00d7' + f.toFixed(2) + ' \u00b7 ' : '') + 'next ' + p + '/' + (AUTO_LIVES + (n + 1) * MASTER_STEP) + ' lives';
 }
 function masteryF(t){ return 1 / Math.max(MASTER_MIN, Math.pow(MASTER_CUT, masterySteps(t))); }
@@ -2229,7 +2230,7 @@ const FAQ_ALL = [
   ['What carries over when a clone dies?', 'Skill levels reset, but every bit of XP a skill has ever earned is kept as its <b>echo</b>, making that skill permanently faster. Each day a clone survives adds 0.8 to the base health of later clones, up to 500. <b>Archive records</b> found by finishing certain actions are permanent upgrades. Gear, rations, salvage and progress through the ship reset.'],
   ['What are sections?', 'The ship is split into five sections. A <b>red</b> action leads to the next one, and the way back is sealed for that clone, so finish what you need first (records, the rest, training, gear). Each new clone starts back in the Vat Bay.'],
   ['What is gear?', 'Gear is built from salvage in the <b>Gear</b> tab and lasts for one clone. Each section has designs to build. Salvage storage is limited; opening up more of the ship raises it.'],
-  ['What is mastery?', 'Once a task can be automated (finished in 10 lives), it keeps improving: every 10 more lives that finish it make it 20% quicker (time ×0.8 each step), up to double speed at 50 lives. Actions, crossings, training, rests and jobs all count (a mastered job produces faster). The task card shows your mastery and the next step.'],
+  ['What is mastery?', 'Once a task can be automated (finished in 10 lives), it keeps improving: every 10 more lives that finish it make it faster: ×1.5 at 20 lives, ×2.2 at 30, ×3.3 at 40 and ×5 at 50. Actions, crossings, training, rests and jobs all count (a mastered job produces faster). The task card shows your mastery and the next step.'],
   ['How does automation work?', 'Finish an action in 10 different lives (or work a job for 10 batches in 10 lives, or build a design in 10 lives) and an <b>AUTO</b> switch appears. Automated tasks run by themselves when your queue is empty, in priority order: P1 first, P5 last. The <b>Auto</b> tab lists everything unlocked and has extra options: feeding when needed, filling storage before moving on, the strain level for automatic rests, the death screen and starting paused.'],
   ['What happens at a crossing with automation?', 'A queued or automated crossing stops just before it finishes and waits while the clone finishes automated actions and training, builds affordable automated gear, refills storage (if that option is on) and uses the section’s rest. Tap a crossing yourself to go at once.'],
   ['Pause, background and boost', 'Pause with the button at the top or the space bar. The game keeps running in a background tab and catches up when you return, then shows what happened while you were away. Time while the game is fully closed is stored as a <b>+2×</b> boost you can switch on in the header. Both start capped at 8 hours: at most 8 hours of background time is played out, and the boost holds at most 8 hours. Each <b>Stasis watch</b> record adds 8 hours to both; you get one the first time you finish each section (5 in all, up to 48 hours).'],
