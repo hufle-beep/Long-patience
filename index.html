@@ -205,6 +205,7 @@ main .wrap{display:grid;gap:18px}
 .item h3{margin:0;font-size:14.5px;font-weight:500}
 .item p{margin:2px 0 0;font-size:12px;color:var(--dim)}
 .buy{font-family:var(--f-mono);font-size:12px;padding:8px 10px;border-radius:4px;border:1px solid var(--amber);color:var(--amber);white-space:nowrap;min-width:84px}
+.tq small{display:block;font-size:10px;line-height:1;opacity:.8}
 .gqb{flex:0 0 auto;width:40px;height:40px;margin-left:6px}
 .item.lockd h3{color:var(--dim)}
 .buy:disabled{border-color:var(--line);color:var(--faint);cursor:default}
@@ -661,7 +662,7 @@ const HOOK = {log(){}, perk(){}, die(){}, win(){}, change(){}, stopped(){}, prac
 function newLife(s){
   const p = s.perks;
   const L = {day:0, hp:100, rations:p.decant?1:0, food:{algae:p.decant?1:0}, salvage:0, lv:{}, xp:{}, echo0:{},
-    done:{}, prog:{}, cyc:{}, bat:{}, qplan:[], meal:0, strain:1, sec:1, job:null, queue:[], owned:{}, order:[], foraging:false, cur:null, dead:false, cause:''};
+    done:{}, prog:{}, cyc:{}, bat:{}, qdone:[], meal:0, strain:1, sec:1, job:null, queue:[], owned:{}, order:[], foraging:false, cur:null, dead:false, cause:''};
   SKILLS.forEach(k => { L.lv[k.id] = 0; L.xp[k.id] = 0; L.echo0[k.id] = (s.xpTot && s.xpTot[k.id]) || 0; });
   return L;
 }
@@ -765,9 +766,9 @@ function active(ex){
   for (const id of L.queue.slice()) {
     if (isGQ(id)) {
       const it = qItem(id);
-      if (!it || L.owned[it.id]) { L.queue = L.queue.filter(x => x !== id); HOOK.change(); continue; }
+      if (!it || L.owned[it.id]) { qConsume(id); HOOK.change(); continue; }
       if (!isDone(it.req) || it.cost > M.salCap) continue;   // not found yet in this life, or storage too small
-      if (L.salvage >= it.cost) { buyItem(it.id, false); L.queue = L.queue.filter(x => x !== id); HOOK.change(); continue; }
+      if (L.salvage >= it.cost) { buyItem(it.id, false); qConsume(id); HOOK.change(); continue; }
       const job = bestSalvageJob(ok);
       if (job) return job;
       continue;
@@ -775,7 +776,7 @@ function active(ex){
     const t = T[id];
     if (t.kind === 'job') {
       if (!available(t)) continue;
-      if (jobFull(t)) { L.queue = L.queue.filter(x => x !== id); HOOK.change(); continue; }
+      if (jobFull(t)) { qConsume(id); HOOK.change(); continue; }
       if (ok(t)) return t;
       continue;
     }
@@ -949,13 +950,13 @@ function finish(t){
   S.ever[t.id] = 1;
   if (t.kind === 'train') {
     if (L.done[t.id] === 1) addPractice(t);
-    if (complete(t)) L.queue = L.queue.filter(x => x !== t.id);
+    if (complete(t)) qConsumeAll(t.id); else qConsumeRep(t.id);
     HOOK.change();
     return;
   }
   if (t.kind === 'rest') {
     L.strain = (L.strain || 1) / 2;   // may drop below 1
-    L.queue = L.queue.filter(x => x !== t.id);
+    qConsumeAll(t.id);
     if (L.done[t.id] === 1) addPractice(t);
     HOOK.rested(t); HOOK.change();
     return;
@@ -965,13 +966,13 @@ function finish(t){
   if (r.rations) addFood(FOOD_OF[t.z], r.rations);
   if (!L.order.includes(t.id)) L.order.push(t.id);
   if (complete(t)) {
-    L.queue = L.queue.filter(x => x !== t.id);
+    qConsumeAll(t.id);
     addPractice(t);
-  }
+  } else qConsumeRep(t.id);
   M = mods();
   clampRes();
   if (r.heal) L.hp = M.maxHp;
-  if (t.cross && complete(t)) { L.sec = t.z + 1; if (!L.secAt) L.secAt = {}; L.secAt[L.sec] = {d:L.day, r:L.real || 0}; L.queue = L.queue.filter(id => isGQ(id) ? (qItem(id) && (isDone(qItem(id).req) || gearZone(qItem(id)) > t.z)) : T[id].z > t.z); if (L.job && T[L.job].z <= t.z) L.job = null; L.foraging = false; HOOK.crossed(t); }
+  if (t.cross && complete(t)) { L.sec = t.z + 1; if (!L.secAt) L.secAt = {}; L.secAt[L.sec] = {d:L.day, r:L.real || 0}; { const stay = id => isGQ(id) ? (qItem(id) && (isDone(qItem(id).req) || gearZone(qItem(id)) > t.z)) : T[id].z > t.z; L.qdone.push(...L.queue.filter(id => !stay(id))); L.queue = L.queue.filter(stay); } if (L.job && T[L.job].z <= t.z) L.job = null; L.foraging = false; HOOK.crossed(t); }
   if (complete(t) && t.log && !S.logged[t.id]) { S.logged[t.id] = 1; HOOK.log(t.name, t.log); }
   HOOK.done(t);
   if (complete(t) && t.perk && !S.perks[t.perk]) { S.perks[t.perk] = true; M = mods(); HOOK.perk(PK[t.perk]); }
@@ -1095,33 +1096,40 @@ function qAutomated(id){
   if (isGQ(id)) { const it = qItem(id); return !!(it && S.gauto && S.gauto[it.id] && gearPracticed(it)); }
   const t = T[id]; return !!(t && isAuto(t));
 }
+// The queue may hold the same task several times. A task queued once runs until it is done; with
+// more copies, each copy covers one repetition (a training session, a rep, a fill of the store).
+// Entries the game uses up go to L.qdone, so the plan (qdone + queue) is what carries over.
 function qAdd(id, front){
-  const L = S.life; if (!L.qplan) L.qplan = [];
-  if (!L.queue.includes(id) && (L.queue.length >= QMAX || (!L.qplan.includes(id) && L.qplan.length >= QMAX))) { HOOK.qfull(); return false; }
-  L.queue = front ? [id, ...L.queue.filter(x => x !== id)] : (L.queue.includes(id) ? L.queue : [...L.queue, id]);
-  if (front) L.qplan = [id, ...L.qplan.filter(x => x !== id)]; else if (!L.qplan.includes(id)) L.qplan.push(id);
-  return true;
+  const L = S.life; if (!L.qdone) L.qdone = [];
+  if (front) {   // "do it now": move the first copy to the front (or add one there)
+    const i = L.queue.indexOf(id);
+    if (i === 0) return true;
+    if (i > 0) L.queue.splice(i, 1);
+    else if (L.queue.length >= QMAX) { HOOK.qfull(); return false; }
+    L.queue.unshift(id); return true;
+  }
+  if (L.queue.length >= QMAX) { HOOK.qfull(); return false; }
+  L.queue.push(id); return true;
 }
-function qRemove(id){ const L = S.life; if (L.held === id) L.held = null; L.queue = L.queue.filter(x => x !== id); L.qplan = (L.qplan || []).filter(x => x !== id); }
-function qMove(id, dir){
-  const L = S.life, i = L.queue.indexOf(id), j = i + dir;
-  if (i < 0 || j < 0 || j >= L.queue.length) return;
-  const other = L.queue[j];
+const qPlan = L => (L.qdone || []).concat(L.queue || []);
+function qCount(id){ return S.life.queue.filter(x => x === id).length; }
+function qConsume(id){ const L = S.life, i = L.queue.indexOf(id); if (i < 0) return; L.queue.splice(i, 1); (L.qdone = L.qdone || []).push(id); }
+function qConsumeAll(id){ const L = S.life; while (L.queue.includes(id)) qConsume(id); }
+// one repetition finished: with more copies queued, the first copy is used up
+function qConsumeRep(id){ if (qCount(id) > 1) qConsume(id); }
+function qRemoveAt(i){ const L = S.life, id = L.queue[i]; if (id == null) return; L.queue.splice(i, 1); if (L.held === id && !L.queue.includes(id)) L.held = null; }
+function qRemove(id){ const L = S.life; if (L.held === id) L.held = null; L.queue = L.queue.filter(x => x !== id); }
+function qMove(i, dir){
+  const L = S.life, j = i + dir;
+  if (i < 0 || i >= L.queue.length || j < 0 || j >= L.queue.length) return;
   [L.queue[i], L.queue[j]] = [L.queue[j], L.queue[i]];
-  const p = L.qplan || [], a = p.indexOf(id), b = p.indexOf(other);
-  if (a >= 0 && b >= 0) [p[a], p[b]] = [p[b], p[a]];
 }
-// Move a queued item to position `to`; the planned queue keeps the same relative order.
-function qMoveTo(id, to){
-  const L = S.life, i = L.queue.indexOf(id);
-  if (i < 0) return;
+function qMoveTo(i, to){
+  const L = S.life;
+  if (i < 0 || i >= L.queue.length) return;
   to = Math.max(0, Math.min(L.queue.length - 1, to));
   if (to === i) return;
-  L.queue.splice(i, 1); L.queue.splice(to, 0, id);
-  const p = L.qplan || [], slots = [];
-  p.forEach((x, k) => { if (L.queue.includes(x)) slots.push(k); });
-  const order = L.queue.filter(x => p.includes(x));
-  slots.forEach((k, n) => { p[k] = order[n]; });
+  const [id] = L.queue.splice(i, 1); L.queue.splice(to, 0, id);
 }
 // New game plus: everything resets except the rewards, settings, presets, the +2\u00d7 boost and the
 // time-away limit, which carries over and keeps adding up (+8 h per section finished, every run).
@@ -1143,8 +1151,8 @@ function decant(){
   S.life = newLife(S);
   M = mods(); S.life.hp = M.maxHp;
   // Automated items (practised and switched on) are left out: automation takes care of them.
-  const keep = S.set.keepQueue !== false ? (prev.qplan || prev.queue || []).filter(id => qItem(id) && !qAutomated(id)).slice(0, QMAX) : [];
-  S.life.queue = keep.slice(); S.life.qplan = keep.slice();
+  const keep = S.set.keepQueue !== false ? qPlan(prev).filter(id => qItem(id) && !qAutomated(id)).slice(0, QMAX) : [];
+  S.life.queue = keep.slice(); S.life.qdone = [];
   if (S.perks.engram && S.set.replay) S.lastOrder.filter(id => T[id] && T[id].kind === 'act' && !isAuto(T[id]) && !S.life.queue.includes(id)).forEach(id => { if (S.life.queue.length < QMAX) qAdd(id); });
   // No fallback job carries over: a new clone waits for orders unless automation or a record says otherwise.
   HOOK.change();
@@ -1500,7 +1508,7 @@ function mergeState(raw){
   if (!s.xpTot) s.xpTot = {};
   s.ev = 2;
   if (!Array.isArray(s.qpresets)) s.qpresets = [[], [], []];
-  if (s.life && !Array.isArray(s.life.qplan)) s.life.qplan = (s.life.queue || []).slice();
+  if (s.life && !Array.isArray(s.life.qdone)) { const q = s.life.queue || []; s.life.qdone = (s.life.qplan || []).filter(id => !q.includes(id)); delete s.life.qplan; }
   WATCH.forEach(p => { if ((s.ever || {})[p.secEnd] || (s.logged || {})[p.secEnd] || (p.secEnd === 'ignite' && s.won) || (s.life && s.life.done && s.life.done[p.secEnd])) s.perks[p.id] = true; });
   delete s.perks.service1; delete s.perks.service2;
   if (!s.gprac) s.gprac = {}; if (!s.gauto) s.gauto = {}; if (!s.gprio) s.gprio = {};
@@ -1540,7 +1548,7 @@ function mergeState(raw){
   SKILLS.forEach(k => { if (L.lv[k.id] == null) L.lv[k.id] = 0; if (L.xp[k.id] == null) L.xp[k.id] = 0; });
   if (!Array.isArray(L.queue)) L.queue = [];
   L.queue = L.queue.filter(id => qItem(id));
-  if (Array.isArray(L.qplan)) L.qplan = L.qplan.filter(id => qItem(id));
+  if (Array.isArray(L.qdone)) L.qdone = L.qdone.filter(id => qItem(id));
   if (L.job && !T[L.job]) L.job = null;
   if (!Array.isArray(L.order)) L.order = [];
   return s;
@@ -1683,7 +1691,7 @@ document.addEventListener('pointerdown', e => {
   if (!hnd || qDrag || e.button > 0) return;
   const row = hnd.closest('.qrow'), list = row.parentElement, rows = [...list.children];
   e.preventDefault();
-  qDrag = {id: hnd.dataset.qdrag, row, list, rows, from: rows.indexOf(row), to: rows.indexOf(row), y0: e.clientY,
+  qDrag = {id: S.life.queue[+hnd.dataset.qdrag], row, list, rows, from: rows.indexOf(row), to: rows.indexOf(row), y0: e.clientY,
     mids: rows.map(r => { const b = r.getBoundingClientRect(); return b.top + b.height / 2; }), h: row.getBoundingClientRect().height + 4, pid: e.pointerId};
   try { hnd.setPointerCapture(e.pointerId); } catch (_) {}
   row.classList.add('dragging'); list.classList.add('dragmode');
@@ -1703,7 +1711,7 @@ function qDragEnd(e){
   const d = qDrag; if (!d || (e && e.pointerId !== d.pid)) return;
   qDrag = null;
   d.rows.forEach(r => { r.style.transform = ''; }); d.row.classList.remove('dragging'); d.list.classList.remove('dragmode');
-  if (e && e.type === 'pointerup' && d.to !== d.from && S.life.queue.includes(d.id)) { qMoveTo(d.id, d.to); sfx('click'); save(); }
+  if (e && e.type === 'pointerup' && d.to !== d.from && S.life.queue[d.from] === d.id) { qMoveTo(d.from, d.to); sfx('click'); save(); }
   taskKey = ''; renderView();
 }
 document.addEventListener('pointerup', qDragEnd);
@@ -1718,11 +1726,11 @@ function renderTasks(){
     if (av && !complete(t)) vis.push(t.id);
     else if (!av && S.seen[t.id]) locked.push(t.id);
   });
-  const key = vis.join() + '|' + locked.join() + '|' + L.queue.join() + (L.queue.some(isGQ) ? Math.floor(L.salvage) + '/' + M.salCap + Object.keys(L.owned).join() : '') + '|' + L.job + '|' + Object.keys(S.perks).join() + '|' + S.gen + '|' + JSON.stringify(showLocked) + '|' + L.sec + '|' + (L.held || '') + holdList().join() + '|' + JSON.stringify(S.qpresets) + (L.qplan || []).length + (S.set.keepQueue !== false) + '|' + TASKS.filter(t => practiced(t)).map(t => t.id + (S.auto[t.id] ? '*' : '') + prioOf(t)).join() + '|' + openPrio;
+  const key = vis.join() + '|' + locked.join() + '|' + L.queue.join() + (L.queue.some(isGQ) ? Math.floor(L.salvage) + '/' + M.salCap + Object.keys(L.owned).join() : '') + '|' + L.job + '|' + Object.keys(S.perks).join() + '|' + S.gen + '|' + JSON.stringify(showLocked) + '|' + L.sec + '|' + (L.held || '') + holdList().join() + '|' + JSON.stringify(S.qpresets) + (L.qdone || []).length + (S.set.keepQueue !== false) + '|' + TASKS.filter(t => practiced(t)).map(t => t.id + (S.auto[t.id] ? '*' : '') + prioOf(t)).join() + '|' + openPrio;
   if (key === taskKey) return;
   taskKey = key;
 
-  let h = '<div class="qp"><div class="qh"><span class="lbl">Queue <span class="num qcount">' + L.queue.length + '/' + QMAX + '</span></span><span class="qhb">' + (L.queue.length || (L.qplan || []).length ? '<button data-clearq>Reset queue</button>' : '') + '</span></div>';
+  let h = '<div class="qp"><div class="qh"><span class="lbl">Queue <span class="num qcount">' + L.queue.length + '/' + QMAX + '</span></span><span class="qhb">' + (L.queue.length || (L.qdone || []).length ? '<button data-clearq>Reset queue</button>' : '') + '</span></div>';
   if (L.held) {
     const left = holdList();
     h += `<div class="hold"><div><b>${esc(T[L.held].name)}</b> is on hold until this section is wrapped up. Still to do: ${esc(left.join(', ') || 'nothing')}. Drag tasks above it in the queue to run them first.</div><button class="btn" data-skiphold>Skip the rest and cross now</button></div>`;
@@ -1734,8 +1742,8 @@ function renderTasks(){
       const bl = g ? (!isDone(it.req) || it.cost > M.salCap) : !available(t);
       const why = g ? (!isDone(it.req) ? 'after: ' + T[it.req].name : it.cost > M.salCap ? 'needs bigger salvage storage' : fmt(Math.min(L.salvage, it.cost)) + '/' + fmt(it.cost) + ' salvage')
         : L.held === id ? 'on hold: wrapping up the section' : !bl ? '' : t.z > L.sec ? 'waits for the ' + ZONES[t.z - 1].name : t.z < L.sec ? 'left behind' : 'waiting for its requirements';
-      return `<li class="qrow${bl ? ' blocked' : ''}${g ? ' gq' : ''}" data-qid="${id}"><span class="qdrag" data-qdrag="${id}" aria-hidden="true" title="Drag to reorder">⠇</span><span class="qn">${i + 1}.</span><span class="qt">${esc(t.name)}${t.kind === 'job' ? ' <small>until full</small>' : ''}${why ? ` <small>${why}</small>` : ''}</span>
-        <button data-qmove="${id}" data-dir="-1" ${i === 0 ? 'disabled' : ''} aria-label="Move ${esc(t.name)} up">\u2191</button><button data-qmove="${id}" data-dir="1" ${i === L.queue.length - 1 ? 'disabled' : ''} aria-label="Move ${esc(t.name)} down">\u2193</button><button data-unq="${id}" aria-label="Remove ${esc(t.name)} from queue">\u2715</button></li>`;
+      return `<li class="qrow${bl ? ' blocked' : ''}${g ? ' gq' : ''}" data-qid="${id}"><span class="qdrag" data-qdrag="${i}" aria-hidden="true" title="Drag to reorder">⠇</span><span class="qn">${i + 1}.</span><span class="qt">${esc(t.name)}${t.kind === 'job' ? ' <small>until full</small>' : ''}${why ? ` <small>${why}</small>` : ''}</span>
+        <button data-qmove="${i}" data-dir="-1" ${i === 0 ? 'disabled' : ''} aria-label="Move ${esc(t.name)} up">\u2191</button><button data-qmove="${i}" data-dir="1" ${i === L.queue.length - 1 ? 'disabled' : ''} aria-label="Move ${esc(t.name)} down">\u2193</button><button data-unqi="${i}" aria-label="Remove ${esc(t.name)} from queue">\u2715</button></li>`;
     }).join('') + '</ol>';
   } else {
     h += '<div class="qnote">Empty. Tap a task to start it now, or + to add it to the end. Queued jobs run until their storage is full.</div>';
@@ -1766,7 +1774,7 @@ function renderTasks(){
           <button class="tm" data-do="${t.id}"><div class="tf"></div>
             <div class="th"><span class="tn">${esc(t.name)}</span><span class="te num" data-r="${res}"></span></div>
             <div class="tx">${chips(t)}${t.haz ? '<span class="haz">▲ hazard</span>' : ''}${!t.prod ? '<span>skill training only</span>' : '<span class="tt num"></span>'}<span class="pr num"></span></div>
-          </button><div class="side"><button class="tq${L.queue.includes(t.id) ? ' in' : ''}" data-q="${t.id}" aria-label="${L.queue.includes(t.id) ? 'Queued' : 'Add to queue (runs until storage is full)'}">${L.queue.includes(t.id) ? '#' + (L.queue.indexOf(t.id) + 1) : '+'}</button>${autoBtn(t)}</div></div>` + prioPick(t);
+          </button><div class="side">${qBtn(t.id)}${autoBtn(t)}</div></div>` + prioPick(t);
       });
     }
     if (rests.length) {
@@ -1778,7 +1786,7 @@ function renderTasks(){
             <div class="th"><span class="tn">${esc(t.name)}</span><span class="te num"></span></div>
             <div class="tx">${chips(t)}<span>strain \u00f72</span>${practiced(t) ? `<span>auto at strain \u00d7${restAt()}</span><span class="num">${masteryTxt(t)}</span>` : `<span class="num">practice ${S.prac[t.id] || 0}/${AUTO_LIVES} lives</span>`}</div>
           </button>
-          <div class="side"><button class="tq${qi >= 0 ? ' in' : ''}" data-q="${t.id}" aria-label="${qi >= 0 ? 'Queued' : 'Add to queue'}">${qi >= 0 ? '#' + (qi+1) : '+'}</button>${autoBtn(t)}</div></div>` + prioPick(t);
+          <div class="side">${qBtn(t.id)}${autoBtn(t)}</div></div>` + prioPick(t);
       });
     }
     if (trains.length) {
@@ -1790,7 +1798,7 @@ function renderTasks(){
             <div class="th"><span class="tn">${esc(t.name)}</span><span class="te num"></span></div>
             <div class="tx">${chips(t)}<span class="num rp"></span>${practiced(t) ? `<span class="num">${masteryTxt(t)}</span>` : `<span class="num">practice ${S.prac[t.id] || 0}/${AUTO_LIVES} lives</span>`}</div>
           </button>
-          <div class="side"><button class="tq${qi >= 0 ? ' in' : ''}" data-q="${t.id}" aria-label="${qi >= 0 ? 'Queued' : 'Add to queue'}">${qi >= 0 ? '#' + (qi+1) : '+'}</button>${autoBtn(t)}</div></div>` + prioPick(t);
+          <div class="side">${qBtn(t.id)}${autoBtn(t)}</div></div>` + prioPick(t);
       });
     }
     if (acts.length) {
@@ -1803,7 +1811,7 @@ function renderTasks(){
             <div class="th"><span class="tn">${esc(t.name)}</span><span class="te num"></span></div>
             <div class="tx">${chips(t)}${t.reps > 1 ? `<span class="num rp"></span>` : ''}${t.haz ? '<span class="haz">▲ hazard</span>' : ''}${rb.length ? '<span>' + rb.join(' · ') + '</span>' : ''}${practiced(t) ? `<span class="num">${masteryTxt(t)}</span>` : `<span class="num">practice ${S.prac[t.id] || 0}/${AUTO_LIVES} lives</span>`}</div>
           </button>
-          <div class="side"><button class="tq${qi >= 0 ? ' in' : ''}" data-q="${t.id}" aria-label="${qi >= 0 ? 'Queued' : 'Add to queue'}">${qi >= 0 ? '#' + (qi+1) : '+'}</button>${autoBtn(t)}</div></div>` + prioPick(t);
+          <div class="side">${qBtn(t.id)}${autoBtn(t)}</div></div>` + prioPick(t);
       });
     }
     if (lk.length && !showLocked[z.id]) h += `<button class="lockbtn" data-showlock="${z.id}">${lk.length} locked action${lk.length > 1 ? 's' : ''} you have seen before \u00b7 show</button>`;
@@ -1811,7 +1819,7 @@ function renderTasks(){
     if (showLocked[z.id]) lk.forEach(t => {
       const need = t.req.filter(r => !isDone(r)).map(r => S.seen[r] ? T[r].name : 'something unseen');
       h += `<div class="task lock" data-lock="${t.id}"><div class="tm"><div class="th"><span class="tn">${esc(t.name)}</span></div>
-        <div class="tx">${chips(t)}<span>Needs: ${esc(need.join(', '))}</span></div></div><button class="tq lockq${L.queue.includes(t.id) ? ' in' : ''}" data-q="${t.id}" aria-label="Queue for when it unlocks">${L.queue.includes(t.id) ? '#' + (L.queue.indexOf(t.id) + 1) : '+'}</button></div>`;
+        <div class="tx">${chips(t)}<span>Needs: ${esc(need.join(', '))}</span></div></div>${qBtn(t.id, ' lockq')}</div>`;
     });
     h += '</section>';
   });
@@ -1956,9 +1964,12 @@ function renderSkills(){
   h += '</div>';
   $('#v-skills').innerHTML = h;
 }
-function gqBtn(i){
-  const id = 'g:' + i.id, qi = S.life.queue.indexOf(id);
-  return `<button class="tq gqb${qi >= 0 ? ' in' : ''}" data-q="${id}" aria-label="${qi >= 0 ? 'Queued' : 'Add to queue: work salvage until it can be built, then build it'}">${qi >= 0 ? '#' + (qi + 1) : '+'}</button>`;
+function gqBtn(i){ return qBtn('g:' + i.id, ' gqb'); }
+// Queue button on a card: '+' to add; once queued it shows the first place (and how many copies),
+// and tapping again queues another copy. Copies are removed with x in the queue.
+function qBtn(id, extra){
+  const qi = S.life.queue.indexOf(id), n = qCount(id);
+  return `<button class="tq${extra || ''}${qi >= 0 ? ' in' : ''}" data-q="${id}" aria-label="${qi >= 0 ? 'Queued at ' + (qi + 1) + (n > 1 ? ', ' + n + ' times' : '') + '. Tap to queue another' : 'Add to queue'}">${qi >= 0 ? '#' + (qi + 1) + (n > 1 ? '<small>\u00d7' + n + '</small>' : '') : '+'}</button>`;
 }
 function renderGear(){
   const L = S.life;
@@ -2298,7 +2309,7 @@ const FAQ_ALL = [
   ['What is the goal?', 'Restore the ship so WARDEN can wake the sleeping crew: the food system in the Hydroponics Ring, the energy system in the Engineering Spine and the stardrive in the Main Drive. The game ends when you ignite the drive. One clone cannot do it all; it takes many lives (around 50 with very good play).'],
   ['How do I start?', 'Tap a task to work on it right away. Climb out of the vat first, then press vat algae for food and strip wall panels for salvage. Time only moves while your clone is working: with nothing to do, the clock stops, so you can always read and plan.'],
   ['What are jobs, actions, training and rests?', '<b>Jobs</b> repeat and make food or salvage in batches; they stop when that storage is full. <b>Actions</b> are one-off tasks that unlock things and move the story on. <b>Training</b> builds skills faster (+50% XP) but each can be done only 4 times per life. <b>Rests</b> halve strain; each section has one, usable once per life.'],
-  ['How does the queue work?', 'Tap <b>+</b> on a task to add it to the end of the queue; tapping the task itself puts it first. The queue holds up to 20 items. Drag an item by the handle on its left to move it, or use the arrows; ✕ removes it. Queued jobs run until their storage is full. You can queue things you have seen before even if they are not available yet; they wait their turn. Gear can be queued too, with the <b>+</b> in the Gear tab: the clone works the best salvage job until it can afford the design, then builds it. Three presets save and load whole queues, and <b>Keep queue between clones</b> gives each new clone the queue you planned, minus anything that is automated and switched on.'],
+  ['How does the queue work?', 'Tap <b>+</b> on a task to add it to the end of the queue; tapping the task itself puts it first. You can queue the same task several times at different places: tap + again for another copy. A task queued once runs until it is done; with several copies, each copy covers one repetition (one training session, one rep, or one fill of a store). The queue holds up to 20 items. Drag an item by the handle on its left to move it, or use the arrows; ✕ removes it. Queued jobs run until their storage is full. You can queue things you have seen before even if they are not available yet; they wait their turn. Gear can be queued too, with the <b>+</b> in the Gear tab: the clone works the best salvage job until it can afford the design, then builds it. Three presets save and load whole queues, and <b>Keep queue between clones</b> gives each new clone the queue you planned, minus anything that is automated and switched on.'],
   ['Food and health', 'Health drains all the time and meals put it back. Every section has its own food, each richer than the last: algae paste (Vat Bay, ×1), hydro greens (Ring, ×1.5), field rations (Spine, ×2), galley meals (Command Deck, ×2.6) and pantry stores (Main Drive, ×3.2). Each kind has its own small store, and food you carry goes with you into the next section until it is eaten. <b>Every kind you carry is eaten on its own timer</b>, so carrying several kinds means more meals. Algae is eaten every 12 hours; richer food starts with a longer wait (12 h × its quality), which shrinks with mastery of the job that gathers it, down to 12 hours at full mastery. With no food left at all you starve. The Hydroponics Ring has no food until you restore its irrigation pumps, so arrive stocked.'],
   ['What is strain?', 'Strain multiplies the health drain. It grows faster and faster the longer a clone lives, which is what eventually kills every clone. Rests halve it; Resolve slows it a little; good food heals faster than strain can drain early on. Watch <b>Time left</b> at the top: it says how long the clone will last and what will kill it.'],
   ['What carries over when a clone dies?', 'Skill levels reset, but every bit of XP a skill has ever earned is kept as its <b>echo</b>, making that skill permanently faster. Each day a clone survives adds 0.8 to the base health of later clones, up to 500. <b>Archive records</b> found by finishing certain actions are permanent upgrades. Gear, rations, salvage and progress through the ship reset.'],
@@ -2481,31 +2492,30 @@ document.addEventListener('click', e => {
   }
   if (d.q) {
     if (isGQ(d.q)) {
-      if (L.queue.includes(d.q)) qRemove(d.q);
-      else if (qAdd(d.q)) toast('Queued: ' + qName(d.q) + ' (works salvage until it can be built)');
+      if (qAdd(d.q)) toast((qCount(d.q) > 1 ? 'Queued again (' + qCount(d.q) + '\u00d7): ' : 'Queued: ') + qName(d.q) + ' (works salvage until it can be built)');
       taskKey = ''; gearKey = ''; renderView(); return;
     }
-    if (!L.queue.includes(d.q)) {
-      if (T[d.q].kind === 'job' && jobFull(T[d.q])) { toast('Storage is full already. Spend or use some first.'); return; }
+    {
+      if (T[d.q].kind === 'job' && jobFull(T[d.q]) && !L.queue.includes(d.q)) toast('Storage is full right now; it runs when there is room.');
       if (!qAdd(d.q)) return;
-      toast('Queued: ' + T[d.q].name + (T[d.q].kind === 'job' ? ' (until storage is full)' : available(T[d.q]) ? '' : ' (runs once it is available)'));
+      const n = qCount(d.q);
+      toast((n > 1 ? 'Queued again (' + n + '\u00d7): ' : 'Queued: ') + T[d.q].name + (T[d.q].kind === 'job' ? ' (until storage is full)' : available(T[d.q]) ? '' : ' (runs once it is available)'));
     }
-    else { qRemove(d.q); }
     taskKey = ''; gearKey = ''; renderView(); return;
   }
   if (d.prio) { openPrio = openPrio === d.prio ? null : d.prio; taskKey = ''; renderView(); return; }
   if (d.setprio) { S.prio[d.setprio] = +d.n; openPrio = null; autoKey = ''; toast('Priority ' + d.n + ': ' + T[d.setprio].name); taskKey = ''; renderView(); return; }
   if (d.auto) { autoKey = ''; S.auto[d.auto] = !S.auto[d.auto]; toast((S.auto[d.auto] ? 'Automated: ' : 'Automation off: ') + T[d.auto].name); taskKey = ''; renderView(); return; }
   if (d.showlock) { showLocked[d.showlock] = !showLocked[d.showlock]; taskKey = ''; renderView(); return; }
-  if (d.unq) { qRemove(d.unq); taskKey = ''; gearKey = ''; renderView(); return; }
-  if (d.qmove) { qMove(d.qmove, +d.dir); taskKey = ''; renderView(); return; }
-  if (d.qsave) { S.qpresets[+d.qsave] = ((L.qplan && L.qplan.length) ? L.qplan : L.queue).slice(); toast('Queue saved to preset ' + (+d.qsave + 1)); taskKey = ''; renderView(); return; }
+  if (d.unqi != null) { qRemoveAt(+d.unqi); taskKey = ''; gearKey = ''; renderView(); return; }
+  if (d.qmove != null) { qMove(+d.qmove, +d.dir); taskKey = ''; renderView(); return; }
+  if (d.qsave) { S.qpresets[+d.qsave] = qPlan(L).slice(0, QMAX); toast('Queue saved to preset ' + (+d.qsave + 1)); taskKey = ''; renderView(); return; }
   if (d.qload) {
     const p = (S.qpresets[+d.qload] || []).filter(id => qItem(id)).slice(0, QMAX);
-    L.qplan = p.slice(); L.queue = p.filter(id => isGQ(id) ? !L.owned[qItem(id).id] : !(T[id].kind !== 'job' && complete(T[id])) && T[id].z >= L.sec);
+    L.qdone = []; L.queue = p.filter(id => isGQ(id) ? !L.owned[qItem(id).id] : !(T[id].kind !== 'job' && complete(T[id])) && T[id].z >= L.sec);
     toast('Loaded preset ' + (+d.qload + 1)); taskKey = ''; renderView(); return;
   }
-  if ('clearq' in d) { L.queue = []; L.qplan = []; taskKey = ''; renderView(); return; }
+  if ('clearq' in d) { L.queue = []; L.qdone = []; taskKey = ''; renderView(); return; }
   if (d.buy) {
     if (buyItem(d.buy, false)) renderView();
     return;
