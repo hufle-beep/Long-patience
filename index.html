@@ -2242,7 +2242,7 @@ document.addEventListener('click', e => {
   const L = S.life, t = T[g.dataset.mapdo];
   if (L.dead || complete(t) || t.z < L.sec) { sfx('error'); return; }
   audioStart(); sfx('click');
-  if (available(t)) { if (qAdd(t.id, true)) { L.foraging = false; toast('Working on: ' + t.name); } }
+  if (available(t)) { const was = L.queue.length; if (qAdd(t.id)) { if (!was) { L.foraging = false; toast('Working on: ' + t.name); } else toast('Queued #' + L.queue.length + ': ' + t.name); } }
   else if (!L.queue.includes(t.id)) { if (qAdd(t.id)) toast('Queued: ' + t.name + ' (runs once it is available)'); }
   taskKey = '';
 });
@@ -2311,7 +2311,7 @@ const FAQ_ALL = [
   ['What is the goal?', 'Restore the ship so WARDEN can wake the sleeping crew: the food system in the Hydroponics Ring, the energy system in the Engineering Spine and the stardrive in the Main Drive. The game ends when you ignite the drive. One clone cannot do it all; it takes many lives (around 50 with very good play).'],
   ['How do I start?', 'Tap a task to work on it right away. Climb out of the vat first, then press vat algae for food and strip wall panels for salvage. Time only moves while your clone is working: with nothing to do, the clock stops, so you can always read and plan.'],
   ['What are jobs, actions, training and rests?', '<b>Jobs</b> repeat and make food or salvage in batches; they stop when that storage is full. <b>Actions</b> are one-off tasks that unlock things and move the story on. <b>Training</b> builds skills faster (+50% XP) but each can be done only 4 times per life. <b>Rests</b> halve strain; each section has one, usable once per life.'],
-  ['How does the queue work?', 'Tap <b>+</b> on a task to add it to the end of the queue; tapping the task itself puts it first. You can queue the same task several times at different places: tap + again for another copy. A task queued once runs until it is done; with several copies, each copy covers one repetition (one training session, one rep, or one fill of a store). The queue holds up to 20 items. Drag an item by the handle on its left to move it, or use the arrows; ✕ removes it. Queued jobs run until their storage is full. You can queue things you have seen before even if they are not available yet; they wait their turn. Gear can be queued too, with the <b>+</b> in the Gear tab: the clone works the best salvage job until it can afford the design, then builds it. Three presets save and load whole queues, and <b>Keep queue between clones</b> gives each new clone the queue you planned, minus anything that is automated and switched on.'],
+  ['How does the queue work?', 'Tapping a task (or its <b>+</b>) always adds it to the end of the queue; drag it or use the arrows to move it up. You can queue the same task several times at different places: tap + again for another copy. A task queued once runs until it is done; with several copies, each copy covers one repetition (one training session, one rep, or one fill of a store). The queue holds up to 20 items. Drag an item by the handle on its left to move it, or use the arrows; ✕ removes it. Queued jobs run until their storage is full. You can queue things you have seen before even if they are not available yet; they wait their turn. Gear can be queued too, with the <b>+</b> in the Gear tab: the clone works the best salvage job until it can afford the design, then builds it. Three presets save and load whole queues, and <b>Keep queue between clones</b> gives each new clone the queue you planned, minus anything that is automated and switched on.'],
   ['Food and health', 'Health drains all the time and meals put it back. Every section has its own food, each richer than the last: algae paste (Vat Bay, ×1), hydro greens (Ring, ×1.5), field rations (Spine, ×2), galley meals (Command Deck, ×2.6) and pantry stores (Main Drive, ×3.2). Each kind has its own small store, and food you carry goes with you into the next section until it is eaten. <b>Every kind you carry is eaten on its own timer</b>, so carrying several kinds means more meals. Algae is eaten every 12 hours; richer food starts with a longer wait (12 h × its quality), which shrinks with mastery of the job that gathers it, down to 12 hours at full mastery. With no food left at all you starve. The Hydroponics Ring has no food until you restore its irrigation pumps, so arrive stocked.'],
   ['What is strain?', 'Strain multiplies the health drain. It grows faster and faster the longer a clone lives, which is what eventually kills every clone. Rests halve it; Resolve slows it a little; good food heals faster than strain can drain early on. Watch <b>Time left</b> at the top: it says how long the clone will last and what will kill it.'],
   ['What carries over when a clone dies?', 'Skill levels reset, but every bit of XP a skill has ever earned is kept as its <b>echo</b>, making that skill permanently faster. Each day a clone survives adds 0.8 to the base health of later clones, up to 500. <b>Archive records</b> found by finishing certain actions are permanent upgrades. Gear, rations, salvage and progress through the ship reset.'],
@@ -2486,9 +2486,12 @@ document.addEventListener('click', e => {
       const q = L.queue.some(id => isGQ(id) || (available(T[id]) && !complete(T[id])));
       if (q) toast('Set as fallback job. It runs once the queue is empty.');
     } else {
-      qAdd(t.id, true);
+      // New entries always go to the end of the queue; reorder them there if needed.
+      const was = L.queue.length;
+      if (!qAdd(t.id)) return;
       if (t.cross) L.crossNow = t.id;   // started by hand: no waiting at the threshold
-      L.foraging = false;
+      if (!was) L.foraging = false;
+      else toast('Queued #' + L.queue.length + ': ' + t.name);
     }
     taskKey = ''; renderView(); return;
   }
