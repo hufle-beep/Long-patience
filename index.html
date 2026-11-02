@@ -467,14 +467,14 @@ const HUNGER = 0.15;       // base health lost per tick, always, while time runs
 // Strain: the body wears down. The hunger drain is multiplied by strain, which climbs
 // faster and faster as the clone ages: its growth rate starts at +1 per STRAIN_RAMP ticks and
 // rises by that much again every STRAIN_ACCEL ticks of wear. Rest actions halve strain but not wear, so the acceleration keeps building.
-const STRAIN_RAMP = 1150, STRAIN_ACCEL = 300;
+const STRAIN_RAMP = 1250, STRAIN_ACCEL = 300;
 // Automated rests fire at this strain (player setting in the Auto tab, default 2.5)
 const restAt = () => (S && S.set && S.set.restAt) || 2.5;
 // Resolve slows strain: early clones feel it most.
 const STRAIN_RES = 0.002;
 // Late wear: after a couple of weeks the growth rate climbs much faster (squared term), which keeps
 // well-fed late clones to roughly a month.
-const STRAIN_LATE = 430;
+const STRAIN_LATE = 500;
 const strainRate = wear => (1 + wear / STRAIN_ACCEL + Math.pow(wear / STRAIN_LATE, 2)) / STRAIN_RAMP / (1 + STRAIN_RES * (S.life.lv.res || 0)) * (M ? M.strainMul : 1);
 const MAX_DRAIN = 1.2;     // most health a clone can lose per day: a full bar lasts at least ~2 min at 1x
 // A meal restores the hunger of one cooldown plus the old resting regeneration.
@@ -630,7 +630,7 @@ const TASKS = [
   {id:'ignite', z:5, kind:'act', name:'Ignite the main drive', sk:['nav','eng','res'], days:6000, req:['course','injectors'], win:true,
     log:'The stardrive lights. WARDEN begins the wake cycle for 3,112 sleepers. Your vat is scheduled for recycling.'},
 ];
-const ZDAYS = {1:0.3, 2:1, 3:1.05, 4:1.3, 5:1.1};   // later sections longer to offset mastery
+const ZDAYS = {1:0.3, 2:1.1, 3:1.3, 4:1.6, 5:1.4};   // later sections longer to offset mastery
 const TRAIN_CAP = 4, TRAIN_XP = 1.5;
 const T = {}; TASKS.forEach(t => { T[t.id] = t; t.reps = t.kind === 'train' ? TRAIN_CAP : (t.reps || 1); if (t.days) t.days = Math.round(t.days * ZDAYS[t.z]); });
 
@@ -781,10 +781,10 @@ function skF(s){ return (1 + 0.1 * S.life.lv[s]) * echoSpeed(s) * M.sk[s]; }
 function frailty(){ return 1; }   // ageing slowdown removed
 function speedOf(t){ let p = 1; t.sk.forEach(s => p *= skF(s)); return Math.pow(p, 1 / t.sk.length) * M.spd * frailty() * masteryF(t) * (t.prod && t.prod.rations ? M.foodSpd : 1); }
 // Mastery: past the AUTO_LIVES lives of practice that unlock automation, every MASTER_STEP more lives
-// that finish a task make it faster by an equal factor, reaching 5x speed at 50 lives (4 steps:
-// x1.50, x2.24, x3.34, x5).
+// that finish a task make it faster by an equal factor, reaching 10x speed at 50 lives (4 steps:
+// x1.78, x3.16, x5.62, x10).
 // Jobs count too: they produce faster.
-const MASTER_STEP = 10, MASTER_MIN = 0.2, MASTER_CUT = Math.pow(MASTER_MIN, 1 / 4);
+const MASTER_STEP = 10, MASTER_MIN = 0.1, MASTER_CUT = Math.pow(MASTER_MIN, 1 / 4);
 function masterySteps(t){ return Math.max(0, Math.floor((((S.prac || {})[t.id] || 0) - AUTO_LIVES) / MASTER_STEP)); }
 function masteryTxt(t){
   const n = masterySteps(t), f = masteryF(t), p = (S.prac || {})[t.id] || 0;
@@ -2444,7 +2444,7 @@ const FAQ_ALL = [
   ['What carries over when a clone dies?', 'Skill levels reset, but every bit of XP a skill has ever earned is kept as its <b>echo</b>, making that skill permanently faster. Each day a clone survives adds 0.8 to the base health of later clones, up to 500. <b>Archive records</b> found by finishing certain actions are permanent upgrades. Gear, rations, salvage and progress through the ship reset.'],
   ['What are sections?', 'The ship is split into five sections. A <b>red</b> action leads to the next one, and the way back is sealed for that clone, so finish what you need first (records, the rest, training, gear). Each new clone starts back in the Vat Bay.'],
   ['What is gear?', 'Gear is built from salvage in the <b>Gear</b> tab and lasts for one clone. Each section has designs to build. Salvage storage is limited; opening up more of the ship raises it.'],
-  ['What is mastery?', 'Once a task can be automated (finished in 10 lives), it keeps improving: every 10 more lives that finish it make it faster: ×1.5 at 20 lives, ×2.2 at 30, ×3.3 at 40 and ×5 at 50. Actions, crossings, training, rests and jobs all count (a mastered job produces faster). The task card shows your mastery and the next step.'],
+  ['What is mastery?', 'Once a task can be automated (finished in 10 lives), it keeps improving: every 10 more lives that finish it make it faster: ×1.8 at 20 lives, ×3.2 at 30, ×5.6 at 40 and ×10 at 50. Actions, crossings, training, rests and jobs all count (a mastered job produces faster). The task card shows your mastery and the next step.'],
   ['How does automation work?', 'Finish an action in 10 different lives (or work a job for 10 batches in 10 lives, or build a design in 10 lives) and an <b>AUTO</b> switch appears. Automated tasks run by themselves <b>ahead of your queue</b>, in priority order: P1 first, P5 last. An automated job steps in when its store drops below the forage threshold and fills it up. Automated <b>crossings</b> are the exception: they wait until your queue is done. A task you tap runs before everything. The <b>Auto</b> tab lists everything unlocked and has extra options: feeding when needed, filling storage before moving on, the strain level for automatic rests, the death screen and starting paused.'],
   ['What happens at a crossing with automation?', 'A queued or automated crossing stops just before it finishes and waits while the clone finishes automated actions and training, builds affordable automated gear, refills storage (if that option is on) and uses the section’s rest. Tap a crossing yourself to go at once.'],
   ['Pause, background and boost', 'Pause with the button at the top or the space bar. The game keeps running in a background tab and catches up when you return, then shows what happened while you were away. Time while the game is fully closed is banked as a <b>stasis boost</b> you can switch on in the header. Pick Off, ×2, ×5 or ×10 from its menu: at ×5 every real second plays five, and the bank pays for the extra four, so faster boost spends the bank faster. Both start capped at 8 hours: at most 8 hours of background time is played out, and the boost holds at most 8 hours. Each <b>Stasis watch</b> record adds 8 hours to both; you get one the first time you finish each section (5 in all, up to 48 hours).'],
