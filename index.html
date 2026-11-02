@@ -338,6 +338,7 @@ button.updl{width:100%}
 .pctin{display:flex;align-items:center;gap:6px;margin:6px 0}
 .pctin input{width:80px;background:var(--panel2);border:1px solid var(--line);color:var(--fg);border-radius:4px;padding:7px 8px;font:14px var(--f-mono)}
 .pctin span{color:var(--dim)}
+.qcount{color:var(--faint);letter-spacing:0;margin-left:4px}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 
@@ -562,7 +563,7 @@ const ITEMS = [
 const IT = {}; ITEMS.forEach(i => IT[i.id] = i);
 
 let S, M;
-const HOOK = {log(){}, perk(){}, die(){}, win(){}, change(){}, stopped(){}, practiced(){}, done(){}, rested(){}, crossed(){}, bought(){}};
+const HOOK = {log(){}, perk(){}, die(){}, win(){}, change(){}, stopped(){}, practiced(){}, done(){}, rested(){}, crossed(){}, bought(){}, qfull(){}};
 
 function newLife(s){
   const p = s.perks;
@@ -884,10 +885,13 @@ function advance(days){
 }
 // The queue plan: everything you queued this life, in order, including items already finished.
 // It is what carries over to the next clone (Keep queue between clones) and what presets save.
+const QMAX = 20;   // most items the queue (and a queue plan) can hold
 function qAdd(id, front){
   const L = S.life; if (!L.qplan) L.qplan = [];
+  if (!L.queue.includes(id) && (L.queue.length >= QMAX || (!L.qplan.includes(id) && L.qplan.length >= QMAX))) { HOOK.qfull(); return false; }
   L.queue = front ? [id, ...L.queue.filter(x => x !== id)] : (L.queue.includes(id) ? L.queue : [...L.queue, id]);
   if (front) L.qplan = [id, ...L.qplan.filter(x => x !== id)]; else if (!L.qplan.includes(id)) L.qplan.push(id);
+  return true;
 }
 function qRemove(id){ const L = S.life; L.queue = L.queue.filter(x => x !== id); L.qplan = (L.qplan || []).filter(x => x !== id); }
 function qMove(id, dir){
@@ -904,9 +908,9 @@ function decant(){
   S.gen++;
   S.life = newLife(S);
   M = mods(); S.life.hp = M.maxHp;
-  const keep = S.set.keepQueue !== false ? (prev.qplan || prev.queue || []).filter(id => T[id]) : [];
+  const keep = S.set.keepQueue !== false ? (prev.qplan || prev.queue || []).filter(id => T[id]).slice(0, QMAX) : [];
   S.life.queue = keep.slice(); S.life.qplan = keep.slice();
-  if (S.perks.engram && S.set.replay) S.lastOrder.filter(id => T[id] && T[id].kind === 'act' && !S.life.queue.includes(id)).forEach(id => qAdd(id));
+  if (S.perks.engram && S.set.replay) S.lastOrder.filter(id => T[id] && T[id].kind === 'act' && !S.life.queue.includes(id)).forEach(id => { if (S.life.queue.length < QMAX) qAdd(id); });
   // No fallback job carries over: a new clone waits for orders unless automation or a record says otherwise.
   HOOK.change();
 }
@@ -1351,6 +1355,7 @@ HOOK.log = (title, text) => {
   logKey = '';
 };
 HOOK.done = t => sfx('complete');
+HOOK.qfull = () => { sfx('error'); toast('The queue is full (' + QMAX + ' items). Remove something first.'); };
 HOOK.bought = (it, auto, unlocked) => {
   sfx('buy'); gearKey = ''; taskKey = ''; autoKey = '';
   toast((auto ? 'Auto-built: ' : 'Built: ') + it.name);
@@ -1414,7 +1419,7 @@ function renderTasks(){
   if (key === taskKey) return;
   taskKey = key;
 
-  let h = '<div class="qp"><div class="qh"><span class="lbl">Queue</span><span class="qhb">' + (L.queue.length || (L.qplan || []).length ? '<button data-clearq>Reset queue</button>' : '') + '</span></div>';
+  let h = '<div class="qp"><div class="qh"><span class="lbl">Queue <span class="num qcount">' + L.queue.length + '/' + QMAX + '</span></span><span class="qhb">' + (L.queue.length || (L.qplan || []).length ? '<button data-clearq>Reset queue</button>' : '') + '</span></div>';
   h += '<div class="qbody"><div class="qmain">';
   if (L.queue.length) {
     h += '<ol class="qlist">' + L.queue.map((id, i) => {
@@ -1845,8 +1850,8 @@ document.addEventListener('click', e => {
   const L = S.life, t = T[g.dataset.mapdo];
   if (L.dead || complete(t) || t.z < L.sec) { sfx('error'); return; }
   audioStart(); sfx('click');
-  if (available(t)) { qAdd(t.id, true); L.foraging = false; toast('Working on: ' + t.name); }
-  else if (!L.queue.includes(t.id)) { qAdd(t.id); toast('Queued: ' + t.name + ' (runs once it is available)'); }
+  if (available(t)) { if (qAdd(t.id, true)) { L.foraging = false; toast('Working on: ' + t.name); } }
+  else if (!L.queue.includes(t.id)) { if (qAdd(t.id)) toast('Queued: ' + t.name + ' (runs once it is available)'); }
   taskKey = '';
 });
 
@@ -2048,7 +2053,8 @@ document.addEventListener('click', e => {
   if (d.q) {
     if (!L.queue.includes(d.q)) {
       if (T[d.q].kind === 'job' && jobFull(T[d.q])) { toast('Storage is full already. Spend or use some first.'); return; }
-      qAdd(d.q); toast('Queued: ' + T[d.q].name + (T[d.q].kind === 'job' ? ' (until storage is full)' : available(T[d.q]) ? '' : ' (runs once it is available)'));
+      if (!qAdd(d.q)) return;
+      toast('Queued: ' + T[d.q].name + (T[d.q].kind === 'job' ? ' (until storage is full)' : available(T[d.q]) ? '' : ' (runs once it is available)'));
     }
     else { qRemove(d.q); }
     taskKey = ''; renderView(); return;
@@ -2061,7 +2067,7 @@ document.addEventListener('click', e => {
   if (d.qmove) { qMove(d.qmove, +d.dir); taskKey = ''; renderView(); return; }
   if (d.qsave) { S.qpresets[+d.qsave] = ((L.qplan && L.qplan.length) ? L.qplan : L.queue).slice(); toast('Queue saved to preset ' + (+d.qsave + 1)); taskKey = ''; renderView(); return; }
   if (d.qload) {
-    const p = (S.qpresets[+d.qload] || []).filter(id => T[id]);
+    const p = (S.qpresets[+d.qload] || []).filter(id => T[id]).slice(0, QMAX);
     L.qplan = p.slice(); L.queue = p.filter(id => !(T[id].kind !== 'job' && complete(T[id])) && T[id].z >= L.sec);
     toast('Loaded preset ' + (+d.qload + 1)); taskKey = ''; renderView(); return;
   }
