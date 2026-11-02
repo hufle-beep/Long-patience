@@ -132,6 +132,7 @@ main .wrap{display:grid;gap:18px}
 .secrun .btn{padding:6px 12px;font-size:12.5px;white-space:nowrap}
 .gitem .ta{margin-left:6px}
 .chain{display:flex;flex-wrap:wrap;gap:4px 6px;align-items:center;font-size:12px;padding:6px 0;border-bottom:1px solid var(--line)}
+.chain .cqadd{margin-left:auto;padding:3px 8px;font-size:11.5px}
 .chain .lk{color:var(--cyan)} .chain .br{color:var(--faint)}
 .chain span.st{padding:2px 6px;border:1px solid var(--line);border-radius:3px}
 .chain span.st.ok{border-color:var(--cyan-soft)}
@@ -145,6 +146,11 @@ main .wrap{display:grid;gap:18px}
 .qrow.blocked{opacity:.6}
 .qrow .qn{color:var(--faint);font-family:var(--f-mono);font-size:12px}
 .qrow .qt{flex:1;min-width:0}
+.qrow.cq{border-color:var(--cyan-soft);align-items:flex-start}
+.qrow.cq .cqt{width:auto;height:auto;border:0;padding:0;color:var(--cyan);font-size:13px;text-align:left}
+.qrow .csub{list-style:none;margin:6px 0 2px;padding:0 0 0 4px;display:grid;gap:2px;font-size:12px;color:var(--dim)}
+.qrow .csub li.done{color:var(--faint);text-decoration:line-through}
+.qrow .csub li.cur{color:var(--fg)}
 .qrow small{color:var(--dim);font-size:11px}
 .qrow button{width:28px;height:30px;flex:0 0 auto;border:1px solid var(--line);border-radius:4px;color:var(--dim);font-size:14px}
 .qrow button:disabled{opacity:.3;cursor:default}
@@ -896,6 +902,25 @@ function active(ex){
   }
   // Your queue: actions run until done; queued jobs run until their storage is full, then drop out
   for (const id of L.queue.slice()) {
+    if (isCQ(id)) {
+      let next = null;
+      for (const x of cSteps(id)) {
+        if (cStepDone(id, x)) continue;
+        if (isGQ(x)) {
+          const it = IT[x.slice(2)];
+          if (!isDone(it.req) || it.cost > M.salCap) continue;
+          if (L.salvage >= it.cost) { buyItem(it.id, false); continue; }
+          const job = bestSalvageJob(ok); if (job) { next = job; break; } continue;
+        }
+        const t = T[x];
+        if (!available(t)) continue;
+        if (t.kind === 'job') { if (jobFull(t)) { (L.cjd = L.cjd || {})[id + '#' + x] = 1; continue; } next = t; break; }
+        next = t.cross ? (holdCross(t) || t) : t; break;
+      }
+      if (next) { if (ok(next)) return next; continue; }
+      if (cSteps(id).every(x => cStepDone(id, x))) { qConsume(id); if (L.cjd) Object.keys(L.cjd).forEach(k => { if (k.startsWith(id + '#')) delete L.cjd[k]; }); HOOK.change(); }
+      continue;
+    }
     if (isGQ(id)) {
       const it = qItem(id);
       if (!it || L.owned[it.id]) { qConsume(id); HOOK.change(); continue; }
@@ -1128,7 +1153,7 @@ function finish(t){
   M = mods();
   clampRes();
   if (r.heal) L.hp = M.maxHp;
-  if (t.cross && complete(t)) { L.sec = t.z + 1; if (!L.secAt) L.secAt = {}; L.secAt[L.sec] = {d:L.day, r:L.real || 0}; { const stay = id => isGQ(id) ? (qItem(id) && (isDone(qItem(id).req) || gearZone(qItem(id)) > t.z)) : T[id].z > t.z; L.qdone.push(...L.queue.filter(id => !stay(id))); L.queue = L.queue.filter(stay); } if (L.job && T[L.job].z <= t.z) L.job = null; L.foraging = false; HOOK.crossed(t); }
+  if (t.cross && complete(t)) { L.sec = t.z + 1; if (!L.secAt) L.secAt = {}; L.secAt[L.sec] = {d:L.day, r:L.real || 0}; { const stay = id => isCQ(id) ? cSteps(id).some(x => isGQ(x) ? gearZone(IT[x.slice(2)]) > t.z : T[x].z > t.z) : isGQ(id) ? (qItem(id) && (isDone(qItem(id).req) || gearZone(qItem(id)) > t.z)) : T[id].z > t.z; L.qdone.push(...L.queue.filter(id => !stay(id))); L.queue = L.queue.filter(stay); } if (L.job && T[L.job].z <= t.z) L.job = null; L.foraging = false; HOOK.crossed(t); }
   if (complete(t) && t.log && !S.logged[t.id]) { S.logged[t.id] = 1; HOOK.log(t.name, t.log); }
   HOOK.done(t);
   if (complete(t) && t.perk && !S.perks[t.perk]) { S.perks[t.perk] = true; M = mods(); HOOK.perk(PK[t.perk]); }
@@ -1257,8 +1282,30 @@ const QPRESETS = 5;   // saved queue presets
 // Gear can be queued too, as 'g:<item id>': the clone works the best salvage job until it can afford
 // the design, builds it, and moves on.
 const isGQ = id => typeof id === 'string' && id.startsWith('g:');
-const qItem = id => isGQ(id) ? IT[id.slice(2)] : T[id];
+// A chain in the queue is one entry, 'ch:' + its steps in order (task ids and 'g:' designs).
+const isCQ = id => typeof id === 'string' && id.startsWith('ch:');
+const cSteps = id => id.slice(3).split(',').filter(x => isGQ(x) ? IT[x.slice(2)] : T[x]);
+const stepName = x => isGQ(x) ? 'Build ' + IT[x.slice(2)].name : T[x].name;
+const qItem = id => isCQ(id) ? (cSteps(id).length ? {id, name:'Chain: ' + cSteps(id).map(stepName).join(' \u2192 ')} : null) : isGQ(id) ? IT[id.slice(2)] : T[id];
 const qName = id => { const x = qItem(id); return x ? (isGQ(id) ? 'Build ' + x.name : x.name) : id; };
+// The queue entry for the chain a task belongs to (null when it is not linked to anything)
+function chainKeyFor(t){
+  if (!t || isGQ(t.id)) return null;
+  const c = chainsOf(t.z).find(c => c.includes(t)); if (!c) return null;
+  const gear = sectionGear(t.z).filter(i => gearAuto(i) && c.some(x => x.id === i.req) && masteryF(T[i.req]) >= LINK_F);
+  if (c.length + gear.length < 2) return null;
+  // gear goes right after the task that unlocks it, so it is built before the crossing
+  const steps = []; c.forEach(x => { steps.push(x.id); gear.filter(i => i.req === x.id).forEach(i => steps.push('g:' + i.id)); });
+  return 'ch:' + steps.join(',');
+}
+// Has this step of a queued chain been dealt with? (jobs: filled once while the chain was running)
+function cStepDone(id, x){
+  const L = S.life;
+  if (isGQ(x)) return !!L.owned[x.slice(2)];
+  const t = T[x];
+  if (t.kind === 'job') return !!(L.cjd || {})[id + '#' + x];
+  return complete(t) || t.z < (L.sec || 1);
+}
 function bestSalvageJob(ok){
   let job = null, br = 0;
   for (const t of TASKS) if (t.kind === 'job' && t.prod && t.prod.salvage && available(t) && !jobFull(t) && (!ok || ok(t))) {
@@ -1855,6 +1902,16 @@ function rewardBits(t){
   return b;
 }
 let openPrio = null;
+const qOpen = {};   // which chain entries are folded open in the queue
+function chainRow(id, i){
+  const L = S.life, st = cSteps(id), done = st.filter(x => cStepDone(id, x)).length, open = !!qOpen[id];
+  const cur = st.find(x => !cStepDone(id, x));
+  const sub = open ? '<ol class="csub">' + st.map(x => { const d = cStepDone(id, x);
+    return `<li class="${d ? 'done' : x === cur ? 'cur' : ''}">${d ? '\u2713' : x === cur ? '\u25b8' : '\u00b7'} ${esc(stepName(x))}${!isGQ(x) && T[x].kind === 'job' ? ' <small>fill</small>' : ''}</li>`; }).join('') + '</ol>' : '';
+  return `<li class="qrow cq" data-qid="${id}"><span class="qdrag" data-qdrag="${i}" aria-hidden="true" title="Drag to reorder">\u2807</span><span class="qn">${i + 1}.</span>
+    <span class="qt"><button class="cqt" data-qopen="${id}" aria-expanded="${open}">${open ? '\u25be' : '\u25b8'} Chain \u00b7 ${esc(stepName(st[0]))}${st.length > 1 ? ' \u2192 \u2026 \u2192 ' + esc(stepName(st[st.length - 1])) : ''}</button> <small>${done}/${st.length} steps${cur ? ' \u00b7 now: ' + esc(stepName(cur)) : ''}</small>${sub}</span>
+    <button data-qmove="${i}" data-dir="-1" ${i === 0 ? 'disabled' : ''} aria-label="Move chain up">\u2191</button><button data-qmove="${i}" data-dir="1" ${i === L.queue.length - 1 ? 'disabled' : ''} aria-label="Move chain down">\u2193</button><button data-unqi="${i}" aria-label="Remove chain from queue">\u2715</button></li>`;
+}
 // The one-click section chain: a Run button once the section is fully chained, else its progress
 function secRunHtml(z){
   const g = sectionGate(z), L = S.life;
@@ -1923,7 +1980,7 @@ function renderTasks(){
     if (av && !complete(t)) vis.push(t.id);
     else if (!av && S.seen[t.id]) locked.push(t.id);
   });
-  const key = vis.join() + '|' + locked.join() + '|' + (L.now || '') + (L.chainRun ? 'R' : '') + JSON.stringify(sectionGate(L.sec || 1)) + ITEMS.filter(i => isDone(i.req)).map(i => i.id + (L.owned[i.id] ? 'o' : L.salvage >= i.cost ? 'y' : 'n') + (gearAuto(i) ? '*' : '') + ((S.gprac || {})[i.id] || 0)).join() + '|' + L.queue.join() + (L.queue.some(isGQ) ? Math.floor(L.salvage) + '/' + M.salCap + Object.keys(L.owned).join() : '') + '|' + L.job + '|' + Object.keys(S.perks).join() + '|' + S.gen + '|' + JSON.stringify(showLocked) + '|' + L.sec + '|' + (L.held || '') + holdList().join() + '|' + JSON.stringify(S.qpresets) + (L.qdone || []).length + (S.set.keepQueue !== false) + '|' + TASKS.filter(t => practiced(t)).map(t => t.id + (S.auto[t.id] ? '*' : '') + prioOf(t)).join() + '|' + openPrio;
+  const key = vis.join() + '|' + locked.join() + '|' + JSON.stringify(qOpen) + JSON.stringify(L.cjd || {}) + L.queue.filter(isCQ).map(id => cSteps(id).filter(x => cStepDone(id, x)).length).join() + (L.now || '') + (L.chainRun ? 'R' : '') + JSON.stringify(sectionGate(L.sec || 1)) + ITEMS.filter(i => isDone(i.req)).map(i => i.id + (L.owned[i.id] ? 'o' : L.salvage >= i.cost ? 'y' : 'n') + (gearAuto(i) ? '*' : '') + ((S.gprac || {})[i.id] || 0)).join() + '|' + L.queue.join() + (L.queue.some(isGQ) ? Math.floor(L.salvage) + '/' + M.salCap + Object.keys(L.owned).join() : '') + '|' + L.job + '|' + Object.keys(S.perks).join() + '|' + S.gen + '|' + JSON.stringify(showLocked) + '|' + L.sec + '|' + (L.held || '') + holdList().join() + '|' + JSON.stringify(S.qpresets) + (L.qdone || []).length + (S.set.keepQueue !== false) + '|' + TASKS.filter(t => practiced(t)).map(t => t.id + (S.auto[t.id] ? '*' : '') + prioOf(t)).join() + '|' + openPrio;
   if (key === taskKey) return;
   taskKey = key;
 
@@ -1936,6 +1993,7 @@ function renderTasks(){
   h += '<div class="qbody"><div class="qmain">';
   if (L.queue.length) {
     h += '<ol class="qlist' + (L.queue.length > 12 ? ' long' : '') + '">' + L.queue.map((id, i) => {
+      if (isCQ(id)) return chainRow(id, i);
       const g = isGQ(id), t = g ? {name:qName(id)} : T[id], it = g ? qItem(id) : null;
       const bl = g ? (!isDone(it.req) || it.cost > M.salCap) : !available(t);
       const why = g ? (!isDone(it.req) ? 'after: ' + T[it.req].name : it.cost > M.salCap ? 'needs bigger salvage storage' : fmt(Math.min(L.salvage, it.cost)) + '/' + fmt(it.cost) + ' salvage')
@@ -1973,7 +2031,7 @@ function renderTasks(){
           <button class="tm" data-do="${t.id}"><div class="tf"></div>
             <div class="th"><span class="tn">${esc(t.name)}</span><span class="te num" data-r="${res}"></span></div>
             <div class="tx">${chips(t)}${t.haz ? '<span class="haz">▲ hazard</span>' : ''}${!t.prod ? '<span>no output</span>' : '<span class="tt num"></span>'}<span class="pr num"></span></div>
-          </button><div class="side">${qBtn(t.id)}${autoBtn(t)}</div></div>` + prioPick(t);
+          </button><div class="side">${tqBtn(t)}${autoBtn(t)}</div></div>` + prioPick(t);
       });
     }
     if (rests.length) {
@@ -1985,7 +2043,7 @@ function renderTasks(){
             <div class="th"><span class="tn">${esc(t.name)}</span><span class="te num"></span></div>
             <div class="tx">${chips(t)}<span>strain \u00f72</span><span class="num">${masteryTxt(t)}</span>${practiced(t) ? `<span>auto at strain \u00d7${restAt()}</span>` : `<span class="num">auto ${S.prac[t.id] || 0}/${autoNeed(t)}</span>`}</div>
           </button>
-          <div class="side">${qBtn(t.id)}${autoBtn(t)}</div></div>` + prioPick(t);
+          <div class="side">${tqBtn(t)}${autoBtn(t)}</div></div>` + prioPick(t);
       });
     }
     if (trains.length) {
@@ -1997,7 +2055,7 @@ function renderTasks(){
             <div class="th"><span class="tn">${esc(t.name)}</span><span class="te num"></span></div>
             <div class="tx">${chips(t)}<span class="num rp"></span><span class="num">${masteryTxt(t)}</span>${practiced(t) ? '' : `<span class="num">auto ${S.prac[t.id] || 0}/${autoNeed(t)}</span>`}</div>
           </button>
-          <div class="side">${qBtn(t.id)}${autoBtn(t)}</div></div>` + prioPick(t);
+          <div class="side">${tqBtn(t)}${autoBtn(t)}</div></div>` + prioPick(t);
       });
     }
     if (acts.length) {
@@ -2010,7 +2068,7 @@ function renderTasks(){
             <div class="th"><span class="tn">${esc(t.name)}</span><span class="te num"></span></div>
             <div class="tx">${chips(t)}${t.reps > 1 ? `<span class="num rp"></span>` : ''}${t.haz ? '<span class="haz">▲ hazard</span>' : ''}${rb.length ? '<span>' + rb.join(' · ') + '</span>' : ''}<span class="num">${masteryTxt(t)}</span>${practiced(t) ? '' : `<span class="num">auto ${S.prac[t.id] || 0}/${autoNeed(t)}</span>`}</div>
           </button>
-          <div class="side">${qBtn(t.id)}${autoBtn(t)}</div></div>` + prioPick(t);
+          <div class="side">${tqBtn(t)}${autoBtn(t)}</div></div>` + prioPick(t);
       });
     }
     {
@@ -2178,6 +2236,8 @@ function renderSkills(){
   $('#v-skills').innerHTML = h;
 }
 function gqBtn(i){ return qBtn('g:' + i.id, ' gqb'); }
+// a task card queues its whole chain when the task is linked into one
+function tqBtn(t, extra){ const k = chainKeyFor(t); return k ? qBtn(k, (extra || '') + ' tqc') : qBtn(t.id, extra); }
 // Queue button on a card: '+' to add; once queued it shows the first place (and how many copies),
 // and tapping again queues another copy. Copies are removed with x in the queue.
 function qBtn(id, extra){
@@ -2522,7 +2582,7 @@ function renderAuto(){
       const gear = sectionGear(z.id).filter(i => gearAuto(i) && c.some(t => t.id === i.req) && masteryF(T[i.req]) >= LINK_F);
       if (c.length < 2 && !gear.length) return;
       h += '<div class="chain"><span class="br">Chain:</span>' + c.map(t => `<span class="st${masteryF(t) >= SECTION_F ? ' ok' : ''}">${esc(t.name)}</span>`).join('<span class="lk">\u2192</span>') +
-        gear.map(i => `<span class="lk">+</span><span class="st ok">${esc(i.name)}</span>`).join('') + '</div>';
+        gear.map(i => `<span class="lk">+</span><span class="st ok">${esc(i.name)}</span>`).join('') + `<button class="btn cqadd" data-q="${chainKeyFor(c[0])}">+ queue</button></div>`;
     });
     h += '<div class="alist">';
     ['job','act','train','rest'].forEach(k => zl.filter(t => t.kind === k).forEach(t => {
@@ -2739,6 +2799,10 @@ document.addEventListener('click', e => {
     taskKey = ''; renderView(); return;
   }
   if (d.q) {
+    if (isCQ(d.q)) {
+      if (qAdd(d.q)) toast('Queued as one chain: ' + cSteps(d.q).length + ' steps');
+      taskKey = ''; renderView(); return;
+    }
     if (isGQ(d.q)) {
       if (qAdd(d.q)) toast((qCount(d.q) > 1 ? 'Queued again (' + qCount(d.q) + '\u00d7): ' : 'Queued: ') + qName(d.q) + ' (works salvage until it can be built)');
       taskKey = ''; gearKey = ''; renderView(); return;
@@ -2760,11 +2824,12 @@ document.addEventListener('click', e => {
   if (d.qsave) { S.qpresets[+d.qsave] = qPlan(L).slice(0, QMAX); toast('Queue saved to preset ' + (+d.qsave + 1)); taskKey = ''; renderView(); return; }
   if (d.qload) {
     const p = (S.qpresets[+d.qload] || []).filter(id => qItem(id)).slice(0, QMAX);
-    L.qdone = []; L.queue = p.filter(id => isGQ(id) ? !L.owned[qItem(id).id] : !(T[id].kind !== 'job' && complete(T[id])) && T[id].z >= L.sec);
+    L.qdone = []; L.queue = p.filter(id => isCQ(id) ? cSteps(id).some(x => !isGQ(x) && T[x].z >= L.sec) : isGQ(id) ? !L.owned[qItem(id).id] : !(T[id].kind !== 'job' && complete(T[id])) && T[id].z >= L.sec);
     toast('Loaded preset ' + (+d.qload + 1)); taskKey = ''; renderView(); return;
   }
   if ('secrun' in d) { if (sectionGate(L.sec || 1).ready) { L.chainRun = true; L.now = null; toast('Running the ' + ZONES[(L.sec || 1) - 1].name + ' as one chain'); } taskKey = ''; autoKey = ''; renderView(); return; }
   if ('secstop' in d) { L.chainRun = false; taskKey = ''; autoKey = ''; renderView(); return; }
+  if (d.qopen) { qOpen[d.qopen] = !qOpen[d.qopen]; taskKey = ''; renderView(); return; }
   if ('stopnow' in d) { L.now = null; taskKey = ''; renderView(); return; }
   if ('clearq' in d) { L.queue = []; L.qdone = []; if (L.held) L.held = null; toast('Queue cleared'); taskKey = ''; renderView(); return; }
   if (d.buy) {
