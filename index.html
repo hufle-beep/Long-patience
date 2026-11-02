@@ -97,6 +97,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--amber);outline-
 .pos{color:var(--green)} .neg{color:var(--red)}
 .ngp{border-color:var(--cyan-soft)}
 .ngp .h2{color:var(--cyan)}
+.bld{margin:-6px 0 10px;font-size:11px;color:var(--faint)}
 .ngpick{display:grid;gap:8px;margin:10px 0}
 .ngpts{margin:10px 0 4px;font-size:13px}
 .ngpts b{color:var(--cyan);font-size:15px}
@@ -456,6 +457,7 @@ button.updl{width:100%}
 
 <script id="logic">
 /* ===== Game data and rules (no DOM) ===== */
+const BUILD = '2026-11-02 · completion mastery';   // shown in the main menu, to tell which version is loaded
 const DPS = 4;             // simulation ticks per real second at 1x
 // Time is simulated in ticks. 80 ticks make one ship day (18 minutes each), so a day lasts
 // 20 real seconds at 1x and a clone lives weeks, not years. Everything is shown in days and hours.
@@ -1684,7 +1686,7 @@ function startGame(){
 function showMenu(view){
   paused = true;
   const cur = readSlot(slot);
-  let h = '<h2>Long Patience</h2>';
+  let h = '<h2>Long Patience</h2><p class="note bld">Version ' + BUILD + '</p>';
   if (appUpdate && appUpdate.build > appUpdate.mine) h += `<button class="btn pri updl" data-settings="menu">App update available (build ${appUpdate.build})<small>You have build ${appUpdate.mine}. Open settings to install it; saves are kept.</small></button>`;
   if (view === 'new') {
     h += '<p>Start a new game in which slot? A used slot is overwritten; tap it twice to confirm.</p><div class="slots">';
