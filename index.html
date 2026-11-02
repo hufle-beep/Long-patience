@@ -1993,6 +1993,7 @@ document.addEventListener('click', e => {
   if (d.speed) { S.set.speed = +d.speed; S.set.paused = false; renderSpeed(); return; }
   if ('pause' in d) { togglePause(); return; }
   if ('boost' in d) { S.set.boost = !S.set.boost; renderSpeed(); return; }
+  if ('awayok' in d) { hideModal(); paused = false; if (S.life.dead && S.set.deathScreen !== false) showDeath(); return; }
   if ('close' in d) { hideModal(); paused = false; S.intro = true; save(); return; }
   if ('decant' in d) { decant(); if (S.set.deathPause !== false) S.set.paused = true; hideModal(); taskKey = ''; setTab('tasks'); save(); return; }
   if (d.settings) { save(); showSettings(d.settings); return; }
@@ -2189,7 +2190,44 @@ function frame(now){
 // While hidden, animation frames stop; this keeps the clock going (browsers allow about once a second,
 // or once a minute after a while, and the catch-up above fills the gaps).
 setInterval(() => { if (document.hidden && S) tick(performance.now()); }, 1000);
-document.addEventListener('visibilitychange', () => { if (document.hidden) save(); });
+/* ----- catch-up screen: what happened while the game ran in the background ----- */
+let awaySnap = null;
+function snapshot(){
+  return {t:Date.now(), gen:S.gen, days:(S.stats.daysLived || 0) + S.life.day, rations:S.life.rations, salvage:S.life.salvage,
+    xp:Object.assign({}, S.xpTot || {}), deaths:S.stats.deaths || 0, log:S.log.length, perks:Object.keys(S.perks).length,
+    sec:S.life.sec, hp:S.life.hp, owned:Object.keys(S.life.owned).length};
+}
+function showAway(a){
+  const L = S.life, b = snapshot();
+  const days = (b.days - a.days) / TPD, secs = (b.t - a.t) / 1000;
+  if (days < 0.05 && b.gen === a.gen) return false;
+  const sign = v => (v >= 0 ? '+' : '\u2212') + fmt(Math.abs(v));
+  const xpRows = SKILLS.map(k => ({k, g:(b.xp[k.id] || 0) - (a.xp[k.id] || 0)})).filter(r => r.g > 0.5);
+  const newLogs = S.log.slice(a.log).map(e => e.t);
+  const newPerks = Object.keys(S.perks).length - a.perks;
+  let h = `<h2>While you were away</h2><p class="d">${fmtSecs(secs)} in the background \u00b7 ${days.toFixed(1)} days aboard</p><table class="dt">`;
+  if (b.gen !== a.gen) h += `<tr><td>Clones</td><td>${b.gen - a.gen} died; now clone ${b.gen}</td></tr>`;
+  h += `<tr><td>Section</td><td>${ZONES[(L.sec || 1) - 1].name}${(L.sec || 1) !== a.sec && b.gen === a.gen ? ' (new)' : ''}</td></tr>`;
+  h += `<tr><td>Health</td><td>${Math.ceil(L.hp)} / ${M.maxHp}</td></tr>`;
+  if (b.gen === a.gen) {
+    h += `<tr><td>Rations</td><td>${fmt(L.rations)} (${sign(L.rations - a.rations)})</td></tr><tr><td>Salvage</td><td>${fmt(L.salvage)} (${sign(L.salvage - a.salvage)})</td></tr>`;
+    if (b.owned > a.owned) h += `<tr><td>Gear built</td><td>${b.owned - a.owned}</td></tr>`;
+  }
+  xpRows.forEach(r => { h += `<tr><td>${r.k.name} XP</td><td><span class="up">+${fmt(r.g)}</span> \u00b7 echo \u00d7${fmt(echoSpeed(r.k.id))}</td></tr>`; });
+  h += '</table>';
+  if (newPerks > 0) h += `<p class="d">New archive record${newPerks > 1 ? 's' : ''}: ${newPerks}.</p>`;
+  if (newLogs.length) h += `<p class="d">Log: ${esc(newLogs.join(', '))}.</p>`;
+  h += '<p class="d">The game is paused until you continue.</p><button class="btn pri" data-awayok>Continue</button>';
+  paused = true; showModal(h);
+  return true;
+}
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) { save(); if ($('#modal').hidden && !S.life.dead) awaySnap = snapshot(); return; }
+  if (!awaySnap) return;
+  tick(performance.now());   // finish catching up first
+  const a = awaySnap; awaySnap = null;
+  if ($('#modal').hidden || S.life.dead) showAway(a);
+});
 window.addEventListener('pagehide', save);
 
 /* ----- Android app: check GitHub for a newer build ----- */
