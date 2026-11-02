@@ -483,7 +483,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
 
 <script id="logic">
 /* ===== Game data and rules (no DOM) ===== */
-const BUILD = '2026-11-02 · Act II';   // shown in the main menu, to tell which version is loaded
+const BUILD = '2026-11-03 · Engram';   // shown in the main menu, to tell which version is loaded
 const DPS = 4;             // simulation ticks per real second at 1x
 // Time is simulated in ticks. 80 ticks make one ship day (18 minutes each), so a day lasts
 // 20 real seconds at 1x and a clone lives weeks, not years. Everything is shown in days and hours.
@@ -757,7 +757,7 @@ const TASKS = [
   {id:'wakefirst', z:11, kind:'act', finale:'B', name:'Wake the first sleeper', sk:['nav','bio','res'], days:1800, req:['prepwake'], perk:'tessaly2',
     log:'The first sleeper opens her eyes and sees a maintenance clone. “Who are you?” You have never had to answer that before.'},
 ];
-const ZDAYS = {1:0.25, 2:0.85, 3:0.63, 4:0.46, 5:0.28, 6:1, 7:1, 8:1, 9:0.55, 10:0.55, 11:0.55};   // no skill transfer: later sections are short, and speed comes from familiarity
+const ZDAYS = {1:0.25, 2:0.85, 3:0.63, 4:0.49, 5:0.30, 6:1, 7:1, 8:1, 9:0.55, 10:0.55, 11:0.55};   // no skill transfer: later sections are short, and speed comes from familiarity
 const TRAIN_CAP = 4, TRAIN_XP = 1.5;
 const T = {}; TASKS.forEach(t => { T[t.id] = t; t.reps = t.kind === 'train' ? TRAIN_CAP : (t.reps || 1); if (t.days) t.days = Math.round(t.days * ZDAYS[t.z]); });
 
@@ -772,7 +772,7 @@ const PERKS = [
   {id:'telomere', name:'Telomere patch',        from:2, desc:'+25 max health for every clone.', eff:{maxHp:25}},
   {id:'transit',  name:'Ring transit',          from:2, desc:'+10% speed on every task.', eff:{spd:1.1}},
   {id:'hardened', name:'Radiation hardening',   from:3, desc:'Hazard damage −20%.', eff:{haz:0.8}},
-  {id:'engram',   name:'Engram recorder',       from:3, desc:'New clones replay the task order of your last life. Toggle it in settings.'},
+  {id:'engram',   name:'Engram recorder',       from:3, desc:'Each new clone remembers the task its predecessor died working on: that task starts up to 25% done.'},
   {id:'clock',    name:'Bridge chronometer',    from:4, desc:'All work 10% faster.', eff:{spd:1.1}},
   {id:'starmem',  name:'Star memory',           from:4, desc:'+50% familiarity from Navigation work.', eff:{xpSk:{nav:1.5}}},
   {id:'promise',  name:'Tessaly\u2019s promise',    from:5, desc:'With the course set, WARDEN upgrades the clone template: +50 max health for every clone.', eff:{maxHp:50}},
@@ -1354,7 +1354,9 @@ function recordBest(L){
   if (!b || pr > bp || (pr === bp && at.r < b.r)) S.best = {g:S.gen, prog:pr, z, lit:!!L.wonAt, sec:Math.min(6, pr), d:at.d, r:at.r};
 }
 function die(cause){
-  const L = S.life; L.dead = true; L.cause = cause; L.cur = null; L.cur2 = null;
+  const L = S.life, dt0 = L.cur && T[L.cur];
+  S.engramT = dt0 && dt0.kind !== 'job' && !complete(dt0) && (L.prog[dt0.id] || 0) > 0 ? {id:dt0.id, p:L.prog[dt0.id]} : null;   // for the Engram recorder
+  L.dead = true; L.cause = cause; L.cur = null; L.cur2 = null;
   const age = L.day / TPD;
   SKILLS.forEach(k => { if (L.lv[k.id] > S.echo[k.id]) S.echo[k.id] = L.lv[k.id]; });
   // Hardened genome: every full day a clone survives adds 0.8 max health to all later clones (base caps at 500).
@@ -1614,6 +1616,7 @@ function prestige(choice){
 const KIT_PTS = 20;
 function checkKit(){ const pr = S.pr || {}; if (!pr.kit && ngpPts() >= KIT_PTS) { pr.kit = true; HOOK.kit(); } }
 function starterKit(L){ if (!(S.pr && S.pr.kit)) return; ITEMS.forEach(i => { if (gearAuto(i)) L.owned[i.id] = true; }); }
+const ENGRAM_SHARE = 0.25;
 function decant(){
   const prev = S.life;
   S.lastOrder = prev.order.slice(); S.lastJob = prev.job;
@@ -1624,7 +1627,8 @@ function decant(){
   // Automated items (practised and switched on) are left out: automation takes care of them.
   const keep = S.set.keepQueue !== false ? qPlan(prev).filter(id => qItem(id) && !qAutomated(id)).slice(0, QMAX) : [];
   S.life.queue = keep.slice(); S.life.qdone = [];
-  if (S.perks.engram && S.set.replay) S.lastOrder.filter(id => T[id] && T[id].kind === 'act' && !isAuto(T[id]) && !S.life.queue.includes(id)).forEach(id => { if (S.life.queue.length < QMAX) qAdd(id); });
+  // Engram recorder: the task the last clone died working on starts up to a quarter done (never more than it had)
+  if (S.perks.engram && S.engramT && T[S.engramT.id]) { const t = T[S.engramT.id]; S.life.prog[t.id] = Math.min(S.engramT.p, ENGRAM_SHARE * t.days); }
   // No fallback job carries over: a new clone waits for orders unless automation or a record says otherwise.
   HOOK.change();
 }
@@ -2723,9 +2727,6 @@ function renderArchive(force){
     h += `<div class="row"><p>Auto-forage<small>Switch to the best food job when your food runs below the threshold, and stay until its store reaches twice that.</small></p><button class="tog${S.set.autoFood ? ' on' : ''}" data-set="autoFood" aria-label="Auto-forage" aria-pressed="${S.set.autoFood}"></button></div>
       <div><div class="row"><p>Forage threshold<small>Share of the store the best food job fills. When all the food you carry drops below it, food jobs step in; they stop at twice this level (or when the store is full).</small></p></div><div class="pctin"><input type="number" id="fd-n" inputmode="numeric" min="1" max="99" step="1" value="${S.set.foodPct || 40}" aria-label="Forage threshold percent"><span>%</span></div><input type="range" id="fd" min="1" max="99" step="1" value="${S.set.foodPct || 40}" aria-label="Forage threshold, percent of ration storage"></div>`;
   }
-  if (S.perks.engram) {
-    h += `<div class="row"><p>Engram replay<small>New clones queue the actions your last clone finished, in the same order.</small></p><button class="tog${S.set.replay ? ' on' : ''}" data-set="replay" aria-label="Engram replay" aria-pressed="${S.set.replay}"></button></div>`;
-  }
   h += '<div class="row"><p>Sound, layout and app updates<small>These are in the settings menu.</small></p><button class="btn" data-settings="hud">Open</button></div></div><div class="panel set"><span class="h2">Clone</span>';
   h += `<div class="row"><p>Recycle this clone<small>End the current life now. Echoes are kept.</small></p><button class="btn warn" data-confirm="recycle">Recycle</button></div>
     <div class="row"><p>Restart this slot<small>Erases the game in this slot and starts over. Other slots are kept. The main menu has more options.</small></p><button class="btn warn" data-confirm="reset">Restart</button></div>
@@ -3011,7 +3012,7 @@ function showDeath(){
     <p>${esc(L.cause)}.</p><p class="d">Lived ${age.toFixed(1)} days · ${L.order.length} actions completed</p>
     <p class="d">Hardened genome: <span class="up">+${fmt(L.vitGain || 0)} max health</span> for every future clone (base now ${Math.min(BASE_HP_MAX, 100 + Math.floor(S.vit || 0))}${100 + Math.floor(S.vit || 0) >= BASE_HP_MAX ? ', the maximum' : ''}).</p>
     <table class="dt">${rows}</table>
-    ${S.perks.engram && S.set.replay ? '<p class="d">The engram recorder will queue this clone’s actions for the next one.</p>' : ''}
+    ${S.perks.engram && S.engramT && T[S.engramT.id] ? '<p class="d">Engram recorder: the next clone starts \u201c' + T[S.engramT.id].name + '\u201d ' + Math.round(Math.min(S.engramT.p, ENGRAM_SHARE * T[S.engramT.id].days) / T[S.engramT.id].days * 100) + '% done.</p>' : ''}
     <button class="btn pri" data-decant>Decant clone ${S.gen + 1}</button>`);
 }
 function showWin(){
