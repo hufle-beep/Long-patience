@@ -112,6 +112,8 @@ main .wrap{display:grid;gap:18px}
 /* queue */
 .qp{display:grid;gap:8px;padding:10px;border:1px dashed var(--line);border-radius:6px}
 .qh{display:flex;justify-content:space-between;align-items:center}
+.qnow{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:7px 9px;border:1px solid var(--amber);border-radius:4px;font-size:13px}
+.qnow .btn{padding:5px 10px;font-size:12px}
 .qh button{font-size:12px;color:var(--dim);padding:3px 6px}
 .qlist{display:flex;flex-wrap:wrap;gap:6px}
 .qlist{list-style:none;margin:0;padding:0;display:grid;gap:4px}
@@ -749,6 +751,14 @@ function pickFood(){
 // What runs now. `ex` (new game plus second slot) lists tasks already taken by the other slot.
 function active(ex){
   const L = S.life, ok = t => !!t && !(ex && ex.has(t.id));
+  // A task you tapped runs at once, ahead of food, automation and the queue, until it is done
+  // (a job: until its store is full). It is never placed in the queue.
+  if (L.now) {
+    const t = T[L.now];
+    const over = !t || !available(t) || (t.kind === 'job' ? jobFull(t) : complete(t));
+    if (over) { if (t && t.kind === 'job' && available(t)) HOOK.stopped(t); L.now = null; HOOK.change(); }
+    else if (ok(t)) return t;
+  }
   if (S.perks.survival && S.set.autoFood) {
     const food = pickFood();
     if (food) {
@@ -1118,7 +1128,7 @@ function qCount(id){ return S.life.queue.filter(x => x === id).length; }
 function qConsume(id){ const L = S.life, i = L.queue.indexOf(id); if (i < 0) return; L.queue.splice(i, 1); (L.qdone = L.qdone || []).push(id); }
 function qConsumeAll(id){ const L = S.life; while (L.queue.includes(id)) qConsume(id); }
 // one repetition finished: with more copies queued, the first copy is used up
-function qConsumeRep(id){ if (qCount(id) > 1) qConsume(id); }
+function qConsumeRep(id){ if (S.life.now !== id && qCount(id) > 1) qConsume(id); }
 function qRemoveAt(i){ const L = S.life, id = L.queue[i]; if (id == null) return; L.queue.splice(i, 1); if (L.held === id && !L.queue.includes(id)) L.held = null; }
 function qRemove(id){ const L = S.life; if (L.held === id) L.held = null; L.queue = L.queue.filter(x => x !== id); }
 function qMove(i, dir){
@@ -1728,7 +1738,7 @@ function renderTasks(){
     if (av && !complete(t)) vis.push(t.id);
     else if (!av && S.seen[t.id]) locked.push(t.id);
   });
-  const key = vis.join() + '|' + locked.join() + '|' + L.queue.join() + (L.queue.some(isGQ) ? Math.floor(L.salvage) + '/' + M.salCap + Object.keys(L.owned).join() : '') + '|' + L.job + '|' + Object.keys(S.perks).join() + '|' + S.gen + '|' + JSON.stringify(showLocked) + '|' + L.sec + '|' + (L.held || '') + holdList().join() + '|' + JSON.stringify(S.qpresets) + (L.qdone || []).length + (S.set.keepQueue !== false) + '|' + TASKS.filter(t => practiced(t)).map(t => t.id + (S.auto[t.id] ? '*' : '') + prioOf(t)).join() + '|' + openPrio;
+  const key = vis.join() + '|' + locked.join() + '|' + (L.now || '') + '|' + L.queue.join() + (L.queue.some(isGQ) ? Math.floor(L.salvage) + '/' + M.salCap + Object.keys(L.owned).join() : '') + '|' + L.job + '|' + Object.keys(S.perks).join() + '|' + S.gen + '|' + JSON.stringify(showLocked) + '|' + L.sec + '|' + (L.held || '') + holdList().join() + '|' + JSON.stringify(S.qpresets) + (L.qdone || []).length + (S.set.keepQueue !== false) + '|' + TASKS.filter(t => practiced(t)).map(t => t.id + (S.auto[t.id] ? '*' : '') + prioOf(t)).join() + '|' + openPrio;
   if (key === taskKey) return;
   taskKey = key;
 
@@ -1737,6 +1747,7 @@ function renderTasks(){
     const left = holdList();
     h += `<div class="hold"><div><b>${esc(T[L.held].name)}</b> is on hold until this section is wrapped up. Still to do: ${esc(left.join(', ') || 'nothing')}. Drag tasks above it in the queue to run them first.</div><button class="btn" data-skiphold>Skip the rest and cross now</button></div>`;
   }
+  if (L.now && T[L.now]) h += `<div class="qnow"><span>Running now: <b>${esc(T[L.now].name)}</b>${T[L.now].kind === 'job' ? ' (until full)' : ''}. The queue continues after it.</span><button class="btn" data-stopnow>Stop</button></div>`;
   h += '<div class="qbody"><div class="qmain">';
   if (L.queue.length) {
     h += '<ol class="qlist">' + L.queue.map((id, i) => {
@@ -1754,7 +1765,7 @@ function renderTasks(){
     const n = (S.qpresets[i] || []).length;
     return `<div class="qps"><span class="qpl"><b>${i + 1}</b><small>${n ? n + ' item' + (n > 1 ? 's' : '') : 'empty'}</small></span><span class="qpb"><button data-qsave="${i}" aria-label="Save queue to preset ${i + 1}">Save</button><button data-qload="${i}" ${n ? '' : 'disabled'} aria-label="Load preset ${i + 1}">Load</button></span></div>`;
   }).join('') + '</div></div>';
-  h += `<div class="qnote">Fallback job: <b>${L.job ? esc(T[L.job].name) : 'none'}</b>. It runs whenever the queue is empty.</div>`;
+  if (L.job) h += `<div class="qnote">Fallback job: <b>${esc(T[L.job].name)}</b>. It runs whenever the queue is empty.</div>`;
   h += `<div class="row qkeep"><p>Keep queue between clones<small>A new clone starts with the queue you planned this life, minus anything automated and switched on.</small></p><button class="tog${S.set.keepQueue !== false ? ' on' : ''}" data-set="keepQueue" aria-label="Keep queue between clones" aria-pressed="${S.set.keepQueue !== false}"></button></div></div>`;
 
   ZONES.forEach(z => {
@@ -2242,7 +2253,7 @@ document.addEventListener('click', e => {
   const L = S.life, t = T[g.dataset.mapdo];
   if (L.dead || complete(t) || t.z < L.sec) { sfx('error'); return; }
   audioStart(); sfx('click');
-  if (available(t)) { const was = L.queue.length; if (qAdd(t.id)) { if (!was) { L.foraging = false; toast('Working on: ' + t.name); } else toast('Queued #' + L.queue.length + ': ' + t.name); } }
+  if (available(t)) { L.now = t.id; L.foraging = false; L.feeding = false; if (t.cross) L.crossNow = t.id; toast('Working on: ' + t.name); }
   else if (!L.queue.includes(t.id)) { if (qAdd(t.id)) toast('Queued: ' + t.name + ' (runs once it is available)'); }
   taskKey = '';
 });
@@ -2311,7 +2322,7 @@ const FAQ_ALL = [
   ['What is the goal?', 'Restore the ship so WARDEN can wake the sleeping crew: the food system in the Hydroponics Ring, the energy system in the Engineering Spine and the stardrive in the Main Drive. The game ends when you ignite the drive. One clone cannot do it all; it takes many lives (around 50 with very good play).'],
   ['How do I start?', 'Tap a task to work on it right away. Climb out of the vat first, then press vat algae for food and strip wall panels for salvage. Time only moves while your clone is working: with nothing to do, the clock stops, so you can always read and plan.'],
   ['What are jobs, actions, training and rests?', '<b>Jobs</b> repeat and make food or salvage in batches; they stop when that storage is full. <b>Actions</b> are one-off tasks that unlock things and move the story on. <b>Training</b> builds skills faster (+50% XP) but each can be done only 4 times per life. <b>Rests</b> halve strain; each section has one, usable once per life.'],
-  ['How does the queue work?', 'Tapping a task (or its <b>+</b>) always adds it to the end of the queue; drag it or use the arrows to move it up. You can queue the same task several times at different places: tap + again for another copy. A task queued once runs until it is done; with several copies, each copy covers one repetition (one training session, one rep, or one fill of a store). The queue holds up to 20 items. Drag an item by the handle on its left to move it, or use the arrows; ✕ removes it. Queued jobs run until their storage is full. You can queue things you have seen before even if they are not available yet; they wait their turn. Gear can be queued too, with the <b>+</b> in the Gear tab: the clone works the best salvage job until it can afford the design, then builds it. Three presets save and load whole queues, and <b>Keep queue between clones</b> gives each new clone the queue you planned, minus anything that is automated and switched on.'],
+  ['How does the queue work?', 'Tapping a task runs it right away, ahead of the queue (a job runs until its store is full); it is not added to the queue. <b>+</b> adds a task to the end of the queue; drag it or use the arrows to move it up. You can queue the same task several times at different places: tap + again for another copy. A task queued once runs until it is done; with several copies, each copy covers one repetition (one training session, one rep, or one fill of a store). The queue holds up to 20 items. Drag an item by the handle on its left to move it, or use the arrows; ✕ removes it. Queued jobs run until their storage is full. You can queue things you have seen before even if they are not available yet; they wait their turn. Gear can be queued too, with the <b>+</b> in the Gear tab: the clone works the best salvage job until it can afford the design, then builds it. Three presets save and load whole queues, and <b>Keep queue between clones</b> gives each new clone the queue you planned, minus anything that is automated and switched on.'],
   ['Food and health', 'Health drains all the time and meals put it back. Every section has its own food, each richer than the last: algae paste (Vat Bay, ×1), hydro greens (Ring, ×1.5), field rations (Spine, ×2), galley meals (Command Deck, ×2.6) and pantry stores (Main Drive, ×3.2). Each kind has its own small store, and food you carry goes with you into the next section until it is eaten. <b>Every kind you carry is eaten on its own timer</b>, so carrying several kinds means more meals. Algae is eaten every 12 hours; richer food starts with a longer wait (12 h × its quality), which shrinks with mastery of the job that gathers it, down to 12 hours at full mastery. With no food left at all you starve. The Hydroponics Ring has no food until you restore its irrigation pumps, so arrive stocked.'],
   ['What is strain?', 'Strain multiplies the health drain. It grows faster and faster the longer a clone lives, which is what eventually kills every clone. Rests halve it; Resolve slows it a little; good food heals faster than strain can drain early on. Watch <b>Time left</b> at the top: it says how long the clone will last and what will kill it.'],
   ['What carries over when a clone dies?', 'Skill levels reset, but every bit of XP a skill has ever earned is kept as its <b>echo</b>, making that skill permanently faster. Each day a clone survives adds 0.8 to the base health of later clones, up to 500. <b>Archive records</b> found by finishing certain actions are permanent upgrades. Gear, rations, salvage and progress through the ship reset.'],
@@ -2480,19 +2491,11 @@ document.addEventListener('click', e => {
   if (L.dead && !d.confirm) return;
   if (d.do) {
     const t = T[d.do];
-    if (t.kind === 'job') {
-      if (jobFull(t)) { toast('Storage is full. Spend or use some first.'); return; }
-      L.job = t.id; L.foraging = false;
-      const q = L.queue.some(id => isGQ(id) || (available(T[id]) && !complete(T[id])));
-      if (q) toast('Set as fallback job. It runs once the queue is empty.');
-    } else {
-      // New entries always go to the end of the queue; reorder them there if needed.
-      const was = L.queue.length;
-      if (!qAdd(t.id)) return;
-      if (t.cross) L.crossNow = t.id;   // started by hand: no waiting at the threshold
-      if (!was) L.foraging = false;
-      else toast('Queued #' + L.queue.length + ': ' + t.name);
-    }
+    // Tapping a task runs it right away; it does not go into the queue (use + for that).
+    if (t.kind === 'job' && jobFull(t)) { toast('Storage is full. Spend or use some first.'); return; }
+    if (!available(t) || (t.kind !== 'job' && complete(t))) return;
+    L.now = t.id; L.foraging = false; L.feeding = false;
+    if (t.cross) L.crossNow = t.id;   // started by hand: no waiting at the threshold
     taskKey = ''; renderView(); return;
   }
   if (d.q) {
@@ -2520,6 +2523,7 @@ document.addEventListener('click', e => {
     L.qdone = []; L.queue = p.filter(id => isGQ(id) ? !L.owned[qItem(id).id] : !(T[id].kind !== 'job' && complete(T[id])) && T[id].z >= L.sec);
     toast('Loaded preset ' + (+d.qload + 1)); taskKey = ''; renderView(); return;
   }
+  if ('stopnow' in d) { L.now = null; taskKey = ''; renderView(); return; }
   if ('clearq' in d) { L.queue = []; L.qdone = []; if (L.held) L.held = null; toast('Queue cleared'); taskKey = ''; renderView(); return; }
   if (d.buy) {
     if (buyItem(d.buy, false)) renderView();
