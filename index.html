@@ -90,8 +90,6 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--amber);outline-
 .res .fq{display:block;font-size:11px;color:var(--green);font-family:var(--f-mono);font-weight:400;margin-top:2px}
 .res small{font-size:11px;margin-left:auto;white-space:nowrap}
 .pos{color:var(--green)} .neg{color:var(--red)}
-.now2{margin-top:-3px}
-.now2 #n2-name::before{content:'2 \00b7 ';color:var(--faint)}
 .ngp{border-color:var(--cyan-soft)}
 .ngp .h2{color:var(--cyan)}
 .ngpick{display:grid;gap:8px;margin:10px 0}
@@ -407,7 +405,6 @@ button.updl{width:100%}
       <div><span class="lbl">Salvage</span><b id="t-sal" class="num"></b><small id="t-salr" class="num"></small><small id="t-salt" class="rt num"></small></div>
     </div>
     <div class="now" id="now"><div class="nf" id="n-fill"></div><span id="n-name"></span><span id="n-eta" class="num"></span></div>
-    <div class="now now2" id="now2" hidden><div class="nf" id="n2-fill"></div><span id="n2-name"></span><span id="n2-eta" class="num"></span></div>
   </div>
 </header>
 
@@ -677,7 +674,7 @@ function newLife(s){
 function defaultState(){
   const s = {v:1, qpresets:[[], [], []], gprac:{}, gauto:{}, gprio:{}, ev:2, xpTot:{}, rv:4, sv:2, pv:2, vv:3, gen:1, prio:{}, ever:{}, prac:{}, auto:{}, echo:{}, perks:{}, seen:{}, logged:{}, log:[], lastOrder:[], lastJob:null,
     set:{speed:1, autoFood:true, autoEat:true, foodDays:2, foodPct:40, restAt:2.5, keepQueue:true, deathScreen:true, deathPause:true, startPaused:false, bgPause:false, replay:true, fillCross:false, autoFeed:false, boost:false, boostX:2},
-    stats:{bestAge:0, deaths:0, daysLived:0, played:0}, pr:{n:0, growth:0, slot2:false, carry:0, runs:[]}, won:false, winGen:0, bank:0, saved:Date.now(), intro:false};
+    stats:{bestAge:0, deaths:0, daysLived:0, played:0}, pr:{n:0, growth:0, drain:0, hp:0, carry:0, runs:[]}, won:false, winGen:0, bank:0, saved:Date.now(), intro:false};
   SKILLS.forEach(k => s.echo[k.id] = 0);
   s.life = newLife(s);
   return s;
@@ -685,7 +682,15 @@ function defaultState(){
 // Clones have no fixed lifespan: strain alone ends a life. Base health grows with the hardened
 // genome but stops at BASE_HP_MAX; archive records and gear add on top.
 const BASE_HP_MAX = 500;
-const NGP_GROWTH = 0.2, NGP_GROWTH_MAX = 5, NGP_SLOT_AT = 6;   // second action slot: the 6th new game plus   // deep echo: +20% skill growth per pick, 5 picks (+100%)
+const NGP_GROWTH = 0.2, NGP_GROWTH_MAX = 5;   // deep echo: +20% skill growth per pick, 5 picks (+100%)
+// New game plus rewards: one step per run, five steps each.
+const NGP = [
+  {id:'growth', name:'Deep echo',       max:5, now:k => '+' + Math.round(k * 20) + '% skill growth', step:'+20% skill growth for every skill'},
+  {id:'drain',  name:'Drain dampener',  max:5, now:k => 'health drain \u00f7' + (1 + 0.8 * k).toFixed(1), step:'divides all health drain further (\u00f71.8, \u00f72.6, \u00f73.4, \u00f74.2, \u00f75 at the last step)'},
+  {id:'hp',     name:'Template upgrade',max:5, now:k => '+' + (100 * k) + ' starting max health', step:'+100 max health for every clone'},
+];
+const ngpLv = id => Math.min(5, ((S.pr || {})[id]) || 0);
+const drainDiv = () => 1 + 0.8 * ngpLv('drain');   // new game plus drain dampener
 function mods(){
   const L = S.life, P = S.perks;
   const m = {sk:{}, xpSk:{}, spd:1, xp:1, haz:1, maxHp:Math.min(BASE_HP_MAX, 100 + Math.floor(S.vit || 0)), pRat:0, pSal:0, strainMul:1, regen:0.05, ratCap:5, salCap:25, fcap:{}, pFood:{}, fq:{}, foodSpd:1};
@@ -707,6 +712,7 @@ function mods(){
   };
   PERKS.forEach(p => { if (P[p.id]) ap(p.eff); });
   m.xp *= 1 + NGP_GROWTH * Math.min(NGP_GROWTH_MAX, (S.pr && S.pr.growth) || 0);   // new game plus: deep echo
+  m.maxHp += 100 * ngpLv('hp');   // new game plus: template upgrade
   ITEMS.forEach(i => { if (L.owned[i.id]) ap(i.eff); });
   TASKS.forEach(t => { if (t.lifeEff && isDone(t.id)) ap(t.lifeEff); });
   // ration totals for display: the stores in play (this section's food and earlier ones)
@@ -937,7 +943,7 @@ function feedJob(){
   if (!job) { L.feeding = false; return null; }
   const f = jobFood(job), cap = M.fcap[f], have = L.food[f] || 0;
   const low = cap * (S.set.foodPct || 40) / 100;
-  const drain = Math.min(HUNGER * (L.strain || 1), MAX_DRAIN);
+  const drain = Math.min(HUNGER * (L.strain || 1), MAX_DRAIN) / drainDiv();
   const mh = mealHp(f), recoverable = mh / MEAL_CD > drain;
   const hpNeed = recoverable && L.hp < M.maxHp * 0.6 ? Math.ceil((M.maxHp - L.hp) / mh) : 0;
   const target = Math.min(cap - 0.01, Math.max(low * 2, hpNeed));
@@ -1024,20 +1030,18 @@ function die(cause){
 function step(dt){
   const L = S.life;
   const t = active(); L.cur = t ? t.id : null;
-  // New game plus: a second action slot works on the next thing in line at the same time.
-  const t2 = t && S.pr && S.pr.slot2 ? active(new Set([t.id])) : null; L.cur2 = t2 ? t2.id : null;
+  const t2 = null; L.cur2 = null;
   if (!t) return false;      // nothing running: time stands still, like Increlution
   work(t, dt);
-  if (t2 && available(t2) && !L.dead && (t2.kind === 'job' ? !jobFull(t2) : !complete(t2))) work(t2, dt);
   if (M.pRat) FOODS.forEach(f => { if (M.pFood[f.id]) addFood(f.id, M.pFood[f.id] * dt); });
   L.salvage += M.pSal * dt;
   clampRes();
   autoBuy();
-  // Health drains all the time; hazards add to it (with two slots, the worse of the two). Meals put some back.
-  const h1 = t.haz ? hazDmg(t) : 0, h2 = t2 && t2.haz ? hazDmg(t2) : 0, ht = h2 > h1 ? t2 : t;
+  // Health drains all the time; hazards add to it. Meals put some back. (New game plus can damp it.)
+  const h1 = t.haz ? hazDmg(t) : 0, h2 = 0, ht = t;
   L.wear = (L.wear || 0) + dt;
   L.strain = (L.strain || 1) + dt * strainRate(L.wear);
-  const drain = Math.min(HUNGER * L.strain + Math.max(h1, h2), MAX_DRAIN);
+  const drain = Math.min(HUNGER * L.strain + h1, MAX_DRAIN) / drainDiv();
   L.hp -= drain * dt;
   if (!L.mcd) L.mcd = {};
   FOODS.forEach(f => { if (L.mcd[f.id]) L.mcd[f.id] = Math.max(0, L.mcd[f.id] - dt); });
@@ -1150,13 +1154,13 @@ function qMoveTo(i, to){
 // New game plus: everything resets except the rewards, settings, presets, the stasis boost and the
 // time-away limit, which carries over and keeps adding up (+8 h per section finished, every run).
 function prestige(choice){
-  const o = S, pr = o.pr || {n:0, growth:0, slot2:false, carry:0, runs:[]};
+  const o = S, pr = o.pr || {n:0, growth:0, drain:0, hp:0, carry:0, runs:[]};
   const carry = Math.min(AWAY_CAP - AWAY_BASE, (pr.carry || 0) + AWAY_STEP * WATCH.filter(p => o.perks[p.id]).length);
   const ns = defaultState();
   ns.set = o.set; ns.set.paused = false; ns.set.boost = false;
   ns.qpresets = o.qpresets; ns.bank = o.bank || 0; ns.intro = true;
   ns.stats.played = o.stats.played || 0;
-  ns.pr = {n:pr.n + 1, growth:(pr.growth || 0) + (choice === 'growth' ? 1 : 0), slot2:!!pr.slot2 || choice === 'slot2', carry,
+  ns.pr = {n:pr.n + 1, growth:(pr.growth || 0) + (choice === 'growth' ? 1 : 0), drain:(pr.drain || 0) + (choice === 'drain' ? 1 : 0), hp:(pr.hp || 0) + (choice === 'hp' ? 1 : 0), carry,
     runs:(pr.runs || []).concat([{clones:o.winGen || o.gen, played:Math.round(o.stats.played || 0), pick:choice}])};
   S = ns; M = mods(); S.life.hp = M.maxHp;
 }
@@ -1413,7 +1417,7 @@ function survival(){
   const dt = 5, eatOn = S.set.autoEat;
   while (t < lifeLeft) {
     strain += dt * strainRate((L.wear || 0) + t);
-    hp -= Math.min(HUNGER * strain + haz, MAX_DRAIN) * dt;
+    hp -= Math.min(HUNGER * strain + haz, MAX_DRAIN) / drainDiv() * dt;
     fs.forEach(f => {
       f.stock = Math.min(f.cap, f.stock + f.gain * dt); f.cd -= dt;
       if (eatOn && f.cd <= 0 && f.stock >= 1 && hp <= M.maxHp - f.hp / 2) { f.stock -= 1; hp = Math.min(M.maxHp, hp + f.hp); f.cd = f.full; }
@@ -1968,14 +1972,6 @@ function updateHud(){
       $('#n-eta').textContent = cur.prod ? (jobFast(sp) ? 'continuous' : 'next batch ' + both((1 - (L.cyc[cur.id] || 0)) * JOB_CYCLE / sp)) : 'training';
     }
   }
-  const n2 = $('#now2'), has2 = !!(S.pr && S.pr.slot2);
-  n2.hidden = !has2;
-  if (has2) {
-    const f2 = $('#n2-fill');
-    if (!cur2 || L.dead || S.set.paused) { $('#n2-name').textContent = L.dead ? 'Second slot' : S.set.paused ? 'Paused' + (cur2 ? ': ' + cur2.name : '') : 'Second slot: nothing else to do'; $('#n2-eta').textContent = ''; if (!cur2) f2.style.width = '0'; f2.classList.remove('fast'); }
-    else if (cur2.kind !== 'job') { const sp = speedOf(cur2); f2.classList.remove('fast'); $('#n2-name').textContent = cur2.name; f2.style.width = ((L.prog[cur2.id] || 0) / cur2.days * 100).toFixed(1) + '%'; $('#n2-eta').textContent = both((cur2.days - (L.prog[cur2.id] || 0)) / sp); }
-    else { const sp = speedOf(cur2); $('#n2-name').textContent = cur2.name; jobBar(f2, cur2, sp); $('#n2-eta').textContent = cur2.prod ? (jobFast(sp) ? 'continuous' : 'next batch ' + both((1 - (L.cyc[cur2.id] || 0)) * JOB_CYCLE / sp)) : 'training'; }
-  }
   renderSpeed();
   audioMood(L.dead ? 0 : L.hp / M.maxHp, paused || !!S.set.paused);
 }
@@ -2066,13 +2062,12 @@ document.addEventListener('change', e => {
   audioStart(); sfx('toggle'); save(); renderSpeed(); e.target.blur();
 });
 function ngpPanel(){
-  const pr = S.pr || {n:0, growth:0, slot2:false};
+  const pr = S.pr || {n:0};
   let h = '<div class="panel ngp"><span class="h2">New game plus</span>';
   h += '<p class="note">Start the whole ship over with a new line of clones. Everything resets: clones, skills and echoes, archive records, practice and automation. You keep your new game plus rewards, settings and queue presets, the stasis boost, and the time-away limit you have earned, which keeps growing by 8 hours for every section you finish, run after run.</p>';
   h += '<table class="dt">';
   h += `<tr><td>Runs completed</td><td>${pr.n}</td></tr>`;
-  h += `<tr><td>Deep echo</td><td>${pr.growth ? '+' + Math.round(pr.growth * NGP_GROWTH * 100) + '% skill growth (' + pr.growth + ' of ' + NGP_GROWTH_MAX + ')' : 'none'}</td></tr>`;
-  h += `<tr><td>Second action slot</td><td>${pr.slot2 ? 'yes' : 'no'}</td></tr>`;
+  NGP.forEach(r => { const k = ngpLv(r.id); h += `<tr><td>${r.name}</td><td>${k ? r.now(k) + ' (' + k + '/' + r.max + ')' : 'none'}</td></tr>`; });
   h += `<tr><td>Time away carried over</td><td>${Math.min(pr.carry || 0, AWAY_CAP - AWAY_BASE) / 3600} h${awayMax() >= AWAY_CAP ? ' \u00b7 limit at the 168 h maximum' : ''}</td></tr>`;
   (pr.runs || []).forEach((r, i) => { h += `<tr><td>Run ${i + 1}</td><td>${r.clones} clone${r.clones === 1 ? '' : 's'} \u00b7 ${fmtHours(r.played)} played total</td></tr>`; });
   h += '</table>';
@@ -2081,13 +2076,13 @@ function ngpPanel(){
   return h + '</div>';
 }
 function showNgp(){
-  const pr = S.pr || {}, g = pr.growth || 0, done = g >= NGP_GROWTH_MAX && pr.slot2;
+  const done = NGP.every(r => ngpLv(r.id) >= r.max);
   showModal(`<h2>New game plus</h2>
     <p>WARDEN files the ship as delivered and opens a fresh line of maintenance clones for the return voyage. Nothing of this line remains: no echoes, no records, no practice.</p>
     <p class="d">Choose what the new line inherits:</p>
     <div class="ngpick">
-      <button class="btn" data-ngpick="growth" ${g >= NGP_GROWTH_MAX ? 'disabled' : ''}>Deep echo ${Math.min(g + 1, NGP_GROWTH_MAX)}/${NGP_GROWTH_MAX}<small>${g >= NGP_GROWTH_MAX ? 'Fully upgraded: +' + Math.round(NGP_GROWTH_MAX * NGP_GROWTH * 100) + '% skill growth.' : '+20% skill growth for every skill (total +' + Math.round((g + 1) * NGP_GROWTH * 100) + '%).'}</small></button>
-      <button class="btn" data-ngpick="slot2" ${pr.slot2 || (pr.n || 0) < NGP_SLOT_AT - 1 ? 'disabled' : ''}>Second action slot<small>${pr.slot2 ? 'Already yours.' : (pr.n || 0) < NGP_SLOT_AT - 1 ? 'Unlocks at your ' + NGP_SLOT_AT + 'th new game plus (' + (pr.n || 0) + ' done so far).' : 'Your clone works on two things at once: the next task in line runs alongside the first.'}</small></button>
+      ${NGP.map(r => { const k = ngpLv(r.id), full = k >= r.max;
+        return `<button class="btn" data-ngpick="${r.id}" ${full ? 'disabled' : ''}>${r.name} ${Math.min(k + 1, r.max)}/${r.max}<small>${full ? 'Fully upgraded: ' + r.now(k) + '.' : r.step + '. After this: ' + r.now(k + 1) + '.'}</small></button>`; }).join('')}
       ${done ? '<button class="btn" data-ngpick="none">Start over without a reward<small>Every reward is collected. The time-away limit still carries over.</small></button>' : ''}
     </div>
     <p class="d">Your current progress in this slot is erased. Export a save first if you want a copy.</p>
@@ -2359,7 +2354,7 @@ const FAQ_ALL = [
   ['Settings', 'The ⚙ button opens sound (music and effects), layout (vertical or horizontal) and, in the Android app, app updates. Gameplay options such as auto-eat and the forage threshold are in the Archive tab.'],
 ];
 // Shown only once new game plus is unlocked (it stays hidden until the drive is first lit).
-const FAQ_NGP = ['New game plus', 'After you light the main drive, <b>New game plus</b> opens in the Archive tab. It starts the whole ship over: clones, skills and echoes, archive records, practice and automation all reset. Each run gives one lasting reward. The first five give <b>Deep echo</b> (+20% skill growth for every skill each, +100% in all). The sixth gives the <b>second action slot</b>: your clone works on the next task in line at the same time as the first. Your settings, queue presets and stasis boost carry over, and so does your time-away limit: the hours from Stasis watch records add up from run to run, up to 168 hours (one week).'];
+const FAQ_NGP = ['New game plus', 'After you light the main drive, <b>New game plus</b> opens in the Archive tab. It starts the whole ship over: clones, skills and echoes, archive records, practice and automation all reset. Each run you pick one step of a lasting reward. Each reward has five steps: <b>Deep echo</b> (+20% skill growth per step, +100% in all), <b>Drain dampener</b> (health drain divided by 1.8, 2.6, 3.4, 4.2 and finally 5) and <b>Template upgrade</b> (+100 max health for every clone per step, +500 in all). Fifteen runs collect everything. Your settings, queue presets and stasis boost carry over, and so does your time-away limit: the hours from Stasis watch records add up from run to run, up to 168 hours (one week).'];
 let faqDone = '';
 function renderFaq(){
   const k = String(!!(S.won || (S.pr && S.pr.n)));
@@ -2506,10 +2501,10 @@ document.addEventListener('click', e => {
   if ('ngp' in d) { if (S.won) showNgp(); return; }
   if (d.ngpick) {
     const pr0 = S.pr || {};
-    if (!S.won || (d.ngpick === 'slot2' && (pr0.slot2 || (pr0.n || 0) < NGP_SLOT_AT - 1)) || (d.ngpick === 'growth' && (pr0.growth || 0) >= NGP_GROWTH_MAX)
-      || (d.ngpick === 'none' && !((pr0.growth || 0) >= NGP_GROWTH_MAX && pr0.slot2))) return;
+    const rw = NGP.find(r => r.id === d.ngpick), allDone = NGP.every(r => ngpLv(r.id) >= r.max);
+    if (!S.won || (rw ? ngpLv(rw.id) >= rw.max : !(d.ngpick === 'none' && allDone))) return;
     prestige(d.ngpick); resetViews(); hideModal(); paused = false; save(); setTab('tasks');
-    toast('New game plus ' + S.pr.n + ' begins. ' + (d.ngpick === 'slot2' ? 'Second action slot unlocked.' : d.ngpick === 'growth' ? 'Deep echo ' + S.pr.growth + '/' + NGP_GROWTH_MAX + ': +' + Math.round(S.pr.growth * NGP_GROWTH * 100) + '% skill growth.' : 'No new reward this time.'), true);
+    toast('New game plus ' + S.pr.n + ' begins. ' + (rw ? rw.name + ' ' + ngpLv(rw.id) + '/' + rw.max + ': ' + rw.now(ngpLv(rw.id)) + '.' : 'No new reward this time.'), true);
     return;
   }
   if (L.dead && !d.confirm) return;
