@@ -104,6 +104,7 @@ main .wrap{display:grid;gap:18px}
 .qh button{font-size:12px;color:var(--dim);padding:3px 6px}
 .qlist{display:flex;flex-wrap:wrap;gap:6px}
 .qchip{font-size:12px;padding:5px 8px;border-radius:4px;background:var(--panel2);border:1px solid var(--line);text-align:left}
+.qchip small{color:var(--dim);font-size:11px}
 .qchip i{font-style:normal;color:var(--faint);margin-left:6px}
 .qchip.blocked{opacity:.55}
 .qnote{font-size:12px;color:var(--dim)}
@@ -618,7 +619,16 @@ function active(){
   const feed = feedJob();
   if (feed) return feed;
   if ((L.strain || 1) >= restAt()) { const r = TASKS.find(t => t.kind === 'rest' && isAuto(t) && available(t) && !complete(t)); if (r) return r; }
-  for (const id of L.queue) { const t = T[id]; if (available(t) && !complete(t)) return t; }
+  // Your queue: actions run until done; queued jobs run until their storage is full, then drop out
+  for (const id of L.queue.slice()) {
+    const t = T[id];
+    if (t.kind === 'job') {
+      if (!available(t)) continue;
+      if (jobFull(t)) { L.queue = L.queue.filter(x => x !== id); HOOK.change(); continue; }
+      return t;
+    }
+    if (available(t) && !complete(t)) return t;
+  }
   // Everything automated (actions, training, jobs, crossings) competes on priority alone:
   // P1 always beats P2, and so on. Ties go actions, then training, then jobs (emptiest storage
   // first), then crossings, then ship order.
@@ -1367,10 +1377,10 @@ function renderTasks(){
   if (L.queue.length) {
     h += '<div class="qlist">' + L.queue.map((id, i) => {
       const t = T[id]; const bl = !available(t);
-      return `<button class="qchip${bl ? ' blocked' : ''}" data-unq="${id}" aria-label="Remove ${esc(t.name)} from queue">${i+1}. ${esc(t.name)}<i>✕</i></button>`;
+      return `<button class="qchip${bl ? ' blocked' : ''}" data-unq="${id}" aria-label="Remove ${esc(t.name)} from queue">${i+1}. ${esc(t.name)}${t.kind === 'job' ? ' <small>until full</small>' : ''}<i>✕</i></button>`;
     }).join('') + '</div>';
   } else {
-    h += '<div class="qnote">Empty. Tap a task to start it now, or + to add it to the end.</div>';
+    h += '<div class="qnote">Empty. Tap a task to start it now, or + to add it to the end. Queued jobs run until their storage is full.</div>';
   }
   h += `<div class="qnote">Fallback job: <b>${L.job ? esc(T[L.job].name) : 'none'}</b>. It runs whenever the queue is empty.</div></div>`;
 
@@ -1393,7 +1403,7 @@ function renderTasks(){
           <button class="tm" data-do="${t.id}"><div class="tf"></div>
             <div class="th"><span class="tn">${esc(t.name)}</span><span class="te num" data-r="${res}"></span></div>
             <div class="tx">${chips(t)}${t.haz ? '<span class="haz">▲ hazard</span>' : ''}${!t.prod ? '<span>skill training only</span>' : '<span class="tt num"></span>'}${practiced(t) ? '' : '<span class="pr num"></span>'}</div>
-          </button>${practiced(t) ? `<div class="side">${autoBtn(t)}</div>` : ''}</div>` + prioPick(t);
+          </button><div class="side"><button class="tq${L.queue.includes(t.id) ? ' in' : ''}" data-q="${t.id}" aria-label="${L.queue.includes(t.id) ? 'Queued' : 'Add to queue (runs until storage is full)'}">${L.queue.includes(t.id) ? '#' + (L.queue.indexOf(t.id) + 1) : '+'}</button>${autoBtn(t)}</div></div>` + prioPick(t);
       });
     }
     if (rests.length) {
@@ -1986,7 +1996,10 @@ document.addEventListener('click', e => {
     taskKey = ''; renderView(); return;
   }
   if (d.q) {
-    if (!L.queue.includes(d.q)) { L.queue.push(d.q); toast('Queued: ' + T[d.q].name); }
+    if (!L.queue.includes(d.q)) {
+      if (T[d.q].kind === 'job' && jobFull(T[d.q])) { toast('Storage is full already. Spend or use some first.'); return; }
+      L.queue.push(d.q); toast('Queued: ' + T[d.q].name + (T[d.q].kind === 'job' ? ' (until storage is full)' : ''));
+    }
     else { L.queue = L.queue.filter(x => x !== d.q); }
     taskKey = ''; renderView(); return;
   }
