@@ -713,6 +713,12 @@ const gearZone = i => T[i.req].cross ? T[i.req].z + 1 : T[i.req].z;
 let S, M;
 const HOOK = {log(){}, perk(){}, die(){}, win(){}, change(){}, stopped(){}, practiced(){}, done(){}, rested(){}, crossed(){}, bought(){}, qfull(){}};
 
+// Player preferences (switches, thresholds, boost speed) are stored once for the device, not per save:
+// a new game or another slot starts with the same settings.
+const PREF_KEY = 'long-patience.prefs.v1';
+const PREF_KEYS = ['autoFood','autoEat','foodPct','restAt','keepQueue','deathScreen','deathPause','startPaused','bgPause','pauseCross','replay','fillCross','autoFeed','boostX'];
+function loadPrefs(){ try { const p = JSON.parse(localStorage.getItem(PREF_KEY) || '{}'); const o = {}; PREF_KEYS.forEach(k => { if (p[k] !== undefined) o[k] = p[k]; }); return o; } catch(e) { return {}; } }
+function savePrefs(){ try { if (!S || !S.set) return; const o = {}; PREF_KEYS.forEach(k => { if (S.set[k] !== undefined) o[k] = S.set[k]; }); localStorage.setItem(PREF_KEY, JSON.stringify(o)); } catch(e) {} }
 function newLife(s){
   const p = s.perks;
   const L = {day:0, hp:100, rations:p.decant?1:0, food:{algae:p.decant?1:0}, salvage:0, lv:{}, xp:{}, echo0:{},
@@ -723,7 +729,7 @@ function newLife(s){
 }
 function defaultState(){
   const s = {v:1, qpresets:[[], [], [], [], []], gprac:{}, gauto:{}, gprio:{}, ev:2, xpTot:{}, rv:4, sv:2, pv:3, vv:3, gen:1, prio:{}, fam:{}, ever:{}, prac:{}, auto:{}, echo:{}, perks:{}, seen:{}, logged:{}, log:[], lastOrder:[], lastJob:null,
-    set:{speed:1, autoFood:true, autoEat:true, foodDays:2, foodPct:40, restAt:2.5, keepQueue:true, deathScreen:true, deathPause:true, startPaused:false, bgPause:false, pauseCross:false, replay:true, fillCross:false, autoFeed:false, boost:false, boostX:2},
+    set:Object.assign({speed:1, autoFood:true, autoEat:true, foodDays:2, foodPct:40, restAt:2.5, keepQueue:true, deathScreen:true, deathPause:true, startPaused:false, bgPause:false, pauseCross:false, replay:true, fillCross:false, autoFeed:false, boost:false, boostX:2}, loadPrefs()),
     stats:{bestAge:0, deaths:0, daysLived:0, played:0}, pr:{n:0, pts:0, growth:0, drain:0, hp:0, speed:0, carry:0, runs:[]}, won:false, winGen:0, bank:0, saved:Date.now(), intro:false};
   SKILLS.forEach(k => s.echo[k.id] = 0);
   s.life = newLife(s);
@@ -1656,6 +1662,7 @@ try { slot = Math.min(SLOTS, Math.max(1, +localStorage.getItem(ACTIVE_KEY) || 1)
 function save(){
   if (!S) return;
   try { S.saved = Date.now(); localStorage.setItem(slotKey(slot), JSON.stringify(S)); localStorage.setItem(ACTIVE_KEY, slot); } catch(e) {}
+  savePrefs();
 }
 function readSlot(i){
   try { const r = localStorage.getItem(slotKey(i)); return r ? JSON.parse(r) : null; } catch(e) { return null; }
@@ -1724,7 +1731,9 @@ function mergeState(raw){
   const d = defaultState();
   if (!raw || typeof raw !== 'object' || !raw.life) return d;
   const s = Object.assign(d, raw);
-  s.set = Object.assign(defaultState().set, raw.set || {});
+  const hadPrefs = (() => { try { return !!localStorage.getItem(PREF_KEY); } catch(e) { return false; } })();
+  s.set = Object.assign(defaultState().set, raw.set || {}, loadPrefs());   // device-wide preferences win over the save's copy
+  if (!hadPrefs) { const keep = S; S = s; savePrefs(); S = keep; }   // first run: adopt this save's settings as the device's
   s.stats = Object.assign(defaultState().stats, raw.stats || {});
   if (raw.stats && raw.stats.played == null) s.stats.played = (raw.hist || []).reduce((a, e) => a + (e.r || 0), 0) + ((raw.life && !raw.life.dead && raw.life.real) || 0);
   if (Array.isArray(s.log)) s.log.forEach(e => { const t = TASKS.find(x => x.name === e.t || (x.id === 'warden' && (e.t === 'Negotiate with WARDEN' || e.t === 'Demand the drive codes from WARDEN'))); if (t && t.log) { e.t = t.name; e.x = t.log; } });
@@ -2845,7 +2854,7 @@ document.addEventListener('click', e => {
   }
   if (d.gauto) { S.gauto[d.gauto] = !S.gauto[d.gauto]; autoKey = ''; gearKey = ''; taskKey = ''; toast((S.gauto[d.gauto] ? 'Auto-build on: ' : 'Auto-build off: ') + IT[d.gauto].name); renderView(); return; }
   if (d.gsetprio) { S.gprio[d.gsetprio] = +d.n; autoKey = ''; gearKey = ''; toast('Priority ' + d.n + ': ' + IT[d.gsetprio].name); renderView(); return; }
-  if (d.set) { S.set[d.set] = !S.set[d.set]; autoKey = ''; renderArchive(true); if (tab === 'auto') renderAuto(); return; }
+  if (d.set) { S.set[d.set] = !S.set[d.set]; savePrefs(); autoKey = ''; renderArchive(true); if (tab === 'auto') renderAuto(); return; }
   if (d.confirm) {
     const k = d.confirm;
     if (!confirmT[k]) {
