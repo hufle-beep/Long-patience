@@ -2025,7 +2025,7 @@ const FAQ = [
   ['What is gear?', 'Gear is built from salvage in the <b>Gear</b> tab and lasts for one clone. Each section has designs to build. Salvage storage is limited; opening up more of the ship raises it.'],
   ['How does automation work?', 'Finish an action in 10 different lives (or work a job for 10 batches in 10 lives, or build a design in 10 lives) and an <b>AUTO</b> switch appears. Automated tasks run by themselves when your queue is empty, in priority order: P1 first, P5 last. The <b>Auto</b> tab lists everything unlocked and has extra options: feeding when needed, filling storage before moving on, the strain level for automatic rests, the death screen and starting paused.'],
   ['What happens at a crossing with automation?', 'A queued or automated crossing stops just before it finishes and waits while the clone finishes automated actions and training, builds affordable automated gear, refills storage (if that option is on) and uses the section’s rest. Tap a crossing yourself to go at once.'],
-  ['Pause, background and boost', 'Pause with the button at the top or the space bar. The game keeps running in a background tab and catches up when you return, then shows what happened while you were away. Time while the game is fully closed is stored as a <b>+2×</b> boost you can switch on in the header.'],
+  ['Pause, background and boost', 'Pause with the button at the top or the space bar. The game keeps running in a background tab and catches up when you return, then shows what happened while you were away. Time while the game is fully closed is stored as a <b>+2×</b> boost you can switch on in the header. Both are capped at 24 hours: at most 24 hours of background time is played out, and the boost holds at most 24 hours.'],
   ['Saves', 'The game saves itself every few seconds on this device, in three slots (☰ menu). Use <b>Save files and transfer</b> in the menu to export a save file, import one, or copy the save as text to move it between devices.'],
   ['Settings', 'The ⚙ button opens sound (music and effects), layout (vertical or horizontal) and, in the Android app, app updates. Gameplay options such as auto-eat and the forage threshold are in the Archive tab.'],
 ];
@@ -2086,7 +2086,7 @@ document.addEventListener('click', e => {
     if (awayState) {
       S = mergeState(JSON.parse(awayState)); M = mods(); resetViews(); pendingDecant = false;
       const gone = Math.max(0, (Date.now() - awayAt) / 1000);
-      S.bank = Math.min((S.bank || 0) + gone, 8*3600);   // the discarded time becomes stasis boost
+      S.bank = Math.min((S.bank || 0) + gone, BANK_MAX);   // the discarded time becomes stasis boost
       last = performance.now(); save(); toast('Back to where you left off. ' + fmtSecs(gone) + ' added to the +2\u00d7 boost.');
     }
     awayState = null; hideModal(); paused = false; setTab(tab); return;
@@ -2251,7 +2251,8 @@ let last = performance.now(), saveT = 0, viewT = 0;
 // The game keeps running when the tab is hidden: a slow timer keeps ticking, and any gap
 // (tab throttled, phone asleep) is simulated in one go when the page gets time again.
 // Gaps longer than CATCHUP_MAX are partly turned into stasis boost instead.
-const CATCHUP_MAX = 12 * 3600;
+const CATCHUP_MAX = 24 * 3600;   // at most 24 h of background time is played out
+const BANK_MAX = 24 * 3600;      // the +2\u00d7 stasis boost holds at most 24 h
 function simulate(dt){
   if (dt <= 0 || S.life.dead || paused || S.set.paused) return;
   let mult = S.set.speed;
@@ -2269,7 +2270,7 @@ function simulate(dt){
 }
 function tick(now){
   let dt = (now - last) / 1000; last = now;
-  if (dt > CATCHUP_MAX) { S.bank = Math.min(S.bank + dt - CATCHUP_MAX, 8*3600); dt = CATCHUP_MAX; }
+  if (dt > CATCHUP_MAX) { S.bank = Math.min(S.bank + dt - CATCHUP_MAX, BANK_MAX); dt = CATCHUP_MAX; }
   simulate(dt);
   if (pendingDecant) { autoDecant(); simulate(0); }
   saveT += dt;
@@ -2413,7 +2414,7 @@ function boot(data){
   M = mods();
   if (!raw) S.life.hp = M.maxHp;
   if (S.set.startPaused && !S.life.dead) S.set.paused = true;   // option: open the game paused
-  if (raw && raw.saved) S.bank = Math.min((S.bank || 0) + Math.max(0, (Date.now() - raw.saved) / 1000), 8*3600);
+  if (raw && raw.saved) S.bank = Math.min((S.bank || 0) + Math.max(0, (Date.now() - raw.saved) / 1000), BANK_MAX);
   setTab('tasks');
   if (raw) showMenu(); else startGame();
   last = performance.now();
