@@ -370,6 +370,10 @@ button.updl{width:100%}
 .dt.ft{width:100%}
 .dt.ft td{white-space:nowrap;padding-left:8px;font-size:12px}
 .dt.ft td:first-child{padding-left:0}
+.dt.ft th{padding-left:8px;white-space:nowrap}
+.dt.ft th:first-child{padding-left:0}
+.dt.ft tr.ftbest td{color:var(--amber)}
+.dt.ft tr.ftbest td small{color:var(--amber);opacity:.8}
 .dt.ft td small{display:block;color:var(--dim);font-size:11px}
 .rtab .dt.ft td:nth-child(2){text-align:right!important;font-family:var(--f-mono)!important}
 .rtab .dt.ft th:nth-child(2){text-align:right}
@@ -1060,6 +1064,12 @@ function finish(t){
 }
 // Run history: each clone's furthest section and time, plus the best run so far.
 // Rank: furthest section reached (6 = drive lit), then the fastest real time to get there.
+// Best finish of each section across all clones in this run: the fewest ship days (ties: less real time)
+function bestFin(g, fin){
+  if (!S.bestSec) S.bestSec = [null, null, null, null, null];
+  (fin || []).forEach((f, i) => { if (!f) return; const b = S.bestSec[i];
+    if (!b || f[0] < b.d - 1e-9 || (Math.abs(f[0] - b.d) < 1e-9 && f[1] < b.r)) S.bestSec[i] = {g, d:f[0], r:f[1]}; });
+}
 function recordBest(L){
   const sec = L.wonAt ? 6 : (L.sec || 1), at = L.wonAt || (L.secAt && L.secAt[L.sec]) || {d:0, r:0};
   const b = S.best;
@@ -1077,6 +1087,7 @@ function die(cause){
   // when each section was finished: arriving in the next one, or lighting the drive for the last
   const fin = ZONES.map(z => { const a = z.id < 5 ? (L.secAt || {})[z.id + 1] : L.wonAt; return a ? [+(a.d / TPD).toFixed(2), Math.round(a.r)] : null; });
   S.hist.push({g:S.gen, sec:L.wonAt ? 6 : (L.sec || 1), d:L.day, r:L.real || 0, cause, fin});
+  bestFin(S.gen, fin);
   if (S.hist.length > 50) S.hist.shift();
   recordBest(L);
   if (age > (S.stats.bestDays || 0)) S.stats.bestDays = age;
@@ -1590,6 +1601,7 @@ function mergeState(raw){
   }
   if (!s.xpTot) s.xpTot = {};
   s.ev = 2;
+  if (!s.bestSec && Array.isArray(s.hist)) { const keep = S; S = s; s.hist.forEach(e => bestFin(e.g, e.fin)); S = keep; }
   if (!Array.isArray(s.qpresets)) s.qpresets = [];
   while (s.qpresets.length < QPRESETS) s.qpresets.push([]);
   if (s.life && !Array.isArray(s.life.qdone)) { const q = s.life.queue || []; s.life.qdone = (s.life.qplan || []).filter(id => !q.includes(id)); delete s.life.qplan; }
@@ -2221,7 +2233,7 @@ function renderArchive(force){
 }
 let histAll = false;
 function renderLog(){
-  const key = S.log.length + '|' + (S.log.length ? S.log[S.log.length-1].t : '') + '|' + (S.hist ? S.hist.length : 0) + '|' + histAll + '|' + S.gen + '|' + JSON.stringify(S.best || {});
+  const key = S.log.length + '|' + (S.log.length ? S.log[S.log.length-1].t : '') + '|' + (S.hist ? S.hist.length : 0) + '|' + JSON.stringify(S.bestSec || 0) + '|' + histAll + '|' + S.gen + '|' + JSON.stringify(S.best || {});
   if (key === logKey) return; logKey = key;
   const secName = n => n >= 6 ? 'Drive lit' : ZONES[n - 1].name;
   const realT = r => fmtReal(r);
@@ -2232,8 +2244,8 @@ function renderLog(){
   else h += `<div class="rtab"><table class="dt"><thead><tr><th>Clone</th><th>Furthest</th><th>Days</th><th>Real</th></tr></thead><tbody>${hist.map(e => `<tr title="${esc(e.cause)}"><td>${e.g}</td><td>${secName(e.sec)}</td><td>${(e.d / TPD).toFixed(1)}</td><td>${realT(e.r)}</td></tr>`).join('')}</tbody></table></div>`;
   if (hist.length) {
     const short = ['Vat', 'Ring', 'Spine', 'Deck', 'Drive'];
-    h += '<span class="lbl" style="display:block;margin-top:12px">Section finish times</span><p class="note">In-game day and real time when each clone finished a section (left it, or lit the drive).</p>';
-    h += `<div class="rtab"><table class="dt ft"><thead><tr><th>Clone</th>${ZONES.map((z, i) => `<th title="${esc(z.name)}">${short[i]}</th>`).join('')}</tr></thead><tbody>${hist.map(e => `<tr><td>${e.g}</td>${ZONES.map((z, i) => { const f = e.fin && e.fin[i]; return `<td>${f ? 'd' + f[0].toFixed(1) + '<small>' + realT(f[1]) + '</small>' : '\u2014'}</td>`; }).join('')}</tr>`).join('')}</tbody></table></div>`;
+    h += '<span class="lbl" style="display:block;margin-top:12px">Section finish times</span><p class="note">In-game day and real time when each clone finished a section (left it, or lit the drive). The top row keeps the best of each section from any clone in this run (fewest ship days), with the clone number.</p>';
+    h += `<div class="rtab"><table class="dt ft"><thead><tr><th>Clone</th>${ZONES.map((z, i) => `<th title="${esc(z.name)}">${short[i]}</th>`).join('')}</tr></thead><tbody>${S.bestSec && S.bestSec.some(Boolean) ? `<tr class="ftbest"><td>Best</td>${ZONES.map((z, i) => { const b = S.bestSec[i]; return `<td>${b ? 'd' + b.d.toFixed(1) + '<small>' + realT(b.r) + '</small><small>clone ' + b.g + '</small>' : '\u2014'}</td>`; }).join('')}</tr>` : ''}${hist.map(e => `<tr><td>${e.g}</td>${ZONES.map((z, i) => { const f = e.fin && e.fin[i]; return `<td>${f ? 'd' + f[0].toFixed(1) + '<small>' + realT(f[1]) + '</small>' : '\u2014'}</td>`; }).join('')}</tr>`).join('')}</tbody></table></div>`;
   }
   const b = S.best;
   h += b ? `<p class="best"><span class="lbl">Best run</span> Clone ${b.g} ${b.sec >= 6 ? 'lit the drive' : 'reached the ' + secName(b.sec)} after ${(b.d / TPD).toFixed(1)} days \u00b7 ${realT(b.r)} real</p>` : '';
