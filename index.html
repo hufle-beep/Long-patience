@@ -2206,7 +2206,7 @@ function renderTasks(){
   if (key === taskKey) return;
   taskKey = key;
 
-  let h = '<div class="qp"><div class="qh"><span class="lbl">Queue <span class="num qcount">' + L.queue.length + '/' + QMAX + '</span> <span class="num qeta" id="q-eta"></span></span><span class="qhb">' + (L.queue.length || (L.qdone || []).length ? '<button class="qclear" data-clearq aria-label="Clear the whole queue">\u2715 Clear queue</button>' : '') + '</span></div>';
+  let h = '<div class="qp"><div class="qh"><span class="lbl">Queue <span class="num qcount">' + L.queue.length + '/' + QMAX + '</span> <span class="num qeta" id="q-eta">' + lastQEta + '</span></span><span class="qhb">' + (L.queue.length || (L.qdone || []).length ? '<button class="qclear" data-clearq aria-label="Clear the whole queue">\u2715 Clear queue</button>' : '') + '</span></div>';
   if (L.held) {
     const left = holdList();
     h += `<div class="hold"><div><b>${esc(T[L.held].name)}</b> is on hold until this section is wrapped up. Still to do: ${esc(left.join(', ') || 'nothing')}. Drag tasks above it in the queue to run them first.</div><button class="btn" data-skiphold>Skip the rest and cross now</button></div>`;
@@ -2380,7 +2380,7 @@ function renderSpeed(){
     if (t.textContent !== txt) t.textContent = txt;
   }
 }
-let lastHg = '', planT = 0;
+let lastHg = '', planT = 0, lastQEta = '';   // the queue box is rebuilt on changes: it starts from the last estimate, so nothing blinks
 function updateHud(){
   const L = S.life;
   const hg = 'Clone ' + S.gen + (S.pr && S.pr.n ? ' <span class="hng">NG+' + S.pr.n + (ngpLv('speed') ? ' \u00b7 \u00d7' + ngpSpeed().toFixed(1) : '') + '</span>' : '');
@@ -2401,7 +2401,8 @@ function updateHud(){
     if (performance.now() - planT > 400) {   // planned work, refreshed a few times a second
       planT = performance.now();
       const pt = plannedTicks(), pe = $('#s-plan'), qe = $('#q-eta');
-      if (qe) { const qt = pt > 0.5 ? '\u2248 ' + fmtDays(pt) + ' \u00b7 ' + fmtReal(realSecs(pt)) : ''; if (qe.textContent !== qt) qe.textContent = qt; }
+      lastQEta = pt > 0.5 ? '\u2248 ' + fmtDays(pt) + ' \u00b7 ' + fmtReal(realSecs(pt)) : '';
+      if (qe && qe.textContent !== lastQEta) qe.textContent = lastQEta;
       const txt = pt > 0.5 ? 'Planned work \u2248 ' + fmtDays(pt) + ' \u00b7 ' + fmtReal(realSecs(pt)) + (isFinite(sv.t) && pt > sv.t ? ' (more than this clone has left)' : '') : (L.queue.length ? 'Planned work: waiting on locked items' : 'Queue empty');
       if (pe.textContent !== txt) pe.textContent = txt;
       pe.classList.toggle('over', isFinite(sv.t) && pt > sv.t);
