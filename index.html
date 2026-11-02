@@ -771,14 +771,15 @@ function pendingGearJob(){
 // A crossing (queued or automated) stops just short of finishing while there is still something to
 // do in this section. Tapping the crossing yourself ("do it now") skips the wait.
 function crossPending(t){ return S.life.crossNow !== t.id && (pendingActs().length || pendingGearJob() || (S.set.fillCross && fillJob()) || pendingRest()); }
-// Section-end hold: when a crossing reaches its threshold with work left, it is taken out of the
-// queue (L.held) while the missing items run in priority order; once nothing is left it goes
-// back to the front of the queue and completes. "Skip and cross now" ends the hold early.
+// Section-end hold: when a crossing reaches its threshold with work left, it stays in the queue
+// marked as held (L.held), and at its place in the queue the missing items run in priority order.
+// Anything you put above it in the queue runs first. Once nothing is left, it completes.
+// "Skip and cross now" ends the hold early.
 function holdCross(t){
   const L = S.life, task = holdTask(t);
-  if (!task) return null;
-  L.held = t.id;
-  L.queue = L.queue.filter(x => x !== t.id);
+  if (!task) { if (L.held === t.id) { L.held = null; HOOK.change(); } return null; }
+  if (L.held !== t.id) { L.held = t.id; HOOK.change(); }
+  if (!L.queue.includes(t.id)) L.queue.unshift(t.id);   // an automated crossing joins the queue while held
   return task;
 }
 function heldStep(){
@@ -786,10 +787,8 @@ function heldStep(){
   if (!L.held) return null;
   const c = T[L.held];
   if (!c || complete(c) || !available(c)) { L.held = null; return null; }
-  const task = holdTask(c);
-  if (task) return task;
-  L.held = null; qAdd(c.id, true); HOOK.change();   // everything done: the crossing is back, first in line
-  return c;
+  if (!L.queue.includes(c.id)) L.queue.unshift(c.id);   // held crossings live in the queue (older saves)
+  return null;
 }
 function skipHold(){
   const L = S.life; if (!L.held) return;
@@ -1001,7 +1000,7 @@ function qAdd(id, front){
   if (front) L.qplan = [id, ...L.qplan.filter(x => x !== id)]; else if (!L.qplan.includes(id)) L.qplan.push(id);
   return true;
 }
-function qRemove(id){ const L = S.life; L.queue = L.queue.filter(x => x !== id); L.qplan = (L.qplan || []).filter(x => x !== id); }
+function qRemove(id){ const L = S.life; if (L.held === id) L.held = null; L.queue = L.queue.filter(x => x !== id); L.qplan = (L.qplan || []).filter(x => x !== id); }
 function qMove(id, dir){
   const L = S.life, i = L.queue.indexOf(id), j = i + dir;
   if (i < 0 || j < 0 || j >= L.queue.length) return;
@@ -1610,13 +1609,13 @@ function renderTasks(){
   let h = '<div class="qp"><div class="qh"><span class="lbl">Queue <span class="num qcount">' + L.queue.length + '/' + QMAX + '</span></span><span class="qhb">' + (L.queue.length || (L.qplan || []).length ? '<button data-clearq>Reset queue</button>' : '') + '</span></div>';
   if (L.held) {
     const left = holdList();
-    h += `<div class="hold"><div><b>${esc(T[L.held].name)}</b> is on hold until this section is wrapped up. Still to do: ${esc(left.join(', ') || 'nothing')}. It returns to the queue when they are done.</div><button class="btn" data-skiphold>Skip the rest and cross now</button></div>`;
+    h += `<div class="hold"><div><b>${esc(T[L.held].name)}</b> is on hold until this section is wrapped up. Still to do: ${esc(left.join(', ') || 'nothing')}. Drag tasks above it in the queue to run them first.</div><button class="btn" data-skiphold>Skip the rest and cross now</button></div>`;
   }
   h += '<div class="qbody"><div class="qmain">';
   if (L.queue.length) {
     h += '<ol class="qlist">' + L.queue.map((id, i) => {
       const t = T[id], bl = !available(t);
-      const why = !bl ? '' : t.z > L.sec ? 'waits for the ' + ZONES[t.z - 1].name : t.z < L.sec ? 'left behind' : 'waiting for its requirements';
+      const why = L.held === id ? 'on hold: wrapping up the section' : !bl ? '' : t.z > L.sec ? 'waits for the ' + ZONES[t.z - 1].name : t.z < L.sec ? 'left behind' : 'waiting for its requirements';
       return `<li class="qrow${bl ? ' blocked' : ''}" data-qid="${id}"><span class="qdrag" data-qdrag="${id}" aria-hidden="true" title="Drag to reorder">⠇</span><span class="qn">${i + 1}.</span><span class="qt">${esc(t.name)}${t.kind === 'job' ? ' <small>until full</small>' : ''}${why ? ` <small>${why}</small>` : ''}</span>
         <button data-qmove="${id}" data-dir="-1" ${i === 0 ? 'disabled' : ''} aria-label="Move ${esc(t.name)} up">\u2191</button><button data-qmove="${id}" data-dir="1" ${i === L.queue.length - 1 ? 'disabled' : ''} aria-label="Move ${esc(t.name)} down">\u2193</button><button data-unq="${id}" aria-label="Remove ${esc(t.name)} from queue">\u2715</button></li>`;
     }).join('') + '</ol>';
