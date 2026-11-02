@@ -430,9 +430,9 @@ button.updl{width:100%}
 
 <script id="logic">
 /* ===== Game data and rules (no DOM) ===== */
-const DPS = 4;             // simulation ticks per real second at 1x
+const DPS = 2;             // simulation ticks per real second at 1x (halved: everything takes twice the real time)
 // Time is simulated in ticks. 80 ticks make one ship day (18 minutes each), so a day lasts
-// 20 real seconds at 1x and a clone lives weeks, not years. Everything is shown in days and hours.
+// 40 real seconds at 1x and a clone lives weeks, not years. Everything is shown in days and hours.
 const TPD = 80;
 const JOB_CYCLE = 8;       // in-game days of base work per job batch
 const MEAL_CD = 40;        // ticks between meals: one ration every 12 hours, 2 a day
@@ -562,7 +562,7 @@ const TASKS = [
   {id:'ignite', z:5, kind:'act', name:'Ignite the main drive', sk:['nav','eng','res'], days:6000, req:['course','injectors'], win:true,
     log:'The stardrive lights. WARDEN begins the wake cycle for 3,112 sleepers. Your vat is scheduled for recycling.'},
 ];
-const ZDAYS = {1:0.3, 2:1, 3:0.8, 4:1, 5:0.8};
+const ZDAYS = {1:0.3, 2:1, 3:0.9, 4:1.15, 5:0.9};   // later sections longer to offset mastery
 const TRAIN_CAP = 4, TRAIN_XP = 1.5;
 const T = {}; TASKS.forEach(t => { T[t.id] = t; t.reps = t.kind === 'train' ? TRAIN_CAP : (t.reps || 1); if (t.days) t.days = Math.round(t.days * ZDAYS[t.z]); });
 
@@ -672,7 +672,18 @@ const lifeDays = () => Infinity;   // no lifespan limit
 function skF(s){ return (1 + 0.1 * S.life.lv[s]) * echoSpeed(s) * M.sk[s]; }
 // (The old last-quarter ageing slowdown was removed; strain alone limits a life.)
 function frailty(){ return 1; }   // ageing slowdown removed
-function speedOf(t){ let p = 1; t.sk.forEach(s => p *= skF(s)); return Math.pow(p, 1 / t.sk.length) * M.spd * frailty(); }
+function speedOf(t){ let p = 1; t.sk.forEach(s => p *= skF(s)); return Math.pow(p, 1 / t.sk.length) * M.spd * frailty() * masteryF(t); }
+// Mastery: past the AUTO_LIVES lives of practice that unlock automation, every MASTER_STEP more lives
+// that finish a task cut its time by 20% (x0.8 each), down to half the time (double speed).
+// Jobs are not affected.
+const MASTER_STEP = 10, MASTER_CUT = 0.8, MASTER_MIN = 0.5;
+function masterySteps(t){ return Math.max(0, Math.floor((((S.prac || {})[t.id] || 0) - AUTO_LIVES) / MASTER_STEP)); }
+function masteryTxt(t){
+  const n = masterySteps(t), f = masteryF(t), p = (S.prac || {})[t.id] || 0;
+  if (f >= 1 / MASTER_MIN - 1e-9) return 'mastered \u00b7 \u00d72 speed';
+  return (n ? 'mastery \u00d7' + f.toFixed(2) + ' \u00b7 ' : '') + 'next ' + p + '/' + (AUTO_LIVES + (n + 1) * MASTER_STEP) + ' lives';
+}
+function masteryF(t){ return t.kind === 'job' ? 1 : 1 / Math.max(MASTER_MIN, Math.pow(MASTER_CUT, masterySteps(t))); }
 function hazDmg(t){ const L = S.life; return (t.haz || 0) * M.haz / (1 + 0.2 * L.lv.cbt + 0.3 * L.lv.res); }
 function xpRate(t, s){ return ZT[t.z] * M.xp * M.xpSk[s] * (t.kind === 'train' ? TRAIN_XP : 1); }
 
@@ -1698,7 +1709,7 @@ function renderTasks(){
         h += `<div class="task act rest" data-id="${t.id}">
           <button class="tm" data-do="${t.id}"><div class="tf"></div>
             <div class="th"><span class="tn">${esc(t.name)}</span><span class="te num"></span></div>
-            <div class="tx">${chips(t)}<span>strain \u00f72</span>${practiced(t) ? `<span>auto at strain \u00d7${restAt()}</span>` : `<span class="num">practice ${S.prac[t.id] || 0}/${AUTO_LIVES} lives</span>`}</div>
+            <div class="tx">${chips(t)}<span>strain \u00f72</span>${practiced(t) ? `<span>auto at strain \u00d7${restAt()}</span><span class="num">${masteryTxt(t)}</span>` : `<span class="num">practice ${S.prac[t.id] || 0}/${AUTO_LIVES} lives</span>`}</div>
           </button>
           <div class="side"><button class="tq${qi >= 0 ? ' in' : ''}" data-q="${t.id}" aria-label="${qi >= 0 ? 'Queued' : 'Add to queue'}">${qi >= 0 ? '#' + (qi+1) : '+'}</button>${autoBtn(t)}</div></div>` + prioPick(t);
       });
@@ -1710,7 +1721,7 @@ function renderTasks(){
         h += `<div class="task act train" data-id="${t.id}">
           <button class="tm" data-do="${t.id}"><div class="tf"></div>
             <div class="th"><span class="tn">${esc(t.name)}</span><span class="te num"></span></div>
-            <div class="tx">${chips(t)}<span class="num rp"></span>${practiced(t) ? '' : `<span class="num">practice ${S.prac[t.id] || 0}/${AUTO_LIVES} lives</span>`}</div>
+            <div class="tx">${chips(t)}<span class="num rp"></span>${practiced(t) ? `<span class="num">${masteryTxt(t)}</span>` : `<span class="num">practice ${S.prac[t.id] || 0}/${AUTO_LIVES} lives</span>`}</div>
           </button>
           <div class="side"><button class="tq${qi >= 0 ? ' in' : ''}" data-q="${t.id}" aria-label="${qi >= 0 ? 'Queued' : 'Add to queue'}">${qi >= 0 ? '#' + (qi+1) : '+'}</button>${autoBtn(t)}</div></div>` + prioPick(t);
       });
@@ -1723,7 +1734,7 @@ function renderTasks(){
         h += `<div class="task act${t.cross ? ' cross' : ''}" data-id="${t.id}">
           <button class="tm" data-do="${t.id}"><div class="tf"></div>${t.cross ? `<div class="crossw">Leads to the ${esc(ZONES[t.z].name)} \u00b7 no way back</div>` : ''}
             <div class="th"><span class="tn">${esc(t.name)}</span><span class="te num"></span></div>
-            <div class="tx">${chips(t)}${t.reps > 1 ? `<span class="num rp"></span>` : ''}${t.haz ? '<span class="haz">▲ hazard</span>' : ''}${rb.length ? '<span>' + rb.join(' · ') + '</span>' : ''}${practiced(t) ? '' : `<span class="num">practice ${S.prac[t.id] || 0}/${AUTO_LIVES} lives</span>`}</div>
+            <div class="tx">${chips(t)}${t.reps > 1 ? `<span class="num rp"></span>` : ''}${t.haz ? '<span class="haz">▲ hazard</span>' : ''}${rb.length ? '<span>' + rb.join(' · ') + '</span>' : ''}${practiced(t) ? `<span class="num">${masteryTxt(t)}</span>` : `<span class="num">practice ${S.prac[t.id] || 0}/${AUTO_LIVES} lives</span>`}</div>
           </button>
           <div class="side"><button class="tq${qi >= 0 ? ' in' : ''}" data-q="${t.id}" aria-label="${qi >= 0 ? 'Queued' : 'Add to queue'}">${qi >= 0 ? '#' + (qi+1) : '+'}</button>${autoBtn(t)}</div></div>` + prioPick(t);
       });
@@ -2217,6 +2228,7 @@ const FAQ_ALL = [
   ['What carries over when a clone dies?', 'Skill levels reset, but every bit of XP a skill has ever earned is kept as its <b>echo</b>, making that skill permanently faster. Each day a clone survives adds 0.8 to the base health of later clones, up to 500. <b>Archive records</b> found by finishing certain actions are permanent upgrades. Gear, rations, salvage and progress through the ship reset.'],
   ['What are sections?', 'The ship is split into five sections. A <b>red</b> action leads to the next one, and the way back is sealed for that clone, so finish what you need first (records, the rest, training, gear). Each new clone starts back in the Vat Bay.'],
   ['What is gear?', 'Gear is built from salvage in the <b>Gear</b> tab and lasts for one clone. Each section has designs to build. Salvage storage is limited; opening up more of the ship raises it.'],
+  ['What is mastery?', 'Once a task can be automated (finished in 10 lives), it keeps improving: every 10 more lives that finish it make it 20% quicker (time ×0.8 each step), up to double speed at 50 lives. Actions, crossings, training and rests count; jobs do not. The task card shows your mastery and the next step.'],
   ['How does automation work?', 'Finish an action in 10 different lives (or work a job for 10 batches in 10 lives, or build a design in 10 lives) and an <b>AUTO</b> switch appears. Automated tasks run by themselves when your queue is empty, in priority order: P1 first, P5 last. The <b>Auto</b> tab lists everything unlocked and has extra options: feeding when needed, filling storage before moving on, the strain level for automatic rests, the death screen and starting paused.'],
   ['What happens at a crossing with automation?', 'A queued or automated crossing stops just before it finishes and waits while the clone finishes automated actions and training, builds affordable automated gear, refills storage (if that option is on) and uses the section’s rest. Tap a crossing yourself to go at once.'],
   ['Pause, background and boost', 'Pause with the button at the top or the space bar. The game keeps running in a background tab and catches up when you return, then shows what happened while you were away. Time while the game is fully closed is stored as a <b>+2×</b> boost you can switch on in the header. Both start capped at 8 hours: at most 8 hours of background time is played out, and the boost holds at most 8 hours. Each <b>Stasis watch</b> record adds 8 hours to both; you get one the first time you finish each section (5 in all, up to 48 hours).'],
