@@ -818,7 +818,11 @@ const MASTER_MIN = 0.1;   // x10 at full familiarity
 const JOB_UNIT = 20;      // about what a life of steady work on a job delivers
 const FAM_N0 = 90, FAM_RUN = 0.75, FAM_ECHO = 0.8;   // threshold in units; x0.75 per finished run; x0.8 per Deep echo step
 function compUnit(t){ return t.kind === 'job' ? JOB_UNIT : t.kind === 'train' ? TRAIN_CAP : t.kind === 'rest' ? 1 : (t.reps || 1); }
-const autoNeed = t => AUTO_LIVES * compUnit(t);
+// The automation requirement shrinks with the familiarity threshold (new game plus runs, Deep echo):
+// 10 lives' worth in a first run, then the same share of the current threshold, never below 1.
+const autoScale = () => famN0() / FAM_N0;
+const autoNeed = t => Math.max(1, Math.ceil(AUTO_LIVES * compUnit(t) * autoScale()));
+const gearNeed = () => Math.max(1, Math.ceil(AUTO_LIVES * autoScale()));
 function famN0(){ const pr = S.pr || {}; return Math.max(1, FAM_N0 * Math.pow(FAM_RUN, pr.n || 0) * Math.pow(FAM_ECHO, Math.min(5, pr.growth || 0))); }
 const famNeed = t => famN0() * compUnit(t);
 const masterNeed = famNeed;
@@ -1080,7 +1084,7 @@ function holdTask(t){
 function crossHeld(t){ return (S.life.prog[t.id] || 0) >= t.days - CROSS_HOLD - 1e-9 && !!crossPending(t); }
 // Gear automation: a design built in AUTO_LIVES different lives can be built automatically.
 // Automated designs are built in priority order; the top one is saved up for before cheaper ones.
-const gearPracticed = it => ((S.gprac || {})[it.id] || 0) >= AUTO_LIVES;
+const gearPracticed = it => ((S.gprac || {})[it.id] || 0) >= gearNeed();
 const gearPrio = it => (S.gprio && S.gprio[it.id]) || 3;
 function buyItem(id, auto){
   const L = S.life, it = IT[id];
@@ -1089,8 +1093,8 @@ function buyItem(id, auto){
   if (it.eff.maxHp) L.hp += it.eff.maxHp;
   if (!S.gprac) S.gprac = {};
   S.gprac[id] = (S.gprac[id] || 0) + 1;
-  if (S.gprac[id] === AUTO_LIVES && S.gauto[id] !== false) S.gauto[id] = true;   // on by default once unlocked
-  HOOK.bought(it, auto, S.gprac[id] === AUTO_LIVES);
+  if (S.gprac[id] === gearNeed() && S.gauto[id] !== false) S.gauto[id] = true;   // on by default once unlocked
+  HOOK.bought(it, auto, S.gprac[id] === gearNeed());
   return true;
 }
 function autoBuy(){
@@ -2261,7 +2265,7 @@ function qBtn(id, extra){
 }
 function gearRow(i){
   const L = S.life, pr = gearPracticed(i), on = !!(S.gauto && S.gauto[i.id]);
-  const st = pr ? (on ? 'built automatically when affordable' : 'can be automated') : 'built in ' + ((S.gprac || {})[i.id] || 0) + '/' + AUTO_LIVES + ' lives';
+  const st = pr ? (on ? 'built automatically when affordable' : 'can be automated') : 'built in ' + ((S.gprac || {})[i.id] || 0) + '/' + gearNeed() + ' lives';
   return `<div class="item gitem"><div><h3>${esc(i.name)}</h3><p>${esc(i.desc)}</p><p class="num">${st}</p></div>` +
     (L.owned[i.id] ? '<span class="owned">Built</span>' : `<button class="buy" data-buy="${i.id}" ${L.salvage >= i.cost ? '' : 'disabled'}>${fmt(i.cost)} salvage${i.cost > M.salCap ? '<br><small>needs storage</small>' : ''}</button>${gqBtn(i)}`) +
     (pr ? `<button class="ta${on ? ' on' : ''}" data-gauto="${i.id}" aria-pressed="${on}" aria-label="Build ${esc(i.name)} automatically">AUTO</button>` : '') + '</div>';
@@ -2572,7 +2576,7 @@ function renderAuto(){
   const glist = ITEMS.filter(gearPracticed);
   const key = list.map(t => t.id + (S.auto[t.id] ? '*' : '') + (masteryF(t) >= SECTION_F ? 5 : masteryF(t) >= LINK_F ? 2 : 1)).join() + '|' + glist.map(i => i.id + (S.gauto[i.id] ? '*' : '')).join() + '|' + (S.life.chainRun ? 'R' : '') + '|' + L.sec + '|' + S.gen + '|' + !!S.set.fillCross + !!S.set.autoFeed + '|' + restAt() + '|' + (S.set.deathScreen !== false) + (S.set.deathPause !== false) + !!S.set.startPaused + !!S.set.bgPause + !!S.set.pauseCross + decantUnlocked() + (S.stats.deaths || 0);
   if (key === autoKey) return; autoKey = key;
-  let h = `<div class="panel"><span class="h2">Automation</span><p class="note">Tasks finished often enough can run by themselves (10 lives' worth: an action 10 times, a training session 40 times, a job ${AUTO_LIVES * JOB_UNIT} batches), and gear built in ${AUTO_LIVES} lives can be built automatically (in ship order; the clone saves up for the next one). Switch them on here. They run in chain order: each after the tasks it needs. Linked tasks form chains, and a fully chained section can be run with one click. Automated tasks run ahead of your queue (automated jobs when their store drops below the forage threshold); automated crossings wait until the queue is done. Rests fire on their own at strain ×${restAt()}, and also just before an automated crossing if the section\u2019s rest is still unused.</p>
+  let h = `<div class="panel"><span class="h2">Automation</span><p class="note">Tasks finished often enough can run by themselves (${autoScale() < 1 ? 'this run needs ' + Math.round(autoScale() * 100) + '% of' : ''} 10 lives' worth: an action 10 times, a training session 40 times, a job ${AUTO_LIVES * JOB_UNIT} batches), and gear built in ${AUTO_LIVES} lives can be built automatically (in ship order; the clone saves up for the next one). Switch them on here. They run in chain order: each after the tasks it needs. Linked tasks form chains, and a fully chained section can be run with one click. Automated tasks run ahead of your queue (automated jobs when their store drops below the forage threshold); automated crossings wait until the queue is done. Rests fire on their own at strain ×${restAt()}, and also just before an automated crossing if the section\u2019s rest is still unused.</p>
     ${decantUnlocked()
       ? `<div class="row"><p>Show the death screen<small>On: the game stops at each death until you decant the next clone. Off: the next clone is decanted at once and the run keeps going; a short message sums up the death.</small></p><button class="tog${S.set.deathScreen !== false ? ' on' : ''}" data-set="deathScreen" aria-label="Show the death screen" aria-pressed="${S.set.deathScreen !== false}"></button></div>`
       : `<div class="fld"><label>Death screen</label><small class="note">Automatic decanting unlocks after ${AUTO_LIVES} clones have died (${S.stats.deaths || 0}/${AUTO_LIVES}). Until then the game stops at each death.</small></div>`}
@@ -2645,7 +2649,7 @@ const FAQ_ALL = [
   ['What are sections?', 'The ship is split into five sections. A <b>red</b> action leads to the next one, and the way back is sealed for that clone, so finish what you need first (records, the rest, training, gear). Each new clone starts back in the Vat Bay.'],
   ['What is gear?', 'Gear is built from salvage in the <b>Gear</b> tab and lasts for one clone. Each section has designs to build. Salvage storage is limited; opening up more of the ship raises it.'],
   ['What is familiarity?', 'There are no skills: each task gets faster on its own the more of it your clones have done. Familiarity counts work in completions, including attempts a clone died in the middle of, and is kept between clones. Speed rises smoothly from ×1 to ×10 once you have done enough of a task: in a first run, 90 lives’ worth of it (90 finishes of an action, 1800 batches of a job). Every finished run lowers that by a quarter, and so does each step of the new game plus <b>Deep echo</b> reward (by a fifth), down to a single life’s worth. Familiar tasks also hurt less (hazard damage up to ÷4), and a familiar food job lets its food be eaten more often. <b>Drills</b> spread familiarity to every task of their types. The Speed tab lists every task.'],
-  ['How does automation work?', 'Every completion counts: finish an action 10 times (a multi-rep action 10 times its reps), a training session 40 times or a rest 10 times, work a job for 200 batches, or build a design in 10 lives, and its automation <b>switches on by itself</b>; tap <b>AUTO</b> (or its switch in the Auto tab) to turn it off, and it stays off. Automated tasks run by themselves <b>ahead of your queue</b>, in chain order (each after the tasks it needs). Automated tasks <b>link into chains</b> when one requires the other and both are at least ×2 familiar. When every action, crossing, job and rest of a section is automated and ×5 familiar, and all its gear designs are automated, the whole section becomes <b>one chain</b>: press <b>▶ Run section</b> (top of the section in the Tasks tab) and the clone works through everything, builds the gear, fills its stores and crosses, carrying on into the next section if that one is ready too. An automated job steps in when its store drops below the forage threshold and fills it up. Automated <b>crossings</b> are the exception: they wait until your queue is done. A task you tap runs before everything. The <b>Auto</b> tab lists everything unlocked and has extra options: feeding when needed, filling storage before moving on, the strain level for automatic rests, the death screen and starting paused.'],
+  ['How does automation work?', 'Every completion counts: finish an action 10 times (a multi-rep action 10 times its reps), a training session 40 times or a rest 10 times, work a job for 200 batches, or build a design in 10 lives, and its automation <b>switches on by itself</b>. In new game plus runs these counts shrink along with the familiarity threshold (a quarter less per finished run, a fifth less per Deep echo step), never below one; tap <b>AUTO</b> (or its switch in the Auto tab) to turn it off, and it stays off. Automated tasks run by themselves <b>ahead of your queue</b>, in chain order (each after the tasks it needs). Automated tasks <b>link into chains</b> when one requires the other and both are at least ×2 familiar. When every action, crossing, job and rest of a section is automated and ×5 familiar, and all its gear designs are automated, the whole section becomes <b>one chain</b>: press <b>▶ Run section</b> (top of the section in the Tasks tab) and the clone works through everything, builds the gear, fills its stores and crosses, carrying on into the next section if that one is ready too. An automated job steps in when its store drops below the forage threshold and fills it up. Automated <b>crossings</b> are the exception: they wait until your queue is done. A task you tap runs before everything. The <b>Auto</b> tab lists everything unlocked and has extra options: feeding when needed, filling storage before moving on, the strain level for automatic rests, the death screen and starting paused.'],
   ['What happens at a crossing with automation?', 'A queued or automated crossing stops just before it finishes and waits while the clone finishes automated actions and training, builds affordable automated gear, refills storage (if that option is on) and uses the section’s rest. Tap a crossing yourself to go at once.'],
   ['Pause, background and boost', 'Pause with the button at the top or the space bar. The game keeps running in a background tab and catches up when you return, then shows what happened while you were away. Time while the game is fully closed is banked as a <b>stasis boost</b> you can switch on in the header. Pick Off, ×2, ×5 or ×10 from its menu: at ×5 every real second plays five, and the bank pays for the extra four, so faster boost spends the bank faster. Both start capped at 8 hours: at most 8 hours of background time is played out, and the boost holds at most 8 hours. Each <b>Stasis watch</b> record adds 8 hours to both; you get one the first time you finish each section (5 in all, up to 48 hours).'],
   ['Saves', 'The game saves itself every few seconds on this device, in three slots (☰ menu). Use <b>Save files and transfer</b> in the menu to export a save file, import one, or copy the save as text to move it between devices.'],
