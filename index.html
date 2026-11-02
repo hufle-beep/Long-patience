@@ -53,8 +53,10 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--amber);outline-
 .now.paused{border-color:var(--cyan)}
 .spd button.boost{color:var(--cyan);border-color:var(--cyan-soft)}
 .spd button.boost.on{background:var(--cyan);color:var(--bg)}
-.spd button.bx{padding:5px 6px;margin-left:-2px}
-.spd button.bx small{font-size:9px;margin-left:1px;opacity:.7}
+.spd .bsel{display:inline-flex;align-items:center;gap:6px;font-family:var(--f-mono);font-size:12px;padding:2px 4px 2px 9px;border:1px solid var(--cyan-soft);border-radius:4px;color:var(--cyan)}
+.spd .bsel.on{background:var(--cyan);color:var(--bg)}
+.spd .bsel select{font:inherit;color:inherit;background:transparent;border:0;padding:3px 2px;cursor:pointer}
+.spd .bsel select option{color:var(--fg);background:var(--panel)}
 .meter{display:grid;grid-template-columns:54px 1fr auto;align-items:center;gap:8px}
 .bar{height:6px;background:var(--panel2);border-radius:3px;overflow:hidden}
 .bar i{display:block;height:100%;width:0;background:var(--amber);border-radius:3px}
@@ -1897,8 +1899,18 @@ function renderSpeed(){
   // Time runs at 1x (speed-ups were removed); pause and the stasis boost remain.
   S.set.speed = 1;
   let h = `<button data-settings="hud" class="flip" aria-label="Settings" title="Settings">\u2699</button><button data-atog="musicOn" class="mus${ASET.musicOn ? ' on' : ''}" aria-label="Music ${ASET.musicOn ? 'on' : 'off'}">\u266a</button><button data-pause class="pause${S.set.paused ? ' on' : ''}" aria-label="${S.set.paused ? 'Resume' : 'Pause'}">${S.set.paused ? '\u25b6 Resume' : '\u275a\u275a Pause'}</button>`;
-  if (S.bank >= 1) h += `<button data-boost class="boost${S.set.boost ? ' on' : ''}" aria-label="Stasis boost: ${boostX()} times speed, ${fmtSecs(S.bank)} banked">+${boostX()}× ${fmtSecs(S.bank)}</button><button data-boostx class="boost bx" aria-label="Boost speed: ${boostX()} times. Tap to change">×${boostX()}<small>\u25be</small></button>`;
+  // The boost control is built once and then only its text changes, so taps and the open
+  // dropdown are never interrupted by the countdown.
+  if (S.bank >= 1) h += `<label class="boost bsel" title="Stasis boost: banked time plays faster"><span aria-hidden="true">\u00bb</span><span class="bk-t num"></span><select id="bk-sel" aria-label="Stasis boost speed"><option value="0">Off</option>${BOOST_RATES.map(x => `<option value="${x}">\u00d7${x}</option>`).join('')}</select></label>`;
   if (h !== lastSpd) { lastSpd = h; $('#h-spd').innerHTML = h; }
+  const sel = $('#bk-sel');
+  if (sel) {
+    const v = S.set.boost ? String(boostX()) : '0';
+    if (sel.value !== v && document.activeElement !== sel) sel.value = v;
+    const lab = sel.parentNode; lab.classList.toggle('on', !!S.set.boost);
+    const t = lab.querySelector('.bk-t'), txt = fmtSecs(S.bank);
+    if (t.textContent !== txt) t.textContent = txt;
+  }
 }
 function updateHud(){
   const L = S.life;
@@ -2046,6 +2058,13 @@ document.addEventListener('input', e => {
   document.querySelectorAll(`[data-avv="${k}"]`).forEach(x => x.textContent = e.target.value);
 });
 document.addEventListener('change', e => { if (e.target.dataset && e.target.dataset.avol) sfx('click'); });
+document.addEventListener('change', e => {
+  if (e.target.id !== 'bk-sel') return;
+  const x = +e.target.value;
+  if (!x) { S.set.boost = false; toast('Stasis boost off. Banked: ' + fmtSecs(S.bank) + '.'); }
+  else { S.set.boost = true; S.set.boostX = x; toast('Stasis boost \u00d7' + x + ': the bank lasts ' + fmtSecs(S.bank / (x - 1)) + ' of running time.'); }
+  audioStart(); sfx('toggle'); save(); renderSpeed(); e.target.blur();
+});
 function ngpPanel(){
   const pr = S.pr || {n:0, growth:0, slot2:false};
   let h = '<div class="panel ngp"><span class="h2">New game plus</span>';
@@ -2335,7 +2354,7 @@ const FAQ_ALL = [
   ['What is mastery?', 'Once a task can be automated (finished in 10 lives), it keeps improving: every 10 more lives that finish it make it faster: ×1.5 at 20 lives, ×2.2 at 30, ×3.3 at 40 and ×5 at 50. Actions, crossings, training, rests and jobs all count (a mastered job produces faster). The task card shows your mastery and the next step.'],
   ['How does automation work?', 'Finish an action in 10 different lives (or work a job for 10 batches in 10 lives, or build a design in 10 lives) and an <b>AUTO</b> switch appears. Automated tasks run by themselves when your queue is empty, in priority order: P1 first, P5 last. The <b>Auto</b> tab lists everything unlocked and has extra options: feeding when needed, filling storage before moving on, the strain level for automatic rests, the death screen and starting paused.'],
   ['What happens at a crossing with automation?', 'A queued or automated crossing stops just before it finishes and waits while the clone finishes automated actions and training, builds affordable automated gear, refills storage (if that option is on) and uses the section’s rest. Tap a crossing yourself to go at once.'],
-  ['Pause, background and boost', 'Pause with the button at the top or the space bar. The game keeps running in a background tab and catches up when you return, then shows what happened while you were away. Time while the game is fully closed is banked as a <b>stasis boost</b> you can switch on in the header. Pick its speed with the ×2 / ×5 / ×10 button next to it: at ×5 every real second plays five, and the bank pays for the extra four, so faster boost spends the bank faster. Both start capped at 8 hours: at most 8 hours of background time is played out, and the boost holds at most 8 hours. Each <b>Stasis watch</b> record adds 8 hours to both; you get one the first time you finish each section (5 in all, up to 48 hours).'],
+  ['Pause, background and boost', 'Pause with the button at the top or the space bar. The game keeps running in a background tab and catches up when you return, then shows what happened while you were away. Time while the game is fully closed is banked as a <b>stasis boost</b> you can switch on in the header. Pick Off, ×2, ×5 or ×10 from its menu: at ×5 every real second plays five, and the bank pays for the extra four, so faster boost spends the bank faster. Both start capped at 8 hours: at most 8 hours of background time is played out, and the boost holds at most 8 hours. Each <b>Stasis watch</b> record adds 8 hours to both; you get one the first time you finish each section (5 in all, up to 48 hours).'],
   ['Saves', 'The game saves itself every few seconds on this device, in three slots (☰ menu). Use <b>Save files and transfer</b> in the menu to export a save file, import one, or copy the save as text to move it between devices.'],
   ['Settings', 'The ⚙ button opens sound (music and effects), layout (vertical or horizontal) and, in the Android app, app updates. Gameplay options such as auto-eat and the forage threshold are in the Archive tab.'],
 ];
@@ -2393,8 +2412,8 @@ document.addEventListener('click', e => {
   if (d.tab) return setTab(d.tab);
   if (d.speed) { S.set.speed = +d.speed; S.set.paused = false; renderSpeed(); return; }
   if ('pause' in d) { togglePause(); return; }
-  if ('boost' in d) { S.set.boost = !S.set.boost; renderSpeed(); return; }
-  if ('boostx' in d) { const i = BOOST_RATES.indexOf(boostX()); S.set.boostX = BOOST_RATES[(i + 1) % BOOST_RATES.length]; toast('Stasis boost speed: \u00d7' + S.set.boostX + '. Banked time lasts ' + fmtSecs(S.bank / (S.set.boostX - 1)) + ' at this speed.'); renderSpeed(); return; }
+
+  if (false) { const i = BOOST_RATES.indexOf(boostX()); S.set.boostX = BOOST_RATES[(i + 1) % BOOST_RATES.length]; toast('Stasis boost speed: \u00d7' + S.set.boostX + '. Banked time lasts ' + fmtSecs(S.bank / (S.set.boostX - 1)) + ' at this speed.'); renderSpeed(); return; }
   if ('skiphold' in d) { skipHold(); taskKey = ''; toast('Crossing now.'); renderView(); return; }
   if ('histall' in d) { histAll = !histAll; logKey = ''; renderView(); return; }
   if ('awayundo' in d) {
