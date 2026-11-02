@@ -374,6 +374,7 @@ button.updl{width:100%}
 .dt.ft th{padding-left:8px;white-space:nowrap}
 .dt.ft th:first-child{padding-left:0}
 .dt.ft tr.ftbest td{color:var(--amber)}
+tr.pttot td{font-weight:600;color:var(--amber)}
 .dt.ft tr.ftall td{color:var(--cyan)}
 .dt.ft tr.ftall td small{color:var(--cyan)}
 .dt.ft tr.ftbest td small{color:var(--amber);opacity:.8}
@@ -2250,12 +2251,21 @@ function renderArchive(force){
 }
 let histAll = false;
 function renderLog(){
-  const key = S.log.length + '|' + (S.log.length ? S.log[S.log.length-1].t : '') + '|' + (S.hist ? S.hist.length : 0) + '|' + JSON.stringify(S.bestSec || 0) + JSON.stringify(S.bestAll || 0) + '|' + histAll + '|' + S.gen + '|' + JSON.stringify(S.best || {});
+  const key = Math.floor((S.stats.played || 0) / 60) + '|' + S.log.length + '|' + (S.log.length ? S.log[S.log.length-1].t : '') + '|' + (S.hist ? S.hist.length : 0) + '|' + JSON.stringify(S.bestSec || 0) + JSON.stringify(S.bestAll || 0) + '|' + histAll + '|' + S.gen + '|' + JSON.stringify(S.best || {});
   if (key === logKey) return; logKey = key;
   const secName = n => n >= 6 ? 'Drive lit' : ZONES[n - 1].name;
   const realT = r => fmtReal(r);
   const allH = S.hist || [], hist = allH.slice(histAll ? -50 : -5).reverse();
-  let h = '<div class="panel"><span class="h2">Recent clones</span>';
+  // Play time: the whole save across new game plus, and how long each run took (from run start to
+  // the moment its new game plus began)
+  const runs = (S.pr && S.pr.runs) || [], tot = S.stats.played || 0;
+  let h = `<div class="panel"><span class="h2">Play time</span><p class="note">Real time the clock has run in this save, across every new game plus.</p><div class="rtab"><table class="dt"><tbody>`;
+  let prev = 0;
+  runs.forEach((r, i) => { const d = Math.max(0, (r.played || 0) - prev); prev = r.played || prev;
+    h += `<tr><td>${i ? 'Run ' + (i + 1) + ' (NG+' + i + ')' : 'Run 1'}</td><td>${r.clones} clone${r.clones === 1 ? '' : 's'}</td><td>${fmtHours(d)}</td></tr>`; });
+  h += `<tr><td>${runs.length ? 'Run ' + (runs.length + 1) + ' (NG+' + runs.length + ', now)' : 'This run'}</td><td>${S.gen} clone${S.gen === 1 ? '' : 's'} so far</td><td>${fmtHours(Math.max(0, tot - prev))}</td></tr>`;
+  h += `<tr class="pttot"><td>Total</td><td></td><td>${fmtHours(tot)}</td></tr></tbody></table></div></div>`;
+  h += '<div class="panel"><span class="h2">Recent clones</span>';
   if (allH.length > 5) h += `<button class="btn histm" data-histall>${histAll ? 'Show last 5' : 'Show all ' + allH.length}</button>`;
   if (!hist.length) h += '<p class="note">No clone has died yet. Each clone\u2019s furthest section and time will appear here.</p>';
   else h += `<div class="rtab"><table class="dt"><thead><tr><th>Clone</th><th>Furthest</th><th>Days</th><th>Real</th></tr></thead><tbody>${hist.map(e => `<tr title="${esc(e.cause)}"><td>${e.g}</td><td>${secName(e.sec)}</td><td>${(e.d / TPD).toFixed(1)}</td><td>${realT(e.r)}</td></tr>`).join('')}</tbody></table></div>`;
