@@ -355,6 +355,7 @@ button.updl{width:100%}
 .hold{display:grid;gap:8px;border:1px solid var(--amber);border-radius:5px;padding:9px 10px;font-size:12.5px;background:var(--amber-soft)}
 .hold b{color:var(--amber);font-weight:500}
 .hold .btn{justify-self:start;font-size:12px;padding:6px 10px}
+.asub{margin-top:6px}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 
@@ -581,6 +582,8 @@ const ITEMS = [
   {id:'diagrig',    name:'Injector diagnostic rig', cost:1600, req:'course', desc:'Engineering and Navigation work 25% faster', eff:{sk:{eng:1.25, nav:1.25}}},
 ];
 const IT = {}; ITEMS.forEach(i => IT[i.id] = i);
+// A design's section: where it becomes buildable. Designs unlocked by a crossing belong to the section it leads into.
+const gearZone = i => T[i.req].cross ? T[i.req].z + 1 : T[i.req].z;
 
 let S, M;
 const HOOK = {log(){}, perk(){}, die(){}, win(){}, change(){}, stopped(){}, practiced(){}, done(){}, rested(){}, crossed(){}, bought(){}, qfull(){}};
@@ -1725,8 +1728,8 @@ function renderGear(){
   let h = '<div class="panel"><span class="h2">Fabricator</span><p class="note">Gear is built from salvage and lasts for this clone only. New designs appear as you explore. Salvage storage is limited; opening up more of the ship raises it.</p></div><div>';
   if (!av.length) h += '<p class="note">Nothing to build yet. Climb out of the vat first.</p>';
   let lastZ = 0;
-  av.slice().sort((a, b) => T[a.req].z - T[b.req].z).forEach(i => {
-    const z = T[i.req].z;
+  av.slice().sort((a, b) => gearZone(a) - gearZone(b)).forEach(i => {
+    const z = gearZone(i);
     if (z !== lastZ) { lastZ = z; h += `<div class="sub" style="margin-top:12px">${ZONES[z - 1].name}</div>`; }
     h += `<div class="item"><div><h3>${esc(i.name)}</h3><p>${esc(i.desc)}</p><p class="num">${gearPracticed(i) ? (S.gauto && S.gauto[i.id] ? 'Built automatically \u00b7 P' + gearPrio(i) : 'Automation available in the Auto tab') : 'Built in ' + ((S.gprac || {})[i.id] || 0) + '/' + AUTO_LIVES + ' lives'}</p></div>` +
       (L.owned[i.id] ? '<span class="owned">Built</span>' : `<button class="buy" data-buy="${i.id}" ${L.salvage >= i.cost ? '' : 'disabled'}>${fmt(i.cost)} salvage${i.cost > M.salCap ? '<br><small>needs storage</small>' : ''}</button>`) + '</div>';
@@ -1971,7 +1974,7 @@ function renderAuto(){
     h += `<p class="note">Nothing unlocked yet. Finish an action in ${AUTO_LIVES} different lives, or work a job for ${JOB_PRAC_BATCHES} batches in ${AUTO_LIVES} different lives, and it will appear here. Gear counts once built in ${AUTO_LIVES} different lives.</p>`;
   }
   ZONES.forEach(z => {
-    const zl = list.filter(t => t.z === z.id), gl = glist.filter(i => T[i.req].z === z.id); if (!zl.length && !gl.length) return;
+    const zl = list.filter(t => t.z === z.id), gl = glist.filter(i => gearZone(i) === z.id); if (!zl.length && !gl.length) return;
     h += `<section class="zone"><header class="zh"><h2>${z.name}</h2><span>${z.id === L.sec ? 'you are here' : z.id < L.sec ? 'left behind this life' : 'ahead'}</span></header><div class="alist">`;
     ['job','act','train','rest'].forEach(k => zl.filter(t => t.kind === k).forEach(t => {
       const on = !!S.auto[t.id];
@@ -1981,6 +1984,7 @@ function renderAuto(){
           `<div class="aprio" role="group" aria-label="Priority for ${esc(t.name)}">${[1,2,3,4,5].map(n => `<button data-setprio="${t.id}" data-n="${n}" class="${prioOf(t) === n ? 'on' : ''}">${n}</button>`).join('')}</div>`}
       </div>`;
     }));
+    if (gl.length) h += '<div class="sub asub">Gear</div>';
     gl.forEach(i => {
       const on = !!S.gauto[i.id];
       h += `<div class="arow${on ? ' on' : ''}"><div class="an"><b>${esc(i.name)}</b><span>Gear \u00b7 ${fmt(i.cost)} salvage \u00b7 built when affordable</span></div>
