@@ -1904,7 +1904,7 @@ function showNgp(){
     <p class="d">Choose what the new line inherits:</p>
     <div class="ngpick">
       <button class="btn" data-ngpick="growth">Deep echo<small>+50% skill growth for every skill${pr.growth ? ' (you have +' + Math.round(pr.growth * NGP_GROWTH * 100) + '%; this stacks)' : ''}.</small></button>
-      <button class="btn" data-ngpick="slot2" ${pr.slot2 ? 'disabled' : ''}>Second action slot<small>${pr.slot2 ? 'Already yours.' : 'Your clone works on two things at once: the next task in line runs alongside the first.'}</small></button>
+      <button class="btn" data-ngpick="slot2" ${pr.slot2 || !(pr.n >= 1) ? 'disabled' : ''}>Second action slot<small>${pr.slot2 ? 'Already yours.' : !(pr.n >= 1) ? 'Available from your second new game plus. The first one gives the deep echo.' : 'Your clone works on two things at once: the next task in line runs alongside the first.'}</small></button>
     </div>
     <p class="d">Your current progress in this slot is erased. Export a save first if you want a copy.</p>
     <div class="btns"><button class="btn" data-close>Not yet</button></div>`);
@@ -2169,7 +2169,7 @@ const FAQ_ALL = [
   ['Settings', 'The ⚙ button opens sound (music and effects), layout (vertical or horizontal) and, in the Android app, app updates. Gameplay options such as auto-eat and the forage threshold are in the Archive tab.'],
 ];
 // Shown only once new game plus is unlocked (it stays hidden until the drive is first lit).
-const FAQ_NGP = ['New game plus', 'After you light the main drive, <b>New game plus</b> opens in the Archive tab. It starts the whole ship over: clones, skills and echoes, archive records, practice and automation all reset. Each run you pick one lasting reward: <b>Deep echo</b> (+50% skill growth for every skill, stacks each time you pick it) or a <b>second action slot</b> (once; your clone works on the next task in line at the same time as the first). Your settings, queue presets and +2× boost carry over, and so does your time-away limit: the hours from Stasis watch records add up from run to run.'];
+const FAQ_NGP = ['New game plus', 'After you light the main drive, <b>New game plus</b> opens in the Archive tab. It starts the whole ship over: clones, skills and echoes, archive records, practice and automation all reset. Each run gives one lasting reward. The first is always <b>Deep echo</b> (+50% skill growth for every skill). From the second on you choose: another Deep echo (they stack) or the <b>second action slot</b> (once; your clone works on the next task in line at the same time as the first). Your settings, queue presets and +2× boost carry over, and so does your time-away limit: the hours from Stasis watch records add up from run to run.'];
 let faqDone = '';
 function renderFaq(){
   const k = String(!!(S.won || (S.pr && S.pr.n)));
@@ -2314,7 +2314,7 @@ document.addEventListener('click', e => {
   }
   if ('ngp' in d) { if (S.won) showNgp(); return; }
   if (d.ngpick) {
-    if (!S.won || (d.ngpick === 'slot2' && S.pr && S.pr.slot2)) return;
+    if (!S.won || (d.ngpick === 'slot2' && (!S.pr || S.pr.slot2 || !(S.pr.n >= 1)))) return;   // the slot comes from the second run on
     prestige(d.ngpick); resetViews(); hideModal(); paused = false; save(); setTab('tasks');
     toast('New game plus ' + S.pr.n + ' begins. ' + (d.ngpick === 'slot2' ? 'Second action slot unlocked.' : 'Deep echo: +' + Math.round(S.pr.growth * NGP_GROWTH * 100) + '% skill growth.'), true);
     return;
