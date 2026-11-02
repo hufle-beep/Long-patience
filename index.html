@@ -71,7 +71,9 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--amber);outline-
 .res>div{flex-wrap:wrap}
 .res small.rt{flex-basis:100%;margin-left:0;color:var(--dim);font-size:11px}
 .res small.rt.neg{color:var(--red)}
-.foods{flex-basis:100%;display:flex;flex-wrap:wrap;gap:3px 8px;font-size:11px;color:var(--dim);font-family:var(--f-mono)}
+#t-ratt{white-space:normal;overflow-wrap:anywhere}
+.foods{flex-basis:100%;display:flex;flex-wrap:wrap;gap:3px 10px;font-size:12.5px;color:var(--fg);font-family:var(--f-mono)}
+.foods em{font-style:normal;color:var(--dim)}
 .foods span.full{color:var(--amber)}
 .foods span i{font-style:normal;color:var(--faint)}
 .surv{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;font-size:12px}
@@ -407,7 +409,7 @@ button.updl{width:100%}
     <div class="meter"><span class="lbl" style="min-width:0;text-align:left">Health</span><div class="bar hp"><i id="b-hp"></i></div><span id="t-hp" class="num"></span></div>
     <div class="surv" id="surv"><span class="lbl">Time left</span><b id="s-left" class="num"></b><span id="s-real" class="num"></span><em id="s-why"></em><span id="s-strain" class="num strain"></span></div>
     <div class="res">
-      <div><span class="lbl">Food</span><b id="t-rat" class="num"></b><small id="t-ratr" class="num"></small><small id="t-ratt" class="rt num"></small><span id="t-foods" class="foods"></span><button id="eatb" class="eat num" data-eat>Eat</button></div>
+      <div><span class="lbl">Food</span><span id="t-foods" class="foods"></span><small id="t-ratt" class="rt num"></small><button id="eatb" class="eat num" data-eat>Eat</button></div>
       <div><span class="lbl">Salvage</span><b id="t-sal" class="num"></b><small id="t-salr" class="num"></small><small id="t-salt" class="rt num"></small></div>
     </div>
     <div class="now" id="now"><div class="nf" id="n-fill"></div><span id="n-name"></span><span id="n-eta" class="num"></span></div>
@@ -1978,17 +1980,15 @@ function updateHud(){
   se2.classList.toggle('hi', st >= 1.6);
   surv.classList.toggle('warn', !L.dead && sv.why !== 'nothing soon');
   const re = storeEta(L.rations, M.ratCap, rr), se = storeEta(L.salvage, M.salCap, sr);
-  $('#t-ratt').textContent = re.txt === 'full' ? 'storage full' : re.txt === 'empty' ? 'empty: starving' : re.txt === 'steady' ? '' : re.txt + ' ' + both(re.days);
-  $('#t-ratt').classList.toggle('neg', re.txt === 'empty in' || re.txt === 'empty');
+  // only a warning about running out altogether; the stores themselves are listed per food
+  $('#t-ratt').textContent = !nextFood() ? 'no food: starving' : re.txt === 'empty in' ? 'all food gone in ' + both(re.days) : '';
+  $('#t-ratt').classList.toggle('neg', true);
   $('#t-salt').textContent = se.txt === 'full' ? 'storage full' : se.txt === 'steady' ? '' : se.txt + ' ' + both(se.days);
-  $('#t-rat').innerHTML = fmt(L.rations) + '<span class="cap">/' + Math.round(M.ratCap) + '</span>';
   const fl = FOODS.filter(f => f.z <= (L.sec || 1) || (L.food[f.id] || 0) > 0.005).map(f => {
     const v = L.food[f.id] || 0, cd = (L.mcd || {})[f.id] || 0;
-    return `<span class="${v >= M.fcap[f.id] - 0.01 ? 'full' : ''}" title="${f.name}: heals ${fmt(mealHp(f.id))}, one every ${fmtDays(mealCd(f.id))}">${f.id} ${fmt(v)}/${M.fcap[f.id]}${v >= 1 && cd > 0 ? ' <i>' + fmtDays(cd) + '</i>' : ''}</span>`;
+    return `<span class="${v >= M.fcap[f.id] - 0.01 ? 'full' : ''}" title="${f.name}: heals ${fmt(mealHp(f.id))}, one every ${fmtDays(mealCd(f.id))}"><em>${f.id}</em> ${fmt(v)}/${M.fcap[f.id]}${v >= FOOD_MIN && cd > 0 ? ' <i>' + fmtDays(cd) + '</i>' : ''}</span>`;
   }).join('');
   const tf = $('#t-foods'); if (tf.innerHTML !== fl) tf.innerHTML = fl;
-  $('#t-rat').classList.toggle('full', L.rations >= M.ratCap - 0.01);
-  const ra = $('#t-ratr'); ra.textContent = (rr >= 0 ? '+' : '−') + fmt(perDay(Math.abs(rr))) + '/d'; ra.className = 'num ' + (rr >= 0 ? 'pos' : 'neg');
   const eb = $('#eatb'), ready = readyFoods()[0];
   eb.disabled = !canEat();
   const miss = M.maxHp - L.hp;
