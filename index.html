@@ -532,7 +532,7 @@ const ITEMS = [
 const IT = {}; ITEMS.forEach(i => IT[i.id] = i);
 
 let S, M;
-const HOOK = {log(){}, perk(){}, die(){}, win(){}, change(){}, stopped(){}, practiced(){}, done(){}, rested(){}, crossed(){}};
+const HOOK = {log(){}, perk(){}, die(){}, win(){}, change(){}, stopped(){}, practiced(){}, done(){}, rested(){}, crossed(){}, bought(){}};
 
 function newLife(s){
   const p = s.perks;
@@ -542,7 +542,7 @@ function newLife(s){
   return L;
 }
 function defaultState(){
-  const s = {v:1, ev:2, xpTot:{}, rv:4, sv:2, pv:2, vv:3, gen:1, prio:{}, ever:{}, prac:{}, auto:{}, echo:{}, perks:{}, seen:{}, logged:{}, log:[], lastOrder:[], lastJob:null,
+  const s = {v:1, gprac:{}, gauto:{}, gprio:{}, ev:2, xpTot:{}, rv:4, sv:2, pv:2, vv:3, gen:1, prio:{}, ever:{}, prac:{}, auto:{}, echo:{}, perks:{}, seen:{}, logged:{}, log:[], lastOrder:[], lastJob:null,
     set:{speed:1, autoFood:true, autoEat:true, foodDays:2, replay:true, fillCross:false, boost:false},
     stats:{bestAge:0, deaths:0, daysLived:0}, won:false, winGen:0, bank:0, saved:Date.now(), intro:false};
   SKILLS.forEach(k => s.echo[k.id] = 0);
@@ -662,6 +662,27 @@ const CROSS_HOLD = 0.5;   // ticks short of completion where an automated crossi
 function pendingRest(){ return TASKS.find(t => t.kind === 'rest' && isAuto(t) && available(t) && !complete(t)) || null; }
 function crossPending(t){ return !S.life.queue.includes(t.id) && isAuto(t) && ((S.set.fillCross && fillJob()) || pendingRest()); }
 function crossHeld(t){ return (S.life.prog[t.id] || 0) >= t.days - CROSS_HOLD - 1e-9 && !!crossPending(t); }
+// Gear automation: a design built in AUTO_LIVES different lives can be built automatically.
+// Automated designs are built in priority order; the top one is saved up for before cheaper ones.
+const gearPracticed = it => ((S.gprac || {})[it.id] || 0) >= AUTO_LIVES;
+const gearPrio = it => (S.gprio && S.gprio[it.id]) || 3;
+function buyItem(id, auto){
+  const L = S.life, it = IT[id];
+  if (!it || L.owned[id] || !isDone(it.req) || L.salvage < it.cost) return false;
+  L.salvage -= it.cost; L.owned[id] = true; M = mods();
+  if (it.eff.maxHp) L.hp += it.eff.maxHp;
+  if (!S.gprac) S.gprac = {};
+  S.gprac[id] = (S.gprac[id] || 0) + 1;
+  HOOK.bought(it, auto, S.gprac[id] === AUTO_LIVES);
+  return true;
+}
+function autoBuy(){
+  if (!S.gauto) return;
+  const L = S.life;
+  const c = ITEMS.filter(it => S.gauto[it.id] && gearPracticed(it) && !L.owned[it.id] && isDone(it.req) && it.cost <= M.salCap)
+    .sort((a, b) => gearPrio(a) - gearPrio(b) || ITEMS.indexOf(a) - ITEMS.indexOf(b));
+  if (c.length && L.salvage >= c[0].cost) buyItem(c[0].id, true);
+}
 function jobFull(t){
   if (!t.prod) return false;
   const L = S.life;
@@ -762,6 +783,7 @@ function step(dt){
   if (M.pRat) addRations(M.pRat * dt, 1);
   L.salvage += M.pSal * dt;
   clampRes();
+  autoBuy();
   // Health drains all the time; hazards add to it. Meals put some back.
   L.wear = (L.wear || 0) + dt;
   L.strain = (L.strain || 1) + dt * strainRate(L.wear);
@@ -1140,6 +1162,7 @@ function mergeState(raw){
   }
   if (!s.xpTot) s.xpTot = {};
   s.ev = 2;
+  if (!s.gprac) s.gprac = {}; if (!s.gauto) s.gauto = {}; if (!s.gprio) s.gprio = {};
   if (!s.prac) s.prac = {}; if (!s.auto) s.auto = {}; if (!s.prio) s.prio = {};
   if (!raw.vv) s.vit = (s.vit || 0) / 4;   // genome bonus quartered (v3)
   else if (raw.vv < 3) s.vit = (s.vit || 0) / 2;
@@ -1240,6 +1263,11 @@ HOOK.log = (title, text) => {
   logKey = '';
 };
 HOOK.done = t => sfx('complete');
+HOOK.bought = (it, auto, unlocked) => {
+  sfx('buy'); gearKey = ''; taskKey = ''; autoKey = '';
+  toast((auto ? 'Auto-built: ' : 'Built: ') + it.name);
+  if (unlocked) toast('Practised: ' + it.name + ' can now be built automatically (Auto tab).', true);
+};
 HOOK.crossed = t => { sfx('perk'); taskKey = ''; mapKey = ''; toast('You enter the ' + ZONES[t.z].name + '. The way back is sealed.', true); };
 HOOK.rested = t => { sfx('eat'); toast('Rested. Strain halved to \u00d7' + (S.life.strain || 1).toFixed(2) + '.'); };
 HOOK.perk = p => { sfx('perk'); toast('Archive record: ' + p.name, true); if (tab !== 'archive') newPerk = true; archKey = ''; };
@@ -1504,7 +1532,7 @@ function renderSkills(){
 function renderGear(){
   const L = S.life;
   const av = ITEMS.filter(i => isDone(i.req));
-  const key = M.salCap + '|' + av.map(i => i.id + (L.owned[i.id] ? 'o' : (L.salvage >= i.cost ? 'y' : 'n'))).join();
+  const key = M.salCap + '|' + av.map(i => i.id + (L.owned[i.id] ? 'o' : (L.salvage >= i.cost ? 'y' : 'n')) + ((S.gprac || {})[i.id] || 0) + (S.gauto && S.gauto[i.id] ? '*' : '') + gearPrio(i)).join();
   if (key === gearKey) return; gearKey = key;
   let h = '<div class="panel"><span class="h2">Fabricator</span><p class="note">Gear is built from salvage and lasts for this clone only. New designs appear as you explore. Salvage storage is limited; opening up more of the ship raises it.</p></div><div>';
   if (!av.length) h += '<p class="note">Nothing to build yet. Climb out of the vat first.</p>';
@@ -1512,7 +1540,7 @@ function renderGear(){
   av.slice().sort((a, b) => T[a.req].z - T[b.req].z).forEach(i => {
     const z = T[i.req].z;
     if (z !== lastZ) { lastZ = z; h += `<div class="sub" style="margin-top:12px">${ZONES[z - 1].name}</div>`; }
-    h += `<div class="item"><div><h3>${esc(i.name)}</h3><p>${esc(i.desc)}</p></div>` +
+    h += `<div class="item"><div><h3>${esc(i.name)}</h3><p>${esc(i.desc)}</p><p class="num">${gearPracticed(i) ? (S.gauto && S.gauto[i.id] ? 'Built automatically \u00b7 P' + gearPrio(i) : 'Automation available in the Auto tab') : 'Built in ' + ((S.gprac || {})[i.id] || 0) + '/' + AUTO_LIVES + ' lives'}</p></div>` +
       (L.owned[i.id] ? '<span class="owned">Built</span>' : `<button class="buy" data-buy="${i.id}" ${L.salvage >= i.cost ? '' : 'disabled'}>${fmt(i.cost)} salvage${i.cost > M.salCap ? '<br><small>needs storage</small>' : ''}</button>`) + '</div>';
   });
   const hidden = ITEMS.length - av.length;
@@ -1718,15 +1746,16 @@ const KIND_LABEL = {job:'Job', act:'Action', train:'Training', rest:'Rest'};
 function renderAuto(){
   const L = S.life;
   const list = TASKS.filter(t => practiced(t));
-  const key = list.map(t => t.id + (S.auto[t.id] ? '*' : '') + prioOf(t)).join() + '|' + L.sec + '|' + S.gen + '|' + !!S.set.fillCross;
+  const glist = ITEMS.filter(gearPracticed);
+  const key = list.map(t => t.id + (S.auto[t.id] ? '*' : '') + prioOf(t)).join() + '|' + glist.map(i => i.id + (S.gauto[i.id] ? '*' : '') + gearPrio(i)).join() + '|' + L.sec + '|' + S.gen + '|' + !!S.set.fillCross;
   if (key === autoKey) return; autoKey = key;
-  let h = `<div class="panel"><span class="h2">Automation</span><p class="note">Tasks practised in ${AUTO_LIVES} lives can run by themselves. Switch them on and set their priority here: 1 runs first, 5 last. Your own queue always comes first; rests fire on their own at strain ×${AUTO_REST_AT}, and also just before an automated crossing if the section\u2019s rest is still unused.</p>
+  let h = `<div class="panel"><span class="h2">Automation</span><p class="note">Tasks practised in ${AUTO_LIVES} lives can run by themselves, and gear built in ${AUTO_LIVES} lives can be built automatically (top priority first; the clone saves up for it before cheaper designs). Switch them on and set their priority here: 1 runs first, 5 last. Your own queue always comes first; rests fire on their own at strain ×${AUTO_REST_AT}, and also just before an automated crossing if the section\u2019s rest is still unused.</p>
     <div class="row"><p>Fill storage before moving on<small>An automated crossing to the next section stops just before it finishes, works this section\u2019s jobs until ration and salvage storage are both full, then completes.</small></p><button class="tog${S.set.fillCross ? ' on' : ''}" data-set="fillCross" aria-label="Fill storage before moving on" aria-pressed="${!!S.set.fillCross}"></button></div></div>`;
-  if (!list.length) {
-    h += `<p class="note">Nothing unlocked yet. Finish an action in ${AUTO_LIVES} different lives, or work a job for ${JOB_PRAC_BATCHES} batches in ${AUTO_LIVES} different lives, and it will appear here.</p>`;
+  if (!list.length && !glist.length) {
+    h += `<p class="note">Nothing unlocked yet. Finish an action in ${AUTO_LIVES} different lives, or work a job for ${JOB_PRAC_BATCHES} batches in ${AUTO_LIVES} different lives, and it will appear here. Gear counts once built in ${AUTO_LIVES} different lives.</p>`;
   }
   ZONES.forEach(z => {
-    const zl = list.filter(t => t.z === z.id); if (!zl.length) return;
+    const zl = list.filter(t => t.z === z.id), gl = glist.filter(i => T[i.req].z === z.id); if (!zl.length && !gl.length) return;
     h += `<section class="zone"><header class="zh"><h2>${z.name}</h2><span>${z.id === L.sec ? 'you are here' : z.id < L.sec ? 'left behind this life' : 'ahead'}</span></header><div class="alist">`;
     ['job','act','train','rest'].forEach(k => zl.filter(t => t.kind === k).forEach(t => {
       const on = !!S.auto[t.id];
@@ -1736,6 +1765,13 @@ function renderAuto(){
           `<div class="aprio" role="group" aria-label="Priority for ${esc(t.name)}">${[1,2,3,4,5].map(n => `<button data-setprio="${t.id}" data-n="${n}" class="${prioOf(t) === n ? 'on' : ''}">${n}</button>`).join('')}</div>`}
       </div>`;
     }));
+    gl.forEach(i => {
+      const on = !!S.gauto[i.id];
+      h += `<div class="arow${on ? ' on' : ''}"><div class="an"><b>${esc(i.name)}</b><span>Gear \u00b7 ${fmt(i.cost)} salvage \u00b7 built when affordable</span></div>
+        <button class="tog${on ? ' on' : ''}" data-gauto="${i.id}" aria-pressed="${on}" aria-label="Build ${esc(i.name)} automatically"></button>
+        <div class="aprio" role="group" aria-label="Priority for ${esc(i.name)}">${[1,2,3,4,5].map(n => `<button data-gsetprio="${i.id}" data-n="${n}" class="${gearPrio(i) === n ? 'on' : ''}">${n}</button>`).join('')}</div>
+      </div>`;
+    });
     h += '</div></section>';
   });
   $('#v-auto').innerHTML = h;
@@ -1891,14 +1927,11 @@ document.addEventListener('click', e => {
   if (d.unq) { L.queue = L.queue.filter(x => x !== d.unq); taskKey = ''; renderView(); return; }
   if ('clearq' in d) { L.queue = []; taskKey = ''; renderView(); return; }
   if (d.buy) {
-    const it = IT[d.buy];
-    if (L.salvage >= it.cost && !L.owned[it.id]) {
-      L.salvage -= it.cost; L.owned[it.id] = true; M = mods();
-      if (it.eff.maxHp) L.hp += it.eff.maxHp;
-      toast('Built: ' + it.name); gearKey = ''; taskKey = ''; renderView();
-    }
+    if (buyItem(d.buy, false)) renderView();
     return;
   }
+  if (d.gauto) { S.gauto[d.gauto] = !S.gauto[d.gauto]; autoKey = ''; gearKey = ''; toast((S.gauto[d.gauto] ? 'Auto-build on: ' : 'Auto-build off: ') + IT[d.gauto].name); renderView(); return; }
+  if (d.gsetprio) { S.gprio[d.gsetprio] = +d.n; autoKey = ''; gearKey = ''; toast('Priority ' + d.n + ': ' + IT[d.gsetprio].name); renderView(); return; }
   if (d.set) { S.set[d.set] = !S.set[d.set]; autoKey = ''; renderArchive(true); if (tab === 'auto') renderAuto(); return; }
   if (d.confirm) {
     const k = d.confirm;
