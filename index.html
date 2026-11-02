@@ -1367,7 +1367,24 @@ HOOK.perk = p => { sfx('perk'); toast('Archive record: ' + p.name, true); if (ta
 HOOK.change = () => { taskKey = ''; gearKey = ''; };
 HOOK.practiced = t => { sfx('perk'); taskKey = ''; toast('Practised: \u201c' + t.name + '\u201d can now be automated (tap AUTO).', true); };
 HOOK.stopped = j => { sfx('error'); taskKey = ''; toast((j.prod.rations ? 'Ration' : 'Salvage') + ' storage full. Stopped \u201c' + j.name + '\u201d; time is stopped.'); };
-HOOK.die = () => { sfx('death'); save(); showDeath(); };
+// Decanting can be automated once AUTO_LIVES clones have died: the next clone is decanted straight away
+// (no death screen), either paused so you can look around, or running on in a continuous loop.
+const decantUnlocked = () => (S.stats.deaths || 0) >= AUTO_LIVES;
+let pendingDecant = false;
+HOOK.die = () => {
+  sfx('death'); save();
+  const mode = S.set.afterDeath || 'summary';
+  if (decantUnlocked() && mode !== 'summary') { pendingDecant = true; return; }
+  showDeath();
+};
+function autoDecant(){
+  pendingDecant = false;
+  const L = S.life; if (!L.dead) return;
+  const msg = 'Clone ' + S.gen + ' died on day ' + (L.day / TPD).toFixed(1) + ' (' + L.cause.toLowerCase() + '). Clone ' + (S.gen + 1) + ' decanted' + (S.set.afterDeath === 'paused' ? ', paused.' : '.');
+  decant(); taskKey = ''; mapKey = ''; autoKey = '';
+  if (S.set.afterDeath === 'paused') S.set.paused = true;
+  save(); toast(msg);
+}
 HOOK.win = () => { save(); showWin(); };
 
 function toast(msg, gold){
@@ -1862,9 +1879,12 @@ function renderAuto(){
   const L = S.life;
   const list = TASKS.filter(t => practiced(t));
   const glist = ITEMS.filter(gearPracticed);
-  const key = list.map(t => t.id + (S.auto[t.id] ? '*' : '') + prioOf(t)).join() + '|' + glist.map(i => i.id + (S.gauto[i.id] ? '*' : '') + gearPrio(i)).join() + '|' + L.sec + '|' + S.gen + '|' + !!S.set.fillCross + !!S.set.autoFeed + '|' + restAt();
+  const key = list.map(t => t.id + (S.auto[t.id] ? '*' : '') + prioOf(t)).join() + '|' + glist.map(i => i.id + (S.gauto[i.id] ? '*' : '') + gearPrio(i)).join() + '|' + L.sec + '|' + S.gen + '|' + !!S.set.fillCross + !!S.set.autoFeed + '|' + restAt() + '|' + (S.set.afterDeath || 'summary') + decantUnlocked() + (S.stats.deaths || 0);
   if (key === autoKey) return; autoKey = key;
   let h = `<div class="panel"><span class="h2">Automation</span><p class="note">Tasks practised in ${AUTO_LIVES} lives can run by themselves, and gear built in ${AUTO_LIVES} lives can be built automatically (top priority first; the clone saves up for it before cheaper designs). Switch them on and set their priority here: 1 runs first, 5 last. Your own queue always comes first; rests fire on their own at strain ×${restAt()}, and also just before an automated crossing if the section\u2019s rest is still unused.</p>
+    <div class="fld"><label>When a clone dies</label>${decantUnlocked()
+      ? `<div class="seg">${[['summary', 'Show summary'], ['paused', 'Decant, paused'], ['loop', 'Continuous loop']].map(([v, l]) => `<button data-afterdeath="${v}" class="${(S.set.afterDeath || 'summary') === v ? 'on' : ''}">${l}</button>`).join('')}</div><small class="note">Automatic decanting skips the death screen; a short summary appears instead. \u201cDecant, paused\u201d stops the clock so you can plan the new clone.</small>`
+      : `<small class="note">Decanting automation unlocks after ${AUTO_LIVES} clones have died (${S.stats.deaths || 0}/${AUTO_LIVES}).</small>`}</div>
     <div class="fld"><label for="rest-at">Automated rests fire at strain \u00d7</label><div class="pctin"><input type="text" id="rest-at" inputmode="decimal" autocomplete="off" value="${restAt()}"><span>Rests also fire just before an automated crossing if still unused.</span></div></div>
     <div class="row"><p>Feed when needed<small>Automated food jobs step in when rations run low, or when health is low and meals can still heal faster than strain drains it. They refill to what is needed, then the interrupted task carries on.</small></p><button class="tog${S.set.autoFeed ? ' on' : ''}" data-set="autoFeed" aria-label="Feed when needed" aria-pressed="${!!S.set.autoFeed}"></button></div>
     <div class="row"><p>Fill storage before moving on<small>An automated crossing to the next section stops just before it finishes, works this section\u2019s jobs until ration and salvage storage are both full, then completes.</small></p><button class="tog${S.set.fillCross ? ' on' : ''}" data-set="fillCross" aria-label="Fill storage before moving on" aria-pressed="${!!S.set.fillCross}"></button></div></div>`;
@@ -2064,6 +2084,7 @@ document.addEventListener('click', e => {
   if (d.auto) { autoKey = ''; S.auto[d.auto] = !S.auto[d.auto]; toast((S.auto[d.auto] ? 'Automated: ' : 'Automation off: ') + T[d.auto].name); taskKey = ''; renderView(); return; }
   if (d.showlock) { showLocked[d.showlock] = !showLocked[d.showlock]; taskKey = ''; renderView(); return; }
   if (d.unq) { qRemove(d.unq); taskKey = ''; renderView(); return; }
+  if (d.afterdeath) { S.set.afterDeath = d.afterdeath; autoKey = ''; renderView(); return; }
   if (d.qmove) { qMove(d.qmove, +d.dir); taskKey = ''; renderView(); return; }
   if (d.qsave) { S.qpresets[+d.qsave] = ((L.qplan && L.qplan.length) ? L.qplan : L.queue).slice(); toast('Queue saved to preset ' + (+d.qsave + 1)); taskKey = ''; renderView(); return; }
   if (d.qload) {
@@ -2140,6 +2161,7 @@ function tick(now){
   let dt = (now - last) / 1000; last = now;
   if (dt > CATCHUP_MAX) { S.bank = Math.min(S.bank + dt - CATCHUP_MAX, 8*3600); dt = CATCHUP_MAX; }
   simulate(dt);
+  if (pendingDecant) { autoDecant(); simulate(0); }
   saveT += dt;
   if (saveT > 5) { saveT = 0; save(); }
   return dt;
