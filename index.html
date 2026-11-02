@@ -821,6 +821,22 @@ function active(ex){
   if ((L.strain || 1) >= restAt()) { const r = TASKS.find(t => t.kind === 'rest' && isAuto(t) && available(t) && !complete(t) && ok(t)); if (r) return r; }
   const held = heldStep();
   if (ok(held)) return held;
+  // Automation goes ahead of your queue (crossings excepted: they wait their turn below).
+  // Automated actions and training run by priority; an automated job steps in when its store drops
+  // below the forage threshold and then fills it up, so a slowly emptying store can't block the queue.
+  const kindRank = t => t.cross ? 3 : t.kind === 'job' ? 2 : t.kind === 'train' ? 1 : 0;
+  if (L.autoJob && (!T[L.autoJob] || !isAuto(T[L.autoJob]) || !available(T[L.autoJob]) || jobFull(T[L.autoJob]))) L.autoJob = null;
+  {
+    let pick = null, pk = Infinity;
+    const low = (S.set.foodPct || 40) / 100;
+    for (const t of TASKS) {
+      if (t.cross || t.kind === 'rest' || !isAuto(t) || !available(t) || !ok(t)) continue;
+      if (t.kind === 'job' ? (jobFull(t) || (L.autoJob !== t.id && storeRatio(t) >= low)) : complete(t)) continue;
+      const k = prioOf(t) * 100 + kindRank(t) * 10 + (t.kind === 'job' ? storeRatio(t) : 0);
+      if (k < pk) { pk = k; pick = t; }
+    }
+    if (pick) { if (pick.kind === 'job') L.autoJob = pick.id; return pick; }
+  }
   // Your queue: actions run until done; queued jobs run until their storage is full, then drop out
   for (const id of L.queue.slice()) {
     if (isGQ(id)) {
@@ -841,10 +857,9 @@ function active(ex){
     }
     if (available(t) && !complete(t)) { const r = t.cross ? (holdCross(t) || t) : t; if (ok(r)) return r; }
   }
-  // Everything automated (actions, training, jobs, crossings) competes on priority alone:
-  // P1 always beats P2, and so on. Ties go actions, then training, then jobs (emptiest storage
-  // first), then crossings, then ship order.
-  const kindRank = t => t.cross ? 3 : t.kind === 'job' ? 2 : t.kind === 'train' ? 1 : 0;
+  // After the queue: automated crossings, and automated jobs topping their stores up to full, by
+  // priority: P1 always beats P2, and so on. Ties go actions, then training, then jobs (emptiest
+  // storage first), then crossings, then ship order.
   let pick = null, pk = Infinity;
   for (const t of TASKS) {
     if (!isAuto(t) || !available(t) || !ok(t)) continue;
@@ -2336,7 +2351,7 @@ function renderAuto(){
   const glist = ITEMS.filter(gearPracticed);
   const key = list.map(t => t.id + (S.auto[t.id] ? '*' : '') + prioOf(t)).join() + '|' + glist.map(i => i.id + (S.gauto[i.id] ? '*' : '') + gearPrio(i)).join() + '|' + L.sec + '|' + S.gen + '|' + !!S.set.fillCross + !!S.set.autoFeed + '|' + restAt() + '|' + (S.set.deathScreen !== false) + (S.set.deathPause !== false) + !!S.set.startPaused + !!S.set.bgPause + decantUnlocked() + (S.stats.deaths || 0);
   if (key === autoKey) return; autoKey = key;
-  let h = `<div class="panel"><span class="h2">Automation</span><p class="note">Tasks practised in ${AUTO_LIVES} lives can run by themselves, and gear built in ${AUTO_LIVES} lives can be built automatically (top priority first; the clone saves up for it before cheaper designs). Switch them on and set their priority here: 1 runs first, 5 last. Your own queue always comes first; rests fire on their own at strain ×${restAt()}, and also just before an automated crossing if the section\u2019s rest is still unused.</p>
+  let h = `<div class="panel"><span class="h2">Automation</span><p class="note">Tasks practised in ${AUTO_LIVES} lives can run by themselves, and gear built in ${AUTO_LIVES} lives can be built automatically (top priority first; the clone saves up for it before cheaper designs). Switch them on and set their priority here: 1 runs first, 5 last. Automated tasks run ahead of your queue (automated jobs when their store drops below the forage threshold); automated crossings wait until the queue is done. Rests fire on their own at strain ×${restAt()}, and also just before an automated crossing if the section\u2019s rest is still unused.</p>
     ${decantUnlocked()
       ? `<div class="row"><p>Show the death screen<small>On: the game stops at each death until you decant the next clone. Off: the next clone is decanted at once and the run keeps going; a short message sums up the death.</small></p><button class="tog${S.set.deathScreen !== false ? ' on' : ''}" data-set="deathScreen" aria-label="Show the death screen" aria-pressed="${S.set.deathScreen !== false}"></button></div>`
       : `<div class="fld"><label>Death screen</label><small class="note">Automatic decanting unlocks after ${AUTO_LIVES} clones have died (${S.stats.deaths || 0}/${AUTO_LIVES}). Until then the game stops at each death.</small></div>`}
@@ -2398,7 +2413,7 @@ const FAQ_ALL = [
   ['What are sections?', 'The ship is split into five sections. A <b>red</b> action leads to the next one, and the way back is sealed for that clone, so finish what you need first (records, the rest, training, gear). Each new clone starts back in the Vat Bay.'],
   ['What is gear?', 'Gear is built from salvage in the <b>Gear</b> tab and lasts for one clone. Each section has designs to build. Salvage storage is limited; opening up more of the ship raises it.'],
   ['What is mastery?', 'Once a task can be automated (finished in 10 lives), it keeps improving: every 10 more lives that finish it make it faster: ×1.5 at 20 lives, ×2.2 at 30, ×3.3 at 40 and ×5 at 50. Actions, crossings, training, rests and jobs all count (a mastered job produces faster). The task card shows your mastery and the next step.'],
-  ['How does automation work?', 'Finish an action in 10 different lives (or work a job for 10 batches in 10 lives, or build a design in 10 lives) and an <b>AUTO</b> switch appears. Automated tasks run by themselves when your queue is empty, in priority order: P1 first, P5 last. The <b>Auto</b> tab lists everything unlocked and has extra options: feeding when needed, filling storage before moving on, the strain level for automatic rests, the death screen and starting paused.'],
+  ['How does automation work?', 'Finish an action in 10 different lives (or work a job for 10 batches in 10 lives, or build a design in 10 lives) and an <b>AUTO</b> switch appears. Automated tasks run by themselves <b>ahead of your queue</b>, in priority order: P1 first, P5 last. An automated job steps in when its store drops below the forage threshold and fills it up. Automated <b>crossings</b> are the exception: they wait until your queue is done. A task you tap runs before everything. The <b>Auto</b> tab lists everything unlocked and has extra options: feeding when needed, filling storage before moving on, the strain level for automatic rests, the death screen and starting paused.'],
   ['What happens at a crossing with automation?', 'A queued or automated crossing stops just before it finishes and waits while the clone finishes automated actions and training, builds affordable automated gear, refills storage (if that option is on) and uses the section’s rest. Tap a crossing yourself to go at once.'],
   ['Pause, background and boost', 'Pause with the button at the top or the space bar. The game keeps running in a background tab and catches up when you return, then shows what happened while you were away. Time while the game is fully closed is banked as a <b>stasis boost</b> you can switch on in the header. Pick Off, ×2, ×5 or ×10 from its menu: at ×5 every real second plays five, and the bank pays for the extra four, so faster boost spends the bank faster. Both start capped at 8 hours: at most 8 hours of background time is played out, and the boost holds at most 8 hours. Each <b>Stasis watch</b> record adds 8 hours to both; you get one the first time you finish each section (5 in all, up to 48 hours).'],
   ['Saves', 'The game saves itself every few seconds on this device, in three slots (☰ menu). Use <b>Save files and transfer</b> in the menu to export a save file, import one, or copy the save as text to move it between devices.'],
