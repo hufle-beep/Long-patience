@@ -497,7 +497,7 @@ function addFood(f, a){
 // Any food left at all (a whole portion)? Without it the clone starves.
 const FOOD_MIN = 0.01;   // a crumb: any food at all left
 const EAT_GAP = 0.5;     // health missing before the clone bothers to eat
-function nextFood(){ const L = S.life; const f = FOODS.find(f => (L.food[f.id] || 0) >= FOOD_MIN); return f ? f.id : null; }
+function nextFood(){ const L = S.life; const f = FOODS.find(f => (L.food[f.id] || 0) >= 1); return f ? f.id : null; }
 // Every kind of food the clone carries is eaten on its own timer. Richer food has a longer cooldown
 // (12 h x its quality), so at first each kind heals about the same per day; mastery of the job that
 // gathers it shortens the cooldown, down to the plain 12 h at full mastery (50 lives).
@@ -507,7 +507,7 @@ function mealCd(f){
   return MEAL_CD * (1 + (FD[f].q - 1) * (1 - st / 4));
 }
 // Foods ready to eat now (stocked and off cooldown), best first
-function readyFoods(){ const L = S.life; return FOODS.filter(f => (L.food[f.id] || 0) >= FOOD_MIN && ((L.mcd || {})[f.id] || 0) <= 0).map(f => f.id).reverse(); }
+function readyFoods(){ const L = S.life; return FOODS.filter(f => (L.food[f.id] || 0) >= 1 && ((L.mcd || {})[f.id] || 0) <= 0).map(f => f.id).reverse(); }
 // Average portions eaten per tick, for estimates: every stocked food at its own pace
 // Food eaten per tick, for estimates. Meals only cover what health needs: the drain is met with the
 // best food first, each kind at most one portion per its cooldown.
@@ -522,10 +522,10 @@ function eatRate(){
   return units;
 }
 // Time until the next meal is possible
-function nextMealIn(){ const L = S.life; let m = Infinity; FOODS.forEach(f => { if ((L.food[f.id] || 0) >= FOOD_MIN) m = Math.min(m, (L.mcd || {})[f.id] || 0); }); return m; }
+function nextMealIn(){ const L = S.life; let m = Infinity; FOODS.forEach(f => { if ((L.food[f.id] || 0) >= 1) m = Math.min(m, (L.mcd || {})[f.id] || 0); }); return m; }
 // Food stores that matter now: this section's food and everything carried from earlier ones
 const foodsInPlay = () => FOODS.filter(f => f.z <= (S.life.sec || 1));
-const MEAL_MULT = 1.5;   // meals restore more than one meal-gap of hunger, to push back against strain
+const MEAL_MULT = 1.58;   // meals restore more than one meal-gap of hunger, to push back against strain
 function mealHp(f){ f = f || readyFoods()[0] || nextFood() || FOOD_OF[S.life.sec || 1]; return (HUNGER + M.regen) * MEAL_CD * MEAL_MULT * foodQ(f); }
 const START_AGE = 14;
 
@@ -1100,7 +1100,7 @@ function step(dt){
   L.hp -= drain * dt;
   if (!L.mcd) L.mcd = {};
   FOODS.forEach(f => { if (L.mcd[f.id]) L.mcd[f.id] = Math.max(0, L.mcd[f.id] - dt); });
-  if (S.set.autoEat) readyFoods().forEach(f => { if (M.maxHp - L.hp >= EAT_GAP) eat(f); });
+  if (S.set.autoEat) readyFoods().forEach(f => { if (wantsMeal(f)) eat(f); });
   if (L.hp <= 0) {
     L.hp = 0;
     die(!nextFood() ? 'Starved' : (h1 || h2 ? 'Killed while trying to ' + ht.name.charAt(0).toLowerCase() + ht.name.slice(1) : 'Collapsed from exhaustion'));
@@ -1132,18 +1132,16 @@ function work(t, dt){
   }
 }
 function canEat(){ const L = S.life; return !L.dead && M.maxHp - L.hp >= EAT_GAP && readyFoods().length > 0; }
-// A meal only uses as much food as it takes to reach full health (at most one portion), and its
-// cooldown is that share of the full one. At full health nothing is eaten. When the drain outruns
-// the food, every meal is a whole portion, as before.
+// Meals are always whole portions. The clone eats only when it needs to: when a whole meal fits
+// under full health (nothing wasted), or sooner when health is down to half. At full health
+// nothing is eaten.
+function wantsMeal(f){ const L = S.life, miss = M.maxHp - L.hp; return miss >= mealHp(f) - 1e-9 || L.hp <= M.maxHp * 0.5; }
 function eat(f){
   const L = S.life; if (!canEat()) return false;
   f = f || readyFoods()[0];
-  const have = L.food[f] || 0;
-  if (!f || have < FOOD_MIN || ((L.mcd || {})[f] || 0) > 0) return false;
-  const mh = mealHp(f), part = Math.min(1, have, (M.maxHp - L.hp) / mh);
-  if (part <= 0) return false;
-  L.food[f] = have - part; syncFood(); L.lastMeal = f; L.lastPart = part; L.hp = Math.min(M.maxHp, L.hp + mh * part);
-  if (!L.mcd) L.mcd = {}; L.mcd[f] = mealCd(f) * part;
+  if (!f || (L.food[f] || 0) < 1 || ((L.mcd || {})[f] || 0) > 0) return false;
+  L.food[f] -= 1; syncFood(); L.lastMeal = f; L.lastPart = 1; L.hp = Math.min(M.maxHp, L.hp + mealHp(f));
+  if (!L.mcd) L.mcd = {}; L.mcd[f] = mealCd(f);
   return true;
 }
 function clampRes(){
@@ -1480,10 +1478,10 @@ function survival(){
     hp -= Math.min(HUNGER * strain + haz, MAX_DRAIN) / drainDiv() * dt;
     fs.forEach(f => {
       f.stock = Math.min(f.cap, f.stock + f.gain * dt); f.cd -= dt;
-      if (eatOn && f.cd <= 0 && f.stock >= FOOD_MIN && M.maxHp - hp >= EAT_GAP) { const part = Math.min(1, f.stock, (M.maxHp - hp) / f.hp); f.stock -= part; hp = Math.min(M.maxHp, hp + f.hp * part); f.cd = f.full * part; }
+      if (eatOn && f.cd <= 0 && f.stock >= 1 && (M.maxHp - hp >= f.hp || hp <= M.maxHp * 0.5)) { f.stock -= 1; hp = Math.min(M.maxHp, hp + f.hp); f.cd = f.full; }
     });
     t += dt;
-    if (hp <= 0) { why = haz ? 'injuries' : fs.every(f => f.stock < FOOD_MIN) ? 'starvation' : 'strain'; break; }
+    if (hp <= 0) { why = haz ? 'injuries' : fs.every(f => f.stock < 1) ? 'starvation' : 'strain'; break; }
   }
   if (!why) t = Infinity;
   if (t >= lifeLeft) { t = Infinity; why = 'nothing soon'; }
@@ -2412,7 +2410,7 @@ const FAQ_ALL = [
   ['How do I start?', 'Tap a task to work on it right away. Climb out of the vat first, then press vat algae for food and strip wall panels for salvage. Time only moves while your clone is working: with nothing to do, the clock stops, so you can always read and plan.'],
   ['What are jobs, actions, training and rests?', '<b>Jobs</b> repeat and make food or salvage in batches; they stop when that storage is full. <b>Actions</b> are one-off tasks that unlock things and move the story on. <b>Training</b> builds skills faster (+50% XP) but each can be done only 4 times per life. <b>Rests</b> halve strain; each section has one, usable once per life.'],
   ['How does the queue work?', 'Tapping a task runs it right away, ahead of the queue (a job runs until its store is full); it is not added to the queue. <b>+</b> adds a task to the end of the queue; drag it or use the arrows to move it up. You can queue the same task several times at different places: tap + again for another copy. A task queued once runs until it is done; with several copies, each copy covers one repetition (one training session, one rep, or one fill of a store). The queue holds up to 20 items. Drag an item by the handle on its left to move it, or use the arrows; ✕ removes it. Queued jobs run until their storage is full. You can queue things you have seen before even if they are not available yet; they wait their turn. Gear can be queued too, with the <b>+</b> in the Gear tab: the clone works the best salvage job until it can afford the design, then builds it. Three presets save and load whole queues, and <b>Keep queue between clones</b> gives each new clone the queue you planned, minus anything that is automated and switched on.'],
-  ['Food and health', 'Health drains all the time and meals put it back. Every section has its own food, each richer than the last: algae paste (Vat Bay, ×1), hydro greens (Ring, ×1.5), field rations (Spine, ×2), galley meals (Command Deck, ×2.6) and pantry stores (Main Drive, ×3.2). Each kind has its own small store, and food you carry goes with you into the next section until it is eaten. <b>Every kind you carry is eaten on its own timer</b>, so carrying several kinds means more meals. The clone only eats what it needs: at full health no food is used, and a meal takes just the share of a portion needed to reach full health (its cooldown is that share too). When health drops faster than the food can keep up, it eats whole portions as usual. Algae is eaten every 12 hours; richer food starts with a longer wait (12 h × its quality), which shrinks with mastery of the job that gathers it, down to 12 hours at full mastery. With no food left at all you starve. The Hydroponics Ring has no food until you restore its irrigation pumps, so arrive stocked.'],
+  ['Food and health', 'Health drains all the time and meals put it back. Every section has its own food, each richer than the last: algae paste (Vat Bay, ×1), hydro greens (Ring, ×1.5), field rations (Spine, ×2), galley meals (Command Deck, ×2.6) and pantry stores (Main Drive, ×3.2). Each kind has its own small store, and food you carry goes with you into the next section until it is eaten. <b>Every kind you carry is eaten on its own timer</b>, so carrying several kinds means more meals. Meals are always whole portions, and the clone only eats when it needs to: when a whole meal fits under full health, or sooner once health is down to half. At full health no food is used. Algae is eaten every 12 hours; richer food starts with a longer wait (12 h × its quality), which shrinks with mastery of the job that gathers it, down to 12 hours at full mastery. With no food left at all you starve. The Hydroponics Ring has no food until you restore its irrigation pumps, so arrive stocked.'],
   ['What is strain?', 'Strain multiplies the health drain. It grows faster and faster the longer a clone lives, which is what eventually kills every clone. Rests halve it; Resolve slows it a little; good food heals faster than strain can drain early on. Watch <b>Time left</b> at the top: it says how long the clone will last and what will kill it.'],
   ['What carries over when a clone dies?', 'Skill levels reset, but every bit of XP a skill has ever earned is kept as its <b>echo</b>, making that skill permanently faster. Each day a clone survives adds 0.8 to the base health of later clones, up to 500. <b>Archive records</b> found by finishing certain actions are permanent upgrades. Gear, rations, salvage and progress through the ship reset.'],
   ['What are sections?', 'The ship is split into five sections. A <b>red</b> action leads to the next one, and the way back is sealed for that clone, so finish what you need first (records, the rest, training, gear). Each new clone starts back in the Vat Bay.'],
@@ -2553,7 +2551,7 @@ document.addEventListener('click', e => {
     document.querySelectorAll(`[data-atog="${d.atog}"]`).forEach(x => { x.classList.toggle('on', ASET[d.atog]); x.setAttribute('aria-pressed', ASET[d.atog]); });
     renderSpeed(); return;
   }
-  if ('eat' in d) { const f = readyFoods()[0], h0 = L.hp; if (f && eat(f)) sfx('eat'), toast('Ate ' + fmt(L.lastPart) + ' ' + FD[f].name.toLowerCase() + '. +' + fmt(L.hp - h0) + ' health'); return; }
+  if ('eat' in d) { const f = readyFoods()[0], h0 = L.hp; if (f && eat(f)) sfx('eat'), toast('Ate ' + FD[f].name.toLowerCase() + '. +' + fmt(L.hp - h0) + ' health'); return; }
   if ('exportjson' in d) { exportJson(); return; }
   if ('copyjson' in d) {
     save(); const code = JSON.stringify(S, null, 1), ta = $('#save-code'); ta.value = code;
