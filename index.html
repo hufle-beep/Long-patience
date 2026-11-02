@@ -515,7 +515,7 @@ const PERKS = [
 const PK = {}; PERKS.forEach(p => PK[p.id] = p);
 
 const ITEMS = [
-  {id:'locker',     name:'Cold locker',        cost:8,    req:'wake',       desc:'+2.5 ration storage', eff:{ratCap:2.5}},
+  {id:'locker',     name:'Cold locker',        cost:8,    req:'wake',       desc:'+5 ration storage', eff:{ratCap:5}},
   {id:'rebreather', name:'Patched rebreather', cost:4,    req:'wake',       desc:'+20 max health', eff:{maxHp:20}},
   {id:'toolkit',    name:'Scrap toolkit',      cost:10,   req:'wake',       desc:'Engineering work 25% faster', eff:{sk:{eng:1.25}}},
   {id:'press',      name:'Algae press',        cost:18,   req:'search',     desc:'+1 ration every four days, passively', eff:{pRat:0.003125}},
@@ -1251,7 +1251,7 @@ function showMenu(view){
       if (act) h += '<span class="ghst">Saves automatically every few seconds.</span>';
       h += '</div></div>';
     }
-    h += '</div><button class="btn" data-settings="menu">Settings: sound, layout, app updates</button><p class="d">\u201cSave here\u201d copies your current game into another slot as a save state. You keep playing in your current slot; load the copy later to go back to that moment.</p>';
+    h += '</div><button class="btn" data-saves="menu">Save files and transfer: export, import, copy as text</button><button class="btn" data-settings="menu">Settings: sound, layout, app updates</button><p class="d">\u201cSave here\u201d copies your current game into another slot as a save state. You keep playing in your current slot; load the copy later to go back to that moment.</p>';
   }
   showModal(h);
 }
@@ -1624,7 +1624,7 @@ function renderArchive(force){
   h += `<div class="row"><p>Recycle this clone<small>End the current life now. Echoes are kept.</small></p><button class="btn warn" data-confirm="recycle">Recycle</button></div>
     <div class="row"><p>Restart this slot<small>Erases the game in this slot and starts over. Other slots are kept. The main menu has more options.</small></p><button class="btn warn" data-confirm="reset">Restart</button></div>
     <p class="note">Progress is saved on this device only (this browser or the app). Use the save file below to back it up or move it. Time spent away is stored as a stasis boost that doubles game speed.</p></div>`;
-  h += savePanel();
+  h += '<div class="panel set"><div class="row"><p>Save files and transfer<small>Export, import or copy your save. Also in the main menu.</small></p><button class="btn" data-saves="hud">Open</button></div></div>';
   $('#v-archive').innerHTML = h;
   const fd = $('#fd');
   if (fd) fd.addEventListener('input', () => { S.set.foodDays = +fd.value; $('#fd-v').textContent = fd.value + ' rations'; });
@@ -1846,6 +1846,12 @@ document.addEventListener('click', e => {
   if ('close' in d) { hideModal(); paused = false; S.intro = true; save(); return; }
   if ('decant' in d) { decant(); hideModal(); taskKey = ''; setTab('tasks'); save(); return; }
   if (d.settings) { save(); showSettings(d.settings); return; }
+  if (d.saves) {
+    save(); settingsFrom = d.saves; paused = true;
+    showModal(`<h2>Save files</h2><p class="d">Your game saves on this device by itself. Use these to back it up or move it to another device.</p>${savePanel().replace(/panel set/g, 'panel set mpanel')}
+      <button class="btn pri" data-settingsclose>${d.saves === 'menu' ? 'Back to menu' : 'Close'}</button>`);
+    return;
+  }
   if ('settingsclose' in d) {
     const from = settingsFrom; settingsFrom = null;
     if (from === 'menu') return showMenu();
