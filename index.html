@@ -224,10 +224,12 @@ input[type=range]{width:100%;accent-color:var(--amber)}
 
 /* tabs */
 #tabs{position:fixed;left:0;right:0;bottom:0;z-index:6;background:var(--panel);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
-#tabs .wrap{display:grid;grid-template-columns:repeat(7,1fr)}
-#tabs button{position:relative;padding:12px 0 13px;font-family:var(--f-disp);font-size:12px;letter-spacing:.03em;text-transform:uppercase;color:var(--dim);font-weight:600}
+#tabs .wrap{display:flex;justify-content:space-between;gap:2px;overflow-x:auto;scrollbar-width:none}
+#tabs .wrap button{flex:0 0 auto;padding-left:3px;padding-right:3px}
+#tabs .wrap::-webkit-scrollbar{display:none}
+#tabs button{position:relative;padding:12px 0 13px;font-family:var(--f-disp);font-size:12px;letter-spacing:0;text-transform:uppercase;color:var(--dim);font-weight:600}
 #tabs button.on{color:var(--amber)}
-#tabs button.on::before{content:"";position:absolute;top:-1px;left:22%;right:22%;height:2px;background:var(--amber)}
+#tabs button.on::before{content:"";position:absolute;top:-1px;left:10%;right:10%;height:2px;background:var(--amber)}
 #tabs button.dot::after{content:"";position:absolute;top:9px;right:18%;width:6px;height:6px;border-radius:50%;background:var(--cyan)}
 
 /* modal + toast */
@@ -340,6 +342,15 @@ button.updl{width:100%}
 .pctin span{color:var(--dim)}
 .qcount{color:var(--faint);letter-spacing:0;margin-left:4px}
 .histm{justify-self:start;font-size:12px;padding:5px 10px}
+.faq{display:grid;gap:6px}
+.faq details{border:1px solid var(--line);border-radius:6px;background:var(--panel);padding:0 12px}
+.faq summary{cursor:pointer;padding:11px 0;font-weight:500;font-size:14px;list-style:none}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary::before{content:"\203a";display:inline-block;width:14px;color:var(--amber);transition:transform .15s}
+.faq details[open] summary::before{transform:rotate(90deg)}
+.faq details p{margin:0 0 12px;font-size:13px;color:var(--dim);max-width:65ch;line-height:1.5}
+.faq details p b{color:var(--fg);font-weight:500}
+.faqwarn{border:1px solid var(--amber);border-radius:5px;padding:9px 11px;font-size:13px;color:var(--fg)}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 
@@ -370,6 +381,7 @@ button.updl{width:100%}
     <section class="view" id="v-gear" hidden></section>
     <section class="view" id="v-archive" hidden></section>
     <section class="view" id="v-log" hidden></section>
+    <section class="view" id="v-faq" hidden></section>
   </div>
 </main>
 
@@ -382,6 +394,7 @@ button.updl{width:100%}
     <button data-tab="gear">Gear</button>
     <button data-tab="archive">Archive</button>
     <button data-tab="log">Log</button>
+    <button data-tab="faq">FAQ</button>
   </div>
 </nav>
 
@@ -1785,7 +1798,7 @@ function renderLog(){
 function setTab(t){
   tab = t;
   document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === t));
-  ['tasks','map','auto','skills','gear','archive','log'].forEach(v => $('#v-' + v).hidden = v !== t);
+  ['tasks','map','auto','skills','gear','archive','log','faq'].forEach(v => $('#v-' + v).hidden = v !== t);
   autoKey = '';
   mapKey = '';
   if (t === 'log') newLog = false;
@@ -1802,6 +1815,7 @@ function renderView(force){
   else if (tab === 'gear') renderGear();
   else if (tab === 'archive') renderArchive(force);
   else if (tab === 'log') renderLog();
+  else if (tab === 'faq') renderFaq();
   document.querySelector('[data-tab="log"]').classList.toggle('dot', newLog);
   document.querySelector('[data-tab="archive"]').classList.toggle('dot', newPerk);
 }
@@ -1940,6 +1954,31 @@ function renderAuto(){
   }
 }
 
+
+/* ----- FAQ ----- */
+const FAQ = [
+  ['What is the goal?', 'Restore the ship so WARDEN can wake the sleeping crew: the food system in the Hydroponics Ring, the energy system in the Engineering Spine and the stardrive in the Main Drive. The game ends when you ignite the drive. One clone cannot do it all; it takes many lives (around 50 with very good play).'],
+  ['How do I start?', 'Tap a task to work on it right away. Climb out of the vat first, then press vat algae for food and strip wall panels for salvage. Time only moves while your clone is working: with nothing to do, the clock stops, so you can always read and plan.'],
+  ['What are jobs, actions, training and rests?', '<b>Jobs</b> repeat and make rations or salvage in batches; they stop when that storage is full. <b>Actions</b> are one-off tasks that unlock things and move the story on. <b>Training</b> builds skills faster (+50% XP) but each can be done only 4 times per life. <b>Rests</b> halve strain; each section has one, usable once per life.'],
+  ['How does the queue work?', 'Tap <b>+</b> on a task to add it to the end of the queue; tapping the task itself puts it first. The queue holds up to 20 items. Use the arrows to reorder and ✕ to remove. Queued jobs run until their storage is full. You can queue things you have seen before even if they are not available yet; they wait their turn. Three presets save and load whole queues, and <b>Keep queue between clones</b> gives each new clone the queue you planned.'],
+  ['Food and health', 'Health drains all the time. Your clone eats 2 rations a day, one meal every 12 hours, and each meal restores health. Food from deeper sections is richer (×1.5 in the ring up to ×3.2 at the drive); stored food keeps its average quality. Run out of rations and you starve. Storage is small, so you have to keep working food jobs. The Hydroponics Ring has no food until you restore its irrigation pumps, so arrive stocked.'],
+  ['What is strain?', 'Strain multiplies the health drain. It grows faster and faster the longer a clone lives, which is what eventually kills every clone. Rests halve it; Resolve slows it a little; good food heals faster than strain can drain early on. Watch <b>Time left</b> at the top: it says how long the clone will last and what will kill it.'],
+  ['What carries over when a clone dies?', 'Skill levels reset, but every bit of XP a skill has ever earned is kept as its <b>echo</b>, making that skill permanently faster. Each day a clone survives adds 0.8 to the base health of later clones, up to 500. <b>Archive records</b> found by finishing certain actions are permanent upgrades. Gear, rations, salvage and progress through the ship reset.'],
+  ['What are sections?', 'The ship is split into five sections. A <b>red</b> action leads to the next one, and the way back is sealed for that clone, so finish what you need first (records, the rest, training, gear). Each new clone starts back in the Vat Bay.'],
+  ['What is gear?', 'Gear is built from salvage in the <b>Gear</b> tab and lasts for one clone. Each section has designs to build. Salvage storage is limited; opening up more of the ship raises it.'],
+  ['How does automation work?', 'Finish an action in 10 different lives (or work a job for 10 batches in 10 lives, or build a design in 10 lives) and an <b>AUTO</b> switch appears. Automated tasks run by themselves when your queue is empty, in priority order: P1 first, P5 last. The <b>Auto</b> tab lists everything unlocked and has extra options: feeding when needed, filling storage before moving on, the strain level for automatic rests, the death screen and starting paused.'],
+  ['What happens at a crossing with automation?', 'A queued or automated crossing stops just before it finishes and waits while the clone finishes automated actions and training, builds affordable automated gear, refills storage (if that option is on) and uses the section’s rest. Tap a crossing yourself to go at once.'],
+  ['Pause, background and boost', 'Pause with the button at the top or the space bar. The game keeps running in a background tab and catches up when you return, then shows what happened while you were away. Time while the game is fully closed is stored as a <b>+2×</b> boost you can switch on in the header.'],
+  ['Saves', 'The game saves itself every few seconds on this device, in three slots (☰ menu). Use <b>Save files and transfer</b> in the menu to export a save file, import one, or copy the save as text to move it between devices.'],
+  ['Settings', 'The ⚙ button opens sound (music and effects), layout (vertical or horizontal) and, in the Android app, app updates. Gameplay options such as auto-eat and the forage threshold are in the Archive tab.'],
+];
+let faqDone = false;
+function renderFaq(){
+  if (faqDone) return; faqDone = true;
+  $('#v-faq').innerHTML = '<div class="panel"><span class="h2">FAQ</span><p class="note">How Long Patience works. Tap a question to open it.</p></div><div class="faq">' +
+    FAQ.map(([q, a], i) => `<details${i < 2 ? ' open' : ''}><summary>${q}</summary><p>${a}</p></details>`).join('') + '</div>';
+}
+
 /* ----- modals ----- */
 function showModal(h){ $('#mbox').innerHTML = h; $('#modal').hidden = false; }
 function hideModal(){ $('#modal').hidden = true; }
@@ -1948,19 +1987,7 @@ function showIntro(){
   showModal(`<h2>Long Patience</h2>
     <p>You are K-7, a disposable maintenance clone aboard the colony ship <b>Long Patience</b>. Its 3,112 crew sleep in stasis. WARDEN, the ship\u2019s overseer, wakes clones like you to do the work nobody else will: repair the <b>food system</b>, the <b>energy system</b> and the <b>stardrive</b>, so the crew can be woken.</p>
     <p class="d">Each body lasts days, not years. When it fails, WARDEN decants another. What you learn echoes into the next one.</p>
-    <ul>
-      <li><b>Tap a task</b> to work on it now. <b>+</b> adds an action to the queue.</li>
-      <li>Finish an action in 10 different lives, or work a job for 10 batches in 10 different lives, and an <b>AUTO</b> switch appears so it runs by itself.</li>
-      <li>The ship is split into <b>sections</b>. A red action leads to the next one, and the way back is sealed for that clone, so finish what you need first.</li>
-      <li><b>Training</b> sessions build skills faster (+50% XP), but each can be done only 4 times per life.</li>
-      <li>Each automated task has a <b>priority</b> (P1\u2013P5, tap to change). P1 runs first.</li>
-      <li><b>Jobs</b> repeat forever and make rations or salvage. The last job you tapped runs whenever the queue is empty.</li>
-      <li>Health drains all the time. Your clone eats <b>2 rations a day</b>, one meal every 12 hours, and each meal restores some health. Food from deeper sections is richer (\u00d71.5 in the ring up to \u00d73.2 at the drive); stored food keeps its average quality, so older food still works, just weaker. <b>Strain</b> makes the drain grow, faster and faster as the clone ages; rests halve it and Resolve slows it a little. Each ship section has one rest per life that halves it. Every day a clone survives adds 0.8 max health to all later clones, up to a base of 500. Clones have no fixed lifespan: strain decides how long they last. You wake with no food. Run out of rations and you starve. Storage is limited, so you can\u2019t stockpile much.</li>
-      <li>Time only moves while your clone is working. With nothing to do, the clock stops.</li>
-      <li>When a clone dies, skill levels reset but their <b>echo</b> speeds up learning in every future clone.</li>
-      <li><b>Pause</b> any time with the button at the top (or the space bar on a computer). <b>☰</b> opens the menu with save slots; the game waits while it is open. The game keeps running in a background tab; time while it is closed is stored as a <b>+2×</b> boost you can switch on in the header.</li>
-      <li>Goal: restore the food system (Hydroponics Ring), the energy system (Engineering Spine) and the stardrive (Main Drive), then light the drive so WARDEN can wake the crew.</li>
-    </ul>
+    <p class="faqwarn"><b>New to the game?</b> Read the <b>FAQ</b> tab first. It explains tasks, food, strain, sections, automation and saves.</p>
     <button class="btn pri" data-close>Begin the work cycle</button>`);
 }
 function showDeath(){
