@@ -616,10 +616,13 @@ function active(){
   for (const t of TASKS) if ((t.kind === 'act' || t.kind === 'train') && isAuto(t) && available(t) && !complete(t)) {
     if (!pick || prioOf(t) < prioOf(pick) || (prioOf(t) === prioOf(pick) && kindRank(t) < kindRank(pick))) pick = t;
   }
-  if (pick && pick.cross && S.set.fillCross) {
-    // Option: top up every storage in this section before an automated crossing
-    const fill = fillJob();
+  if (pick && pick.cross && crossHeld(pick)) {
+    // An automated crossing stops just short of finishing while there is still something to do
+    // in this section: refill storage (if that option is on), then use the section's rest.
+    const fill = S.set.fillCross ? fillJob() : null;
     if (fill) return fill;
+    const rest = pendingRest();
+    if (rest) return rest;
   }
   if (pick) return pick;
   if (L.job && T[L.job].kind !== 'job') L.job = null;
@@ -655,6 +658,10 @@ function fillJob(){
   }
   return null;
 }
+const CROSS_HOLD = 0.5;   // ticks short of completion where an automated crossing waits
+function pendingRest(){ return TASKS.find(t => t.kind === 'rest' && isAuto(t) && available(t) && !complete(t)) || null; }
+function crossPending(t){ return !S.life.queue.includes(t.id) && isAuto(t) && ((S.set.fillCross && fillJob()) || pendingRest()); }
+function crossHeld(t){ return (S.life.prog[t.id] || 0) >= t.days - CROSS_HOLD - 1e-9 && !!crossPending(t); }
 function jobFull(t){
   if (!t.prod) return false;
   const L = S.life;
@@ -748,6 +755,7 @@ function step(dt){
       }
     } else {
       L.prog[t.id] = (L.prog[t.id] || 0) + sp * dt;
+      if (t.cross && L.prog[t.id] >= t.days && crossPending(t)) L.prog[t.id] = t.days - CROSS_HOLD;   // wait at the threshold
       if (L.prog[t.id] >= t.days) { L.prog[t.id] = 0; finish(t); }
     }
   }
@@ -1712,8 +1720,8 @@ function renderAuto(){
   const list = TASKS.filter(t => practiced(t));
   const key = list.map(t => t.id + (S.auto[t.id] ? '*' : '') + prioOf(t)).join() + '|' + L.sec + '|' + S.gen + '|' + !!S.set.fillCross;
   if (key === autoKey) return; autoKey = key;
-  let h = `<div class="panel"><span class="h2">Automation</span><p class="note">Tasks practised in ${AUTO_LIVES} lives can run by themselves. Switch them on and set their priority here: 1 runs first, 5 last. Your own queue always comes first; rests fire on their own at strain ×${AUTO_REST_AT}.</p>
-    <div class="row"><p>Fill storage before moving on<small>Before an automated crossing to the next section, work this section\u2019s jobs until ration and salvage storage are both full.</small></p><button class="tog${S.set.fillCross ? ' on' : ''}" data-set="fillCross" aria-label="Fill storage before moving on" aria-pressed="${!!S.set.fillCross}"></button></div></div>`;
+  let h = `<div class="panel"><span class="h2">Automation</span><p class="note">Tasks practised in ${AUTO_LIVES} lives can run by themselves. Switch them on and set their priority here: 1 runs first, 5 last. Your own queue always comes first; rests fire on their own at strain ×${AUTO_REST_AT}, and also just before an automated crossing if the section\u2019s rest is still unused.</p>
+    <div class="row"><p>Fill storage before moving on<small>An automated crossing to the next section stops just before it finishes, works this section\u2019s jobs until ration and salvage storage are both full, then completes.</small></p><button class="tog${S.set.fillCross ? ' on' : ''}" data-set="fillCross" aria-label="Fill storage before moving on" aria-pressed="${!!S.set.fillCross}"></button></div></div>`;
   if (!list.length) {
     h += `<p class="note">Nothing unlocked yet. Finish an action in ${AUTO_LIVES} different lives, or work a job for ${JOB_PRAC_BATCHES} batches in ${AUTO_LIVES} different lives, and it will appear here.</p>`;
   }
