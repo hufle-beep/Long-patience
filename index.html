@@ -430,9 +430,9 @@ button.updl{width:100%}
 
 <script id="logic">
 /* ===== Game data and rules (no DOM) ===== */
-const DPS = 2;             // simulation ticks per real second at 1x (halved: everything takes twice the real time)
+const DPS = 4;             // simulation ticks per real second at 1x
 // Time is simulated in ticks. 80 ticks make one ship day (18 minutes each), so a day lasts
-// 40 real seconds at 1x and a clone lives weeks, not years. Everything is shown in days and hours.
+// 20 real seconds at 1x and a clone lives weeks, not years. Everything is shown in days and hours.
 const TPD = 80;
 const JOB_CYCLE = 8;       // in-game days of base work per job batch
 const MEAL_CD = 40;        // ticks between meals: one ration every 12 hours, 2 a day
