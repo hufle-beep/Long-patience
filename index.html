@@ -546,7 +546,7 @@ function newLife(s){
 }
 function defaultState(){
   const s = {v:1, gprac:{}, gauto:{}, gprio:{}, ev:2, xpTot:{}, rv:4, sv:2, pv:2, vv:3, gen:1, prio:{}, ever:{}, prac:{}, auto:{}, echo:{}, perks:{}, seen:{}, logged:{}, log:[], lastOrder:[], lastJob:null,
-    set:{speed:1, autoFood:true, autoEat:true, foodDays:2, replay:true, fillCross:false, autoFeed:false, boost:false},
+    set:{speed:1, autoFood:true, autoEat:true, foodDays:2, foodPct:40, replay:true, fillCross:false, autoFeed:false, boost:false},
     stats:{bestAge:0, deaths:0, daysLived:0}, won:false, winGen:0, bank:0, saved:Date.now(), intro:false};
   SKILLS.forEach(k => s.echo[k.id] = 0);
   s.life = newLife(s);
@@ -604,7 +604,7 @@ function active(){
   if (S.perks.survival && S.set.autoFood) {
     const food = pickFood();
     if (food) {
-      const low = Math.min(S.set.foodDays, M.ratCap * 0.5);
+      const low = M.ratCap * (S.set.foodPct || 40) / 100;
       if (L.rations < low) L.foraging = true;
       if (L.foraging && L.rations >= Math.min(low * 2, M.ratCap - 0.5)) L.foraging = false;
       if (L.foraging) return food;
@@ -706,7 +706,7 @@ function feedJob(){
     const r = t.prod.rations * speedOf(t); if (r > br) { br = r; job = t; }
   }
   if (!job) { L.feeding = false; return null; }
-  const low = Math.min(S.set.foodDays, M.ratCap * 0.5);
+  const low = M.ratCap * (S.set.foodPct || 40) / 100;
   const drain = Math.min(HUNGER * (L.strain || 1), MAX_DRAIN);
   const recoverable = mealHp() / MEAL_CD > drain;
   const hpNeed = recoverable && L.hp < M.maxHp * 0.6 ? Math.ceil((M.maxHp - L.hp) / mealHp()) : 0;
@@ -1637,7 +1637,7 @@ function renderArchive(force){
   h += `<div class="row"><p>Auto-eat<small>Eat a ration whenever the meal cooldown is over and health has room for it.</small></p><button class="tog${S.set.autoEat ? ' on' : ''}" data-set="autoEat" aria-label="Auto-eat" aria-pressed="${S.set.autoEat}"></button></div>`;
   if (S.perks.survival) {
     h += `<div class="row"><p>Auto-forage<small>Switch to the best food job when rations drop below the threshold, and stay until they double.</small></p><button class="tog${S.set.autoFood ? ' on' : ''}" data-set="autoFood" aria-label="Auto-forage" aria-pressed="${S.set.autoFood}"></button></div>
-      <div><div class="row"><p>Forage threshold</p><b class="num" id="fd-v">${S.set.foodDays} rations</b></div><input type="range" id="fd" min="1" max="12" step="1" value="${S.set.foodDays}"></div>`;
+      <div><div class="row"><p>Forage threshold<small>Share of ration storage. Below it, food jobs step in; they stop at twice this level (or when storage is full).</small></p><b class="num" id="fd-v">${S.set.foodPct || 40}%</b></div><input type="range" id="fd" min="5" max="90" step="5" value="${S.set.foodPct || 40}" aria-label="Forage threshold, percent of ration storage"></div>`;
   }
   if (S.perks.engram) {
     h += `<div class="row"><p>Engram replay<small>New clones queue the actions your last clone finished, in the same order.</small></p><button class="tog${S.set.replay ? ' on' : ''}" data-set="replay" aria-label="Engram replay" aria-pressed="${S.set.replay}"></button></div>`;
@@ -1649,7 +1649,7 @@ function renderArchive(force){
   h += '<div class="panel set"><div class="row"><p>Save files and transfer<small>Export, import or copy your save. Also in the main menu.</small></p><button class="btn" data-saves="hud">Open</button></div></div>';
   $('#v-archive').innerHTML = h;
   const fd = $('#fd');
-  if (fd) fd.addEventListener('input', () => { S.set.foodDays = +fd.value; $('#fd-v').textContent = fd.value + ' rations'; });
+  if (fd) fd.addEventListener('input', () => { S.set.foodPct = +fd.value; $('#fd-v').textContent = fd.value + '%'; });
 }
 function renderLog(){
   const key = S.log.length + '|' + (S.log.length ? S.log[S.log.length-1].t : '') + '|' + (S.hist ? S.hist.length : 0) + '|' + S.gen + '|' + JSON.stringify(S.best || {});
