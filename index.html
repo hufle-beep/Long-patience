@@ -202,6 +202,8 @@ main .wrap{display:grid;gap:18px}
 .item h3{margin:0;font-size:14.5px;font-weight:500}
 .item p{margin:2px 0 0;font-size:12px;color:var(--dim)}
 .buy{font-family:var(--f-mono);font-size:12px;padding:8px 10px;border-radius:4px;border:1px solid var(--amber);color:var(--amber);white-space:nowrap;min-width:84px}
+.gqb{flex:0 0 auto;width:40px;height:40px;margin-left:6px}
+.item.lockd h3{color:var(--dim)}
 .buy:disabled{border-color:var(--line);color:var(--faint);cursor:default}
 .owned{font-family:var(--f-mono);font-size:12px;color:var(--green);min-width:84px;text-align:center}
 
@@ -696,6 +698,15 @@ function active(ex){
   if (ok(held)) return held;
   // Your queue: actions run until done; queued jobs run until their storage is full, then drop out
   for (const id of L.queue.slice()) {
+    if (isGQ(id)) {
+      const it = qItem(id);
+      if (!it || L.owned[it.id]) { L.queue = L.queue.filter(x => x !== id); HOOK.change(); continue; }
+      if (!isDone(it.req) || it.cost > M.salCap) continue;   // not found yet in this life, or storage too small
+      if (L.salvage >= it.cost) { buyItem(it.id, false); L.queue = L.queue.filter(x => x !== id); HOOK.change(); continue; }
+      const job = bestSalvageJob(ok);
+      if (job) return job;
+      continue;
+    }
     const t = T[id];
     if (t.kind === 'job') {
       if (!available(t)) continue;
@@ -894,7 +905,7 @@ function finish(t){
   M = mods();
   clampRes();
   if (r.heal) L.hp = M.maxHp;
-  if (t.cross && complete(t)) { L.sec = t.z + 1; if (!L.secAt) L.secAt = {}; L.secAt[L.sec] = {d:L.day, r:L.real || 0}; L.queue = L.queue.filter(id => T[id].z > t.z); if (L.job && T[L.job].z <= t.z) L.job = null; L.foraging = false; HOOK.crossed(t); }
+  if (t.cross && complete(t)) { L.sec = t.z + 1; if (!L.secAt) L.secAt = {}; L.secAt[L.sec] = {d:L.day, r:L.real || 0}; L.queue = L.queue.filter(id => isGQ(id) ? (qItem(id) && (isDone(qItem(id).req) || gearZone(qItem(id)) > t.z)) : T[id].z > t.z); if (L.job && T[L.job].z <= t.z) L.job = null; L.foraging = false; HOOK.crossed(t); }
   if (complete(t) && t.log && !S.logged[t.id]) { S.logged[t.id] = 1; HOOK.log(t.name, t.log); }
   HOOK.done(t);
   if (complete(t) && t.perk && !S.perks[t.perk]) { S.perks[t.perk] = true; M = mods(); HOOK.perk(PK[t.perk]); }
@@ -993,6 +1004,23 @@ function advance(days){
 // The queue plan: everything you queued this life, in order, including items already finished.
 // It is what carries over to the next clone (Keep queue between clones) and what presets save.
 const QMAX = 20;   // most items the queue (and a queue plan) can hold
+// Gear can be queued too, as 'g:<item id>': the clone works the best salvage job until it can afford
+// the design, builds it, and moves on.
+const isGQ = id => typeof id === 'string' && id.startsWith('g:');
+const qItem = id => isGQ(id) ? IT[id.slice(2)] : T[id];
+const qName = id => { const x = qItem(id); return x ? (isGQ(id) ? 'Build ' + x.name : x.name) : id; };
+function bestSalvageJob(ok){
+  let job = null, br = 0;
+  for (const t of TASKS) if (t.kind === 'job' && t.prod && t.prod.salvage && available(t) && !jobFull(t) && (!ok || ok(t))) {
+    const r = t.prod.salvage * speedOf(t); if (r > br) { br = r; job = t; }
+  }
+  return job;
+}
+// Is this queued item automated (and switched on)? Those are left out of the next clone's queue.
+function qAutomated(id){
+  if (isGQ(id)) { const it = qItem(id); return !!(it && S.gauto && S.gauto[it.id] && gearPracticed(it)); }
+  const t = T[id]; return !!(t && isAuto(t));
+}
 function qAdd(id, front){
   const L = S.life; if (!L.qplan) L.qplan = [];
   if (!L.queue.includes(id) && (L.queue.length >= QMAX || (!L.qplan.includes(id) && L.qplan.length >= QMAX))) { HOOK.qfull(); return false; }
@@ -1040,9 +1068,10 @@ function decant(){
   S.gen++;
   S.life = newLife(S);
   M = mods(); S.life.hp = M.maxHp;
-  const keep = S.set.keepQueue !== false ? (prev.qplan || prev.queue || []).filter(id => T[id]).slice(0, QMAX) : [];
+  // Automated items (practised and switched on) are left out: automation takes care of them.
+  const keep = S.set.keepQueue !== false ? (prev.qplan || prev.queue || []).filter(id => qItem(id) && !qAutomated(id)).slice(0, QMAX) : [];
   S.life.queue = keep.slice(); S.life.qplan = keep.slice();
-  if (S.perks.engram && S.set.replay) S.lastOrder.filter(id => T[id] && T[id].kind === 'act' && !S.life.queue.includes(id)).forEach(id => { if (S.life.queue.length < QMAX) qAdd(id); });
+  if (S.perks.engram && S.set.replay) S.lastOrder.filter(id => T[id] && T[id].kind === 'act' && !isAuto(T[id]) && !S.life.queue.includes(id)).forEach(id => { if (S.life.queue.length < QMAX) qAdd(id); });
   // No fallback job carries over: a new clone waits for orders unless automation or a record says otherwise.
   HOOK.change();
 }
@@ -1424,7 +1453,8 @@ function mergeState(raw){
   ['done','prog','cyc','bat','owned','lv','xp','echo0'].forEach(k => { if (!L[k]) L[k] = {}; });
   SKILLS.forEach(k => { if (L.lv[k.id] == null) L.lv[k.id] = 0; if (L.xp[k.id] == null) L.xp[k.id] = 0; });
   if (!Array.isArray(L.queue)) L.queue = [];
-  L.queue = L.queue.filter(id => T[id]);
+  L.queue = L.queue.filter(id => qItem(id));
+  if (Array.isArray(L.qplan)) L.qplan = L.qplan.filter(id => qItem(id));
   if (L.job && !T[L.job]) L.job = null;
   if (!Array.isArray(L.order)) L.order = [];
   return s;
@@ -1602,7 +1632,7 @@ function renderTasks(){
     if (av && !complete(t)) vis.push(t.id);
     else if (!av && S.seen[t.id]) locked.push(t.id);
   });
-  const key = vis.join() + '|' + locked.join() + '|' + L.queue.join() + '|' + L.job + '|' + Object.keys(S.perks).join() + '|' + S.gen + '|' + JSON.stringify(showLocked) + '|' + L.sec + '|' + (L.held || '') + holdList().join() + '|' + JSON.stringify(S.qpresets) + (L.qplan || []).length + (S.set.keepQueue !== false) + '|' + TASKS.filter(t => practiced(t)).map(t => t.id + (S.auto[t.id] ? '*' : '') + prioOf(t)).join() + '|' + openPrio;
+  const key = vis.join() + '|' + locked.join() + '|' + L.queue.join() + (L.queue.some(isGQ) ? Math.floor(L.salvage) + '/' + M.salCap + Object.keys(L.owned).join() : '') + '|' + L.job + '|' + Object.keys(S.perks).join() + '|' + S.gen + '|' + JSON.stringify(showLocked) + '|' + L.sec + '|' + (L.held || '') + holdList().join() + '|' + JSON.stringify(S.qpresets) + (L.qplan || []).length + (S.set.keepQueue !== false) + '|' + TASKS.filter(t => practiced(t)).map(t => t.id + (S.auto[t.id] ? '*' : '') + prioOf(t)).join() + '|' + openPrio;
   if (key === taskKey) return;
   taskKey = key;
 
@@ -1614,9 +1644,11 @@ function renderTasks(){
   h += '<div class="qbody"><div class="qmain">';
   if (L.queue.length) {
     h += '<ol class="qlist">' + L.queue.map((id, i) => {
-      const t = T[id], bl = !available(t);
-      const why = L.held === id ? 'on hold: wrapping up the section' : !bl ? '' : t.z > L.sec ? 'waits for the ' + ZONES[t.z - 1].name : t.z < L.sec ? 'left behind' : 'waiting for its requirements';
-      return `<li class="qrow${bl ? ' blocked' : ''}" data-qid="${id}"><span class="qdrag" data-qdrag="${id}" aria-hidden="true" title="Drag to reorder">⠇</span><span class="qn">${i + 1}.</span><span class="qt">${esc(t.name)}${t.kind === 'job' ? ' <small>until full</small>' : ''}${why ? ` <small>${why}</small>` : ''}</span>
+      const g = isGQ(id), t = g ? {name:qName(id)} : T[id], it = g ? qItem(id) : null;
+      const bl = g ? (!isDone(it.req) || it.cost > M.salCap) : !available(t);
+      const why = g ? (!isDone(it.req) ? 'after: ' + T[it.req].name : it.cost > M.salCap ? 'needs bigger salvage storage' : fmt(Math.min(L.salvage, it.cost)) + '/' + fmt(it.cost) + ' salvage')
+        : L.held === id ? 'on hold: wrapping up the section' : !bl ? '' : t.z > L.sec ? 'waits for the ' + ZONES[t.z - 1].name : t.z < L.sec ? 'left behind' : 'waiting for its requirements';
+      return `<li class="qrow${bl ? ' blocked' : ''}${g ? ' gq' : ''}" data-qid="${id}"><span class="qdrag" data-qdrag="${id}" aria-hidden="true" title="Drag to reorder">⠇</span><span class="qn">${i + 1}.</span><span class="qt">${esc(t.name)}${t.kind === 'job' ? ' <small>until full</small>' : ''}${why ? ` <small>${why}</small>` : ''}</span>
         <button data-qmove="${id}" data-dir="-1" ${i === 0 ? 'disabled' : ''} aria-label="Move ${esc(t.name)} up">\u2191</button><button data-qmove="${id}" data-dir="1" ${i === L.queue.length - 1 ? 'disabled' : ''} aria-label="Move ${esc(t.name)} down">\u2193</button><button data-unq="${id}" aria-label="Remove ${esc(t.name)} from queue">\u2715</button></li>`;
     }).join('') + '</ol>';
   } else {
@@ -1627,7 +1659,7 @@ function renderTasks(){
     return `<div class="qps"><span class="qpl"><b>${i + 1}</b><small>${n ? n + ' item' + (n > 1 ? 's' : '') : 'empty'}</small></span><span class="qpb"><button data-qsave="${i}" aria-label="Save queue to preset ${i + 1}">Save</button><button data-qload="${i}" ${n ? '' : 'disabled'} aria-label="Load preset ${i + 1}">Load</button></span></div>`;
   }).join('') + '</div></div>';
   h += `<div class="qnote">Fallback job: <b>${L.job ? esc(T[L.job].name) : 'none'}</b>. It runs whenever the queue is empty.</div>`;
-  h += `<div class="row qkeep"><p>Keep queue between clones<small>A new clone starts with the queue you planned this life.</small></p><button class="tog${S.set.keepQueue !== false ? ' on' : ''}" data-set="keepQueue" aria-label="Keep queue between clones" aria-pressed="${S.set.keepQueue !== false}"></button></div></div>`;
+  h += `<div class="row qkeep"><p>Keep queue between clones<small>A new clone starts with the queue you planned this life, minus anything automated and switched on.</small></p><button class="tog${S.set.keepQueue !== false ? ' on' : ''}" data-set="keepQueue" aria-label="Keep queue between clones" aria-pressed="${S.set.keepQueue !== false}"></button></div></div>`;
 
   ZONES.forEach(z => {
     if (z.id !== L.sec) return;
@@ -1829,10 +1861,15 @@ function renderSkills(){
   h += '</div>';
   $('#v-skills').innerHTML = h;
 }
+function gqBtn(i){
+  const id = 'g:' + i.id, qi = S.life.queue.indexOf(id);
+  return `<button class="tq gqb${qi >= 0 ? ' in' : ''}" data-q="${id}" aria-label="${qi >= 0 ? 'Queued' : 'Add to queue: work salvage until it can be built, then build it'}">${qi >= 0 ? '#' + (qi + 1) : '+'}</button>`;
+}
 function renderGear(){
   const L = S.life;
   const av = ITEMS.filter(i => isDone(i.req));
-  const key = M.salCap + '|' + av.map(i => i.id + (L.owned[i.id] ? 'o' : (L.salvage >= i.cost ? 'y' : 'n')) + ((S.gprac || {})[i.id] || 0) + (S.gauto && S.gauto[i.id] ? '*' : '') + gearPrio(i)).join();
+  const known = ITEMS.filter(i => !isDone(i.req) && ((S.gprac || {})[i.id] || 0) > 0 && gearZone(i) >= (L.sec || 1));
+  const key = M.salCap + '|' + L.queue.filter(isGQ).join() + '|' + known.map(i => i.id).join() + '|' + av.map(i => i.id + (L.owned[i.id] ? 'o' : (L.salvage >= i.cost ? 'y' : 'n')) + ((S.gprac || {})[i.id] || 0) + (S.gauto && S.gauto[i.id] ? '*' : '') + gearPrio(i)).join();
   if (key === gearKey) return; gearKey = key;
   let h = '<div class="panel"><span class="h2">Fabricator</span><p class="note">Gear is built from salvage and lasts for this clone only. New designs appear as you explore. Salvage storage is limited; opening up more of the ship raises it.</p></div><div>';
   if (!av.length) h += '<p class="note">Nothing to build yet. Climb out of the vat first.</p>';
@@ -1841,8 +1878,12 @@ function renderGear(){
     const z = gearZone(i);
     if (z !== lastZ) { lastZ = z; h += `<div class="sub" style="margin-top:12px">${ZONES[z - 1].name}</div>`; }
     h += `<div class="item"><div><h3>${esc(i.name)}</h3><p>${esc(i.desc)}</p><p class="num">${gearPracticed(i) ? (S.gauto && S.gauto[i.id] ? 'Built automatically \u00b7 P' + gearPrio(i) : 'Automation available in the Auto tab') : 'Built in ' + ((S.gprac || {})[i.id] || 0) + '/' + AUTO_LIVES + ' lives'}</p></div>` +
-      (L.owned[i.id] ? '<span class="owned">Built</span>' : `<button class="buy" data-buy="${i.id}" ${L.salvage >= i.cost ? '' : 'disabled'}>${fmt(i.cost)} salvage${i.cost > M.salCap ? '<br><small>needs storage</small>' : ''}</button>`) + '</div>';
+      (L.owned[i.id] ? '<span class="owned">Built</span>' : `<button class="buy" data-buy="${i.id}" ${L.salvage >= i.cost ? '' : 'disabled'}>${fmt(i.cost)} salvage${i.cost > M.salCap ? '<br><small>needs storage</small>' : ''}</button>${gqBtn(i)}`) + '</div>';
   });
+  if (known.length) {
+    h += '<div class="sub" style="margin-top:12px">Known designs, not found yet in this life</div>';
+    known.forEach(i => { h += `<div class="item lockd"><div><h3>${esc(i.name)}</h3><p>${esc(i.desc)}</p><p class="num">Found by: ${esc(T[i.req].name)} \u00b7 ${fmt(i.cost)} salvage</p></div>${gqBtn(i)}</div>`; });
+  }
   const hidden = ITEMS.length - av.length;
   if (hidden > 0) h += `<p class="note" style="padding-top:10px">${hidden} more design${hidden > 1 ? 's' : ''} not yet found.</p>`;
   h += '</div>';
@@ -2157,7 +2198,7 @@ const FAQ_ALL = [
   ['What is the goal?', 'Restore the ship so WARDEN can wake the sleeping crew: the food system in the Hydroponics Ring, the energy system in the Engineering Spine and the stardrive in the Main Drive. The game ends when you ignite the drive. One clone cannot do it all; it takes many lives (around 50 with very good play).'],
   ['How do I start?', 'Tap a task to work on it right away. Climb out of the vat first, then press vat algae for food and strip wall panels for salvage. Time only moves while your clone is working: with nothing to do, the clock stops, so you can always read and plan.'],
   ['What are jobs, actions, training and rests?', '<b>Jobs</b> repeat and make rations or salvage in batches; they stop when that storage is full. <b>Actions</b> are one-off tasks that unlock things and move the story on. <b>Training</b> builds skills faster (+50% XP) but each can be done only 4 times per life. <b>Rests</b> halve strain; each section has one, usable once per life.'],
-  ['How does the queue work?', 'Tap <b>+</b> on a task to add it to the end of the queue; tapping the task itself puts it first. The queue holds up to 20 items. Drag an item by the handle on its left to move it, or use the arrows; ✕ removes it. Queued jobs run until their storage is full. You can queue things you have seen before even if they are not available yet; they wait their turn. Three presets save and load whole queues, and <b>Keep queue between clones</b> gives each new clone the queue you planned.'],
+  ['How does the queue work?', 'Tap <b>+</b> on a task to add it to the end of the queue; tapping the task itself puts it first. The queue holds up to 20 items. Drag an item by the handle on its left to move it, or use the arrows; ✕ removes it. Queued jobs run until their storage is full. You can queue things you have seen before even if they are not available yet; they wait their turn. Gear can be queued too, with the <b>+</b> in the Gear tab: the clone works the best salvage job until it can afford the design, then builds it. Three presets save and load whole queues, and <b>Keep queue between clones</b> gives each new clone the queue you planned, minus anything that is automated and switched on.'],
   ['Food and health', 'Health drains all the time. Your clone eats 2 rations a day, one meal every 12 hours, and each meal restores health. Food from deeper sections is richer (×1.5 in the ring up to ×3.2 at the drive); stored food keeps its average quality. Run out of rations and you starve. Storage is small, so you have to keep working food jobs. The Hydroponics Ring has no food until you restore its irrigation pumps, so arrive stocked.'],
   ['What is strain?', 'Strain multiplies the health drain. It grows faster and faster the longer a clone lives, which is what eventually kills every clone. Rests halve it; Resolve slows it a little; good food heals faster than strain can drain early on. Watch <b>Time left</b> at the top: it says how long the clone will last and what will kill it.'],
   ['What carries over when a clone dies?', 'Skill levels reset, but every bit of XP a skill has ever earned is kept as its <b>echo</b>, making that skill permanently faster. Each day a clone survives adds 0.8 to the base health of later clones, up to 500. <b>Archive records</b> found by finishing certain actions are permanent upgrades. Gear, rations, salvage and progress through the ship reset.'],
@@ -2328,7 +2369,7 @@ document.addEventListener('click', e => {
     if (t.kind === 'job') {
       if (jobFull(t)) { toast('Storage is full. Spend or use some first.'); return; }
       L.job = t.id; L.foraging = false;
-      const q = L.queue.some(id => available(T[id]) && !complete(T[id]));
+      const q = L.queue.some(id => isGQ(id) || (available(T[id]) && !complete(T[id])));
       if (q) toast('Set as fallback job. It runs once the queue is empty.');
     } else {
       qAdd(t.id, true);
@@ -2338,24 +2379,29 @@ document.addEventListener('click', e => {
     taskKey = ''; renderView(); return;
   }
   if (d.q) {
+    if (isGQ(d.q)) {
+      if (L.queue.includes(d.q)) qRemove(d.q);
+      else if (qAdd(d.q)) toast('Queued: ' + qName(d.q) + ' (works salvage until it can be built)');
+      taskKey = ''; gearKey = ''; renderView(); return;
+    }
     if (!L.queue.includes(d.q)) {
       if (T[d.q].kind === 'job' && jobFull(T[d.q])) { toast('Storage is full already. Spend or use some first.'); return; }
       if (!qAdd(d.q)) return;
       toast('Queued: ' + T[d.q].name + (T[d.q].kind === 'job' ? ' (until storage is full)' : available(T[d.q]) ? '' : ' (runs once it is available)'));
     }
     else { qRemove(d.q); }
-    taskKey = ''; renderView(); return;
+    taskKey = ''; gearKey = ''; renderView(); return;
   }
   if (d.prio) { openPrio = openPrio === d.prio ? null : d.prio; taskKey = ''; renderView(); return; }
   if (d.setprio) { S.prio[d.setprio] = +d.n; openPrio = null; autoKey = ''; toast('Priority ' + d.n + ': ' + T[d.setprio].name); taskKey = ''; renderView(); return; }
   if (d.auto) { autoKey = ''; S.auto[d.auto] = !S.auto[d.auto]; toast((S.auto[d.auto] ? 'Automated: ' : 'Automation off: ') + T[d.auto].name); taskKey = ''; renderView(); return; }
   if (d.showlock) { showLocked[d.showlock] = !showLocked[d.showlock]; taskKey = ''; renderView(); return; }
-  if (d.unq) { qRemove(d.unq); taskKey = ''; renderView(); return; }
+  if (d.unq) { qRemove(d.unq); taskKey = ''; gearKey = ''; renderView(); return; }
   if (d.qmove) { qMove(d.qmove, +d.dir); taskKey = ''; renderView(); return; }
   if (d.qsave) { S.qpresets[+d.qsave] = ((L.qplan && L.qplan.length) ? L.qplan : L.queue).slice(); toast('Queue saved to preset ' + (+d.qsave + 1)); taskKey = ''; renderView(); return; }
   if (d.qload) {
-    const p = (S.qpresets[+d.qload] || []).filter(id => T[id]).slice(0, QMAX);
-    L.qplan = p.slice(); L.queue = p.filter(id => !(T[id].kind !== 'job' && complete(T[id])) && T[id].z >= L.sec);
+    const p = (S.qpresets[+d.qload] || []).filter(id => qItem(id)).slice(0, QMAX);
+    L.qplan = p.slice(); L.queue = p.filter(id => isGQ(id) ? !L.owned[qItem(id).id] : !(T[id].kind !== 'job' && complete(T[id])) && T[id].z >= L.sec);
     toast('Loaded preset ' + (+d.qload + 1)); taskKey = ''; renderView(); return;
   }
   if ('clearq' in d) { L.queue = []; L.qplan = []; taskKey = ''; renderView(); return; }
