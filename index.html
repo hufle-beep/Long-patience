@@ -36,8 +36,11 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--amber);outline-
 #hud{position:sticky;top:env(safe-area-inset-top,0px);z-index:6;background:var(--panel);border-bottom:1px solid var(--line);padding-block:10px 10px}
 #hud .wrap{display:grid;gap:7px}
 .r1{display:flex;align-items:center;justify-content:space-between;gap:8px 10px;flex-wrap:wrap}
-.ident{display:flex;align-items:center;gap:8px;flex:0 0 auto;white-space:nowrap}
-.hday{font-size:13px;color:var(--fg);font-family:var(--f-mono)}
+.ident{display:flex;align-items:center;gap:6px 8px;flex:0 1 auto;flex-wrap:wrap;white-space:nowrap}
+.htimes{display:inline-flex;gap:10px;flex-wrap:wrap}
+.ident .htimes span{font-family:var(--f-mono);font-size:13px;letter-spacing:0;text-transform:none}
+.ident .hday{color:var(--green)}
+.ident .hleft{color:var(--red)}
 .ident b{white-space:nowrap;font-family:var(--f-disp);font-size:22px;font-weight:700;letter-spacing:.04em;color:var(--amber);line-height:1}
 .ident span{font-family:var(--f-disp);font-size:14px;color:var(--dim);letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
 .spd{display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;margin-left:auto}
@@ -79,7 +82,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--amber);outline-
 .surv{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;font-size:12px}
 .surv b{font-size:14px;font-weight:500}
 .surv span{color:var(--dim)}
-.surv em{font-style:normal;margin-left:auto;color:var(--dim)}
+.surv em{font-style:normal;color:var(--dim)}
 .surv .strain{flex-basis:100%;color:var(--dim)}
 .surv .strain.hi{color:var(--red)}
 .task.rest .tm{border-style:dashed}
@@ -403,11 +406,11 @@ button.updl{width:100%}
 <header id="hud" class="gut">
   <div class="wrap">
     <div class="r1">
-      <div class="ident"><button class="menub" data-menu="open" aria-label="Main menu">☰</button><b>K-7</b><span id="h-gen">Clone 1</span><span id="h-day" class="num hday" title="Ship days elapsed · real time spent on this clone"></span></div>
+      <div class="ident"><button class="menub" data-menu="open" aria-label="Main menu">☰</button><b>K-7</b><span id="h-gen">Clone 1</span><span class="htimes"><span id="h-day" class="num hday" title="Elapsed: ship days and real time spent on this clone"></span><span id="h-left" class="num hleft" title="Remaining: ship days and real time this clone has left"></span></span></div>
       <div class="spd" id="h-spd"></div>
     </div>
     <div class="meter"><span class="lbl" style="min-width:0;text-align:left">Health</span><div class="bar hp"><i id="b-hp"></i></div><span id="t-hp" class="num"></span></div>
-    <div class="surv" id="surv"><span class="lbl">Time left</span><b id="s-left" class="num"></b><span id="s-real" class="num"></span><em id="s-why"></em><span id="s-strain" class="num strain"></span></div>
+    <div class="surv" id="surv"><span class="lbl">Outlook</span><em id="s-why"></em><span id="s-strain" class="num strain"></span></div>
     <div class="res">
       <div><span class="lbl">Food</span><span id="t-foods" class="foods"></span><small id="t-ratt" class="rt num"></small><button id="eatb" class="eat num" data-eat>Eat</button></div>
       <div><span class="lbl">Salvage</span><b id="t-sal" class="num"></b><small id="t-salr" class="num"></small><small id="t-salt" class="rt num"></small></div>
@@ -1985,11 +1988,12 @@ function updateHud(){
   const cur = L.cur ? T[L.cur] : null, cur2 = L.cur2 ? T[L.cur2] : null;
   const {rr, sr} = rates(cur, cur2);
   const sv = survival(), surv = $('#surv');
-  if (L.dead) { $('#s-left').textContent = '0'; $('#s-real').textContent = ''; $('#s-why').textContent = 'dead'; }
+  const hl = $('#h-left');
+  if (L.dead) { hl.textContent = '0 left'; $('#s-why').textContent = 'dead'; }
   else {
-    $('#s-left').textContent = fmtDays(sv.t);
-    $('#s-real').textContent = fmtReal(realSecs(sv.t)) + (cur ? '' : ' once working');
-    $('#s-why').textContent = 'by ' + sv.why;
+    const lt = (isFinite(sv.t) ? fmtDays(sv.t) + ' \u00b7 ' + fmtReal(realSecs(sv.t)) : '\u221e') + ' left';
+    if (hl.textContent !== lt) hl.textContent = lt;
+    $('#s-why').textContent = (isFinite(sv.t) ? 'ends by ' + sv.why : 'nothing ends it soon') + (cur ? '' : ' (time left counts once working)');
   }
   const st = L.strain || 1, se2 = $('#s-strain');
   se2.textContent = 'strain \u00d7' + st.toFixed(2);
