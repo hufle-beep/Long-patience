@@ -377,7 +377,10 @@ const HUNGER = 0.15;       // base health lost per tick, always, while time runs
 const STRAIN_RAMP = 1000, STRAIN_ACCEL = 300, AUTO_REST_AT = 2.5;
 // Resolve slows strain: early clones feel it most.
 const STRAIN_RES = 0.002;
-const strainRate = wear => (1 + wear / STRAIN_ACCEL) / STRAIN_RAMP / (1 + STRAIN_RES * (S.life.lv.res || 0)) * (M ? M.strainMul : 1);
+// Late wear: after a couple of weeks the growth rate climbs much faster (squared term), which keeps
+// well-fed late clones to roughly a month.
+const STRAIN_LATE = 400;
+const strainRate = wear => (1 + wear / STRAIN_ACCEL + Math.pow(wear / STRAIN_LATE, 2)) / STRAIN_RAMP / (1 + STRAIN_RES * (S.life.lv.res || 0)) * (M ? M.strainMul : 1);
 const MAX_DRAIN = 1.2;     // most health a clone can lose per day: a full bar lasts at least ~2 min at 1x
 // A meal restores the hunger of one cooldown plus the old resting regeneration.
 // Food deeper in the ship is better: each section past the first makes meals restore 12% more.
@@ -574,7 +577,7 @@ function mods(){
 const xpNeed = l => 152.6 * Math.pow(1.61051, l);
 // Neural echo: every point of XP a skill has ever gained, in any clone, adds to a flat speed
 // multiplier for that skill: x(1 + sqrt(total XP / ECHO_XP)). Diminishing returns, never resets.
-const ECHO_XP = 15000;
+const ECHO_XP = 5000;
 const echoSpeed = s => 1 + Math.sqrt(((S.xpTot && S.xpTot[s]) || 0) / ECHO_XP);
 const isDone = id => (S.life.done[id] || 0) >= T[id].reps;
 const available = t => t.z === (S.life.sec || 1) && t.req.every(isDone);
