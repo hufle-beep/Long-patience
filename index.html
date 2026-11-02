@@ -686,7 +686,7 @@ const NGP_GROWTH = 0.2, NGP_GROWTH_MAX = 5;   // deep echo: +20% skill growth pe
 // New game plus rewards: one step per run, five steps each.
 const NGP = [
   {id:'growth', name:'Deep echo',       max:5, now:k => '+' + Math.round(k * 20) + '% skill growth', step:'+20% skill growth for every skill'},
-  {id:'drain',  name:'Drain dampener',  max:5, now:k => 'health drain \u00f7' + (1 + 0.8 * k).toFixed(1), step:'divides all health drain further (\u00f71.8, \u00f72.6, \u00f73.4, \u00f74.2, \u00f75 at the last step)'},
+  {id:'drain',  name:'Drain dampener',  max:5, now:k => 'health drain \u00f7' + (1 + 0.8 * k).toFixed(1), step:'Divides all health drain (\u00f71.8, \u00f72.6, \u00f73.4, \u00f74.2, \u00f75 at the last step)'},
   {id:'hp',     name:'Template upgrade',max:5, now:k => '+' + (100 * k) + ' starting max health', step:'+100 max health for every clone'},
 ];
 const ngpLv = id => Math.min(5, ((S.pr || {})[id]) || 0);
