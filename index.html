@@ -484,7 +484,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
 
 <script id="logic">
 /* ===== Game data and rules (no DOM) ===== */
-const BUILD = '2026-11-03 · rewards in Act II 10%';   // shown in the main menu, to tell which version is loaded
+const BUILD = '2026-11-03 · Honours in both acts';   // shown in the main menu, to tell which version is loaded
 const DPS = 4;             // simulation ticks per real second at 1x
 // Time is simulated in ticks. 80 ticks make one ship day (18 minutes each), so a day lasts
 // 20 real seconds at 1x and a clone lives weeks, not years. Everything is shown in days and hours.
@@ -504,7 +504,7 @@ const STRAIN_RES = 0.002;
 // Late wear: after a couple of weeks the growth rate climbs much faster (squared term), which keeps
 // well-fed late clones to roughly a month.
 const STRAIN_LATE = 540;
-const strainRate = wear => (1 + wear / STRAIN_ACCEL + Math.pow(wear / STRAIN_LATE, 2)) / STRAIN_RAMP / (1 + STRAIN_RES * (S.life.lv.res || 0)) * (M ? M.strainMul : 1) * (M && isA2(S.life.sec || 1) ? M.a2strain : 1);
+const strainRate = wear => (1 + wear / STRAIN_ACCEL + Math.pow(wear / STRAIN_LATE, 2)) / STRAIN_RAMP / (1 + STRAIN_RES * (S.life.lv.res || 0)) * (M ? M.strainMul : 1) * (M ? M.a2strain : 1);   // Honours (Long-watch rhythm) work in both acts
 const MAX_DRAIN = 1.2;     // most health a clone can lose per day: a full bar lasts at least ~2 min at 1x
 // A meal restores the hunger of one cooldown plus the old resting regeneration.
 // Food deeper in the ship is better: each section past the first makes meals restore 12% more.
@@ -528,7 +528,7 @@ const MEAL_UP = {heatpaste:1.27, strains:1.54, packer:1.85, ovens:2.17, pantryfi
 function mealTier(){ const L = S && S.life; let q = 1; if (L) for (const id in MEAL_UP) if (L.done && L.done[id]) q = Math.max(q, MEAL_UP[id]); return q; }
 const jobFood = t => !(t && t.prod && t.prod.rations) ? null : (FOODS.find(f => f.job === t.id) || FD.ration).id;
 // Meal pace: every meal heals the same; better food and kitchens make the meal timer shorter (12 h / pace)
-function foodQ(f){ f = f || 'ration'; return (f === 'ration' ? mealTier() : FD[f].q) * ((M && M.fq && M.fq[f]) || 1) * ((M && M.pace) || 1) * (M && S && isA2(S.life.sec || 1) ? M.a2food : 1); }
+function foodQ(f){ f = f || 'ration'; return (f === 'ration' ? mealTier() : FD[f].q) * ((M && M.fq && M.fq[f]) || 1) * ((M && M.pace) || 1) * ((M && M.a2food) || 1); }   // Honours (Field rations) work in both acts
 function syncFood(){ const L = S.life; L.rations = FOODS.reduce((a, f) => a + Math.max(0, L.food[f.id] || 0), 0); }
 function addFood(f, a){
   const L = S.life; if (a <= 0) return; f = f || 'ration';
@@ -1060,7 +1060,7 @@ function drillCredit(d){
   TASKS.forEach(t => { if (t.kind !== 'train' && t.z === d.z) addFam(t, DRILL_CREDIT * compUnit(t) * famGain(t)); });
 }
 // hazards hurt less the more familiar the task is (up to /4, like the old combat and resolve levels)
-function hazDmg(t){ return (t.haz || 0) * M.haz * (isA2(t.z) ? M.a2haz : 1) / (1 + 3 * masteryFrac(t)); }
+function hazDmg(t){ return (t.haz || 0) * M.haz * M.a2haz / (1 + 3 * masteryFrac(t)); }   // Honours (Veteran template) work in both acts
 function xpRate(t, s){ return 0; }   // skills are gone
 
 function pickFood(){
@@ -1531,7 +1531,7 @@ function work(t, dt, chained){
         L.cyc[t.id] -= n;
         const before = L.bat[t.id] || 0; L.bat[t.id] = before + n;
         addPractice(t, n);   // every batch counts
-        if (t.prod) { if (t.prod.rations) addFood(jobFood(t), t.prod.rations * JOB_CYCLE * n); if (t.prod.salvage) L.salvage += t.prod.salvage * JOB_CYCLE * n * (isA2(t.z) ? M.a2sal : 1); }
+        if (t.prod) { if (t.prod.rations) addFood(jobFood(t), t.prod.rations * JOB_CYCLE * n); if (t.prod.salvage) L.salvage += t.prod.salvage * JOB_CYCLE * n * M.a2sal; }   // Honours (Scavenger's eye) work in both acts
         if (!wasFull && jobFull(t)) HOOK.taskDone(t);   // a job is done when its storage is full
       }
     } else {
@@ -1610,7 +1610,7 @@ function taskLeft(t){
   const L = S.life, sp = speedOf(t);
   if (t.kind === 'job') {
     if (!t.prod) return 0;
-    if (t.prod.salvage) { const r = t.prod.salvage * sp * (isA2(t.z) ? M.a2sal : 1); return r > 0 ? Math.max(0, M.salCap - L.salvage) / r : 0; }
+    if (t.prod.salvage) { const r = t.prod.salvage * sp * M.a2sal; return r > 0 ? Math.max(0, M.salCap - L.salvage) / r : 0; }
     const f = jobFood(t), r = t.prod.rations * sp; return r > 0 ? Math.max(0, M.fcap[f] - (L.food[f] || 0)) / r : 0;
   }
   if (complete(t)) return 0;
@@ -2920,12 +2920,12 @@ document.addEventListener('change', e => {
   else { S.set.boost = true; S.set.boostX = x; toast('Stasis boost \u00d7' + x + ': the bank lasts ' + fmtSecs(S.bank / (x - 1)) + ' of running time.'); }
   audioStart(); sfx('toggle'); save(); renderSpeed(); e.target.blur();
 });
-// Act II: the branch, and Honours spent on Act II rewards: like Act I rewards, 3 levels each and permanent
+// Act II: the branch, and Honours: earned in Act II, their rewards work in both acts; 3 levels each, permanent
 const A2R = [
-  {id:'vet',     name:'Veteran template',  now:k => 'Act II hazard damage \u2212' + Math.round(100 * A2_STEP.vet * k) + '%'},
-  {id:'rhythm',  name:'Long-watch rhythm', now:k => 'strain in Act II \u2212' + Math.round(100 * A2_STEP.rhythm * k) + '%'},
-  {id:'scav',    name:'Scavenger\u2019s eye', now:k => 'Act II salvage +' + Math.round(100 * A2_STEP.scav * k) + '%'},
-  {id:'rations', name:'Field rations',     now:k => 'Act II meals come ' + Math.round(100 * A2_STEP.rations * k) + '% more often'},
+  {id:'vet',     name:'Veteran template',  now:k => 'hazard damage \u2212' + Math.round(100 * A2_STEP.vet * k) + '%'},
+  {id:'rhythm',  name:'Long-watch rhythm', now:k => 'strain \u2212' + Math.round(100 * A2_STEP.rhythm * k) + '%'},
+  {id:'scav',    name:'Scavenger\u2019s eye', now:k => 'salvage +' + Math.round(100 * A2_STEP.scav * k) + '%'},
+  {id:'rations', name:'Field rations',     now:k => 'meals come ' + Math.round(100 * A2_STEP.rations * k) + '% more often'},
 ];
 function act2Panel(){
   const a = S.a2, spent = Object.values(a.lv || {}).reduce((x, y) => x + y, 0), free = Math.max(0, (a.hon || 0) - spent);
@@ -2935,7 +2935,7 @@ function act2Panel(){
                           : '<p class="note">Light the main drive in this run to choose an Act II branch.</p>';
   else h += `<p class="note">Your branch: <b>${S.branch === 'A' ? 'Boarders' : 'The long watch'}</b>${S.branch === 'A' ? (S.merge ? ', then the long watch' : S.merge === false ? ' (ending there)' : '') : ''}.</p>` +
     (S.branch === 'A' && S.merge === false ? '<div class="btns"><button class="btn" data-merge="1">Merge into the long watch after all</button></div>' : '');
-  h += `<div class="ngpts"><span class="lbl">Honours</span> <b class="num">${free}</b> unspent of ${a.hon || 0} \u00b7 one per Act II section first reached, two per branch finished (10 in all); spending is permanent</div>`;
+  h += `<div class="ngpts"><span class="lbl">Honours</span> <b class="num">${free}</b> unspent of ${a.hon || 0} \u00b7 one per Act II section first reached, two per branch finished (10 in all); their rewards work in both acts; spending is permanent</div>`;
   A2R.forEach(r => { const k = Math.min(NGP_MAX, (a.lv || {})[r.id] || 0);
     h += `<div class="ngrow"><div><b>${r.name}</b> <span class="num">${k}/${NGP_MAX}</span><small>${k ? r.now(k) : 'not taken'}${k < NGP_MAX ? ' \u00b7 next: ' + r.now(k + 1) : ''}</small></div>
       <button class="btn" data-confirm="a2add" data-a2r="${r.id}" ${k < NGP_MAX && free ? '' : 'disabled'} aria-label="Spend an Honour on ${r.name}">+</button></div>`; });
@@ -3260,7 +3260,7 @@ const FAQ_ALL = [
 ];
 // Shown once the drive is first lit.
 const FAQ_NGP = ['Act I rewards', 'There is no restarting: after the drive is lit, the story always moves forward into Act II. Moving forward earns <b>Act I reward points</b>: one for lighting the drive, one for each Act II section you first reach and two for each Act II branch you finish (11 in all). Spend them in the Archive; each level costs one point and is permanent. <b>Deep echo</b> (Act I tasks need about 30% less familiarity per step for \u00d710), <b>Drain dampener</b> (health drain in Act I divided by 2.3, 3.7, then 5) and <b>Template upgrade</b> (+167, +333, then +500 max health in Act I) work fully in Act I, which every clone crosses on its way, and at 10% strength in Act II. <b>Overclocked line</b> makes the whole game run faster in both acts (\u00d72.3, \u00d73.7, then \u00d75) without using banked time. Each reward has three levels, so 11 points can\u2019t max everything: choose. Lighting the drive the first time also unlocks the <b>Quartermaster\u2019s cache</b>: every clone starts with all of its automated gear already built, in both acts.'];
-const FAQ_A2 = ['Act II', 'Once the main drive is lit, a run can carry on into <b>Act II</b>. Choose a branch: <b>Boarders</b> (alien boarders cut into the hull; three sections of fighting, ending on their ship, after which you can merge into the long watch) or <b>The long watch</b> (the voyage goes on; the ship slowly wears out, which adds to the health drain until upkeep jobs bring it down; three sections to Tessaly orbit). Every clone that lights the drive carries on into the chosen branch. Act II tasks have their own familiarity, which Deep echo reduces only at 10% strength: it starts at 90 lives\u2019 worth for \u00d710 and drops by a quarter for every branch you finish. Act II familiarity, automation, records and <b>Honours</b> are kept for good. Honours (one per Act II section first reached, two per branch finished: 10 in all) buy Act II rewards in the Archive: Veteran template (Act II hazard damage \u221225% per level), Long-watch rhythm (strain \u221213%), Scavenger\u2019s eye (salvage +33%) and Field rations (meals 17% more often). Like Act I rewards they have three levels each, and spending is permanent.'];
+const FAQ_A2 = ['Act II', 'Once the main drive is lit, a run can carry on into <b>Act II</b>. Choose a branch: <b>Boarders</b> (alien boarders cut into the hull; three sections of fighting, ending on their ship, after which you can merge into the long watch) or <b>The long watch</b> (the voyage goes on; the ship slowly wears out, which adds to the health drain until upkeep jobs bring it down; three sections to Tessaly orbit). Every clone that lights the drive carries on into the chosen branch. Act II tasks have their own familiarity, which Deep echo reduces only at 10% strength: it starts at 90 lives\u2019 worth for \u00d710 and drops by a quarter for every branch you finish. Act II familiarity, automation, records and <b>Honours</b> are kept for good. Honours (one per Act II section first reached, two per branch finished: 10 in all) buy rewards in the Archive that work in <b>both acts</b>: Veteran template (hazard damage \u221225% per level), Long-watch rhythm (strain \u221213%), Scavenger\u2019s eye (salvage from jobs +33%) and Field rations (meals 17% more often). Like Act I rewards they have three levels each, and spending is permanent.'];
 let faqDone = '';
 function renderFaq(){
   const k = String(!!(S.won || (S.pr && S.pr.n))) + !!(S.a2 && S.a2.open);
