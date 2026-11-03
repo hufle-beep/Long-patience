@@ -129,7 +129,7 @@ main .wrap{display:grid;gap:18px}
 .qp{display:grid;gap:8px;padding:10px;border:1px dashed var(--line);border-radius:6px}
 .qh{display:flex;justify-content:space-between;align-items:center}
 .qh .qeta{color:var(--cyan);letter-spacing:0;text-transform:none;font-weight:400}
-.tgm{color:var(--cyan)}.trl{color:var(--amber)}
+.tgm{color:var(--cyan)}.te.over,#n-eta.over,#q-eta.over{color:var(--red)}.trl{color:var(--amber)}
 .secrun{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:8px 10px;margin:4px 0 8px;border:1px solid var(--cyan-soft);border-radius:4px;font-size:12.5px;color:var(--fg)}
 .secrun.on{border-color:var(--cyan)}
 .secrun.dim{color:var(--dim)}
@@ -483,7 +483,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
 
 <script id="logic">
 /* ===== Game data and rules (no DOM) ===== */
-const BUILD = '2026-11-03 · ship clocks';   // shown in the main menu, to tell which version is loaded
+const BUILD = '2026-11-03 · work estimates';   // shown in the main menu, to tell which version is loaded
 const DPS = 4;             // simulation ticks per real second at 1x
 // Time is simulated in ticks. 80 ticks make one ship day (18 minutes each), so a day lasts
 // 20 real seconds at 1x and a clone lives weeks, not years. Everything is shown in days and hours.
@@ -1928,6 +1928,12 @@ function fmtReal(sec){
 }
 // Clocks show ship (in-game) time only; real time appears only for play time, the stasis boost and the Log's records
 const both = days => fmtDays(days);
+// Work estimates (tasks, chains, the queue) also show the real time they take at the current speed
+const bothR = days => isFinite(days) ? fmtDays(days) + ' \u00b7 ' + fmtReal(realSecs(days)) : '\u221e';
+// Ship time this clone has left at the current hunger and strain (from the HUD's survival forecast)
+let lastSvT = Infinity;
+const tooLong = days => isFinite(lastSvT) && days > lastSvT + 1e-6;
+const OVER_TIP = 'More than this clone has left at the current hunger and strain';
 // Net ration and salvage change per day if task t is the one being worked
 function rates(t, t2){
   let rr = M.pRat - eatRate(), sr = M.pSal;
@@ -2583,7 +2589,7 @@ function updateTasks(){
     const w = chainWork(r.k), fm = flowMul();
     r.f.style.width = (w.tot ? (1 - w.left / w.tot) * 100 : 0).toFixed(1) + '%';
     let tk = 0; cSteps(r.k).forEach(x => { if (!cStepDone(r.k, x)) tk += isGQ(x) ? gearLeft(IT[x.slice(2)]) : taskLeft(T[x]); });
-    r.e.textContent = both(tk / fm);
+    r.e.textContent = bothR(tk / fm); r.e.classList.toggle('over', tooLong(tk / fm)); r.e.title = tooLong(tk / fm) ? OVER_TIP : '';
     r.fl.textContent = 'flow \u00d7' + fm.toFixed(2);
     r.el.classList.toggle('on', L.viaChain && cSteps(r.k).includes(L.cur));
   });
@@ -2595,7 +2601,7 @@ function updateTasks(){
       const p = (L.prog[t.id] || 0) / t.days;
       r.f.style.width = (p * 100).toFixed(1) + '%';
       const left = t.kind === 'rest' ? (t.days - (L.prog[t.id] || 0)) / sp : (t.days * (t.reps - (L.done[t.id] || 0)) - (L.prog[t.id] || 0)) / sp;
-      r.e.textContent = both(left);
+      r.e.textContent = bothR(left); r.e.classList.toggle('over', tooLong(left)); r.e.title = tooLong(left) ? OVER_TIP : '';
       if (r.rp) r.rp.textContent = (L.done[t.id] || 0) + '/' + t.reps;
     } else {
       jobBar(r.f, t, sp);
@@ -2660,7 +2666,7 @@ function updateHud(){
   $('#t-hp').textContent = Math.ceil(L.hp) + ' / ' + M.maxHp;
   const cur = L.cur ? T[L.cur] : null, cur2 = L.cur2 ? T[L.cur2] : null;
   const {rr, sr} = rates(cur, cur2);
-  const sv = survival(), surv = $('#surv');
+  const sv = survival(), surv = $('#surv'); lastSvT = L.dead ? 0 : sv.t;
   const hl = $('#h-left');
   if (L.dead) { hl.textContent = '0 left'; $('#s-why').textContent = 'dead'; }
   else {
@@ -2670,9 +2676,10 @@ function updateHud(){
     if (performance.now() - planT > 400) {   // planned work, refreshed a few times a second
       planT = performance.now();
       const pt = plannedTicks(), pe = $('#s-plan'), qe = $('#q-eta');
-      lastQEta = pt > 0.5 ? '\u2248 ' + fmtDays(pt) : '';
+      lastQEta = pt > 0.5 ? '\u2248 ' + bothR(pt) : '';
       if (qe && qe.textContent !== lastQEta) qe.textContent = lastQEta;
-      const txt = pt > 0.5 ? 'Planned work \u2248 ' + fmtDays(pt) + (isFinite(sv.t) && pt > sv.t ? ' (more than this clone has left)' : '') : (L.queue.length ? 'Planned work: waiting on locked items' : 'Queue empty');
+      if (qe) { qe.classList.toggle('over', tooLong(pt)); qe.title = tooLong(pt) ? OVER_TIP : ''; }
+      const txt = pt > 0.5 ? 'Planned work \u2248 ' + bothR(pt) + (isFinite(sv.t) && pt > sv.t ? ' (more than this clone has left)' : '') : (L.queue.length ? 'Planned work: waiting on locked items' : 'Queue empty');
       if (pe.textContent !== txt) pe.textContent = txt;
       pe.classList.toggle('over', isFinite(sv.t) && pt > sv.t);
     }
@@ -2704,6 +2711,7 @@ function updateHud(){
   now.classList.toggle('paused', !!S.set.paused && !L.dead);
   now.classList.toggle('forage', !!(cur && L.foraging));
   if (!cur || cur.kind !== 'job') $('#n-fill').classList.remove('fast');
+  $('#n-eta').classList.remove('over');
   if (L.dead) { $('#n-name').textContent = 'Clone terminated'; $('#n-eta').textContent = ''; $('#n-fill').style.width = '0'; }
   else if (S.set.paused) { $('#n-name').textContent = 'Paused' + (cur ? ': ' + cur.name : ''); $('#n-eta').textContent = 'tap Resume'; }
   else if (!cur) { $('#n-name').textContent = 'Time stopped. Pick a task below.'; $('#n-eta').textContent = ''; $('#n-fill').style.width = '0'; }
@@ -2712,7 +2720,8 @@ function updateHud(){
     if (cur.kind !== 'job') {
       const sp = speedOf(cur) * (L.viaChain ? flowMul() : 1);
       $('#n-fill').style.width = ((L.prog[cur.id] || 0) / cur.days * 100).toFixed(1) + '%';
-      $('#n-eta').textContent = both((cur.days - (L.prog[cur.id] || 0)) / sp);
+      const nl = (cur.days - (L.prog[cur.id] || 0)) / sp, ne = $('#n-eta');
+      ne.textContent = bothR(nl) + (tooLong(nl) ? ' \u00b7 won\u2019t finish' : ''); ne.classList.toggle('over', tooLong(nl));
     } else {
       const sp = speedOf(cur) * (L.viaChain ? flowMul() : 1); jobBar($('#n-fill'), cur, sp);
       $('#n-eta').textContent = cur.prod ? (jobFast(sp) ? 'continuous' : 'next batch ' + both((1 - (L.cyc[cur.id] || 0)) * JOB_CYCLE / sp)) : 'training';
