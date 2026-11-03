@@ -483,7 +483,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
 
 <script id="logic">
 /* ===== Game data and rules (no DOM) ===== */
-const BUILD = '2026-11-03 · section runs';   // shown in the main menu, to tell which version is loaded
+const BUILD = '2026-11-03 · baton chain';   // shown in the main menu, to tell which version is loaded
 const DPS = 4;             // simulation ticks per real second at 1x
 // Time is simulated in ticks. 80 ticks make one ship day (18 minutes each), so a day lasts
 // 20 real seconds at 1x and a clone lives weeks, not years. Everything is shown in days and hours.
@@ -2465,7 +2465,7 @@ function renderTasks(){
     }
     {
       const gav = ITEMS.filter(i => gearZone(i) === z.id && isDone(i.req) && !inChain.has('g:' + i.id));
-      const gkn = ITEMS.filter(i => gearZone(i) === z.id && !isDone(i.req) && ((S.gprac || {})[i.id] || 0) > 0 && !zBefore(z.id, L.sec || 1));
+      const gkn = ITEMS.filter(i => gearZone(i) === z.id && !isDone(i.req) && !inChain.has('g:' + i.id) && ((S.gprac || {})[i.id] || 0) > 0 && !zBefore(z.id, L.sec || 1));
       if (gav.length || gkn.length) {
         h += '<div class="sub">Gear \u00b7 built from salvage, lasts this clone</div>';
         gav.forEach(i => { h += gearRow(i); });
@@ -3017,10 +3017,9 @@ function renderAuto(){
     if (missing.length && missing.length <= 8) h += `<p class="note">Still needed for the one-click section: ${esc(missing.join(', '))}.</p>`;
     if (z.id === (L.sec || 1)) h += `<p class="note">Chain flow \u00d7${flowMul().toFixed(2)}: chained steps (queued chains, section runs) work this much faster; it grows as you use chains, up to \u00d7${1 + FLOW_MAX}.</p>`;
     chainsOf(z.id).forEach(c => {
-      const gear = sectionGear(z.id).filter(i => gearAuto(i) && c.some(t => t.id === i.req) && masteryF(T[i.req]) >= LINK_F);
-      if (c.length < 2 && !gear.length) return;
-      h += '<div class="chain"><span class="br">Chain:</span>' + c.map(t => `<span class="st${masteryF(t) >= SECTION_F ? ' ok' : ''}">${esc(t.name)}</span>`).join('<span class="lk">\u2192</span>') +
-        gear.map(i => `<span class="lk">+</span><span class="st ok">${esc(i.name)}</span>`).join('') + `<button class="btn cqadd" data-q="${chainKeyFor(c[0])}">+ queue</button></div>`;
+      const k = chainKeyFor(c[0]); if (!k) return;   // same steps, in the same order, as the chain card in the Tasks tab
+      h += '<div class="chain"><span class="br">Chain:</span>' + cSteps(k).map(x => isGQ(x) ? `<span class="st ok gs">${esc(IT[x.slice(2)].name)}</span>` : `<span class="st${masteryF(T[x]) >= SECTION_F ? ' ok' : ''}">${esc(T[x].name)}</span>`).join('<span class="lk">\u2192</span>') +
+        `<button class="btn cqadd" data-q="${k}">+ queue</button></div>`;
     });
     h += '<div class="alist">';
     ['job','act','train','rest'].forEach(k => zl.filter(t => t.kind === k).forEach(t => {
