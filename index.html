@@ -484,7 +484,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
 
 <script id="logic">
 /* ===== Game data and rules (no DOM) ===== */
-const BUILD = '2026-11-03 · steady food display';   // shown in the main menu, to tell which version is loaded
+const BUILD = '2026-11-03 · packed shared saves';   // shown in the main menu, to tell which version is loaded
 const DPS = 8;             // simulation ticks per real second at 1x (doubled for the test version: same balance, half the real time)
 // Time is simulated in ticks. 80 ticks make one ship day (18 minutes each), so a day lasts
 // 20 real seconds at 1x and a clone lives weeks, not years. Everything is shown in days and hours.
@@ -2122,6 +2122,27 @@ function exportJson(){
     toast('Saved ' + name);
   } catch(e) { toast('This browser can’t save files. Use “Copy as JSON” instead.'); }
 }
+// Packed saves: 'LPZ1:' + base64 of the gzipped JSON, about a fifth of the size (used for sharing)
+async function packSave(json){
+  try {
+    const cs = new Blob([json]).stream().pipeThrough(new CompressionStream('gzip'));
+    const buf = new Uint8Array(await new Response(cs).arrayBuffer());
+    let bin = ''; for (let i = 0; i < buf.length; i += 0x8000) bin += String.fromCharCode.apply(null, buf.subarray(i, i + 0x8000));
+    return 'LPZ1:' + btoa(bin);
+  } catch(e) { return null; }
+}
+async function unpackSave(txt){
+  const bin = atob(txt.slice(5).replace(/\s/g, '')), buf = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) buf[i] = bin.charCodeAt(i);
+  const ds = new Blob([buf]).stream().pipeThrough(new DecompressionStream('gzip'));
+  return await new Response(ds).text();
+}
+// Any save text (JSON, save code or packed), for loading; packed saves need the async path
+async function parseSaveAny(txt){
+  txt = (txt || '').trim();
+  if (txt.startsWith('LPZ1:')) { try { return parseSaveText(await unpackSave(txt)); } catch(e) { return null; } }
+  return parseSaveText(txt);
+}
 function parseSaveText(txt){
   txt = (txt || '').trim(); let raw = null;
   try { raw = JSON.parse(txt.startsWith('{') ? txt : b64dec(txt)); } catch(e) {}
@@ -2131,7 +2152,7 @@ document.addEventListener('change', e => {
   if (e.target.id === 'share-name') { try { localStorage.setItem(SHARE_KEY, e.target.value.trim()); } catch(err) {} return; }
   if (e.target.id !== 'import-file' || !e.target.files || !e.target.files[0]) return;
   const f = e.target.files[0], rd = new FileReader();
-  rd.onload = () => { const raw = parseSaveText(rd.result); e.target.value = ''; if (!raw) { sfx('error'); toast('That file isn’t a Long Patience save.'); return; } applyLoaded(raw, 'file ' + f.name); };
+  rd.onload = async () => { const raw = await parseSaveAny(rd.result); e.target.value = ''; if (!raw) { sfx('error'); toast('That file isn’t a Long Patience save.'); return; } applyLoaded(raw, 'file ' + f.name); };
   rd.onerror = () => toast('Couldn’t read that file.');
   rd.readAsText(f);
 });
@@ -2160,16 +2181,18 @@ function ghFileName(){
   return who + '-' + when + '-' + (S.pr && S.pr.n ? 'ngp' + S.pr.n + '-' : '') + 'clone' + S.gen + '.json';
 }
 function openOut(url){ const a = document.createElement('a'); a.href = url; a.target = '_blank'; a.rel = 'noopener'; document.body.appendChild(a); a.click(); a.remove(); }
-function shareToGitHub(){
+async function shareToGitHub(){
   save();
-  const json = JSON.stringify(S), name = ghFileName();
+  // shared copies round numbers to 3 decimals: much smaller, and close enough to look at or continue from
+  const json = JSON.stringify(S, (k, v) => typeof v === 'number' && !Number.isInteger(v) ? Math.round(v * 1000) / 1000 : v), packed = await packSave(json);
+  const body = packed || json, name = ghFileName().replace(/\.json$/, packed ? '.txt' : '.json');
   const base = 'https://github.com/' + GH_REPO + '/new/main?filename=' + encodeURIComponent(GH_DIR + '/' + name);
-  const full = base + '&value=' + encodeURIComponent(json);
-  if (full.length <= GH_URL_MAX) { openOut(full); toast('GitHub opens with the save filled in. Sign in and press “Commit changes”.', true); return; }
+  const full = base + '&value=' + encodeURIComponent(body);
+  if (full.length <= GH_URL_MAX) { openOut(full); toast('GitHub opens with the save filled in. Sign in and press \u201cCommit changes\u201d.', true); return; }
   // too long to fit in a link: copy it, then the player pastes it into GitHub's editor
-  const ta = $('#save-code'); if (ta) ta.value = json;
-  const go = ok => { openOut(base); toast(ok ? 'Save copied. In GitHub, paste it into the empty file and press “Commit changes”.' : 'Save is in the text box below: copy it, paste it into the GitHub file and commit.', true); };
-  try { navigator.clipboard.writeText(json).then(() => go(true), () => go(false)); } catch(e) { go(false); }
+  const ta = $('#save-code'); if (ta) ta.value = body;
+  const go = ok => { openOut(base); toast(ok ? 'Save copied (' + Math.round(body.length / 1024) + ' KB). In GitHub, paste it into the empty file and press \u201cCommit changes\u201d.' : 'Save is in the text box below: copy it, paste it into the GitHub file and commit.', true); };
+  try { navigator.clipboard.writeText(body).then(() => go(true), () => go(false)); } catch(e) { go(false); }
 }
 async function ghRefresh(){
   if (ghBusy) return; ghBusy = true; ghList = 'loading'; renderGhList();
@@ -2177,7 +2200,7 @@ async function ghRefresh(){
     const r = await fetch('https://api.github.com/repos/' + GH_REPO + '/contents/' + GH_DIR + '?ref=main', {cache:'no-store'});
     if (r.status === 404) ghList = [];
     else if (!r.ok) throw new Error('GitHub answered ' + r.status + (r.status === 403 ? ' (too many requests; try again in a while)' : ''));
-    else ghList = (await r.json()).filter(f => f.type === 'file' && /\.(json|txt)$/i.test(f.name)).sort((a, b) => b.name.localeCompare(a.name)).slice(0, 40);
+    else ghList = (await r.json()).filter(f => f.type === 'file' && /\.(json|txt)$/i.test(f.name) && !/^readme/i.test(f.name)).sort((a, b) => b.name.localeCompare(a.name)).slice(0, 40);
   } catch(e) { ghList = 'error:' + (e.message || 'no connection'); }
   ghBusy = false; renderGhList();
 }
@@ -2194,7 +2217,7 @@ async function ghLoad(i){
   toast('Downloading ' + f.name + '…');
   try {
     const r = await fetch(f.download_url, {cache:'no-store'}); if (!r.ok) throw new Error(r.status);
-    const raw = parseSaveText(await r.text());
+    const raw = await parseSaveAny(await r.text());
     if (!raw) { sfx('error'); toast('That file isn’t a Long Patience save.'); return; }
     applyLoaded(raw, 'GitHub (' + f.name + ')');
   } catch(e) { sfx('error'); toast('Couldn’t download it: ' + (e.message || 'no connection')); }
@@ -3514,10 +3537,9 @@ document.addEventListener('click', e => {
     if (k === 'ghload') { b.textContent = 'Load'; ghLoad(+d.gi); return; }
     if (k === 'import') {
       b.textContent = 'Load pasted text';
-      let raw = null; const txt = $('#save-code').value.trim();
-      try { raw = JSON.parse(txt.startsWith('{') ? txt : b64dec(txt)); } catch(e) {}
-      if (!raw || !raw.life) { toast('That save code isn\u2019t valid.'); return; }
-      applyLoaded(raw, 'save code'); return;
+      const txt = $('#save-code').value.trim();
+      parseSaveAny(txt).then(raw => { if (!raw || !raw.life) { toast('That save code isn\u2019t valid.'); return; } applyLoaded(raw, 'save code'); });
+      return;
     }
     if (k === 'recycle' && !S.life.dead) die('Recycled by choice');
     if (k === 'reset') {
