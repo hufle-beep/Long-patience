@@ -483,7 +483,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
 
 <script id="logic">
 /* ===== Game data and rules (no DOM) ===== */
-const BUILD = '2026-11-03 · shared saves';   // shown in the main menu, to tell which version is loaded
+const BUILD = '2026-11-03 · chain gear fix';   // shown in the main menu, to tell which version is loaded
 const DPS = 4;             // simulation ticks per real second at 1x
 // Time is simulated in ticks. 80 ticks make one ship day (18 minutes each), so a day lasts
 // 20 real seconds at 1x and a clone lives weeks, not years. Everything is shown in days and hours.
@@ -1478,10 +1478,17 @@ const qName = id => { const x = qItem(id); return x ? (isGQ(id) ? 'Build ' + x.n
 function chainKeyFor(t){
   if (!t || isGQ(t.id)) return null;
   const c = chainsOf(t.z).find(c => c.includes(t)); if (!c) return null;
-  const gear = sectionGear(t.z).filter(i => gearAuto(i) && c.some(x => x.id === i.req) && masteryF(T[i.req]) >= LINK_F);
+  // gear unlocked by the previous section's crossing (shock baton, stims...) is ready from the start
+  // of this section: it joins the chain that holds the section's opening tasks, as its first steps
+  // one chain only: the section's main chain (the one that ends in its crossing), or else the first opening task's
+  const end = sectionEnd(t.z), all = chainsOf(t.z), main = all.find(k => k.includes(end));
+  const opener = i => TASKS.filter(x => x.z === t.z && x.kind !== 'train' && chainMember(x) && x.req.includes(i.req)).sort((p, q) => chainOrd(p) - chainOrd(q))[0];
+  const early = i => T[i.req].cross && T[i.req].z !== t.z && (main && main.length > 1 ? c.includes(end) : c.includes(opener(i)));
+  const gear = sectionGear(t.z).filter(i => gearAuto(i) && (early(i) || (c.some(x => x.id === i.req) && masteryF(T[i.req]) >= LINK_F)));
   if (c.length + gear.length < 2) return null;
-  // gear goes right after the task that unlocks it, so it is built before the crossing
-  const steps = []; c.forEach(x => { steps.push(x.id); gear.filter(i => i.req === x.id).forEach(i => steps.push('g:' + i.id)); });
+  // other gear goes right after the task that unlocks it, so it is built before the crossing
+  const steps = gear.filter(early).map(i => 'g:' + i.id);
+  c.forEach(x => { steps.push(x.id); gear.filter(i => i.req === x.id).forEach(i => steps.push('g:' + i.id)); });
   return 'ch:' + steps.join(',');
 }
 // Has this step of a queued chain been dealt with? (jobs: filled once while the chain was running)
