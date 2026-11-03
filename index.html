@@ -462,6 +462,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
     <section class="view" id="v-skills" hidden></section>
     <section class="view" id="v-gear" hidden></section>
     <section class="view" id="v-archive" hidden></section>
+    <section class="view" id="v-legacy" hidden></section>
     <section class="view" id="v-log" hidden></section>
     <section class="view" id="v-faq" hidden></section>
   </div>
@@ -474,6 +475,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
     <button data-tab="auto">Auto</button>
     <button data-tab="skills">Speed</button>
     <button data-tab="archive">Archive</button>
+    <button data-tab="legacy" hidden>Legacy</button>
     <button data-tab="log">Log</button>
     <button data-tab="faq">FAQ</button>
   </div>
@@ -484,7 +486,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
 
 <script id="logic">
 /* ===== Game data and rules (no DOM) ===== */
-const BUILD = '2026-11-04 · tidier archive';   // shown in the main menu, to tell which version is loaded
+const BUILD = '2026-11-04 · legacy tab';   // shown in the main menu, to tell which version is loaded
 const DPS = 8;             // simulation ticks per real second at 1x (doubled for the test version: same balance, half the real time)
 // Time is simulated in ticks. 80 ticks make one ship day (18 minutes each), so a day lasts
 // 20 real seconds at 1x and a clone lives weeks, not years. Everything is shown in days and hours.
@@ -2404,7 +2406,7 @@ HOOK.log = (title, text) => {
 };
 HOOK.done = t => sfx('complete');
 HOOK.qfull = () => { sfx('error'); toast('The queue is full (' + QMAX + ' items). Remove something first.'); };
-HOOK.ngpEarn = (n, why) => { archKey = ''; toast('Act I reward point' + (n > 1 ? 's +' + n : ' +1') + ' for ' + why + '. Spend ' + (n > 1 ? 'them' : 'it') + ' in the Archive.', true); };
+HOOK.ngpEarn = (n, why) => { archKey = ''; toast('Act I reward point' + (n > 1 ? 's +' + n : ' +1') + ' for ' + why + '. Spend ' + (n > 1 ? 'them' : 'it') + ' in the Legacy tab.', true); };
 HOOK.assembling = (it, auto) => { gearKey = ''; taskKey = ''; toast((auto ? 'Auto-build: assembling ' : 'Assembling ') + it.name + ' (' + fmtDays(BT[it.id].days / speedOf(BT[it.id])) + ')'); };
 HOOK.bought = (it, auto, unlocked) => {
   sfx('buy'); gearKey = ''; taskKey = ''; autoKey = '';
@@ -2965,7 +2967,7 @@ const A2R = [
 ];
 function act2Panel(){
   const a = S.a2, spent = Object.values(a.lv || {}).reduce((x, y) => x + y, 0), free = Math.max(0, (a.hon || 0) - spent);
-  let h = '<div class="panel ngp"><span class="h2">Act II</span>';
+  let h = '<div class="panel ngp"><span class="h2">Act II Honours</span>';
   h += `<p class="note">After the drive is lit, every clone that lights it carries on into Act II. Act II familiarity, automation, records and Honours are kept for good. Act II needs ${fmt(famN0A2())} lives' worth of a task for \u00d710 (a quarter less at each of Act II\u2019s two big milestones).</p>`;
   const seen2 = ZONES.filter(z => isA2(z.id) && (S.a2run.reached || {})[z.id]).map(z => z.name);
   h += S.won ? '<p class="note">' + (seen2.length ? 'Reached so far: <b>' + seen2.join(' \u2192 ') + '</b>.' : 'Act II is open. Light the drive again to see where it leads.') + '</p>' : '<p class="note">Light the main drive to open Act II.</p>';
@@ -3030,8 +3032,6 @@ function renderArchive(force){
     <div><b>${fmtHours(S.stats.played || 0)}</b><span>Time played</span></div>
     <div><b>${awayMax() / 3600} h</b><span>Time away limit (max 168 h)</span></div>
     <div><b>${S.won ? 'Clone ' + S.winGen : 'Not yet'}</b><span>Drive ignited</span></div></div>`;
-  if (S.won || ngpPts() > 0) h += ngpPanel();
-  if (S.a2 && S.a2.open) h += act2Panel();
   h += '<div class="panel set"><span class="h2">Settings</span>';
   h += '<div class="row"><p>Sound, layout and app updates<small>These are in the settings menu.</small></p><button class="btn" data-settings="hud">Open</button></div></div><div class="panel set"><span class="h2">Clone</span>';
   h += `<div class="row"><p>Recycle this clone<small>End the current life now. Echoes are kept.</small></p><button class="btn warn" data-confirm="recycle">Recycle</button></div>
@@ -3082,7 +3082,8 @@ function renderLog(){
 function setTab(t){
   tab = t;
   document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === t));
-  ['tasks','map','auto','skills','gear','archive','log','faq'].forEach(v => $('#v-' + v).hidden = v !== t);
+  ['tasks','map','auto','skills','gear','archive','legacy','log','faq'].forEach(v => $('#v-' + v).hidden = v !== t);
+  legKey = '';
   autoKey = '';
   mapKey = '';
   if (t === 'log') newLog = false;
@@ -3098,11 +3099,25 @@ function renderView(force){
   else if (tab === 'skills') renderSkills();
   else if (tab === 'gear') renderGear();
   else if (tab === 'archive') renderArchive(force);
+  else if (tab === 'legacy') renderLegacy();
   else if (tab === 'log') renderLog();
   else if (tab === 'faq') renderFaq();
   document.querySelector('[data-tab="log"]').classList.toggle('dot', newLog);
   document.querySelector('[data-tab="archive"]').classList.toggle('dot', newPerk);
+  const lg = document.querySelector('[data-tab="legacy"]'); lg.hidden = !(S.won || ngpPts() > 0); lg.classList.toggle('dot', ngpFree() > 0 || a2Free() > 0);
 }
+// Legacy tab: what the line of clones has earned for good (Act I rewards, Act II Honours)
+let legKey = '';
+function renderLegacy(){
+  const key = JSON.stringify([S.pr, S.a2, S.won, S.a2run, Math.floor(S.gen)]);
+  if (key === legKey) return; legKey = key;
+  let h = '';
+  if (S.won || ngpPts() > 0) h += ngpPanel();
+  if (S.a2 && S.a2.open) h += act2Panel();
+  if (!h) h = '<div class="panel"><p class="note">Nothing here yet.</p></div>';
+  $('#v-legacy').innerHTML = h;
+}
+const a2Free = () => { const a = S.a2 || {}; return Math.max(0, (a.hon || 0) - Object.values(a.lv || {}).reduce((x, y) => x + y, 0)); };
 
 /* ----- map: every action ever performed, by section, wired by requirement ----- */
 let mapKey = '', mapRefs = [];
@@ -3299,11 +3314,11 @@ const FAQ_ALL = [
   ['What happens at a crossing with automation?', 'A queued or automated crossing stops just before it finishes and waits while the clone finishes automated actions and training, builds affordable automated gear, refills storage (if that option is on) and uses the section’s rest. Tap a crossing yourself to go at once.'],
   ['Pause, background and boost', 'Pause with the button at the top or the space bar. The game keeps running in a background tab and catches up when you return, then shows what happened while you were away. Time while the game is fully closed is banked as a <b>stasis boost</b> you can switch on in the header. Pick Off, ×2, ×5 or ×10 from its menu: at ×5 every real second plays five, and the bank pays for the extra four, so faster boost spends the bank faster. Both start capped at 8 hours: at most 8 hours of background time is played out, and the boost holds at most 8 hours. Each <b>Stasis watch</b> record adds 8 hours to both; you get one the first time you finish each section (5 in all, up to 48 hours).'],
   ['Saves', 'The game saves itself every few seconds on this device, in three slots (☰ menu). Use <b>Save files and transfer</b> in the menu to export a save file, import one, or copy the save as text to move it between devices.'],
-  ['Settings', 'The ⚙ button opens sound (music and effects), layout (vertical or horizontal) and, in the Android app, app updates. Gameplay options such as auto-eat and the forage threshold are in the Archive tab.'],
+  ['Settings', 'The ⚙ button opens sound (music and effects), layout (vertical or horizontal) and, in the Android app, app updates. Gameplay options such as auto-eat, auto-forage, the forage threshold and the pause options are in the Auto tab.'],
 ];
 // Shown once the drive is first lit.
-const FAQ_NGP = ['Act I rewards', 'There is no restarting: after the drive is lit, the story always moves forward into Act II. Moving forward earns <b>Act I reward points</b>: one for lighting the drive, one for each Act II section you first reach and two for each Act II branch you finish (11 in all). Spend them in the Archive; each level costs one point and is permanent. <b>Deep echo</b> (Act I tasks need about 30% less familiarity per step for \u00d710), <b>Drain dampener</b> (health drain in Act I divided by 2.3, 3.7, then 5) and <b>Template upgrade</b> (+167, +333, then +500 max health in Act I) work fully in Act I, which every clone crosses on its way, and at 10% strength in Act II. <b>Overclocked line</b> makes the whole game run faster in both acts (\u00d72.3, \u00d73.7, then \u00d75) without using banked time. Each reward has three levels, so 11 points can\u2019t max everything: choose. Lighting the drive the first time also unlocks the <b>Quartermaster\u2019s cache</b>: every clone starts with all of its automated gear already built, in both acts.'];
-const FAQ_A2 = ['Act II', 'Once the main drive is lit, every clone that lights it carries on into <b>Act II</b>: six more sections, one after another, each revealed when a clone first reaches it. Act II tasks have their own familiarity, which Deep echo reduces only at 10% strength: it starts at 90 lives\u2019 worth for \u00d710 and drops by a quarter at each of Act II\u2019s two big milestones. Act II familiarity, automation, records and <b>Honours</b> are kept for good. Honours (one per Act II section first reached, two for each of Act II\u2019s two big milestones: 10 in all) buy rewards in the Archive that work in <b>both acts</b>: Veteran template (hazard damage \u221225% per level), Long-watch rhythm (strain \u221213%), Scavenger\u2019s eye (salvage from jobs +33%) and Field rations (meals 17% more often). Like Act I rewards they have three levels each, and spending is permanent.'];
+const FAQ_NGP = ['Act I rewards', 'There is no restarting: after the drive is lit, the story always moves forward into Act II. Moving forward earns <b>Act I reward points</b>: one for lighting the drive, one for each Act II section you first reach and two for each Act II branch you finish (11 in all). Spend them in the <b>Legacy</b> tab; each level costs one point and is permanent. <b>Deep echo</b> (Act I tasks need about 30% less familiarity per step for \u00d710), <b>Drain dampener</b> (health drain in Act I divided by 2.3, 3.7, then 5) and <b>Template upgrade</b> (+167, +333, then +500 max health in Act I) work fully in Act I, which every clone crosses on its way, and at 10% strength in Act II. <b>Overclocked line</b> makes the whole game run faster in both acts (\u00d72.3, \u00d73.7, then \u00d75) without using banked time. Each reward has three levels, so 11 points can\u2019t max everything: choose. Lighting the drive the first time also unlocks the <b>Quartermaster\u2019s cache</b>: every clone starts with all of its automated gear already built, in both acts.'];
+const FAQ_A2 = ['Act II', 'Once the main drive is lit, every clone that lights it carries on into <b>Act II</b>: six more sections, one after another, each revealed when a clone first reaches it. Act II tasks have their own familiarity, which Deep echo reduces only at 10% strength: it starts at 90 lives\u2019 worth for \u00d710 and drops by a quarter at each of Act II\u2019s two big milestones. Act II familiarity, automation, records and <b>Honours</b> are kept for good. Honours (one per Act II section first reached, two for each of Act II\u2019s two big milestones: 10 in all) buy rewards in the <b>Legacy</b> tab that work in <b>both acts</b>: Veteran template (hazard damage \u221225% per level), Long-watch rhythm (strain \u221213%), Scavenger\u2019s eye (salvage from jobs +33%) and Field rations (meals 17% more often). Like Act I rewards they have three levels each, and spending is permanent.'];
 let faqDone = '';
 function renderFaq(){
   const k = String(!!(S.won || (S.pr && S.pr.n))) + !!(S.a2 && S.a2.open);
@@ -3342,7 +3357,7 @@ function showWin(){
   showModal(`<h2>The drive is lit</h2>
     <p>The food beds grow, the reactor holds and the stardrive burns for Tessaly. It took ${S.gen} clone${S.gen > 1 ? 's' : ''} of K-7 to get here. None of them will be remembered.</p>
     <p>WARDEN begins the wake cycle, then stops. Proximity alarms. Something is closing on the ship.</p>
-    <p class="d"><b>Act II</b> begins. The ship isn\u2019t done with K-7 yet: every clone that lights the drive carries on into whatever comes next. Lighting the drive earned an <b>Act I reward point</b> (spend it in the Archive), and the <b>Quartermaster\u2019s cache</b> is unlocked: from now on clones start with their automated gear.</p>
+    <p class="d"><b>Act II</b> begins. The ship isn\u2019t done with K-7 yet: every clone that lights the drive carries on into whatever comes next. Lighting the drive earned an <b>Act I reward point</b> (spend it in the Legacy tab), and the <b>Quartermaster\u2019s cache</b> is unlocked: from now on clones start with their automated gear.</p>
     <button class="btn pri" data-close>Continue</button>`);
 }
 // Pick this run's Act II branch; a clone standing at the lit drive goes straight in
@@ -3471,7 +3486,7 @@ document.addEventListener('click', e => {
     if (S.merge && S.life.sec === 8 && !S.life.dead && complete(T.cutloose)) enterZone(9, 8);
     toast(S.merge ? 'The run continues into the long watch.' : 'The run ends with the boarders. You can still merge from the Archive.'); taskKey = ''; archKey = ''; renderView(); return; }
   if (d.a2adj) return;   // Honours can't be moved once spent
-  if (d.ngpadj) { if (ngpAdjust(d.ngpadj, +d.dd)) { sfx('toggle'); archKey = ''; save(); renderView(true); } return; }
+  if (d.ngpadj) { if (ngpAdjust(d.ngpadj, +d.dd)) { sfx('toggle'); archKey = ''; legKey = ''; save(); renderView(true); } return; }
   if (d.ngpick) {
     const pr0 = S.pr || {};
     const rw = NGP.find(r => r.id === d.ngpick), allDone = NGP.every(r => ngpLv(r.id) >= r.max);
@@ -3542,8 +3557,8 @@ document.addEventListener('click', e => {
     clearTimeout(confirmT[k]); confirmT[k] = null;
     if (k === 'importfile') { b.textContent = 'Import save file'; $('#import-file').click(); return; }
     if (k === 'a2add') { b.textContent = '+'; const id = d.a2r, v = S.a2.lv[id] || 0, free = (S.a2.hon || 0) - Object.values(S.a2.lv).reduce((x, y) => x + y, 0);
-      if (v < NGP_MAX && free > 0) { S.a2.lv[id] = v + 1; M = mods(); const r = A2R.find(x => x.id === id); sfx('perk'); toast(r.name + ' ' + (v + 1) + '/' + NGP_MAX + ': ' + r.now(v + 1) + '.'); archKey = ''; save(); renderView(true); } return; }
-    if (k === 'ngpadd') { b.textContent = '+'; if (ngpAdjust(d.ngr, 1)) { const r = NGP.find(x => x.id === d.ngr); sfx('perk'); toast(r.name + ' ' + ngpLv(r.id) + '/' + r.max + ': ' + r.now(ngpLv(r.id)) + '.'); archKey = ''; save(); renderView(true); } return; }
+      if (v < NGP_MAX && free > 0) { S.a2.lv[id] = v + 1; M = mods(); const r = A2R.find(x => x.id === id); sfx('perk'); toast(r.name + ' ' + (v + 1) + '/' + NGP_MAX + ': ' + r.now(v + 1) + '.'); archKey = ''; legKey = ''; save(); renderView(true); } return; }
+    if (k === 'ngpadd') { b.textContent = '+'; if (ngpAdjust(d.ngr, 1)) { const r = NGP.find(x => x.id === d.ngr); sfx('perk'); toast(r.name + ' ' + ngpLv(r.id) + '/' + r.max + ': ' + r.now(ngpLv(r.id)) + '.'); archKey = ''; legKey = ''; save(); renderView(true); } return; }
     if (k === 'ghload') { b.textContent = 'Load'; ghLoad(+d.gi); return; }
     if (k === 'import') {
       b.textContent = 'Load pasted text';
