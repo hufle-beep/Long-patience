@@ -486,7 +486,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
 
 <script id="logic">
 /* ===== Game data and rules (no DOM) ===== */
-const BUILD = '2026-11-04 · legacy tab';   // shown in the main menu, to tell which version is loaded
+const BUILD = '2026-11-04 · stats in log';   // shown in the main menu, to tell which version is loaded
 const DPS = 8;             // simulation ticks per real second at 1x (doubled for the test version: same balance, half the real time)
 // Time is simulated in ticks. 80 ticks make one ship day (18 minutes each), so a day lasts
 // 20 real seconds at 1x and a clone lives weeks, not years. Everything is shown in days and hours.
@@ -3023,15 +3023,6 @@ function renderArchive(force){
     });
   });
   h += '</div>';
-  const st = S.stats;
-  h += `<div class="stats">
-    <div><b>${S.gen}</b><span>Clones decanted</span></div>
-    <div><b>${st.bestDays ? st.bestDays.toFixed(1) : '—'}</b><span>Longest life (days)</span></div>
-    <div><b>${Math.min(BASE_HP_MAX, 100 + Math.floor(S.vit || 0))}</b><span>Base health (max ${BASE_HP_MAX})</span></div>
-    <div><b>${TASKS.filter(t => masteryFrac(t) >= 1).length}</b><span>Tasks at \u00d710</span></div>
-    <div><b>${fmtHours(S.stats.played || 0)}</b><span>Time played</span></div>
-    <div><b>${awayMax() / 3600} h</b><span>Time away limit (max 168 h)</span></div>
-    <div><b>${S.won ? 'Clone ' + S.winGen : 'Not yet'}</b><span>Drive ignited</span></div></div>`;
   h += '<div class="panel set"><span class="h2">Settings</span>';
   h += '<div class="row"><p>Sound, layout and app updates<small>These are in the settings menu.</small></p><button class="btn" data-settings="hud">Open</button></div></div><div class="panel set"><span class="h2">Clone</span>';
   h += `<div class="row"><p>Recycle this clone<small>End the current life now. Echoes are kept.</small></p><button class="btn warn" data-confirm="recycle">Recycle</button></div>
@@ -3041,8 +3032,22 @@ function renderArchive(force){
   $('#v-archive').innerHTML = h;
 }
 let histAll = false;
+// Save-wide numbers (top of the Log)
+function statsGrid(){
+  let h = '';
+  const st = S.stats;
+  h += `<div class="stats">
+    <div><b>${S.gen}</b><span>Clones decanted</span></div>
+    <div><b>${st.bestDays ? st.bestDays.toFixed(1) : '—'}</b><span>Longest life (days)</span></div>
+    <div><b>${Math.min(BASE_HP_MAX, 100 + Math.floor(S.vit || 0))}</b><span>Base health (max ${BASE_HP_MAX})</span></div>
+    <div><b>${TASKS.filter(t => masteryFrac(t) >= 1).length}</b><span>Tasks at \u00d710</span></div>
+    <div><b>${fmtHours(S.stats.played || 0)}</b><span>Time played</span></div>
+    <div><b>${awayMax() / 3600} h</b><span>Time away limit (max 168 h)</span></div>
+    <div><b>${S.won ? 'Clone ' + S.winGen : 'Not yet'}</b><span>Drive ignited</span></div></div>`;
+  return h;
+}
 function renderLog(){
-  const key = Math.floor((S.stats.played || 0) / 60) + '|' + S.log.length + '|' + (S.log.length ? S.log[S.log.length-1].t : '') + '|' + (S.hist ? S.hist.length : 0) + '|' + JSON.stringify(S.bestSec || 0) + JSON.stringify(S.bestAll || 0) + '|' + histAll + '|' + S.gen + '|' + JSON.stringify(S.best || {});
+  const key = Math.floor((S.stats.played || 0) / 60) + '|' + [S.stats.bestDays, Math.floor(S.vit || 0), TASKS.filter(t => masteryFrac(t) >= 1).length, awayMax(), S.winGen].join() + '|' + S.log.length + '|' + (S.log.length ? S.log[S.log.length-1].t : '') + '|' + (S.hist ? S.hist.length : 0) + '|' + JSON.stringify(S.bestSec || 0) + JSON.stringify(S.bestAll || 0) + '|' + histAll + '|' + S.gen + '|' + JSON.stringify(S.best || {});
   if (key === logKey) return; logKey = key;
   const secName = n => n >= 6 ? 'Drive lit' : ZONES[n - 1].name;
   const histName = e => e.z && isA2(e.z) ? ZN(e.z).name : secName(e.sec);
@@ -3052,7 +3057,7 @@ function renderLog(){
   // Play time: the whole save across new game plus, and how long each run took (from run start to
   // the moment its new game plus began)
   const runs = (S.pr && S.pr.runs) || [], tot = S.stats.played || 0;
-  let h = `<div class="panel"><span class="h2">Play time</span><p class="note">Real time the clock has run in this save.</p><div class="rtab"><table class="dt"><tbody>`;
+  let h = statsGrid() + `<div class="panel"><span class="h2">Play time</span><p class="note">Real time the clock has run in this save.</p><div class="rtab"><table class="dt"><tbody>`;
   let prev = 0;
   runs.forEach((r, i) => { const d = Math.max(0, (r.played || 0) - prev); prev = r.played || prev;
     h += `<tr><td>${i ? 'Run ' + (i + 1) + ' (NG+' + i + ')' : 'Run 1'}</td><td>${r.clones} clone${r.clones === 1 ? '' : 's'}</td><td>${fmtHours(d)}</td></tr>`; });
