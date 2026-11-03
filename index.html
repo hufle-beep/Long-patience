@@ -490,7 +490,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
 
 <script id="logic">
 /* ===== Game data and rules (no DOM) ===== */
-const BUILD = '2026-11-04 · save management';   // shown in the main menu, to tell which version is loaded
+const BUILD = '2026-11-04 · menu notes';   // shown in the main menu, to tell which version is loaded
 const DPS = 8;             // simulation ticks per real second at 1x (doubled for the test version: same balance, half the real time)
 // Time is simulated in ticks. 80 ticks make one ship day (18 minutes each), so a day lasts
 // 20 real seconds at 1x and a clone lives weeks, not years. Everything is shown in days and hours.
@@ -2390,7 +2390,7 @@ function showMenu(view){
   } else {
     h += '<div class="mbtns">';
     if (cur && cur.life) h += `<button class="btn pri" data-menu="continue">Continue \u00b7 slot ${slot}<small>${esc(slotInfo(cur))}</small></button>`;
-    h += '<button class="btn" data-menu="new">New game</button><button class="btn" data-menu="saves">Save Management</button><button class="btn" data-settings="menu">Settings<small>Clock and pauses, sound, layout, app updates</small></button></div>';
+    h += '<button class="btn" data-menu="new">New game</button><button class="btn" data-menu="saves">Save Management</button><button class="btn" data-settings="menu">Settings</button></div>';
   }
   showModal(h);
 }
