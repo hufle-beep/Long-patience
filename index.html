@@ -483,7 +483,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
 
 <script id="logic">
 /* ===== Game data and rules (no DOM) ===== */
-const BUILD = '2026-11-03 · meal timers';   // shown in the main menu, to tell which version is loaded
+const BUILD = '2026-11-03 · pause on finish';   // shown in the main menu, to tell which version is loaded
 const DPS = 4;             // simulation ticks per real second at 1x
 // Time is simulated in ticks. 80 ticks make one ship day (18 minutes each), so a day lasts
 // 20 real seconds at 1x and a clone lives weeks, not years. Everything is shown in days and hours.
@@ -899,12 +899,13 @@ const gearZone = i => T[i.req].cross ? T[i.req].z + 1 : T[i.req].z;
 ITEMS.forEach(i => { if (i.eff && i.eff.zsp && i.eff.zsp.GZ) i.eff.zsp = {[gearZone(i)]: i.eff.zsp.GZ}; });   // section gear: speeds up its own section
 
 let S, M;
-const HOOK = {log(){}, perk(){}, die(){}, win(){}, change(){}, stopped(){}, practiced(){}, done(){}, rested(){}, crossed(){}, bought(){}, qfull(){}, honour(){}, merge(){}, kit(){}, runEnd(){}};
+let HALT = false;   // set by the UI to stop the clock in the middle of a catch-up (e.g. pause on task completion)
+const HOOK = {taskDone(){}, log(){}, perk(){}, die(){}, win(){}, change(){}, stopped(){}, practiced(){}, done(){}, rested(){}, crossed(){}, bought(){}, qfull(){}, honour(){}, merge(){}, kit(){}, runEnd(){}};
 
 // Player preferences (switches, thresholds, boost speed) are stored once for the device, not per save:
 // a new game or another slot starts with the same settings.
 const PREF_KEY = 'long-patience.prefs.v1';
-const PREF_KEYS = ['autoFood','autoEat','foodPct','restAt','keepQueue','deathScreen','deathPause','startPaused','bgPause','pauseCross','pauseRunEnd','replay','fillCross','autoFeed','boostX'];
+const PREF_KEYS = ['autoFood','autoEat','foodPct','restAt','keepQueue','deathScreen','deathPause','startPaused','bgPause','pauseCross','pauseRunEnd','pauseDone','replay','fillCross','autoFeed','boostX'];
 function loadPrefs(){ try { const p = JSON.parse(localStorage.getItem(PREF_KEY) || '{}'); const o = {}; PREF_KEYS.forEach(k => { if (p[k] !== undefined) o[k] = p[k]; }); return o; } catch(e) { return {}; } }
 function savePrefs(){ try { if (!S || !S.set) return; const o = {}; PREF_KEYS.forEach(k => { if (S.set[k] !== undefined) o[k] = S.set[k]; }); localStorage.setItem(PREF_KEY, JSON.stringify(o)); } catch(e) {} }
 function newLife(s){
@@ -917,7 +918,7 @@ function newLife(s){
 }
 function defaultState(){
   const s = {v:1, tv:3, qpresets:[[], [], [], [], []], gprac:{}, gauto:{}, gprio:{}, ev:2, xpTot:{}, rv:4, sv:2, pv:3, vv:3, gen:1, prio:{}, fam:{}, ever:{}, prac:{}, auto:{}, echo:{}, perks:{}, seen:{}, logged:{}, log:[], lastOrder:[], lastJob:null,
-    set:Object.assign({speed:1, autoFood:true, autoEat:true, foodDays:2, foodPct:40, restAt:2.5, keepQueue:true, deathScreen:true, deathPause:true, startPaused:false, bgPause:false, pauseCross:false, pauseRunEnd:false, replay:true, fillCross:false, autoFeed:false, boost:false, boostX:2}, loadPrefs()),
+    set:Object.assign({speed:1, autoFood:true, autoEat:true, foodDays:2, foodPct:40, restAt:2.5, keepQueue:true, deathScreen:true, deathPause:true, startPaused:false, bgPause:false, pauseCross:false, pauseRunEnd:false, pauseDone:false, replay:true, fillCross:false, autoFeed:false, boost:false, boostX:2}, loadPrefs()),
     stats:{bestAge:0, deaths:0, daysLived:0, played:0}, a2:{open:false, hon:0, lv:{}, perks:{}, fin:0}, branch:null, merge:null, a2run:{reached:{}, done:{}}, pr:{n:0, pts:0, growth:0, drain:0, hp:0, speed:0, carry:0, runs:[]}, won:false, winGen:0, bank:0, saved:Date.now(), intro:false};
   SKILLS.forEach(k => s.echo[k.id] = 0);
   s.life = newLife(s);
@@ -1350,13 +1351,14 @@ function finish(t){
   if (t.kind === 'train') {
     drillCredit(t);
     if (complete(t)) qConsumeAll(t.id); else qConsumeRep(t.id);
+    if (complete(t)) HOOK.taskDone(t);   // all sessions of this life done
     HOOK.change();
     return;
   }
   if (t.kind === 'rest') {
     L.strain = (L.strain || 1) / 2;   // may drop below 1
     qConsumeAll(t.id);
-    HOOK.rested(t); HOOK.change();
+    HOOK.rested(t); HOOK.taskDone(t); HOOK.change();
     return;
   }
   const r = t.reward || {};
@@ -1376,6 +1378,7 @@ function finish(t){
   if (t.win && !S.won) { S.won = true; S.winGen = S.gen; S.a2.open = true; HOOK.win(); }
   else if (t.win && S.branch && !L.dead) enterZone(S.branch === 'A' ? 6 : 9, 5);   // into the chosen Act II branch
   if (t.finale && complete(t)) finishBranch(t);
+  if (complete(t)) HOOK.taskDone(t);
   HOOK.change();
 }
 // Run history: each clone's furthest section and time, plus the best run so far.
@@ -1496,12 +1499,13 @@ function work(t, dt, chained){
     if (t.kind === 'job') {
       // Jobs work in batches: the bar fills over JOB_CYCLE days of work, then delivers and empties.
       L.cyc[t.id] = (L.cyc[t.id] || 0) + sp * dt / JOB_CYCLE;
-      const n = Math.floor(L.cyc[t.id]);
+      const n = Math.floor(L.cyc[t.id]), wasFull = jobFull(t);
       if (n > 0) {
         L.cyc[t.id] -= n;
         const before = L.bat[t.id] || 0; L.bat[t.id] = before + n;
         addPractice(t, n);   // every batch counts
         if (t.prod) { if (t.prod.rations) addFood(jobFood(t), t.prod.rations * JOB_CYCLE * n); if (t.prod.salvage) L.salvage += t.prod.salvage * JOB_CYCLE * n * (isA2(t.z) ? M.a2sal : 1); }
+        if (!wasFull && jobFull(t)) HOOK.taskDone(t);   // a job is done when its storage is full
       }
     } else {
       L.prog[t.id] = (L.prog[t.id] || 0) + sp * dt;
@@ -1531,7 +1535,8 @@ function clampRes(){
 }
 function advance(days){
   let left = days, n = 0;
-  while (left > 1e-9 && !S.life.dead && n < 500) { const d = Math.min(left, 2); if (step(d) === false) break; left -= d; n++; }
+  while (left > 1e-9 && !S.life.dead && n < 500 && !HALT) { const d = Math.min(left, 2); if (step(d) === false) break; left -= d; n++; }
+  HALT = false;
 }
 // The queue plan: everything you queued this life, in order, including items already finished.
 // It is what carries over to the next clone (Keep queue between clones) and what presets save.
@@ -2283,6 +2288,9 @@ HOOK.bought = (it, auto, unlocked) => {
 HOOK.crossed = z => { sfx('perk'); taskKey = ''; mapKey = ''; toast('You enter ' + zoneThe(z) + '. The way back is sealed.', true);
   if (S.set.pauseRunEnd && S.life.chainRun) return;   // a section run is going on: pause when it ends instead
   if (S.set.pauseCross) { S.set.paused = true; toast('Paused on entering ' + zoneThe(z) + '. Press Resume to carry on.'); } };
+HOOK.taskDone = t => { if (!S.set.pauseDone || S.life.dead) return;
+  S.set.paused = true; HALT = true;
+  toast('Paused: ' + (t.kind === 'job' ? t.name + ' \u2014 storage full' : t.kind === 'train' ? t.name + ' \u2014 all sessions done' : '\u201c' + t.name + '\u201d done') + '. Press Resume to carry on.'); };
 HOOK.runEnd = (from, to, why) => { taskKey = ''; autoKey = '';
   const p = pathOf(), last = why === 'notready' && from !== to ? p[p.indexOf(to) - 1] : to;
   const span = from === last ? zoneThe(last) : 'sections ' + (p.indexOf(from) + 1) + '\u2013' + (p.indexOf(last) + 1);
@@ -3080,6 +3088,7 @@ function renderAuto(){
     <div class="row"><p>Pause in the background<small>When the game tab or app is hidden, the clock stops instead of running on, and there is no catch-up. The time away is added to the stasis boost instead.</small></p><button class="tog${S.set.bgPause ? ' on' : ''}" data-set="bgPause" aria-label="Pause in the background" aria-pressed="${!!S.set.bgPause}"></button></div>
     <div class="row"><p>Pause after each new section<small>When a clone crosses into the next section, the clock stops until you press Resume, so you can plan the new section first.</small></p><button class="tog${S.set.pauseCross ? ' on' : ''}" data-set="pauseCross" aria-label="Pause after each new section" aria-pressed="${!!S.set.pauseCross}"></button></div>
     <div class="row"><p>Pause when a section run ends instead<small>Overrides the pause above during a section run: a run across several sections keeps going through its crossings, and the clock stops once the run finishes or stops by itself. Your own Stop doesn\u2019t pause.</small></p><button class="tog${S.set.pauseRunEnd ? ' on' : ''}" data-set="pauseRunEnd" aria-label="Pause when a section run ends instead" aria-pressed="${!!S.set.pauseRunEnd}"></button></div>
+    <div class="row"><p>Pause when a task finishes<small>The clock stops whenever a task is done: an action (all its repeats), a rest, a drill once all its sessions for this life are done, or a job once its storage is full. Automated tasks count too.</small></p><button class="tog${S.set.pauseDone ? ' on' : ''}" data-set="pauseDone" aria-label="Pause when a task finishes" aria-pressed="${!!S.set.pauseDone}"></button></div>
     <div class="row"><p>Start the game paused<small>When you open the game, the clock waits until you press Resume.</small></p><button class="tog${S.set.startPaused ? ' on' : ''}" data-set="startPaused" aria-label="Start the game paused" aria-pressed="${!!S.set.startPaused}"></button></div>
     <div class="fld"><label for="rest-at">Automated rests fire at strain \u00d7</label><div class="pctin"><input type="text" id="rest-at" inputmode="decimal" autocomplete="off" value="${restAt()}"><span>Rests also fire just before an automated crossing if still unused.</span></div></div>
     <div class="row"><p>Feed when needed<small>Automated food jobs step in when food runs low, or when health is low and meals can still heal faster than strain drains it. They refill to what is needed, then the interrupted task carries on.</small></p><button class="tog${S.set.autoFeed ? ' on' : ''}" data-set="autoFeed" aria-label="Feed when needed" aria-pressed="${!!S.set.autoFeed}"></button></div>
