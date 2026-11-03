@@ -483,7 +483,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
 
 <script id="logic">
 /* ===== Game data and rules (no DOM) ===== */
-const BUILD = '2026-11-03 · salvage for gear';   // shown in the main menu, to tell which version is loaded
+const BUILD = '2026-11-03 · gear assembly';   // shown in the main menu, to tell which version is loaded
 const DPS = 4;             // simulation ticks per real second at 1x
 // Time is simulated in ticks. 80 ticks make one ship day (18 minutes each), so a day lasts
 // 20 real seconds at 1x and a clone lives weeks, not years. Everything is shown in days and hours.
@@ -894,13 +894,21 @@ const ITEMS = [
   {id:'diagrig',    name:'Injector diagnostic rig', cost:1600, req:'course', desc:'Work in the Main Drive 25% faster', eff:{zsp:{GZ:1.25}}},
 ];
 const IT = {}; ITEMS.forEach(i => IT[i.id] = i);
+// Assembly: gear costs its salvage up front (paid when assembly starts) and then takes time to put
+// together, more for bigger designs: BUILD_K x cost^BUILD_P ticks at base speed. Each design has a
+// hidden assembly task ('b:' + id) that runs like an action and gets faster with familiarity.
+const BUILD_K = 0.5, BUILD_P = 0.8;
+const BT = {};   // item id -> its assembly task
+const assembling = id => !!(S && S.life && S.life.assem && S.life.assem.includes(id));
 // A design's section: where it becomes buildable. Designs unlocked by a crossing belong to the section it leads into.
 const gearZone = i => T[i.req].cross ? T[i.req].z + 1 : T[i.req].z;
-ITEMS.forEach(i => { if (i.eff && i.eff.zsp && i.eff.zsp.GZ) i.eff.zsp = {[gearZone(i)]: i.eff.zsp.GZ}; });   // section gear: speeds up its own section
+ITEMS.forEach(i => { if (i.eff && i.eff.zsp && i.eff.zsp.GZ) i.eff.zsp = {[gearZone(i)]: i.eff.zsp.GZ}; });
+ITEMS.forEach(i => { const t = {id:'b:' + i.id, gear:i.id, z:gearZone(i), kind:'build', name:'Assemble: ' + i.name, days:Math.max(2, Math.round(BUILD_K * Math.pow(i.cost, BUILD_P))), reps:1, req:[], sk:[]};
+  T[t.id] = t; BT[i.id] = t; });   // section gear: speeds up its own section
 
 let S, M;
 let HALT = false;   // set by the UI to stop the clock in the middle of a catch-up (e.g. pause on task completion)
-const HOOK = {taskDone(){}, log(){}, perk(){}, die(){}, win(){}, change(){}, stopped(){}, practiced(){}, done(){}, rested(){}, crossed(){}, bought(){}, qfull(){}, honour(){}, merge(){}, kit(){}, runEnd(){}};
+const HOOK = {assembling(){}, taskDone(){}, log(){}, perk(){}, die(){}, win(){}, change(){}, stopped(){}, practiced(){}, done(){}, rested(){}, crossed(){}, bought(){}, qfull(){}, honour(){}, merge(){}, kit(){}, runEnd(){}};
 
 // Player preferences (switches, thresholds, boost speed) are stored once for the device, not per save:
 // a new game or another slot starts with the same settings.
@@ -1085,6 +1093,8 @@ function active(ex){
   const feed = feedJob();
   if (ok(feed)) return feed;
   if ((L.strain || 1) >= restAt()) { const r = TASKS.find(t => t.kind === 'rest' && isAuto(t) && available(t) && !complete(t) && ok(t)); if (r) return r; }
+  // Gear paid for is assembled before anything else (after food and rests)
+  if (L.assem && L.assem.length) { const bt = BT[L.assem[0]]; if (bt && ok(bt)) return bt; }
   const held = heldStep();
   if (ok(held)) return held;
   // One-click section run: everything in the section in chain order, then the crossing (no waiting).
@@ -1125,7 +1135,7 @@ function active(ex){
     }
     if (isGQ(id)) {
       const it = qItem(id);
-      if (!it || L.owned[it.id]) { qConsume(id); HOOK.change(); continue; }
+      if (!it || L.owned[it.id] || assembling(it.id)) { qConsume(id); HOOK.change(); continue; }
       if (!isDone(it.req) || it.cost > M.salCap) continue;   // not found yet in this life, or storage too small
       if (L.salvage >= it.cost) { buyItem(it.id, false); qConsume(id); HOOK.change(); continue; }
       const job = bestSalvageJob(ok);
@@ -1234,7 +1244,7 @@ function pendingActs(){
 function pendingGearJob(){
   const L = S.life;
   if (!S.gauto) return null;
-  const want = ITEMS.filter(it => S.gauto[it.id] && gearPracticed(it) && !L.owned[it.id] && isDone(it.req) && it.cost <= M.salCap)
+  const want = ITEMS.filter(it => S.gauto[it.id] && gearPracticed(it) && !L.owned[it.id] && !assembling(it.id) && isDone(it.req) && it.cost <= M.salCap)
     .sort((a, b) => ITEMS.indexOf(a) - ITEMS.indexOf(b))[0];
   if (!want || L.salvage >= want.cost) return null;
   let job = null, br = 0;
@@ -1273,7 +1283,7 @@ function skipHold(){
 function holdList(){
   const L = S.life; if (!L.held) return [];
   const out = pendingActs().map(t => t.name);
-  const g = ITEMS.filter(it => S.gauto && S.gauto[it.id] && gearPracticed(it) && !L.owned[it.id] && isDone(it.req) && it.cost <= M.salCap)
+  const g = ITEMS.filter(it => S.gauto && S.gauto[it.id] && gearPracticed(it) && !L.owned[it.id] && !assembling(it.id) && isDone(it.req) && it.cost <= M.salCap)
     .sort((a, b) => ITEMS.indexOf(a) - ITEMS.indexOf(b))[0];
   if (g && pendingGearJob()) out.push('build ' + g.name);
   if (S.set.fillCross && fillJob()) out.push('refill storage');
@@ -1291,19 +1301,26 @@ const gearPracticed = it => ((S.gprac || {})[it.id] || 0) >= gearNeed(it);
 const gearPrio = it => (S.gprio && S.gprio[it.id]) || 3;
 function buyItem(id, auto){
   const L = S.life, it = IT[id];
-  if (!it || L.owned[id] || !isDone(it.req) || L.salvage < it.cost) return false;
-  L.salvage -= it.cost; L.owned[id] = true; M = mods();
+  if (!it || L.owned[id] || assembling(id) || !isDone(it.req) || L.salvage < it.cost) return false;
+  L.salvage -= it.cost;   // paid up front; the clone then assembles it (see BT)
+  (L.assem = L.assem || []).push(id); L.assemAuto = L.assemAuto || {}; L.assemAuto[id] = !!auto;
+  HOOK.assembling(it, auto);
+  return true;
+}
+// An assembly is finished: the gear works from now on
+function gearBuilt(id){
+  const L = S.life, it = IT[id];
+  L.assem = (L.assem || []).filter(x => x !== id); L.owned[id] = true; M = mods();
   if (it.eff.maxHp) L.hp += it.eff.maxHp;
   if (!S.gprac) S.gprac = {};
   S.gprac[id] = (S.gprac[id] || 0) + 1;
   if (S.gprac[id] === gearNeed(it) && S.gauto[id] !== false) S.gauto[id] = true;   // on by default once unlocked
-  HOOK.bought(it, auto, S.gprac[id] === gearNeed(it));
-  return true;
+  HOOK.bought(it, !!(L.assemAuto || {})[id], S.gprac[id] === gearNeed(it));
 }
 function autoBuy(){
   if (!S.gauto) return;
   const L = S.life;
-  const c = ITEMS.filter(it => S.gauto[it.id] && gearPracticed(it) && !L.owned[it.id] && isDone(it.req) && it.cost <= M.salCap)
+  const c = ITEMS.filter(it => S.gauto[it.id] && gearPracticed(it) && !L.owned[it.id] && !assembling(it.id) && isDone(it.req) && it.cost <= M.salCap)
     .sort((a, b) => ITEMS.indexOf(a) - ITEMS.indexOf(b));
   if (c.length && L.salvage >= c[0].cost) buyItem(c[0].id, true);
 }
@@ -1348,6 +1365,7 @@ function finish(t){
   if (!S.ever) S.ever = {};
   S.ever[t.id] = 1;
   addPractice(t);   // every completion counts toward automation
+  if (t.kind === 'build') { L.done[t.id] = 0; gearBuilt(t.gear); HOOK.taskDone(t); HOOK.change(); return; }
   if (t.kind === 'train') {
     drillCredit(t);
     if (complete(t)) qConsumeAll(t.id); else qConsumeRep(t.id);
@@ -1591,8 +1609,10 @@ function taskLeft(t){
 }
 function gearLeft(it){
   const L = S.life; if (L.owned[it.id]) return 0;
-  const need = Math.max(0, it.cost - L.salvage); if (!need) return 0;
-  const j = bestSalvageJob(); return j ? need / (j.prod.salvage * speedOf(j)) : 0;
+  const bt = BT[it.id], build = (bt.days - (L.prog[bt.id] || 0)) / speedOf(bt);
+  if (assembling(it.id)) return build;
+  const need = Math.max(0, it.cost - L.salvage); if (!need) return build;
+  const j = bestSalvageJob(); return (j ? need / (j.prod.salvage * speedOf(j)) : 0) + build;
 }
 function plannedTicks(){
   const L = S.life; let tot = 0;
@@ -1613,7 +1633,8 @@ function chainNext(id, ok){
     if (isGQ(x)) {
       const it = IT[x.slice(2)];
       if (!isDone(it.req) || it.cost > M.salCap) continue;
-      if (L.salvage >= it.cost) { buyItem(it.id, false); continue; }
+      if (assembling(it.id)) return BT[it.id];
+      if (L.salvage >= it.cost) { buyItem(it.id, false); return BT[it.id]; }
       const job = bestSalvageJob(ok); if (job) return job; continue;
     }
     const t = T[x];
@@ -1636,7 +1657,7 @@ function chainedIds(){
 // design (in the queue or a queued chain) that is found, not built yet and fits in storage. Automated
 // salvage jobs gather only up to this; they no longer top the store up to full (crossings excepted).
 function salvageNeed(){
-  const L = S.life, fits = it => it && !L.owned[it.id] && isDone(it.req) && it.cost <= M.salCap;
+  const L = S.life, fits = it => it && !L.owned[it.id] && !assembling(it.id) && isDone(it.req) && it.cost <= M.salCap;
   let need = 0;
   ITEMS.forEach(it => { if (S.gauto && S.gauto[it.id] && gearPracticed(it) && fits(it)) need = need || it.cost; });
   for (const id of L.queue) {
@@ -2302,6 +2323,7 @@ HOOK.log = (title, text) => {
 };
 HOOK.done = t => sfx('complete');
 HOOK.qfull = () => { sfx('error'); toast('The queue is full (' + QMAX + ' items). Remove something first.'); };
+HOOK.assembling = (it, auto) => { gearKey = ''; taskKey = ''; toast((auto ? 'Auto-build: assembling ' : 'Assembling ') + it.name + ' (' + fmtDays(BT[it.id].days / speedOf(BT[it.id])) + ')'); };
 HOOK.bought = (it, auto, unlocked) => {
   sfx('buy'); gearKey = ''; taskKey = ''; autoKey = '';
   toast((auto ? 'Auto-built: ' : 'Built: ') + it.name);
@@ -2475,7 +2497,7 @@ function renderTasks(){
     if (av && !complete(t)) vis.push(t.id);
     else if (!av && S.seen[t.id]) locked.push(t.id);
   });
-  const key = vis.join() + '|' + locked.join() + '|' + [...chainedIds()].join() + JSON.stringify(cOpen) + JSON.stringify(qOpen) + JSON.stringify(L.cjd || {}) + L.queue.filter(isCQ).map(id => cSteps(id).filter(x => cStepDone(id, x)).length).join() + (L.now || '') + (L.chainRun ? 'R' : '') + runSpan(L.sec || 1).join('') + JSON.stringify(sectionGate(L.sec || 1)) + ITEMS.filter(i => isDone(i.req)).map(i => i.id + (L.owned[i.id] ? 'o' : L.salvage >= i.cost ? 'y' : 'n') + (gearAuto(i) ? '*' : '') + ((S.gprac || {})[i.id] || 0)).join() + '|' + L.queue.join() + (L.queue.some(isGQ) ? Math.floor(L.salvage) + '/' + M.salCap + Object.keys(L.owned).join() : '') + '|' + L.job + '|' + Object.keys(S.perks).join() + '|' + S.gen + '|' + JSON.stringify(showLocked) + '|' + L.sec + '|' + (L.held || '') + holdList().join() + '|' + JSON.stringify(S.qpresets) + (L.qdone || []).length + (S.set.keepQueue !== false) + '|' + TASKS.filter(t => practiced(t)).map(t => t.id + (S.auto[t.id] ? '*' : '') + prioOf(t)).join() + '|' + openPrio;
+  const key = vis.join() + '|' + locked.join() + '|' + [...chainedIds()].join() + JSON.stringify(cOpen) + JSON.stringify(qOpen) + JSON.stringify(L.cjd || {}) + L.queue.filter(isCQ).map(id => cSteps(id).filter(x => cStepDone(id, x)).length).join() + (L.now || '') + (L.chainRun ? 'R' : '') + runSpan(L.sec || 1).join('') + JSON.stringify(sectionGate(L.sec || 1)) + ITEMS.filter(i => isDone(i.req)).map(i => i.id + (L.owned[i.id] ? 'o' : assembling(i.id) ? 'a' + Math.floor((L.prog['b:' + i.id] || 0) / BT[i.id].days * 20) : L.salvage >= i.cost ? 'y' : 'n') + (gearAuto(i) ? '*' : '') + ((S.gprac || {})[i.id] || 0)).join() + '|' + L.queue.join() + (L.queue.some(isGQ) ? Math.floor(L.salvage) + '/' + M.salCap + Object.keys(L.owned).join() : '') + '|' + L.job + '|' + Object.keys(S.perks).join() + '|' + S.gen + '|' + JSON.stringify(showLocked) + '|' + L.sec + '|' + (L.held || '') + holdList().join() + '|' + JSON.stringify(S.qpresets) + (L.qdone || []).length + (S.set.keepQueue !== false) + '|' + TASKS.filter(t => practiced(t)).map(t => t.id + (S.auto[t.id] ? '*' : '') + prioOf(t)).join() + '|' + openPrio;
   if (key === taskKey) return;
   taskKey = key;
 
@@ -2773,14 +2795,14 @@ function gearRow(i){
   const L = S.life, pr = gearPracticed(i), on = !!(S.gauto && S.gauto[i.id]);
   const st = pr ? (on ? 'built automatically when affordable' : 'can be automated') : 'built in ' + ((S.gprac || {})[i.id] || 0) + '/' + gearNeed(i) + ' lives';
   return `<div class="item gitem"><div><h3>${esc(i.name)}</h3><p>${esc(i.desc)}</p><p class="num">${st}</p></div>` +
-    (L.owned[i.id] ? '<span class="owned">Built</span>' : `<button class="buy" data-buy="${i.id}" ${L.salvage >= i.cost ? '' : 'disabled'}>${fmt(i.cost)} salvage${i.cost > M.salCap ? '<br><small>needs storage</small>' : ''}</button>${gqBtn(i)}`) +
+    (L.owned[i.id] ? '<span class="owned">Built</span>' : assembling(i.id) ? `<span class="owned">Assembling ${Math.floor((L.prog['b:' + i.id] || 0) / BT[i.id].days * 100)}%</span>` : `<button class="buy" data-buy="${i.id}" ${L.salvage >= i.cost ? '' : 'disabled'}>${fmt(i.cost)} salvage${i.cost > M.salCap ? '<br><small>needs storage</small>' : ''}</button>${gqBtn(i)}`) +
     (pr ? `<button class="ta${on ? ' on' : ''}" data-gauto="${i.id}" aria-pressed="${on}" aria-label="Build ${esc(i.name)} automatically">AUTO</button>` : '') + '</div>';
 }
 function renderGear(){
   const L = S.life;
   const av = ITEMS.filter(i => isDone(i.req));
   const known = ITEMS.filter(i => !isDone(i.req) && ((S.gprac || {})[i.id] || 0) > 0 && !zBefore(gearZone(i), L.sec || 1));
-  const key = M.salCap + '|' + L.queue.filter(isGQ).join() + '|' + known.map(i => i.id).join() + '|' + av.map(i => i.id + (L.owned[i.id] ? 'o' : (L.salvage >= i.cost ? 'y' : 'n')) + ((S.gprac || {})[i.id] || 0) + (S.gauto && S.gauto[i.id] ? '*' : '') + gearPrio(i)).join();
+  const key = M.salCap + '|' + L.queue.filter(isGQ).join() + '|' + known.map(i => i.id).join() + '|' + av.map(i => i.id + (L.owned[i.id] ? 'o' : assembling(i.id) ? 'a' + Math.floor((L.prog['b:' + i.id] || 0) / BT[i.id].days * 20) : (L.salvage >= i.cost ? 'y' : 'n')) + ((S.gprac || {})[i.id] || 0) + (S.gauto && S.gauto[i.id] ? '*' : '') + gearPrio(i)).join();
   if (key === gearKey) return; gearKey = key;
   let h = '<div class="panel"><span class="h2">Fabricator</span><p class="note">Gear is built from salvage and lasts for this clone only. New designs appear as you explore. Salvage storage is limited; opening up more of the ship raises it.</p></div><div>';
   if (!av.length) h += '<p class="note">Nothing to build yet. Climb out of the vat first.</p>';
@@ -2789,7 +2811,7 @@ function renderGear(){
     const z = gearZone(i);
     if (z !== lastZ) { lastZ = z; h += `<div class="sub" style="margin-top:12px">${ZONES[z - 1].name}</div>`; }
     h += `<div class="item"><div><h3>${esc(i.name)}</h3><p>${esc(i.desc)}</p><p class="num">${gearPracticed(i) ? (S.gauto && S.gauto[i.id] ? 'Built automatically \u00b7 P' + gearPrio(i) : 'Automation available in the Auto tab') : 'Built in ' + ((S.gprac || {})[i.id] || 0) + '/' + AUTO_LIVES + ' lives'}</p></div>` +
-      (L.owned[i.id] ? '<span class="owned">Built</span>' : `<button class="buy" data-buy="${i.id}" ${L.salvage >= i.cost ? '' : 'disabled'}>${fmt(i.cost)} salvage${i.cost > M.salCap ? '<br><small>needs storage</small>' : ''}</button>${gqBtn(i)}`) + '</div>';
+      (L.owned[i.id] ? '<span class="owned">Built</span>' : assembling(i.id) ? `<span class="owned">Assembling ${Math.floor((L.prog['b:' + i.id] || 0) / BT[i.id].days * 100)}%</span>` : `<button class="buy" data-buy="${i.id}" ${L.salvage >= i.cost ? '' : 'disabled'}>${fmt(i.cost)} salvage${i.cost > M.salCap ? '<br><small>needs storage</small>' : ''}</button>${gqBtn(i)}`) + '</div>';
   });
   if (known.length) {
     h += '<div class="sub" style="margin-top:12px">Known designs, not found yet in this life</div>';
@@ -3179,7 +3201,7 @@ const FAQ_ALL = [
   ['What is strain?', 'Strain multiplies the health drain. It grows faster and faster the longer a clone lives, which is what eventually kills every clone. Rests halve it; good food heals faster than strain can drain early on. Watch <b>Time left</b> at the top: it says how long the clone will last and what will kill it.'],
   ['What carries over when a clone dies?', '<b>Familiarity</b> is kept: every task stays as fast as your clones have made it (see the Speed tab). Each day a clone survives adds 0.8 to the base health of later clones, up to 500. <b>Archive records</b> found by finishing certain actions are permanent upgrades. Gear, rations, salvage and progress through the ship reset.'],
   ['What are sections?', 'The ship is split into five sections. A <b>red</b> action leads to the next one, and the way back is sealed for that clone, so finish what you need first (records, the rest, training, gear). Each new clone starts back in the Vat Bay.'],
-  ['What is gear?', 'Gear is built from salvage in the <b>Gear</b> tab and lasts for one clone. Each section has designs to build. Salvage storage is limited; opening up more of the ship raises it.'],
+  ['What is gear?', 'Gear is built from salvage and lasts for one clone. Each section has designs to build. Building one pays its salvage up front, then the clone spends time <b>assembling</b> it (bigger designs take longer, from minutes for a toolkit to a few days for the largest); assembly comes before other work and gets faster with familiarity. The gear works once it is assembled. Salvage storage is limited; opening up more of the ship raises it.'],
   ['What is familiarity?', 'There are no skills: each task gets faster on its own the more of it your clones have done. Familiarity counts work in completions, including attempts a clone died in the middle of, and is kept between clones. Speed rises smoothly from ×1 to ×10 once you have done enough of a task: in a first run, 90 lives’ worth of it (90 finishes of an action, 1800 batches of a job). Every finished run lowers that by a quarter, and so does each step of the new game plus <b>Deep echo</b> reward (by a fifth), down to a single life’s worth. Familiar tasks also hurt less (hazard damage up to ÷4), and a familiar food job lets its food be eaten more often. <b>Drills</b> spread familiarity to every task in their section. The Speed tab lists every task.'],
   ['How does automation work?', 'Every completion counts: finish an action 10 times (a multi-rep action 10 times its reps), a training session 40 times or a rest 10 times, work a job for 200 batches, or build a design in 10 lives, and its automation <b>switches on by itself</b>. In new game plus runs these counts shrink along with the familiarity threshold (a quarter less per finished run, a fifth less per Deep echo step), never below one; tap <b>AUTO</b> (or its switch in the Auto tab) to turn it off, and it stays off. Automated tasks run by themselves <b>ahead of your queue</b>, in chain order (each after the tasks it needs). Automated tasks <b>link into chains</b> when one requires the other and both are at least ×2 familiar. When every action, crossing, job and rest of a section is automated and ×5 familiar, and all its gear designs are automated, the whole section becomes <b>one chain</b>: press <b>▶ Run section</b> (top of the section in the Tasks tab) and the clone works through everything, builds the gear, fills its stores and crosses. Ready sections next to each other link across their crossings into one run (<b>▶ Run 3 sections</b>), up to the end of the act; a run that dies starts again with the next clone. The option <b>Pause when a section run ends instead</b> keeps a run going through its crossings and pauses once it is over. Work done as part of a chain (a queued chain or a section run) builds <b>chain flow</b>, which makes chained steps up to five times as fast; it is kept through new game plus. An automated food job steps in when its store drops below the forage threshold and fills it up. An automated <b>salvage</b> job only gathers what gear needs: the next auto-built or queued design that is found and not built yet; it does not top the store up to full (except while filling up before a crossing). Automated <b>crossings</b> are the exception: they wait until your queue is done. A task you tap runs before everything. The <b>Auto</b> tab lists everything unlocked and has extra options: feeding when needed, filling storage before moving on, the strain level for automatic rests, the death screen and starting paused.'],
   ['What happens at a crossing with automation?', 'A queued or automated crossing stops just before it finishes and waits while the clone finishes automated actions and training, builds affordable automated gear, refills storage (if that option is on) and uses the section’s rest. Tap a crossing yourself to go at once.'],
