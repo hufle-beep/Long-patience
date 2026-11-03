@@ -129,6 +129,7 @@ main .wrap{display:grid;gap:18px}
 .qp{display:grid;gap:8px;padding:10px;border:1px dashed var(--line);border-radius:6px}
 .qh{display:flex;justify-content:space-between;align-items:center}
 .qh .qeta{color:var(--cyan);letter-spacing:0;text-transform:none;font-weight:400}
+.tgm{color:var(--cyan)}.trl{color:var(--amber)}
 .secrun{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:8px 10px;margin:4px 0 8px;border:1px solid var(--cyan-soft);border-radius:4px;font-size:12.5px;color:var(--fg)}
 .secrun.on{border-color:var(--cyan)}
 .secrun.dim{color:var(--dim)}
@@ -399,11 +400,10 @@ button.updl{width:100%}
 .dt.ft td:first-child{padding-left:0}
 .dt.ft th{padding-left:8px;white-space:nowrap}
 .dt.ft th:first-child{padding-left:0}
-.dt.ft tr.ftbest td{color:var(--amber)}
+.dt.ft tr.ftbest td:first-child{color:var(--violet)}
 tr.pttot td{font-weight:600;color:var(--amber)}
-.dt.ft tr.ftall td{color:var(--cyan)}
-.dt.ft tr.ftall td small{color:var(--cyan)}
-.dt.ft tr.ftbest td small{color:var(--amber);opacity:.8}
+.dt.ft tr.ftall td:first-child{color:var(--sand)}
+.dt.ft tr.ftbest td:first-child small,.dt.ft tr.ftall td:first-child small{color:inherit;opacity:.8}
 .dt.ft td small{display:block;color:var(--dim);font-size:11px}
 .rtab .dt.ft td:nth-child(2){text-align:right!important;font-family:var(--f-mono)!important}
 .rtab .dt.ft th:nth-child(2){text-align:right}
@@ -483,7 +483,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
 
 <script id="logic">
 /* ===== Game data and rules (no DOM) ===== */
-const BUILD = '2026-11-03 · pause on finish';   // shown in the main menu, to tell which version is loaded
+const BUILD = '2026-11-03 · ship clocks';   // shown in the main menu, to tell which version is loaded
 const DPS = 4;             // simulation ticks per real second at 1x
 // Time is simulated in ticks. 80 ticks make one ship day (18 minutes each), so a day lasts
 // 20 real seconds at 1x and a clone lives weeks, not years. Everything is shown in days and hours.
@@ -1926,7 +1926,8 @@ function fmtReal(sec){
   const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
   return h ? h + ':' + String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0') : m + ':' + String(s).padStart(2, '0');
 }
-const both = days => isFinite(days) ? fmtDays(days) + ' \u00b7 ' + fmtReal(realSecs(days)) : '\u221e';
+// Clocks show ship (in-game) time only; real time appears only for play time, the stasis boost and the Log's records
+const both = days => fmtDays(days);
 // Net ration and salvage change per day if task t is the one being worked
 function rates(t, t2){
   let rr = M.pRat - eatRate(), sr = M.pSal;
@@ -2654,7 +2655,7 @@ function updateHud(){
   const hg = 'Clone ' + S.gen + (S.pr && S.pr.n ? ' <span class="hng">NG+' + S.pr.n + (ngpLv('speed') ? ' \u00b7 \u00d7' + ngpSpeed().toFixed(1) : '') + '</span>' : '');
   if (hg !== lastHg) { lastHg = hg; $('#h-gen').innerHTML = hg; }
   // time elapsed aboard (ship days) and real time spent on this clone
-  const hd = 'day ' + (L.day / TPD).toFixed(1) + ' \u00b7 ' + fmtReal(L.real || 0); const he = $('#h-day'); if (he.textContent !== hd) he.textContent = hd;
+  const hd = 'day ' + (L.day / TPD).toFixed(1); const he = $('#h-day'); if (he.textContent !== hd) he.textContent = hd;
   $('#b-hp').style.width = Math.max(0, L.hp / M.maxHp * 100) + '%';
   $('#t-hp').textContent = Math.ceil(L.hp) + ' / ' + M.maxHp;
   const cur = L.cur ? T[L.cur] : null, cur2 = L.cur2 ? T[L.cur2] : null;
@@ -2663,15 +2664,15 @@ function updateHud(){
   const hl = $('#h-left');
   if (L.dead) { hl.textContent = '0 left'; $('#s-why').textContent = 'dead'; }
   else {
-    const lt = (isFinite(sv.t) ? fmtDays(sv.t) + ' \u00b7 ' + fmtReal(realSecs(sv.t)) : '\u221e') + ' left';
+    const lt = fmtDays(sv.t) + ' left';
     if (hl.textContent !== lt) hl.textContent = lt;
     $('#s-why').textContent = (isFinite(sv.t) ? 'ends by ' + sv.why : 'nothing ends it soon') + (cur ? '' : ' (time left counts once working)');
     if (performance.now() - planT > 400) {   // planned work, refreshed a few times a second
       planT = performance.now();
       const pt = plannedTicks(), pe = $('#s-plan'), qe = $('#q-eta');
-      lastQEta = pt > 0.5 ? '\u2248 ' + fmtDays(pt) + ' \u00b7 ' + fmtReal(realSecs(pt)) : '';
+      lastQEta = pt > 0.5 ? '\u2248 ' + fmtDays(pt) : '';
       if (qe && qe.textContent !== lastQEta) qe.textContent = lastQEta;
-      const txt = pt > 0.5 ? 'Planned work \u2248 ' + fmtDays(pt) + ' \u00b7 ' + fmtReal(realSecs(pt)) + (isFinite(sv.t) && pt > sv.t ? ' (more than this clone has left)' : '') : (L.queue.length ? 'Planned work: waiting on locked items' : 'Queue empty');
+      const txt = pt > 0.5 ? 'Planned work \u2248 ' + fmtDays(pt) + (isFinite(sv.t) && pt > sv.t ? ' (more than this clone has left)' : '') : (L.queue.length ? 'Planned work: waiting on locked items' : 'Queue empty');
       if (pe.textContent !== txt) pe.textContent = txt;
       pe.classList.toggle('over', isFinite(sv.t) && pt > sv.t);
     }
@@ -2936,7 +2937,8 @@ function renderLog(){
   if (key === logKey) return; logKey = key;
   const secName = n => n >= 6 ? 'Drive lit' : ZONES[n - 1].name;
   const histName = e => e.z && isA2(e.z) ? ZN(e.z).name : secName(e.sec);
-  const realT = r => fmtReal(r);
+  const realT = r => '<span class="trl">' + fmtReal(r) + '</span>';   // real time: amber
+  const gameT = d => '<span class="tgm">' + d + '</span>';   // ship time: cyan
   const allH = S.hist || [], hist = allH.slice(histAll ? -50 : -5).reverse();
   // Play time: the whole save across new game plus, and how long each run took (from run start to
   // the moment its new game plus began)
@@ -2950,15 +2952,15 @@ function renderLog(){
   h += '<div class="panel"><span class="h2">Recent clones</span>';
   if (allH.length > 5) h += `<button class="btn histm" data-histall>${histAll ? 'Show last 5' : 'Show all ' + allH.length}</button>`;
   if (!hist.length) h += '<p class="note">No clone has died yet. Each clone\u2019s furthest section and time will appear here.</p>';
-  else h += `<div class="rtab"><table class="dt"><thead><tr><th>Clone</th><th>Furthest</th><th>Days</th><th>Real</th></tr></thead><tbody>${hist.map(e => `<tr title="${esc(e.cause)}"><td>${e.g}</td><td>${histName(e)}</td><td>${(e.d / TPD).toFixed(1)}</td><td>${realT(e.r)}</td></tr>`).join('')}</tbody></table></div>`;
+  else h += `<div class="rtab"><table class="dt"><thead><tr><th>Clone</th><th>Furthest</th><th><span class="tgm">Ship days</span></th><th><span class="trl">Real</span></th></tr></thead><tbody>${hist.map(e => `<tr title="${esc(e.cause)}"><td>${e.g}</td><td>${histName(e)}</td><td>${gameT((e.d / TPD).toFixed(1))}</td><td>${realT(e.r)}</td></tr>`).join('')}</tbody></table></div>`;
   if (hist.length) {
     // columns: when each section was first reached (unlocked) in a clone's life, and when the drive was lit
     const short = ['Ring', 'Spine', 'Deck', 'Drive', 'Lit'], longN = ['Reached the Hydroponics Ring', 'Reached the Engineering Spine', 'Reached the Command Deck', 'Reached the Main Drive', 'Lit the main drive'];
-    h += '<span class="lbl" style="display:block;margin-top:12px">Section unlock times</span><p class="note">In-game day and real time when each clone first reached a section, and when the drive was lit. <b>Best clone</b> is your best single clone ever (most sections, then fewest ship days), kept through new game plus. <b>Best</b> keeps the earliest unlock of each section from any clone in this run, with the clone number.</p>';
-    h += `<div class="rtab"><table class="dt ft"><thead><tr><th>Clone</th>${short.map((n, i) => `<th title="${longN[i]}">${n}</th>`).join('')}</tr></thead><tbody>${S.bestAll ? `<tr class="ftbest ftall"><td>Best clone<small>#${S.bestAll.g}${S.bestAll.ng ? ' NG+' + S.bestAll.ng : ''}</small></td>${ZONES.map((z, i) => { const f = S.bestAll.fin[i]; return `<td>${f ? 'd' + f[0].toFixed(1) + '<small>' + realT(f[1]) + '</small>' : '\u2014'}</td>`; }).join('')}</tr>` : ''}${S.bestSec && S.bestSec.some(Boolean) ? `<tr class="ftbest"><td>Best</td>${ZONES.map((z, i) => { const b = S.bestSec[i]; return `<td>${b ? 'd' + b.d.toFixed(1) + '<small>' + realT(b.r) + '</small><small>clone ' + b.g + '</small>' : '\u2014'}</td>`; }).join('')}</tr>` : ''}${hist.map(e => `<tr><td>${e.g}</td>${ZONES.map((z, i) => { const f = e.fin && e.fin[i]; return `<td>${f ? 'd' + f[0].toFixed(1) + '<small>' + realT(f[1]) + '</small>' : '\u2014'}</td>`; }).join('')}</tr>`).join('')}</tbody></table></div>`;
+    h += '<span class="lbl" style="display:block;margin-top:12px">Section unlock times</span><p class="note"><span class="tgm">Ship day</span> and <span class="trl">real time</span> when each clone first reached a section, and when the drive was lit. <b>Best clone</b> is your best single clone ever (most sections, then fewest ship days), kept through new game plus. <b>Best</b> keeps the earliest unlock of each section from any clone in this run, with the clone number.</p>';
+    h += `<div class="rtab"><table class="dt ft"><thead><tr><th>Clone</th>${short.map((n, i) => `<th title="${longN[i]}">${n}</th>`).join('')}</tr></thead><tbody>${S.bestAll ? `<tr class="ftbest ftall"><td>Best clone<small>#${S.bestAll.g}${S.bestAll.ng ? ' NG+' + S.bestAll.ng : ''}</small></td>${ZONES.slice(0, 5).map((z, i) => { const f = S.bestAll.fin[i]; return `<td>${f ? gameT('d' + f[0].toFixed(1)) + '<small>' + realT(f[1]) + '</small>' : '\u2014'}</td>`; }).join('')}</tr>` : ''}${S.bestSec && S.bestSec.some(Boolean) ? `<tr class="ftbest"><td>Best</td>${ZONES.slice(0, 5).map((z, i) => { const b = S.bestSec[i]; return `<td>${b ? gameT('d' + b.d.toFixed(1)) + '<small>' + realT(b.r) + '</small><small>clone ' + b.g + '</small>' : '\u2014'}</td>`; }).join('')}</tr>` : ''}${hist.map(e => `<tr><td>${e.g}</td>${ZONES.slice(0, 5).map((z, i) => { const f = e.fin && e.fin[i]; return `<td>${f ? gameT('d' + f[0].toFixed(1)) + '<small>' + realT(f[1]) + '</small>' : '\u2014'}</td>`; }).join('')}</tr>`).join('')}</tbody></table></div>`;
   }
   const b = S.best;
-  h += b ? `<p class="best"><span class="lbl">Best run</span> Clone ${b.g} ${b.z && isA2(b.z) ? 'reached ' + ZN(b.z).name : b.sec >= 6 ? 'lit the drive' : 'reached the ' + secName(b.sec)} after ${(b.d / TPD).toFixed(1)} days \u00b7 ${realT(b.r)} real</p>` : '';
+  h += b ? `<p class="best"><span class="lbl">Best run</span> Clone ${b.g} ${b.z && isA2(b.z) ? 'reached ' + ZN(b.z).name : b.sec >= 6 ? 'lit the drive' : 'reached the ' + secName(b.sec)} after ${gameT((b.d / TPD).toFixed(1) + ' ship days')} \u00b7 ${realT(b.r)} <span class="trl">real</span></p>` : '';
   h += '</div>';
   h += '<div class="panel"><span class="h2">Ship log</span><p class="note">What your clones have learned about the Long Patience, its sleeping crew and WARDEN.</p></div><div>';
   if (!S.log.length) h += '<p class="note">Nothing yet.</p>';
