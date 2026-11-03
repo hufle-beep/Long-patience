@@ -440,7 +440,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
 <header id="hud" class="gut">
   <div class="wrap">
     <div class="r1">
-      <div class="ident"><button class="menub" data-menu="open" aria-label="Main menu">☰</button><b>K-7</b><span id="h-gen">Clone 1</span><span class="htimes"><span id="h-day" class="num hday" title="Elapsed: ship days and real time spent on this clone"></span><span id="h-left" class="num hleft" title="Remaining: ship days and real time this clone has left"></span></span></div>
+      <div class="ident"><button class="menub" data-menu="open" aria-label="Main menu">☰</button><b>K-7</b><span id="h-gen">Clone 1</span><span class="htimes"><span id="h-day" class="num hday" title="Elapsed: ship days this clone has lived"></span><span id="h-left" class="num hleft" title="Remaining: ship days this clone has left"></span></span></div>
       <div class="spd" id="h-spd"></div>
     </div>
     <div class="meter"><span class="lbl" style="min-width:0;text-align:left">Health</span><div class="bar hp"><i id="b-hp"></i></div><span id="t-hp" class="num"></span></div>
@@ -2654,7 +2654,7 @@ function updateHud(){
   const L = S.life;
   const hg = 'Clone ' + S.gen + (S.pr && S.pr.n ? ' <span class="hng">NG+' + S.pr.n + (ngpLv('speed') ? ' \u00b7 \u00d7' + ngpSpeed().toFixed(1) : '') + '</span>' : '');
   if (hg !== lastHg) { lastHg = hg; $('#h-gen').innerHTML = hg; }
-  // time elapsed aboard (ship days) and real time spent on this clone
+  // time elapsed aboard (ship days)
   const hd = 'day ' + (L.day / TPD).toFixed(1); const he = $('#h-day'); if (he.textContent !== hd) he.textContent = hd;
   $('#b-hp').style.width = Math.max(0, L.hp / M.maxHp * 100) + '%';
   $('#t-hp').textContent = Math.ceil(L.hp) + ' / ' + M.maxHp;
