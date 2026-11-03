@@ -2835,8 +2835,9 @@ function qBtn(id, extra){
   const qi = S.life.queue.indexOf(id), n = qCount(id);
   return `<button class="tq${extra || ''}${qi >= 0 ? ' in' : ''}" data-q="${id}" aria-label="${qi >= 0 ? 'Queued at ' + (qi + 1) + (n > 1 ? ', ' + n + ' times' : '') + '. Tap to queue another' : 'Add to queue'}">${qi >= 0 ? '#' + (qi + 1) + (n > 1 ? '<small>\u00d7' + n + '</small>' : '') : '+'}</button>`;
 }
-// Found in this life and not built yet: only salvage stands between you and it (shown in yellow)
-const gearReady = i => { const L = S.life; return isDone(i.req) && !L.owned[i.id] && !assembling(i.id); };
+// Buildable (shown in yellow): found in this life, not built yet, and it fits in salvage storage,
+// so gathering salvage is all that is left to start it
+const gearReady = i => { const L = S.life; return isDone(i.req) && !L.owned[i.id] && !assembling(i.id) && i.cost <= M.salCap; };
 function gearRow(i){
   const L = S.life, pr = gearPracticed(i), on = !!(S.gauto && S.gauto[i.id]);
   const st = pr ? (on ? 'built automatically when affordable' : 'can be automated') : 'built in ' + ((S.gprac || {})[i.id] || 0) + '/' + gearNeed(i) + ' lives';
