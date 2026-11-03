@@ -484,7 +484,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
 
 <script id="logic">
 /* ===== Game data and rules (no DOM) ===== */
-const BUILD = '2026-11-03 · Honours in both acts';   // shown in the main menu, to tell which version is loaded
+const BUILD = '2026-11-03 · linear Act II';   // shown in the main menu, to tell which version is loaded
 const DPS = 4;             // simulation ticks per real second at 1x
 // Time is simulated in ticks. 80 ticks make one ship day (18 minutes each), so a day lasts
 // 20 real seconds at 1x and a clone lives weeks, not years. Everything is shown in days and hours.
@@ -591,11 +591,10 @@ const ZN = id => ZONES[id - 1];
 const zoneThe = z => /^The /.test(ZN(z).name) ? ZN(z).name : 'the ' + ZN(z).name;   // 'the Vat Bay', 'The Cruise'
 const ACT2 = 6;   // first Act II section id
 const isA2 = z => z >= ACT2;
-// This run's route through the ship: Act I, then the chosen branch (boarders can merge into the long watch)
+// The route through the ship: Act I, then Act II in order (the boarders, then the long watch)
 function pathOf(){
-  const p = [1, 2, 3, 4, 5], b = S && S.branch;
-  if (b === 'A') { p.push(6, 7, 8); if (S.merge) p.push(9, 10, 11); }
-  else if (b === 'B') p.push(9, 10, 11);
+  const p = [1, 2, 3, 4, 5];
+  if (S && (S.won || S.branch)) p.push(6, 7, 8, 9, 10, 11);   // Act II is linear: the boarders, then the long watch
   return p;
 }
 function zRank(z){ const i = pathOf().indexOf(z); return i < 0 ? 99 : i; }
@@ -813,7 +812,7 @@ const TASKS = [
   {id:'wakefirst', z:11, kind:'act', finale:'B', name:'Wake the first sleeper', days:900, req:['prepwake'], perk:'tessaly2',
     log:'The first sleeper opens her eyes and sees a maintenance clone. “Who are you?” You have never had to answer that before.'},
 ];
-const ZDAYS = {1:0.275, 2:0.933, 3:0.692, 4:0.61, 5:0.375, 6:1.262, 7:1.637, 8:1.637, 9:0.66, 10:0.886, 11:0.886};   // no skill transfer: later sections are short, and speed comes from familiarity
+const ZDAYS = {1:0.275, 2:0.933, 3:0.692, 4:0.61, 5:0.375, 6:1.262, 7:1.637, 8:1.637, 9:0.924, 10:1.24, 11:1.24};   // no skill transfer: later sections are short, and speed comes from familiarity
 const TRAIN_CAP = 4, TRAIN_XP = 1.5;
 const T = {}; TASKS.forEach(t => { T[t.id] = t; t.sk = []; t.reps = t.kind === 'train' ? TRAIN_CAP : (t.reps || 1); if (t.days) t.days = Math.round(t.days * ZDAYS[t.z]); });
 // A section's finisher (its crossing, the ignition or an Act II finale) needs every other action of the section.
@@ -1402,8 +1401,8 @@ function finish(t){
   if (complete(t) && t.perk && !hasPerk(PK[t.perk])) { if (PK[t.perk].act2) S.a2.perks[t.perk] = true; else S.perks[t.perk] = true; M = mods(); HOOK.perk(PK[t.perk]); }
   WATCH.forEach(p => { if (p.secEnd === t.id && complete(t) && !S.perks[p.id]) { S.perks[p.id] = true; HOOK.perk(p); } });
   if (t.win) { L.wonAt = {d:L.day, r:L.real || 0}; recordBest(L); }
-  if (t.win && !S.won) { S.won = true; S.winGen = S.gen; S.a2.open = true; ngpEarn(1, 'lighting the drive'); if (S.pr && !S.pr.kit) { S.pr.kit = true; HOOK.kit(); } HOOK.win(); }
-  else if (t.win && S.branch && !L.dead) enterZone(S.branch === 'A' ? 6 : 9, 5);   // into the chosen Act II branch
+  if (t.win && !S.won) { S.won = true; S.winGen = S.gen; S.a2.open = true; S.branch = 'A'; S.merge = true; if (!L.dead) enterZone(6, 5); ngpEarn(1, 'lighting the drive'); if (S.pr && !S.pr.kit) { S.pr.kit = true; HOOK.kit(); } HOOK.win(); }
+  else if (t.win && !L.dead) enterZone(6, 5);   // on into Act II: the boarders first
   if (t.finale && complete(t)) finishBranch(t);
   if (complete(t)) HOOK.taskDone(t);
   HOOK.change();
@@ -1447,10 +1446,7 @@ function progOf(L){ return Object.keys(L.visited || {1:1}).length + (L.wonAt ? 1
 function finishBranch(t){
   const L = S.life; S.a2run = S.a2run || {reached:{}, done:{}};
   if (!S.a2run.done[t.finale]) { S.a2run.done[t.finale] = 1; S.a2.fin = (S.a2.fin || 0) + 1; S.a2.hon = (S.a2.hon || 0) + 2; HOOK.honour(2, 'finishing ' + (t.finale === 'A' ? 'the boarders' : 'the long watch')); ngpEarn(2, 'finishing ' + (t.finale === 'A' ? 'the boarders' : 'the long watch')); }
-  if (t.finale === 'A') {
-    if (S.merge === true) enterZone(9, 8);
-    else if (S.merge == null) HOOK.merge();
-  }
+  if (t.finale === 'A') enterZone(9, 8);   // the boarders are gone: on into the long watch
 }
 function recordBest(L){
   const pr = progOf(L), z = L.sec || 1, at = (isA2(z) ? L.secAt && L.secAt[z] : L.wonAt) || (L.secAt && L.secAt[z]) || {d:0, r:0};
@@ -2262,6 +2258,7 @@ function mergeState(raw){
   ['lv','perks'].forEach(k => { if (!s.a2[k]) s.a2[k] = {}; });
   if ((s.won || (s.pr && s.pr.n)) && !s.a2.open) s.a2.open = true;   // Act II opens for anyone who has lit the drive
   if (!s.a2run) s.a2run = {reached:{}, done:{}};
+  if (s.won || s.branch) { s.branch = 'A'; s.merge = true; }   // Act II is linear now: the boarders, then the long watch
   if (s.a2 && s.a2.lv) for (const k in s.a2.lv) s.a2.lv[k] = Math.min(NGP_MAX, s.a2.lv[k] || 0);   // Act II rewards now have 3 levels: levels above that become unspent Honours
   if (s.pr && (s.won || ((s.pr.pts != null ? s.pr.pts : s.pr.n) || 0) >= KIT_PTS)) s.pr.kit = true;   // Quartermaster's cache: any save that has lit the drive
   if (s.life && !s.life.visited) { s.life.visited = {}; for (let z = 1; z <= Math.min(5, s.life.sec || 1); z++) s.life.visited[z] = 1; }
@@ -2930,11 +2927,8 @@ const A2R = [
 function act2Panel(){
   const a = S.a2, spent = Object.values(a.lv || {}).reduce((x, y) => x + y, 0), free = Math.max(0, (a.hon || 0) - spent);
   let h = '<div class="panel ngp"><span class="h2">Act II</span>';
-  h += `<p class="note">After the drive is lit, a run can go on into Act II. Act II familiarity, automation, records and Honours are kept for good. Act II needs ${fmt(famN0A2())} lives' worth of a task for \u00d710 (a quarter less for every branch finished).</p>`;
-  if (!S.branch) h += S.won ? '<div class="ngpick"><button class="btn" data-act2="A">Act II: Boarders<small>Repel alien boarders; can merge into the long watch afterwards.</small></button><button class="btn" data-act2="B">Act II: The long watch<small>Keep the ship running all the way to Tessaly.</small></button></div>'
-                          : '<p class="note">Light the main drive in this run to choose an Act II branch.</p>';
-  else h += `<p class="note">Your branch: <b>${S.branch === 'A' ? 'Boarders' : 'The long watch'}</b>${S.branch === 'A' ? (S.merge ? ', then the long watch' : S.merge === false ? ' (ending there)' : '') : ''}.</p>` +
-    (S.branch === 'A' && S.merge === false ? '<div class="btns"><button class="btn" data-merge="1">Merge into the long watch after all</button></div>' : '');
+  h += `<p class="note">After the drive is lit, every clone that lights it carries on into Act II. Act II familiarity, automation, records and Honours are kept for good. Act II needs ${fmt(famN0A2())} lives' worth of a task for \u00d710 (a quarter less once the boarders are beaten, and again after the long watch).</p>`;
+  h += S.won ? '<p class="note">Act II runs in order: <b>the boarders</b> (Hull Breach, Contested Decks, The Hive Ship), then <b>the long watch</b> (The Cruise, The Drift, Tessaly Orbit).</p>' : '<p class="note">Light the main drive to open Act II.</p>';
   h += `<div class="ngpts"><span class="lbl">Honours</span> <b class="num">${free}</b> unspent of ${a.hon || 0} \u00b7 one per Act II section first reached, two per branch finished (10 in all); their rewards work in both acts; spending is permanent</div>`;
   A2R.forEach(r => { const k = Math.min(NGP_MAX, (a.lv || {})[r.id] || 0);
     h += `<div class="ngrow"><div><b>${r.name}</b> <span class="num">${k}/${NGP_MAX}</span><small>${k ? r.now(k) : 'not taken'}${k < NGP_MAX ? ' \u00b7 next: ' + r.now(k + 1) : ''}</small></div>
@@ -3260,7 +3254,7 @@ const FAQ_ALL = [
 ];
 // Shown once the drive is first lit.
 const FAQ_NGP = ['Act I rewards', 'There is no restarting: after the drive is lit, the story always moves forward into Act II. Moving forward earns <b>Act I reward points</b>: one for lighting the drive, one for each Act II section you first reach and two for each Act II branch you finish (11 in all). Spend them in the Archive; each level costs one point and is permanent. <b>Deep echo</b> (Act I tasks need about 30% less familiarity per step for \u00d710), <b>Drain dampener</b> (health drain in Act I divided by 2.3, 3.7, then 5) and <b>Template upgrade</b> (+167, +333, then +500 max health in Act I) work fully in Act I, which every clone crosses on its way, and at 10% strength in Act II. <b>Overclocked line</b> makes the whole game run faster in both acts (\u00d72.3, \u00d73.7, then \u00d75) without using banked time. Each reward has three levels, so 11 points can\u2019t max everything: choose. Lighting the drive the first time also unlocks the <b>Quartermaster\u2019s cache</b>: every clone starts with all of its automated gear already built, in both acts.'];
-const FAQ_A2 = ['Act II', 'Once the main drive is lit, a run can carry on into <b>Act II</b>. Choose a branch: <b>Boarders</b> (alien boarders cut into the hull; three sections of fighting, ending on their ship, after which you can merge into the long watch) or <b>The long watch</b> (the voyage goes on; the ship slowly wears out, which adds to the health drain until upkeep jobs bring it down; three sections to Tessaly orbit). Every clone that lights the drive carries on into the chosen branch. Act II tasks have their own familiarity, which Deep echo reduces only at 10% strength: it starts at 90 lives\u2019 worth for \u00d710 and drops by a quarter for every branch you finish. Act II familiarity, automation, records and <b>Honours</b> are kept for good. Honours (one per Act II section first reached, two per branch finished: 10 in all) buy rewards in the Archive that work in <b>both acts</b>: Veteran template (hazard damage \u221225% per level), Long-watch rhythm (strain \u221213%), Scavenger\u2019s eye (salvage from jobs +33%) and Field rations (meals 17% more often). Like Act I rewards they have three levels each, and spending is permanent.'];
+const FAQ_A2 = ['Act II', 'Once the main drive is lit, every clone that lights it carries on into <b>Act II</b>, which runs in order: first <b>the boarders</b> (alien boarders cut into the hull; three sections of fighting, ending on their ship), then <b>the long watch</b> (the voyage goes on; the ship slowly wears out, which adds to the health drain until upkeep jobs bring it down; three sections to Tessaly orbit). Act II tasks have their own familiarity, which Deep echo reduces only at 10% strength: it starts at 90 lives\u2019 worth for \u00d710 and drops by a quarter once the boarders are beaten, and again after the long watch. Act II familiarity, automation, records and <b>Honours</b> are kept for good. Honours (one per Act II section first reached, two each for beating the boarders and finishing the long watch: 10 in all) buy rewards in the Archive that work in <b>both acts</b>: Veteran template (hazard damage \u221225% per level), Long-watch rhythm (strain \u221213%), Scavenger\u2019s eye (salvage from jobs +33%) and Field rations (meals 17% more often). Like Act I rewards they have three levels each, and spending is permanent.'];
 let faqDone = '';
 function renderFaq(){
   const k = String(!!(S.won || (S.pr && S.pr.n))) + !!(S.a2 && S.a2.open);
@@ -3298,13 +3292,9 @@ function showWin(){
   paused = true;
   showModal(`<h2>The drive is lit</h2>
     <p>The food beds grow, the reactor holds and the stardrive burns for Tessaly. It took ${S.gen} clone${S.gen > 1 ? 's' : ''} of K-7 to get here. None of them will be remembered.</p>
-    <p>WARDEN begins the wake cycle, then stops. Proximity alarms. Something is closing on the ship\u2026 or nothing is, and the long voyage simply goes on.</p>
-    <p class="d"><b>Act II</b> is open. Choose where the story goes next; every clone that lights the drive carries on into it. Lighting the drive earned an <b>Act I reward point</b> (spend it in the Archive), and the <b>Quartermaster\u2019s cache</b> is unlocked: from now on clones start with their automated gear.</p>
-    <div class="ngpick">
-      <button class="btn" data-act2="A">Act II: Boarders<small>Alien boarders cut into the hull while the crew sleeps. Three sections of fighting, ending on their ship. Afterwards you can merge into the long watch.</small></button>
-      <button class="btn" data-act2="B">Act II: The long watch<small>Nothing attacks. The voyage goes on and the ship wears out. Three sections of upkeep, all the way to Tessaly orbit.</small></button>
-    </div>
-    <button class="btn" data-close>Decide later (keep going)</button>`);
+    <p>WARDEN begins the wake cycle, then stops. Proximity alarms. Something is closing on the ship.</p>
+    <p class="d"><b>Act II</b> begins: the boarders first, then the long watch. Every clone that lights the drive carries on into it. Lighting the drive earned an <b>Act I reward point</b> (spend it in the Archive), and the <b>Quartermaster\u2019s cache</b> is unlocked: from now on clones start with their automated gear.</p>
+    <button class="btn pri" data-close>Continue</button>`);
 }
 // Pick this run's Act II branch; a clone standing at the lit drive goes straight in
 function chooseBranch(b){
@@ -3427,8 +3417,8 @@ document.addEventListener('click', e => {
     return;
   }
   if ('ngp' in d) return;   // restarting Act I was removed
-  if (d.act2) { chooseBranch(d.act2); hideModal(); paused = false; taskKey = ''; archKey = ''; renderView(); return; }
-  if (d.merge != null) { S.merge = d.merge === '1'; hideModal(); paused = false;
+  if (d.act2) { chooseBranch('A'); hideModal(); paused = false; taskKey = ''; archKey = ''; renderView(); return; }
+  if (d.merge != null) { S.merge = true; hideModal(); paused = false;
     if (S.merge && S.life.sec === 8 && !S.life.dead && complete(T.cutloose)) enterZone(9, 8);
     toast(S.merge ? 'The run continues into the long watch.' : 'The run ends with the boarders. You can still merge from the Archive.'); taskKey = ''; archKey = ''; renderView(); return; }
   if (d.a2adj) return;   // Honours can't be moved once spent
