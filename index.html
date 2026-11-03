@@ -130,6 +130,9 @@ main .wrap{display:grid;gap:18px}
 .qh{display:flex;justify-content:space-between;align-items:center}
 .qh .qeta{color:var(--cyan);letter-spacing:0;text-transform:none;font-weight:400}
 .item h3.gready{color:var(--yellow)}
+button.secfold{display:block;width:100%;text-align:left;background:none;border:0;padding:0;margin-top:10px;font:inherit;cursor:pointer}
+button.zhb{display:flex;width:100%;align-items:baseline;justify-content:space-between;gap:8px;background:none;border:0;padding:0;margin:0;color:inherit;font:inherit;text-align:left;cursor:pointer}
+button.zh.zhb{margin:14px 0 6px}
 .tgm{color:var(--cyan)}.te.over,#n-eta.over,#q-eta.over{color:var(--red)}.trl{color:var(--amber)}
 .secrun{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:8px 10px;margin:4px 0 8px;border:1px solid var(--cyan-soft);border-radius:4px;font-size:12.5px;color:var(--fg)}
 .secrun.on{border-color:var(--cyan)}
@@ -292,6 +295,7 @@ input[type=range]{width:100%;accent-color:var(--amber)}
 #tabs .wrap{display:flex;justify-content:space-between;gap:2px;overflow-x:auto;scrollbar-width:none}
 #tabs .wrap button{flex:0 0 auto;padding-left:3px;padding-right:3px}
 #tabs .wrap::-webkit-scrollbar{display:none}
+@media (max-width:440px){#tabs button{font-size:11px}#tabs .wrap button{padding-left:1px;padding-right:1px}#tabs .wrap{gap:0}}
 #tabs button{position:relative;padding:12px 0 13px;font-family:var(--f-disp);font-size:12px;letter-spacing:0;text-transform:uppercase;color:var(--dim);font-weight:600}
 #tabs button.on{color:var(--amber)}
 #tabs button.on::before{content:"";position:absolute;top:-1px;left:10%;right:10%;height:2px;background:var(--amber)}
@@ -473,7 +477,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
     <button data-tab="tasks" class="on">Tasks</button>
     <button data-tab="map">Map</button>
     <button data-tab="auto">Auto</button>
-    <button data-tab="skills">Speed</button>
+    <button data-tab="skills">Mastery</button>
     <button data-tab="archive">Archive</button>
     <button data-tab="legacy" hidden>Legacy</button>
     <button data-tab="log">Log</button>
@@ -486,7 +490,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
 
 <script id="logic">
 /* ===== Game data and rules (no DOM) ===== */
-const BUILD = '2026-11-04 · slimmer archive';   // shown in the main menu, to tell which version is loaded
+const BUILD = '2026-11-04 · tidy pass';   // shown in the main menu, to tell which version is loaded
 const DPS = 8;             // simulation ticks per real second at 1x (doubled for the test version: same balance, half the real time)
 // Time is simulated in ticks. 80 ticks make one ship day (18 minutes each), so a day lasts
 // 20 real seconds at 1x and a clone lives weeks, not years. Everything is shown in days and hours.
@@ -2380,10 +2384,10 @@ function showMenu(view){
       if (!act && r) h += `<button class="btn" data-loadslot="${i}">Load</button>`;
       if (!act && cur) h += `<button class="btn" data-saveto="${i}">${r ? 'Save over' : 'Save here'}</button>`;
       if (!act && r) h += `<button class="btn warn" data-delslot="${i}">Delete</button>`;
-      if (act) h += '<span class="ghst">Saves automatically every few seconds.</span>';
+      if (act) h += '<span class="ghst">Saves automatically every few seconds.</span><button class="btn warn" data-confirm="reset">Restart</button>';
       h += '</div></div>';
     }
-    h += '</div><button class="btn" data-saves="menu">Save files and transfer: export, import, copy as text</button><button class="btn" data-settings="menu">Settings: sound, layout, app updates</button><p class="d">\u201cSave here\u201d copies your current game into another slot as a save state. You keep playing in your current slot; load the copy later to go back to that moment.</p>';
+    h += '</div><button class="btn" data-saves="menu">Save files and transfer: export, import, copy as text</button><button class="btn" data-settings="menu">Settings: clock and pauses, sound, layout, app updates</button><p class="d">\u201cSave here\u201d copies your current game into another slot as a save state. You keep playing in your current slot; load the copy later to go back to that moment.</p>';
   }
   showModal(h);
 }
@@ -2449,7 +2453,10 @@ function autoDecant(){
 HOOK.win = () => { save(); showWin(); };
 HOOK.merge = () => { save(); showMerge(); };
 HOOK.kit = () => { sfx('perk'); toast('Quartermaster\u2019s cache unlocked: every clone now starts with all of its automated gear.', true); archKey = ''; };
-HOOK.honour = (n, why) => { sfx('perk'); toast('+' + n + ' Honour' + (n > 1 ? 's' : '') + ' for ' + why + '.', true); archKey = ''; };
+HOOK.honour = (n, why) => { archKey = ''; legKey = ''; if (!a2Done()) return;   // Honours stay secret until Act II is finished
+  sfx('perk');
+  if (!S.honSeen) { S.honSeen = true; toast('Honours unlocked: ' + (S.a2.hon || 0) + ' to spend in the Legacy tab, earned across Act II.', true); }
+  else toast('+' + n + ' Honour' + (n > 1 ? 's' : '') + ' for ' + why + '.', true); };
 
 function toast(msg, gold){
   const el = document.createElement('div');
@@ -2861,13 +2868,18 @@ function updateHud(){
 }
 
 /* ----- other views ----- */
+// Sections behind the current clone fold into one line (tap to open); 'au:3' / 'sk:3' -> open
+const secFold = {};
+const folded = (tabk, z) => zBefore(z, S.life.sec || 1) && !secFold[tabk + ':' + z];
 function renderSkills(){
   const L = S.life;
   let h = `<div class="panel"><span class="h2">Familiarity</span><p class="note">Every task gets faster the more of it your clones have done, counting unfinished attempts too: speed = 1 + 9 \u00d7 (familiarity \u00f7 needed), up to \u00d710. Familiarity is kept between clones. This run needs ${fmt(famN0())} lives' worth of a task for \u00d710; every finished run (and each Deep echo step) lowers it. Drills add familiarity to every task in their section.</p><p class="note"><b>Chain flow \u00d7${flowMul().toFixed(2)}</b> (max \u00d7${1 + FLOW_MAX}): steps run as part of a chain (a queued chain or a one-click section run) work this much faster. It grows with every bit of chained work and is kept for good.</p></div>`;
   ZONES.forEach(z => {
     const ts = TASKS.filter(t => t.z === z.id && (S.ever[t.id] || (S.seen || {})[t.id]));   // only tasks you have seen
     if (!ts.length) return;
-    h += `<div class="sub" style="margin-top:10px">${z.name}</div>`;
+    const nMax = ts.filter(t => masteryFrac(t) >= 1).length, fz = folded('sk', z.id);
+    h += `<button class="sub secfold" data-secfold="sk:${z.id}" aria-expanded="${!fz}">${fz ? '\u25b8' : '\u25be'} ${z.name} \u00b7 ${nMax}/${ts.length} at \u00d710</button>`;
+    if (fz) return;
     ts.forEach(t => { const fr = masteryFrac(t);
       h += `<div class="sk fam"><div class="skh"><h3>${esc(t.name)}</h3><b>\u00d7${fmt(masteryF(t))}</b></div><div class="bar xp"><i style="width:${(fr * 100).toFixed(1)}%"></i></div>
         <div class="skm num"><span>${chips(t)}</span><span>${fmt((S.fam || {})[t.id] || 0)}/${fmt(famNeed(t))}${t.kind === 'job' ? ' batches' : ''}</span></div></div>`; });
@@ -3025,11 +3037,10 @@ function renderArchive(force){
   h += '</div>';
   h += '<div class="panel set"><span class="h2">Clone</span>';
   h += `<div class="row"><p>Recycle this clone<small>End the current life now. Echoes are kept.</small></p><button class="btn warn" data-confirm="recycle">Recycle</button></div>
-    <div class="row"><p>Restart this slot<small>Erases the game in this slot and starts over. Other slots are kept. The main menu has more options.</small></p><button class="btn warn" data-confirm="reset">Restart</button></div>
-    <p class="note">Progress is saved on this device only (this browser or the app). Use Save files in the main menu (☰) to back it up or move it. The game keeps running in a background tab. Time while it is fully closed is banked as a stasis boost that speeds the game up ×2, ×5 or ×10.</p></div>`;
+</div>`;
   $('#v-archive').innerHTML = h;
 }
-let histAll = false;
+let histAll = false, logTables = false;
 // Save-wide numbers (top of the Log)
 function statsGrid(){
   let h = '';
@@ -3045,7 +3056,7 @@ function statsGrid(){
   return h;
 }
 function renderLog(){
-  const key = Math.floor((S.stats.played || 0) / 60) + '|' + [S.stats.bestDays, Math.floor(S.vit || 0), TASKS.filter(t => masteryFrac(t) >= 1).length, awayMax(), S.winGen].join() + '|' + S.log.length + '|' + (S.log.length ? S.log[S.log.length-1].t : '') + '|' + (S.hist ? S.hist.length : 0) + '|' + JSON.stringify(S.bestSec || 0) + JSON.stringify(S.bestAll || 0) + '|' + histAll + '|' + S.gen + '|' + JSON.stringify(S.best || {});
+  const key = Math.floor((S.stats.played || 0) / 60) + '|' + [S.stats.bestDays, Math.floor(S.vit || 0), TASKS.filter(t => masteryFrac(t) >= 1).length, awayMax(), S.winGen].join() + '|' + S.log.length + '|' + (S.log.length ? S.log[S.log.length-1].t : '') + '|' + (S.hist ? S.hist.length : 0) + '|' + JSON.stringify(S.bestSec || 0) + JSON.stringify(S.bestAll || 0) + '|' + histAll + logTables + '|' + S.gen + '|' + JSON.stringify(S.best || {});
   if (key === logKey) return; logKey = key;
   const secName = n => n >= 6 ? 'Drive lit' : ZONES[n - 1].name;
   const histName = e => e.z && isA2(e.z) ? ZN(e.z).name : secName(e.sec);
@@ -3062,6 +3073,10 @@ function renderLog(){
   h += `<tr><td>${runs.length ? 'Run ' + (runs.length + 1) + ' (NG+' + runs.length + ', now)' : 'This run'}</td><td>${S.gen} clone${S.gen === 1 ? '' : 's'} so far</td><td>${fmtHours(Math.max(0, tot - prev))}</td></tr>`;
   h += `<tr class="pttot"><td>Total</td><td></td><td>${fmtHours(tot)}</td></tr></tbody></table></div></div>`;
   h += '<div class="panel"><span class="h2">Recent clones</span>';
+  const lastH = allH[allH.length - 1];
+  if (!lastH) h += '<p class="note">No clone has died yet.</p>';
+  if (lastH) h += `<p class="note">Last: clone ${lastH.g}, ${histName(lastH)}, ${(lastH.d / TPD).toFixed(1)} ship days${lastH.cause ? ' (' + esc(lastH.cause.toLowerCase()) + ')' : ''}.</p><button class="btn histm" data-logfold>${logTables ? 'Hide the tables' : 'Show clone and section tables'}</button>`;
+  if (logTables) {
   if (allH.length > 5) h += `<button class="btn histm" data-histall>${histAll ? 'Show last 5' : 'Show all ' + allH.length}</button>`;
   if (!hist.length) h += '<p class="note">No clone has died yet. Each clone\u2019s furthest section and time will appear here.</p>';
   else h += `<div class="rtab"><table class="dt"><thead><tr><th>Clone</th><th>Furthest</th><th><span class="tgm">Ship days</span></th><th><span class="trl">Real</span></th></tr></thead><tbody>${hist.map(e => `<tr title="${esc(e.cause)}"><td>${e.g}</td><td>${histName(e)}</td><td>${gameT((e.d / TPD).toFixed(1))}</td><td>${realT(e.r)}</td></tr>`).join('')}</tbody></table></div>`;
@@ -3070,6 +3085,7 @@ function renderLog(){
     const short = ['Ring', 'Spine', 'Deck', 'Drive', 'Lit'], longN = ['Reached the Hydroponics Ring', 'Reached the Engineering Spine', 'Reached the Command Deck', 'Reached the Main Drive', 'Lit the main drive'];
     h += '<span class="lbl" style="display:block;margin-top:12px">Section unlock times</span><p class="note"><span class="tgm">Ship day</span> and <span class="trl">real time</span> when each clone first reached a section, and when the drive was lit. <b>Best clone</b> is your best single clone ever (most sections, then fewest ship days), kept through new game plus. <b>Best</b> keeps the earliest unlock of each section from any clone in this run, with the clone number.</p>';
     h += `<div class="rtab"><table class="dt ft"><thead><tr><th>Clone</th>${short.map((n, i) => `<th title="${longN[i]}">${n}</th>`).join('')}</tr></thead><tbody>${S.bestAll ? `<tr class="ftbest ftall"><td>Best clone<small>#${S.bestAll.g}${S.bestAll.ng ? ' NG+' + S.bestAll.ng : ''}</small></td>${ZONES.slice(0, 5).map((z, i) => { const f = S.bestAll.fin[i]; return `<td>${f ? gameT('d' + f[0].toFixed(1)) + '<small>' + realT(f[1]) + '</small>' : '\u2014'}</td>`; }).join('')}</tr>` : ''}${S.bestSec && S.bestSec.some(Boolean) ? `<tr class="ftbest"><td>Best</td>${ZONES.slice(0, 5).map((z, i) => { const b = S.bestSec[i]; return `<td>${b ? gameT('d' + b.d.toFixed(1)) + '<small>' + realT(b.r) + '</small><small>clone ' + b.g + '</small>' : '\u2014'}</td>`; }).join('')}</tr>` : ''}${hist.map(e => `<tr><td>${e.g}</td>${ZONES.slice(0, 5).map((z, i) => { const f = e.fin && e.fin[i]; return `<td>${f ? gameT('d' + f[0].toFixed(1)) + '<small>' + realT(f[1]) + '</small>' : '\u2014'}</td>`; }).join('')}</tr>`).join('')}</tbody></table></div>`;
+  }
   }
   const b = S.best;
   h += b ? `<p class="best"><span class="lbl">Best run</span> Clone ${b.g} ${b.z && isA2(b.z) ? 'reached ' + ZN(b.z).name : b.sec >= 6 ? 'lit the drive' : 'reached the ' + secName(b.sec)} after ${gameT((b.d / TPD).toFixed(1) + ' ship days')} \u00b7 ${realT(b.r)} <span class="trl">real</span></p>` : '';
@@ -3107,7 +3123,7 @@ function renderView(force){
   else if (tab === 'faq') renderFaq();
   document.querySelector('[data-tab="log"]').classList.toggle('dot', newLog);
   document.querySelector('[data-tab="archive"]').classList.toggle('dot', newPerk);
-  const lg = document.querySelector('[data-tab="legacy"]'); lg.hidden = !(S.won || ngpPts() > 0); lg.classList.toggle('dot', ngpFree() > 0 || a2Free() > 0);
+  const lg = document.querySelector('[data-tab="legacy"]'); lg.hidden = !(S.won || ngpPts() > 0); lg.classList.toggle('dot', ngpFree() > 0 || (a2Done() && a2Free() > 0));
 }
 // Legacy tab: what the line of clones has earned for good (Act I rewards, Act II Honours)
 let legKey = '';
@@ -3116,10 +3132,11 @@ function renderLegacy(){
   if (key === legKey) return; legKey = key;
   let h = '';
   if (S.won || ngpPts() > 0) h += ngpPanel();
-  if (S.a2 && S.a2.open) h += act2Panel();
+  if (a2Done()) h += act2Panel();   // Honours are revealed once Act II has been finished
   if (!h) h = '<div class="panel"><p class="note">Nothing here yet.</p></div>';
   $('#v-legacy').innerHTML = h;
 }
+const a2Done = () => !!((S.a2run && S.a2run.done && S.a2run.done.B) || (S.a2 && S.a2.fin >= 2));
 const a2Free = () => { const a = S.a2 || {}; return Math.max(0, (a.hon || 0) - Object.values(a.lv || {}).reduce((x, y) => x + y, 0)); };
 
 /* ----- map: every action ever performed, by section, wired by requirement ----- */
@@ -3230,14 +3247,10 @@ function foodSettingsHtml(){
   }
   return h;
 }
-function renderAuto(){
+// Clock and pause options (in the settings menu)
+function pauseSettingsHtml(){
   const L = S.life;
-  const list = TASKS.filter(t => practiced(t));
-  const glist = ITEMS.filter(gearPracticed);
-  const key = list.map(t => t.id + (S.auto[t.id] ? '*' : '') + (masteryF(t) >= SECTION_F ? 5 : masteryF(t) >= LINK_F ? 2 : 1)).join() + '|' + glist.map(i => i.id + (S.gauto[i.id] ? '*' : '')).join() + '|' + (S.life.chainRun ? 'R' : '') + '|' + L.sec + '|' + S.gen + '|' + !!S.set.fillCross + !!S.set.autoFeed + '|' + restAt() + '|' + (S.set.deathScreen !== false) + (S.set.deathPause !== false) + !!S.set.startPaused + !!S.set.bgPause + !!S.set.pauseCross + decantUnlocked() + (S.stats.deaths || 0);
-  if (key === autoKey) return; autoKey = key;
-  let h = `<div class="panel"><span class="h2">Automation</span><p class="note">Tasks finished often enough can run by themselves (${autoScale() < 1 ? 'this run needs ' + Math.round(autoScale() * 100) + '% of' : ''} 10 lives' worth: an action 10 times, a training session 40 times, a job ${AUTO_LIVES * JOB_UNIT} batches), and gear built in ${AUTO_LIVES} lives can be built automatically (in ship order; the clone saves up for the next one). Switch them on here. They run in chain order: each after the tasks it needs. Linked tasks form chains, and a fully chained section can be run with one click. Automated tasks run ahead of your queue (automated jobs when their store drops below the forage threshold); automated crossings wait until the queue is done. Rests fire on their own at strain ×${restAt()}, and also just before an automated crossing if the section\u2019s rest is still unused.</p>
-    ${decantUnlocked()
+  return `    ${decantUnlocked()
       ? `<div class="row"><p>Show the death screen<small>On: the game stops at each death until you decant the next clone. Off: the next clone is decanted at once and the run keeps going; a short message sums up the death.</small></p><button class="tog${S.set.deathScreen !== false ? ' on' : ''}" data-set="deathScreen" aria-label="Show the death screen" aria-pressed="${S.set.deathScreen !== false}"></button></div>`
       : `<div class="fld"><label>Death screen</label><small class="note">Automatic decanting unlocks after ${AUTO_LIVES} clones have died (${S.stats.deaths || 0}/${AUTO_LIVES}). Until then the game stops at each death.</small></div>`}
     <div class="row"><p>Start new clones paused<small>With the death screen on, the clone you decant from it waits paused until you press Resume, so you can plan its life first.</small></p><button class="tog${S.set.deathPause !== false ? ' on' : ''}" data-set="deathPause" aria-label="Start new clones paused" aria-pressed="${S.set.deathPause !== false}"></button></div>
@@ -3246,6 +3259,15 @@ function renderAuto(){
     <div class="row"><p>Pause when a section run ends instead<small>Overrides the pause above during a section run: a run across several sections keeps going through its crossings, and the clock stops once the run finishes or stops by itself. Your own Stop doesn\u2019t pause.</small></p><button class="tog${S.set.pauseRunEnd ? ' on' : ''}" data-set="pauseRunEnd" aria-label="Pause when a section run ends instead" aria-pressed="${!!S.set.pauseRunEnd}"></button></div>
     <div class="row"><p>Pause when a task finishes<small>The clock stops whenever a task is done: an action (all its repeats), a rest, a drill once all its sessions for this life are done, or a job once its storage is full. Automated tasks count too.</small></p><button class="tog${S.set.pauseDone ? ' on' : ''}" data-set="pauseDone" aria-label="Pause when a task finishes" aria-pressed="${!!S.set.pauseDone}"></button></div>
     <div class="row"><p>Start the game paused<small>When you open the game, the clock waits until you press Resume.</small></p><button class="tog${S.set.startPaused ? ' on' : ''}" data-set="startPaused" aria-label="Start the game paused" aria-pressed="${!!S.set.startPaused}"></button></div>
+`;
+}
+function renderAuto(){
+  const L = S.life;
+  const list = TASKS.filter(t => practiced(t));
+  const glist = ITEMS.filter(gearPracticed);
+  const key = JSON.stringify(secFold) + (S.life.sec || 1) + list.map(t => t.id + (S.auto[t.id] ? '*' : '') + (masteryF(t) >= SECTION_F ? 5 : masteryF(t) >= LINK_F ? 2 : 1)).join() + '|' + glist.map(i => i.id + (S.gauto[i.id] ? '*' : '')).join() + '|' + (S.life.chainRun ? 'R' : '') + '|' + L.sec + '|' + S.gen + '|' + !!S.set.fillCross + !!S.set.autoFeed + '|' + restAt() + '|' + (S.set.deathScreen !== false) + (S.set.deathPause !== false) + !!S.set.startPaused + !!S.set.bgPause + !!S.set.pauseCross + decantUnlocked() + (S.stats.deaths || 0);
+  if (key === autoKey) return; autoKey = key;
+  let h = `<div class="panel"><span class="h2">Automation</span><p class="note">Tasks finished often enough can run by themselves (${autoScale() < 1 ? 'this run needs ' + Math.round(autoScale() * 100) + '% of' : ''} 10 lives' worth: an action 10 times, a training session 40 times, a job ${AUTO_LIVES * JOB_UNIT} batches), and gear built in ${AUTO_LIVES} lives can be built automatically (in ship order; the clone saves up for the next one). Switch them on here. They run in chain order: each after the tasks it needs. Linked tasks form chains, and a fully chained section can be run with one click. Automated tasks run ahead of your queue (automated jobs when their store drops below the forage threshold); automated crossings wait until the queue is done. Rests fire on their own at strain ×${restAt()}, and also just before an automated crossing if the section\u2019s rest is still unused.</p>
     ${foodSettingsHtml()}
     <div class="fld"><label for="rest-at">Automated rests fire at strain \u00d7</label><div class="pctin"><input type="text" id="rest-at" inputmode="decimal" autocomplete="off" value="${restAt()}"><span>Rests also fire just before an automated crossing if still unused.</span></div></div>
     <div class="row"><p>Feed when needed<small>Automated food jobs step in when food runs low, or when health is low and meals can still heal faster than strain drains it. They refill to what is needed, then the interrupted task carries on.</small></p><button class="tog${S.set.autoFeed ? ' on' : ''}" data-set="autoFeed" aria-label="Feed when needed" aria-pressed="${!!S.set.autoFeed}"></button></div>
@@ -3255,7 +3277,8 @@ function renderAuto(){
   }
   ZONES.forEach(z => {
     const zl = list.filter(t => t.z === z.id), gl = glist.filter(i => gearZone(i) === z.id); if (!zl.length && !gl.length) return;
-    h += `<section class="zone"><header class="zh"><h2>${z.name}</h2><span>${z.id === L.sec ? 'you are here' : zBefore(z.id, L.sec) ? 'left behind this life' : 'ahead'}</span></header>`;
+    if (folded('au', z.id)) { h += `<button class="zh zhb" data-secfold="au:${z.id}" aria-expanded="false"><h2>\u25b8 ${z.name}</h2><span>${zl.filter(t => S.auto[t.id]).length}/${zl.length} automated \u00b7 left behind</span></button>`; return; }
+    h += `<section class="zone"><header class="zh">${zBefore(z.id, L.sec) ? `<button class="zhb" data-secfold="au:${z.id}" aria-expanded="true"><h2>\u25be ${z.name}</h2></button>` : `<h2>${z.name}</h2>`}<span>${z.id === L.sec ? 'you are here' : zBefore(z.id, L.sec) ? 'left behind this life' : 'ahead'}</span></header>`;
     // section chain status, and the chains formed so far (links need both tasks automated and x2 familiar)
     const g = sectionGate(z.id);
     h += z.id === (L.sec || 1) ? secRunHtml(z.id) || `<div class="secrun dim"><span>Section chain: ${g.ok}/${g.n} parts ready.</span></div>` : `<div class="secrun dim"><span>Section chain: ${g.ok}/${g.n} parts ready${g.ready ? ' (ready)' : ''}.</span></div>`;
@@ -3315,18 +3338,20 @@ const FAQ_ALL = [
   ['What is familiarity?', 'There are no skills: each task gets faster on its own the more of it your clones have done. Familiarity counts work in completions, including attempts a clone died in the middle of, and is kept between clones. Speed rises smoothly from ×1 to ×10 once you have done enough of a task: in a first run, 90 lives’ worth of it (90 finishes of an action, 1800 batches of a job). Each level of the Act I reward <b>Deep echo</b> lowers that for Act I tasks by about 30%. Familiar tasks also hurt less (hazard damage up to ÷4), and a familiar food job lets its food be eaten more often. <b>Drills</b> spread familiarity to every task in their section. The Speed tab lists every task.'],
   ['How does automation work?', 'Every completion counts: finish an action 10 times (a multi-rep action 10 times its reps), a training session 40 times or a rest 10 times, work a job for 200 batches, or build a design in 10 lives, and its automation <b>switches on by itself</b>. For Act I tasks these counts shrink along with the familiarity threshold (Deep echo), never below one; tap <b>AUTO</b> (or its switch in the Auto tab) to turn it off, and it stays off. Automated tasks run by themselves <b>ahead of your queue</b>, in chain order (each after the tasks it needs). Automated tasks <b>link into chains</b> when one requires the other and both are at least ×2 familiar. When every action, crossing, job and rest of a section is automated and ×5 familiar, and all its gear designs are automated, the whole section becomes <b>one chain</b>: press <b>▶ Run section</b> (top of the section in the Tasks tab) and the clone works through everything, builds the gear, fills its stores and crosses. Ready sections next to each other link across their crossings into one run (<b>▶ Run 3 sections</b>), up to the end of the act; a run that dies starts again with the next clone. The option <b>Pause when a section run ends instead</b> keeps a run going through its crossings and pauses once it is over. A chain picks its next step itself each time: gear first, then kitchen upgrades, then the actions and drills in the order they depend on each other, then rests and storage-filling jobs, and the crossing last. When a chain forms or grows, it <b>queues itself</b>, including the chains of sections still ahead, and chain entries are kept in the order they will run: section by section, and within a section the chain that starts earliest first, with the crossing\u2019s chain last, and anything of it you had queued separately is dropped from the queue. If you remove a chain from the queue, it stays out for the rest of that clone\u2019s life. Work done as part of a chain (a queued chain or a section run) builds <b>chain flow</b>, which makes chained steps up to five times as fast; it is kept for good. An automated food job steps in when its store drops below the forage threshold and fills it up. An automated <b>salvage</b> job only gathers what gear needs: the next auto-built or queued design that is found and not built yet; it does not top the store up to full (except while filling up before a crossing). Automated <b>crossings</b> are the exception: they wait until your queue is done. A task you tap runs before everything. The <b>Auto</b> tab lists everything unlocked and has extra options: feeding when needed, filling storage before moving on, the strain level for automatic rests, the death screen and starting paused.'],
   ['What happens at a crossing with automation?', 'A queued or automated crossing stops just before it finishes and waits while the clone finishes automated actions and training, builds affordable automated gear, refills storage (if that option is on) and uses the section’s rest. Tap a crossing yourself to go at once.'],
-  ['Pause, background and boost', 'Pause with the button at the top or the space bar. The game keeps running in a background tab and catches up when you return, then shows what happened while you were away. Time while the game is fully closed is banked as a <b>stasis boost</b> you can switch on in the header. Pick Off, ×2, ×5 or ×10 from its menu: at ×5 every real second plays five, and the bank pays for the extra four, so faster boost spends the bank faster. Both start capped at 8 hours: at most 8 hours of background time is played out, and the boost holds at most 8 hours. Each <b>Stasis watch</b> record adds 8 hours to both; you get one the first time you finish each section (5 in all, up to 48 hours).'],
+  ['Pause, background and boost', 'Progress is saved on this device only (this browser or the app); use <b>Save files</b> in the main menu (\u2630) to back it up or move it, and <b>Restart</b> next to the slot there to start this slot over. Pause with the button at the top or the space bar. The game keeps running in a background tab and catches up when you return, then shows what happened while you were away. Time while the game is fully closed is banked as a <b>stasis boost</b> you can switch on in the header. Pick Off, ×2, ×5 or ×10 from its menu: at ×5 every real second plays five, and the bank pays for the extra four, so faster boost spends the bank faster. Both start capped at 8 hours: at most 8 hours of background time is played out, and the boost holds at most 8 hours. Each <b>Stasis watch</b> record adds 8 hours to both; you get one the first time you finish each section (5 in all, up to 48 hours).'],
   ['Saves', 'The game saves itself every few seconds on this device, in three slots (☰ menu). Use <b>Save files and transfer</b> in the menu to export a save file, import one, or copy the save as text to move it between devices.'],
   ['Settings', 'The ⚙ button opens sound (music and effects), layout (vertical or horizontal) and, in the Android app, app updates. Gameplay options such as auto-eat, auto-forage, the forage threshold and the pause options are in the Auto tab.'],
 ];
 // Shown once the drive is first lit.
 const FAQ_NGP = ['Act I rewards', 'There is no restarting: after the drive is lit, the story always moves forward into Act II. Moving forward earns <b>Act I reward points</b>: one for lighting the drive, one for each Act II section you first reach and two for each Act II branch you finish (11 in all). Spend them in the <b>Legacy</b> tab; each level costs one point and is permanent. <b>Deep echo</b> (Act I tasks need about 30% less familiarity per step for \u00d710), <b>Drain dampener</b> (health drain in Act I divided by 2.3, 3.7, then 5) and <b>Template upgrade</b> (+167, +333, then +500 max health in Act I) work fully in Act I, which every clone crosses on its way, and at 10% strength in Act II. <b>Overclocked line</b> makes the whole game run faster in both acts (\u00d72.3, \u00d73.7, then \u00d75) without using banked time. Each reward has three levels, so 11 points can\u2019t max everything: choose. Lighting the drive the first time also unlocks the <b>Quartermaster\u2019s cache</b>: every clone starts with all of its automated gear already built, in both acts.'];
-const FAQ_A2 = ['Act II', 'Once the main drive is lit, every clone that lights it carries on into <b>Act II</b>: six more sections, one after another, each revealed when a clone first reaches it. Act II tasks have their own familiarity, which Deep echo reduces only at 10% strength: it starts at 90 lives\u2019 worth for \u00d710 and drops by a quarter at each of Act II\u2019s two big milestones. Act II familiarity, automation, records and <b>Honours</b> are kept for good. Honours (one per Act II section first reached, two for each of Act II\u2019s two big milestones: 10 in all) buy rewards in the <b>Legacy</b> tab that work in <b>both acts</b>: Veteran template (hazard damage \u221225% per level), Long-watch rhythm (strain \u221213%), Scavenger\u2019s eye (salvage from jobs +33%) and Field rations (meals 17% more often). Like Act I rewards they have three levels each, and spending is permanent.'];
+const FAQ_A2 = ['Act II', 'Once the main drive is lit, every clone that lights it carries on into <b>Act II</b>: six more sections, one after another, each revealed when a clone first reaches it. Act II tasks have their own familiarity, which Deep echo reduces only at 10% strength: it starts at 90 lives\u2019 worth for \u00d710 and drops by a quarter at each of Act II\u2019s two big milestones. Act II familiarity, automation and records are kept for good.'];
+// Honours stay a secret until Act II has been finished once
+const FAQ_HON = ['Honours', 'Honours (one per Act II section first reached, two for each of Act II\u2019s two big milestones: 10 in all) buy rewards in the <b>Legacy</b> tab that work in <b>both acts</b>: Veteran template (hazard damage \u221225% per level), Long-watch rhythm (strain \u221213%), Scavenger\u2019s eye (salvage from jobs +33%) and Field rations (meals 17% more often). Like Act I rewards they have three levels each, and spending is permanent.'];
 let faqDone = '';
 function renderFaq(){
   const k = String(!!(S.won || (S.pr && S.pr.n))) + !!(S.a2 && S.a2.open);
   if (faqDone === k) return; faqDone = k;
-  const FAQ = FAQ_ALL.concat(S.won || ngpPts() > 0 ? [FAQ_NGP] : [], S.a2 && S.a2.open ? [FAQ_A2] : []);
+  const FAQ = FAQ_ALL.concat(S.won || ngpPts() > 0 ? [FAQ_NGP] : [], S.a2 && S.a2.open ? [FAQ_A2] : [], a2Done() ? [FAQ_HON] : []);
   $('#v-faq').innerHTML = '<div class="panel"><span class="h2">FAQ</span><p class="note">How Long Patience works. Tap a question to open it.</p></div><div class="faq">' +
     FAQ.map(([q, a], i) => `<details${i < 2 ? ' open' : ''}><summary>${q}</summary><p>${a}</p></details>`).join('') + '</div>';
 }
@@ -3540,6 +3565,8 @@ document.addEventListener('click', e => {
   }
   if ('secrun' in d) { const sp = runSpan(L.sec || 1); if (sp.length) { L.chainRun = true; L.runFrom = L.sec || 1; L.now = null; toast(sp.length > 1 ? 'Running ' + sp.length + ' sections as one chain: ' + sp.map(z => ZONES[z - 1].name).join(' \u2192 ') : 'Running the ' + ZONES[(L.sec || 1) - 1].name + ' as one chain'); } taskKey = ''; autoKey = ''; renderView(); return; }
   if ('secstop' in d) { L.chainRun = false; L.runFrom = null; taskKey = ''; autoKey = ''; renderView(); return; }
+  if (d.secfold) { secFold[d.secfold] = !secFold[d.secfold]; autoKey = ''; renderView(true); return; }
+  if ('logfold' in d) { logTables = !logTables; logKey = ''; renderView(true); return; }
   if (d.copen) { cOpen[d.copen] = !cOpen[d.copen]; taskKey = ''; renderView(); return; }
   if (d.qopen) { qOpen[d.qopen] = !qOpen[d.qopen]; taskKey = ''; renderView(); return; }
   if ('stopnow' in d) { L.now = null; taskKey = ''; renderView(); return; }
@@ -3550,7 +3577,7 @@ document.addEventListener('click', e => {
   }
   if (d.gauto) { S.gauto[d.gauto] = !S.gauto[d.gauto]; autoKey = ''; gearKey = ''; taskKey = ''; toast((S.gauto[d.gauto] ? 'Auto-build on: ' : 'Auto-build off: ') + IT[d.gauto].name); renderView(); return; }
   if (d.gsetprio) { S.gprio[d.gsetprio] = +d.n; autoKey = ''; gearKey = ''; toast('Priority ' + d.n + ': ' + IT[d.gsetprio].name); renderView(); return; }
-  if (d.set) { S.set[d.set] = !S.set[d.set]; savePrefs(); autoKey = ''; renderArchive(true); if (tab === 'auto') renderAuto(); return; }
+  if (d.set) { S.set[d.set] = !S.set[d.set]; savePrefs(); autoKey = ''; renderArchive(true); if (tab === 'auto') renderAuto(); if (settingsFrom && !$('#modal').hidden && b.closest('#modal')) showSettings(settingsFrom); return; }
   if (d.confirm) {
     const k = d.confirm;
     if (!confirmT[k]) {
@@ -3571,7 +3598,7 @@ document.addEventListener('click', e => {
     }
     if (k === 'recycle' && !S.life.dead) die('Recycled by choice');
     if (k === 'reset') {
-      S = defaultState(); M = mods(); S.life.hp = M.maxHp; resetViews(); save();
+      hideModal(); S = defaultState(); M = mods(); S.life.hp = M.maxHp; resetViews(); save();
       setTab('tasks'); showIntro();
     }
   }
@@ -3769,7 +3796,7 @@ function updatePanel(){
 }
 function showSettings(from){
   settingsFrom = from; paused = true;
-  showModal(`<h2>Settings</h2>${soundPanel().replace('panel set', 'panel set mpanel')}${displayPanel('mpanel')}${updatePanel().replace('panel set', 'panel set mpanel')}
+  showModal(`<h2>Settings</h2><div class="panel set mpanel"><span class="h2">Clock and pauses</span>${pauseSettingsHtml()}</div>${soundPanel().replace('panel set', 'panel set mpanel')}${displayPanel('mpanel')}${updatePanel().replace('panel set', 'panel set mpanel')}
     <button class="btn pri" data-settingsclose>${from === 'menu' ? 'Back to menu' : 'Close'}</button>`);
 }
 function refreshSettings(){ if (settingsFrom && !$('#modal').hidden && document.getElementById('upd-st')) showSettings(settingsFrom); }
