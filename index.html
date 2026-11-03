@@ -483,7 +483,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
 
 <script id="logic">
 /* ===== Game data and rules (no DOM) ===== */
-const BUILD = '2026-11-03 · flow x5';   // shown in the main menu, to tell which version is loaded
+const BUILD = '2026-11-03 · flow x5 balance';   // shown in the main menu, to tell which version is loaded
 const DPS = 4;             // simulation ticks per real second at 1x
 // Time is simulated in ticks. 80 ticks make one ship day (18 minutes each), so a day lasts
 // 20 real seconds at 1x and a clone lives weeks, not years. Everything is shown in days and hours.
@@ -757,7 +757,7 @@ const TASKS = [
   {id:'wakefirst', z:11, kind:'act', finale:'B', name:'Wake the first sleeper', sk:['nav','bio','res'], days:1800, req:['prepwake'], perk:'tessaly2',
     log:'The first sleeper opens her eyes and sees a maintenance clone. “Who are you?” You have never had to answer that before.'},
 ];
-const ZDAYS = {1:0.336, 2:1.142, 3:0.847, 4:0.659, 5:0.403, 6:1.696, 7:1.696, 8:1.696, 9:0.66, 10:0.66, 11:0.66};   // no skill transfer: later sections are short, and speed comes from familiarity
+const ZDAYS = {1:0.315, 2:1.071, 3:0.794, 4:0.7, 5:0.43, 6:1.6, 7:2.3, 8:2.3, 9:0.59, 10:0.74, 11:0.74};   // no skill transfer: later sections are short, and speed comes from familiarity
 const TRAIN_CAP = 4, TRAIN_XP = 1.5;
 const T = {}; TASKS.forEach(t => { T[t.id] = t; t.reps = t.kind === 'train' ? TRAIN_CAP : (t.reps || 1); if (t.days) t.days = Math.round(t.days * ZDAYS[t.z]); });
 
