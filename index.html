@@ -483,7 +483,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
 
 <script id="logic">
 /* ===== Game data and rules (no DOM) ===== */
-const BUILD = '2026-11-03 · single food';   // shown in the main menu, to tell which version is loaded
+const BUILD = '2026-11-03 · long-watch foods';   // shown in the main menu, to tell which version is loaded
 const DPS = 4;             // simulation ticks per real second at 1x
 // Time is simulated in ticks. 80 ticks make one ship day (18 minutes each), so a day lasts
 // 20 real seconds at 1x and a clone lives weeks, not years. Everything is shown in days and hours.
@@ -508,42 +508,54 @@ const MAX_DRAIN = 1.2;     // most health a clone can lose per day: a full bar l
 // A meal restores the hunger of one cooldown plus the old resting regeneration.
 // Food deeper in the ship is better: each section past the first makes meals restore 12% more.
 const MEAL_SEC = 0;
-// Food: one ration store. Every food job fills it. How much a meal heals depends on the best
-// kitchen this clone has fixed: each section has one upgrade action (see MEAL_UP), done again every life.
-// The store grows as the clone gets deeper into the ship (STORE_CAP), plus gear and records.
-const FOODS = [{id:'ration', z:1, name:'Rations', q:1, cap:5}];
+// Food: one ration store until the long watch. Every food job fills it. How much a ration heals
+// depends on the best kitchen this clone has fixed: each section has one upgrade action (see MEAL_UP),
+// done again every life. The store grows as the clone gets deeper into the ship (STORE_CAP), plus gear.
+// In the long watch the repaired ship grows three extra foods (fresh harvest, colony seed stock, cultured protein). Each has
+// its own small store and its own meal timer, so carrying them means extra meals.
+const FOODS = [
+  {id:'ration',  z:1,  name:'Rations',           q:1,   cap:5,  job:null},
+  {id:'harvest', z:9,  name:'Fresh harvest',     q:2.4, cap:10, job:'beds'},
+  {id:'seed',    z:10, name:'Colony seed stock', q:2.8, cap:10, job:'stores'},
+  {id:'protein', z:11, name:'Cultured protein',  q:3.4, cap:8,  job:'meatvats'},
+];
 const FD = {}; FOODS.forEach(f => FD[f.id] = f);
 const FOOD_OF = {}; for (let z = 1; z <= 11; z++) FOOD_OF[z] = 'ration';
 const STORE_CAP = {1:5, 2:13, 3:21, 4:31, 5:41, 6:51, 7:61, 8:61, 9:51, 10:61, 11:61};
-// The section upgrade actions and the meal strength each one brings (kept for the rest of the life)
+// The section upgrade actions and the ration strength each one brings (kept for the rest of the life)
 const MEAL_UP = {heatpaste:1.27, strains:1.54, packer:1.85, ovens:2.17, pantryfix:2.48, mess:2.55, synthfix:2.62, hivegel:2.7, graft:2.8, sprout:3.07, feast:3.34};
 function mealTier(){ const L = S && S.life; let q = 1; if (L) for (const id in MEAL_UP) if (L.done && L.done[id]) q = Math.max(q, MEAL_UP[id]); return q; }
-const jobFood = t => t && t.prod && t.prod.rations ? 'ration' : null;
-function foodQ(f){ return mealTier() * ((M && M.fq && M.fq.ration) || 1) * (M && S && isA2(S.life.sec || 1) ? M.a2food : 1); }
-function syncFood(){ const L = S.life; L.rations = Math.max(0, L.food.ration || 0); }
+const jobFood = t => !(t && t.prod && t.prod.rations) ? null : (FOODS.find(f => f.job === t.id) || FD.ration).id;
+function foodQ(f){ f = f || 'ration'; return (f === 'ration' ? mealTier() : FD[f].q) * ((M && M.fq && M.fq[f]) || 1) * (M && S && isA2(S.life.sec || 1) ? M.a2food : 1); }
+function syncFood(){ const L = S.life; L.rations = FOODS.reduce((a, f) => a + Math.max(0, L.food[f.id] || 0), 0); }
 function addFood(f, a){
-  const L = S.life; if (a <= 0) return;
-  L.food.ration = (L.food.ration || 0) + a; syncFood();
+  const L = S.life; if (a <= 0) return; f = f || 'ration';
+  L.food[f] = (L.food[f] || 0) + a; syncFood();
 }
 // Any food left at all (a whole portion)? Without it the clone starves.
 const FOOD_MIN = 0.01;   // a crumb: any food at all left
 const EAT_GAP = 0.5;     // health missing before the clone bothers to eat
-function nextFood(){ return (S.life.food.ration || 0) >= 1 ? 'ration' : null; }
-// One meal every MEAL_CD at most
+function nextFood(){ const L = S.life; const f = FOODS.slice().reverse().find(f => (L.food[f.id] || 0) >= 1); return f ? f.id : null; }
+// One meal of each kind every MEAL_CD at most
 function mealCd(f){ return MEAL_CD; }
-function readyFoods(){ const L = S.life; return (L.food.ration || 0) >= 1 && ((L.mcd || {}).ration || 0) <= 0 ? ['ration'] : []; }
-// Food eaten per tick, for estimates: meals only cover what health needs, at most one per cooldown
+// Foods ready to eat now (stocked and off their own cooldown), best first
+function readyFoods(){ const L = S.life; return FOODS.filter(f => (L.food[f.id] || 0) >= 1 && ((L.mcd || {})[f.id] || 0) <= 0).sort((a, b) => foodQ(b.id) - foodQ(a.id)).map(f => f.id); }
+// Food eaten per tick, for estimates: meals only cover what health needs, best food first, each kind
+// at most one meal per cooldown
 function eatRate(){
   const L = S.life, cur = L.cur ? T[L.cur] : null;
-  const need = Math.min(HUNGER * (L.strain || 1) + (cur && cur.haz ? hazDmg(cur) : 0), MAX_DRAIN) / drainDiv();
-  if ((L.food.ration || 0) < FOOD_MIN) return 0;
-  const mh = mealHp('ration'); return Math.min(need, mh / MEAL_CD) / mh;
+  let need = Math.min(HUNGER * (L.strain || 1) + (cur && cur.haz ? hazDmg(cur) : 0), MAX_DRAIN) / drainDiv(), units = 0;
+  FOODS.slice().sort((a, b) => foodQ(b.id) - foodQ(a.id)).forEach(f => {
+    if ((L.food[f.id] || 0) < FOOD_MIN || need <= 0) return;
+    const mh = mealHp(f.id), take = Math.min(need, mh / MEAL_CD); units += take / mh; need -= take;
+  });
+  return units;
 }
 // Time until the next meal is possible
-function nextMealIn(){ const L = S.life; return (L.food.ration || 0) >= 1 ? ((L.mcd || {}).ration || 0) : Infinity; }
-const foodsInPlay = () => FOODS;
+function nextMealIn(){ const L = S.life; let m = Infinity; FOODS.forEach(f => { if ((L.food[f.id] || 0) >= 1) m = Math.min(m, (L.mcd || {})[f.id] || 0); }); return m; }
+const foodsInPlay = () => FOODS.filter(f => f.z === 1 || isWatch(S.life.sec || 1) || (S.life.food[f.id] || 0) > 0.005);
 const MEAL_MULT = 1.58;   // meals restore more than one meal-gap of hunger, to push back against strain
-function mealHp(f){ return (HUNGER + M.regen) * MEAL_CD * MEAL_MULT * foodQ('ration'); }
+function mealHp(f){ f = f || readyFoods()[0] || nextFood() || 'ration'; return (HUNGER + M.regen) * MEAL_CD * MEAL_MULT * foodQ(f); }
 const START_AGE = 14;
 
 const SKILLS = [
@@ -788,6 +800,7 @@ const TASKS = [
   {id:'mapsite', z:11, kind:'act', name:'Map the colony site', days:450, req:['orbitscan']},
   {id:'orbitnap', z:11, kind:'rest', name:'Sleep under the planet’s glow', days:15, req:[]},
   {id:'upkeep11', z:11, kind:'job', upkeep:true, name:'Keep the wake cycle running', prod:{salvage:1.8}, req:[]},
+  {id:'meatvats', z:11, kind:'job', name:'Grow meat in the cultured-protein tanks', prod:{rations:0.16}, req:['orbitscan']},
   {id:'landdrill', z:11, kind:'train', name:'Landing-site surveys', days:40, req:['mapsite']},
   {id:'siteprobe', z:11, kind:'act', name:'Drop a probe on the site', days:300, req:['mapsite'], split:'mapsite'},
   {id:'podwarm', z:11, kind:'act', name:'Warm the first pods', days:750, req:['mapsite'], split:'prepwake'},
@@ -873,7 +886,7 @@ const ITEMS = [
   {id:'medpack',    name:'Field medpack',      cost:2000, req:'medb',       desc:'+50 max health, meals restore 20% more health', eff:{maxHp:50, regen:1.2}},
   {id:'cutter',     name:'Plasma cutter',      cost:3000, req:'umbilical',  desc:'Work in the Hive Ship 30% faster', eff:{zsp:{GZ:1.3}}},
   {id:'upkit',      name:'Upkeep toolkit',     cost:1500, req:'patch',      desc:'Ship wear builds 30% slower, work in the Cruise 20% faster', eff:{wear:0.7, zsp:{GZ:1.2}}},
-  {id:'sprinkler',  name:'Bed sprinklers',     cost:1800, req:'recal',      desc:'+5 ration storage, the regrown beds yield 50% faster', eff:{fcap:5, fspd:{beds:1.5}}},
+  {id:'sprinkler',  name:'Bed sprinklers',     cost:1800, req:'recal',      desc:'+5 fresh harvest storage, the regrown beds yield 50% faster', eff:{fcap:{harvest:5}, fspd:{beds:1.5}}},
   {id:'gyro',       name:'Gyro-trimmer',       cost:2500, req:'drift',      desc:'Work in the Drift 40% faster', eff:{zsp:{GZ:1.4}}},
   {id:'beacon',     name:'Colony beacon',      cost:3000, req:'mapsite',    desc:'All work 15% faster', eff:{spd:1.15}},
   {id:'diagrig',    name:'Injector diagnostic rig', cost:1600, req:'course', desc:'Work in the Main Drive 25% faster', eff:{zsp:{GZ:1.25}}},
@@ -939,7 +952,7 @@ const ngpSpeed = () => 1 + 0.8 * ngpLv('speed');    // new game plus overclock: 
 function mods(){
   const L = S.life, P = S.perks;
   const m = {sk:{}, xpSk:{}, zsp:{}, zxp:{}, spd:1, xp:1, haz:1, maxHp:Math.min(BASE_HP_MAX, 100 + Math.floor(S.vit || 0)), pRat:0, pSal:0, strainMul:1, regen:0.05, ratCap:5, salCap:25, fcap:{}, pFood:{}, fq:{}, foodSpd:1, a2haz:1, a2strain:1, a2sal:1, a2food:1, a2fam:1, wear:1};
-  m.fcap.ration = STORE_CAP[L.sec || 1] || 5; m.pFood.ration = 0; m.fq.ration = 1; m.fspd = {};
+  FOODS.forEach(f => { m.fcap[f.id] = f.cap; m.pFood[f.id] = 0; m.fq[f.id] = 1; }); m.fcap.ration = STORE_CAP[L.sec || 1] || 5; m.fspd = {};
   SKILLS.forEach(k => { m.sk[k.id] = 1; m.xpSk[k.id] = 1; });
   const ap = e => {
     if (!e) return;
@@ -949,8 +962,8 @@ function mods(){
     if (e.maxHp) m.maxHp += e.maxHp; if (e.pRat) m.pRat += e.pRat; if (e.pSal) m.pSal += e.pSal;
     if (e.strainMul) m.strainMul *= e.strainMul; if (e.regen) m.regen *= e.regen;
     if (e.ratCap) m.ratCap += e.ratCap; if (e.salCap) m.salCap += e.salCap;
-    if (e.fcap) m.fcap.ration += e.fcap;   // extra ration storage
-    if (e.fq) m.fq.ration *= e.fq;   // meals heal more
+    if (e.fcap) { if (typeof e.fcap === 'number') m.fcap.ration += e.fcap; else for (const f in e.fcap) m.fcap[f] += e.fcap[f]; }   // extra storage
+    if (e.fq) m.fq.ration *= e.fq;   // rations heal more
     if (e.fspd) for (const j in e.fspd) m.fspd[j] = (m.fspd[j] || 1) * e.fspd[j];   // that food job works faster
     if (e.pFood) for (const f in e.pFood) m.pFood[f] += e.pFood[f];
     if (e.fq) for (const f in e.fq) m.fq[f] *= e.fq[f];
@@ -966,7 +979,7 @@ function mods(){
   ITEMS.forEach(i => { if (L.owned[i.id]) ap(i.eff); });
   TASKS.forEach(t => { if (t.lifeEff && isDone(t.id)) ap(t.lifeEff); });
   // ration totals for display: the stores in play (this section's food and earlier ones)
-  m.ratCap = m.fcap.ration;
+  m.ratCap = m.fcap.ration;   // the ration store (long-watch foods have their own)
   m.pRat = FOODS.reduce((a, f) => a + m.pFood[f.id], 0);
   return m;
 }
@@ -2662,7 +2675,7 @@ function updateHud(){
   $('#t-ratt').textContent = !nextFood() ? 'no food: starving' : re.txt === 'empty in' ? 'all food gone in ' + both(re.days) : '';
   $('#t-ratt').classList.toggle('neg', true);
   $('#t-salt').textContent = se.txt === 'full' ? 'storage full' : se.txt === 'steady' ? '' : se.txt + ' ' + both(se.days);
-  const fl = FOODS.map(f => {   // what you carry, plus this section's food
+  const fl = foodsInPlay().map(f => {   // what you carry, plus this section's food
 
     const v = L.food[f.id] || 0, cd = (L.mcd || {})[f.id] || 0;
     return `<span class="${v >= M.fcap[f.id] - 0.01 ? 'full' : ''}" title="${f.name}: heals ${fmt(mealHp(f.id))}, one every ${fmtDays(mealCd(f.id))}"><em>${f.id}</em> ${fmt(v)}/${M.fcap[f.id]}${v >= FOOD_MIN && cd > 0 ? ' <i>' + fmtDays(cd) + '</i>' : ''}</span>`;
@@ -3125,7 +3138,7 @@ const FAQ_ALL = [
   ['How do I start?', 'Tap a task to work on it right away. Climb out of the vat first, then press vat algae for food and strip wall panels for salvage. Time only moves while your clone is working: with nothing to do, the clock stops, so you can always read and plan.'],
   ['What are jobs, actions, training and rests?', '<b>Jobs</b> repeat and make food or salvage in batches; they stop when that storage is full. <b>Actions</b> are one-off tasks that unlock things and move the story on. Each needs certain earlier actions, and a section\u2019s last action (its crossing) needs every other action of that section. Tasks you have met before stay listed, greyed out, until what they need is done; you can still queue them. <b>Drills</b> each add a little familiarity to every task in their section, up to 4 sessions per life. <b>Rests</b> halve strain; each section has one, usable once per life.'],
   ['How does the queue work?', 'Tapping a task runs it right away, ahead of the queue (a job runs until its store is full); it is not added to the queue. <b>+</b> adds a task to the end of the queue; drag it or use the arrows to move it up. You can queue the same task several times at different places: tap + again for another copy. A task queued once runs until it is done; with several copies, each copy covers one repetition (one training session, one rep, or one fill of a store). The queue holds up to 100 items. Drag an item by the handle on its left to move it, or use the arrows; ✕ removes it. Queued jobs run until their storage is full. You can queue things you have seen before even if they are not available yet; they wait their turn. Gear can be queued too, with the <b>+</b> on its card (gear is listed in each section of the Tasks tab): the clone works the best salvage job until it can afford the design, then builds it. Five presets save and load whole queues, and <b>Keep queue between clones</b> gives each new clone the queue you planned, minus anything that is automated and switched on.'],
-  ['Food and health', 'Health drains all the time and meals put it back. All food goes into one <b>ration store</b>: every food job fills it, and the store grows as the clone gets deeper into the ship (5 in the Vat Bay, up to 41 in the Main Drive), plus gear and records. A clone eats at most one meal every 12 hours, always a whole portion, and only when it needs to: when a whole meal fits under full health, or sooner once health is down to half. At full health no food is used. <b>How much a meal heals</b> depends on the kitchens this clone has fixed: every section has one upgrade action (heat the algae paste, splice richer strains, refit the ration packer, restart the galley ovens, reseal the pantry, and one in each Act II section) that makes meals heal more for the rest of that life. Each clone has to fix them again. With no food left at all you starve. The Hydroponics Ring has no food job until you restore its irrigation pumps, so arrive stocked.'],
+  ['Food and health', 'Health drains all the time and meals put it back. All food goes into one <b>ration store</b>: every food job fills it, and the store grows as the clone gets deeper into the ship (5 in the Vat Bay, up to 41 in the Main Drive), plus gear and records. A clone eats at most one meal every 12 hours, always a whole portion, and only when it needs to: when a whole meal fits under full health, or sooner once health is down to half. At full health no food is used. <b>How much a meal heals</b> depends on the kitchens this clone has fixed: every section has one upgrade action (heat the algae paste, splice richer strains, refit the ration packer, restart the galley ovens, reseal the pantry, and one in each Act II section) that makes meals heal more for the rest of that life. Each clone has to fix them again. In the <b>long watch</b> the repaired ship grows three extra foods: <b>fresh harvest</b> from the regrown beds (The Cruise) <b>colony seed stock</b> (The Drift) and <b>cultured protein</b>, meat grown in tanks (Tessaly Orbit). Each has its own small store and its own 12-hour meal timer, so a clone carrying them eats extra meals; the best food is eaten first. With no food left at all you starve. The Hydroponics Ring has no food job until you restore its irrigation pumps, so arrive stocked.'],
   ['What is strain?', 'Strain multiplies the health drain. It grows faster and faster the longer a clone lives, which is what eventually kills every clone. Rests halve it; good food heals faster than strain can drain early on. Watch <b>Time left</b> at the top: it says how long the clone will last and what will kill it.'],
   ['What carries over when a clone dies?', '<b>Familiarity</b> is kept: every task stays as fast as your clones have made it (see the Speed tab). Each day a clone survives adds 0.8 to the base health of later clones, up to 500. <b>Archive records</b> found by finishing certain actions are permanent upgrades. Gear, rations, salvage and progress through the ship reset.'],
   ['What are sections?', 'The ship is split into five sections. A <b>red</b> action leads to the next one, and the way back is sealed for that clone, so finish what you need first (records, the rest, training, gear). Each new clone starts back in the Vat Bay.'],
