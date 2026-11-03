@@ -484,8 +484,8 @@ tr.pttot td{font-weight:600;color:var(--amber)}
 
 <script id="logic">
 /* ===== Game data and rules (no DOM) ===== */
-const BUILD = '2026-11-03 · linear Act II';   // shown in the main menu, to tell which version is loaded
-const DPS = 4;             // simulation ticks per real second at 1x
+const BUILD = '2026-11-03 · double speed';   // shown in the main menu, to tell which version is loaded
+const DPS = 8;             // simulation ticks per real second at 1x (doubled for the test version: same balance, half the real time)
 // Time is simulated in ticks. 80 ticks make one ship day (18 minutes each), so a day lasts
 // 20 real seconds at 1x and a clone lives weeks, not years. Everything is shown in days and hours.
 const TPD = 80;
@@ -505,7 +505,7 @@ const STRAIN_RES = 0.002;
 // well-fed late clones to roughly a month.
 const STRAIN_LATE = 540;
 const strainRate = wear => (1 + wear / STRAIN_ACCEL + Math.pow(wear / STRAIN_LATE, 2)) / STRAIN_RAMP / (1 + STRAIN_RES * (S.life.lv.res || 0)) * (M ? M.strainMul : 1) * (M ? M.a2strain : 1);   // Honours (Long-watch rhythm) work in both acts
-const MAX_DRAIN = 1.2;     // most health a clone can lose per day: a full bar lasts at least ~2 min at 1x
+const MAX_DRAIN = 1.2;     // most health a clone can lose per day: a full bar lasts at least ~1 min at 1x
 // A meal restores the hunger of one cooldown plus the old resting regeneration.
 // Food deeper in the ship is better: each section past the first makes meals restore 12% more.
 const MEAL_SEC = 0;
