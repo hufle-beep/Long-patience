@@ -484,7 +484,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
 
 <script id="logic">
 /* ===== Game data and rules (no DOM) ===== */
-const BUILD = '2026-11-03 · rewards in Act II 15%';   // shown in the main menu, to tell which version is loaded
+const BUILD = '2026-11-03 · rewards in Act II 10%';   // shown in the main menu, to tell which version is loaded
 const DPS = 4;             // simulation ticks per real second at 1x
 // Time is simulated in ticks. 80 ticks make one ship day (18 minutes each), so a day lasts
 // 20 real seconds at 1x and a clone lives weeks, not years. Everything is shown in days and hours.
@@ -943,13 +943,13 @@ const NGP_GROWTH = 0.2, NGP_GROWTH_MAX = 5;   // deep echo: +20% skill growth pe
 // Each level costs one point and is permanent (no respec). Deep echo, Drain dampener and Template
 // upgrade work in Act I; Overclocked line speeds up the whole game.
 const NGP_MAX = 3;
-const A2_SHARE = 0.15;   // Deep echo, Drain dampener and Template upgrade work in Act II at 15% strength
+const A2_SHARE = 0.1;   // Deep echo, Drain dampener and Template upgrade work in Act II at 10% strength
 // Act II rewards per level (3 levels reach the old 5-level maximum)
 const A2_STEP = {vet:0.25, rhythm:0.4 / 3, scav:1 / 3, rations:0.5 / 3};
 const NGP = [
-  {id:'growth', name:'Deep echo',       max:NGP_MAX, now:k => 'familiarity needed ×' + Math.pow(FAM_ECHO, k).toFixed(2) + ' in Act I, ×' + (1 - (1 - Math.pow(FAM_ECHO, k)) * A2_SHARE).toFixed(2) + ' in Act II', step:'Tasks reach ×10 with about 30% less familiarity in Act I (15% of that in Act II)'},
-  {id:'drain',  name:'Drain dampener',  max:NGP_MAX, now:k => 'health drain ÷' + drainAt(k).toFixed(1) + ' in Act I, ÷' + (1 + (drainAt(k) - 1) * A2_SHARE).toFixed(1) + ' in Act II', step:'Divides health drain (Act I ÷2.3, ÷3.7, ÷5; Act II at 15% of that)'},
-  {id:'hp',     name:'Template upgrade',max:NGP_MAX, now:k => '+' + hpAt(k) + ' max health in Act I, +' + Math.round(hpAt(k) * A2_SHARE) + ' in Act II', step:'More max health (Act I +167, +333, +500; Act II at 15% of that)'},
+  {id:'growth', name:'Deep echo',       max:NGP_MAX, now:k => 'familiarity needed ×' + Math.pow(FAM_ECHO, k).toFixed(2) + ' in Act I, ×' + (1 - (1 - Math.pow(FAM_ECHO, k)) * A2_SHARE).toFixed(2) + ' in Act II', step:'Tasks reach ×10 with about 30% less familiarity in Act I (10% of that in Act II)'},
+  {id:'drain',  name:'Drain dampener',  max:NGP_MAX, now:k => 'health drain ÷' + drainAt(k).toFixed(1) + ' in Act I, ÷' + (1 + (drainAt(k) - 1) * A2_SHARE).toFixed(1) + ' in Act II', step:'Divides health drain (Act I ÷2.3, ÷3.7, ÷5; Act II at 10% of that)'},
+  {id:'hp',     name:'Template upgrade',max:NGP_MAX, now:k => '+' + hpAt(k) + ' max health in Act I, +' + Math.round(hpAt(k) * A2_SHARE) + ' in Act II', step:'More max health (Act I +167, +333, +500; Act II at 10% of that)'},
   {id:'speed',  name:'Overclocked line', max:NGP_MAX, now:k => 'game speed ×' + speedAt(k).toFixed(1), step:'The whole game runs faster, both acts, without using banked time (×2.3, ×3.7, ×5 at the last step)'},
 ];
 const drainAt = k => 1 + 4 / NGP_MAX * k, speedAt = k => 1 + 4 / NGP_MAX * k, hpAt = k => Math.round(500 / NGP_MAX * k);
@@ -967,7 +967,7 @@ function ngpAdjust(id, d){
   if (S.life.hp > M.maxHp) S.life.hp = M.maxHp;
   return true;
 }
-const drainDiv = () => S && S.life && isA2(S.life.sec || 1) ? 1 + (drainAt(ngpLv('drain')) - 1) * A2_SHARE : drainAt(ngpLv('drain'));   // Act I reward: drain dampener (Act II: 15%)
+const drainDiv = () => S && S.life && isA2(S.life.sec || 1) ? 1 + (drainAt(ngpLv('drain')) - 1) * A2_SHARE : drainAt(ngpLv('drain'));   // Act I reward: drain dampener (Act II: 10%)
 const ngpSpeed = () => speedAt(ngpLv('speed'));    // Act I reward: overclock, flat game speed for the whole game, free
 function mods(){
   const L = S.life, P = S.perks;
@@ -995,7 +995,7 @@ function mods(){
   const lv = id => Math.min(NGP_MAX, ((S.a2 || {}).lv || {})[id] || 0);
   m.a2haz *= 1 - A2_STEP.vet * lv('vet'); m.a2strain *= 1 - A2_STEP.rhythm * lv('rhythm'); m.a2sal *= 1 + A2_STEP.scav * lv('scav'); m.a2food *= 1 + A2_STEP.rations * lv('rations');
 
-  m.maxHp += isA2(L.sec || 1) ? Math.round(hpAt(ngpLv('hp')) * A2_SHARE) : hpAt(ngpLv('hp'));   // Act I reward: template upgrade (Act II: 15%)
+  m.maxHp += isA2(L.sec || 1) ? Math.round(hpAt(ngpLv('hp')) * A2_SHARE) : hpAt(ngpLv('hp'));   // Act I reward: template upgrade (Act II: 10%)
   ITEMS.forEach(i => { if (L.owned[i.id]) ap(i.eff); });
   TASKS.forEach(t => { if (t.lifeEff && isDone(t.id)) ap(t.lifeEff); });
   // ration totals for display: the stores in play (this section's food and earlier ones)
@@ -1033,7 +1033,7 @@ function compUnit(t){ return t.kind === 'job' ? JOB_UNIT : t.kind === 'train' ? 
 // The automation requirement shrinks with the familiarity threshold (new game plus runs, Deep echo):
 // 10 lives' worth in a first run, then the same share of the current threshold, never below 1.
 // Act II has its own threshold: not lowered by new game plus, but x0.75 for every branch finished
-function famN0A2(){ const e = Math.pow(FAM_ECHO, Math.min(NGP_MAX, (S.pr && S.pr.growth) || 0)); return Math.max(1, FAM_N0 * Math.pow(FAM_RUN2, (S.a2 && S.a2.fin) || 0) * (1 - (1 - e) * A2_SHARE)); }   // Deep echo at 15% in Act II
+function famN0A2(){ const e = Math.pow(FAM_ECHO, Math.min(NGP_MAX, (S.pr && S.pr.growth) || 0)); return Math.max(1, FAM_N0 * Math.pow(FAM_RUN2, (S.a2 && S.a2.fin) || 0) * (1 - (1 - e) * A2_SHARE)); }   // Deep echo at 10% in Act II
 const FAM_RUN2 = 0.75;
 const famN0Of = t => t && isA2(t.z) ? famN0A2() : famN0();
 const autoScale = t => famN0Of(t) / FAM_N0;
@@ -1051,7 +1051,7 @@ function masteryTxt(t){
   return '\u00d7' + f.toFixed(2) + ' \u00b7 ' + fmt(c) + '/' + fmt(famNeed(t)) + (t.kind === 'job' ? ' batches' : '') + ' to \u00d7' + Math.round(1 / MASTER_MIN);
 }
 // Familiarity gain: records and gear that used to boost skill XP now boost it (all tasks, or one section)
-function famGain(t){ return M.xp * ((M.zxp && M.zxp[t.z]) || 1) * (isA2(t.z) ? M.a2fam * (1 + A2_SHARE / 3 * Math.min(NGP_MAX, (S.pr && S.pr.growth) || 0)) : 1 + 1 / 3 * Math.min(NGP_MAX, (S.pr && S.pr.growth) || 0)); }   // Deep echo: +33% familiarity per level (Act II: +5%)
+function famGain(t){ return M.xp * ((M.zxp && M.zxp[t.z]) || 1) * (isA2(t.z) ? M.a2fam * (1 + A2_SHARE / 3 * Math.min(NGP_MAX, (S.pr && S.pr.growth) || 0)) : 1 + 1 / 3 * Math.min(NGP_MAX, (S.pr && S.pr.growth) || 0)); }   // Deep echo: +33% familiarity per level (Act II: +3%)
 function addFam(t, a){ if (!S.fam) S.fam = {}; S.fam[t.id] = (S.fam[t.id] || 0) + a; }
 // Drills: each session adds DRILL_CREDIT of a life's worth to every other task of its section
 // (kept small: drills reach dozens of tasks at once, so a large credit let a run skip most of its clones)
@@ -2944,7 +2944,7 @@ function act2Panel(){
 function ngpPanel(){
   const pr = S.pr || {n:0}, free = ngpFree();
   let h = '<div class="panel ngp"><span class="h2">Act I rewards</span>';
-  h += '<p class="note">Earned by moving forward: one point for lighting the drive, one for each Act II section you first reach and two for each Act II branch you finish (11 in all). Each level costs one point and is <b>permanent</b>: points can’t be moved once spent. Deep echo, Drain dampener and Template upgrade work fully in Act I, which every clone crosses on its way, and at 15% strength in Act II; Overclocked line speeds up the whole game.</p>';
+  h += '<p class="note">Earned by moving forward: one point for lighting the drive, one for each Act II section you first reach and two for each Act II branch you finish (11 in all). Each level costs one point and is <b>permanent</b>: points can’t be moved once spent. Deep echo, Drain dampener and Template upgrade work fully in Act I, which every clone crosses on its way, and at 10% strength in Act II; Overclocked line speeds up the whole game.</p>';
   h += `<div class="ngpts"><span class="lbl">Reward points</span> <b class="num">${free}</b> unspent of ${ngpPts()} earned</div>`;
   NGP.forEach(r => { const k = ngpLv(r.id);
     h += `<div class="ngrow"><div><b>${r.name}</b> <span class="num">${k}/${r.max}</span><small>${k ? r.now(k) : 'not taken'}${k < r.max ? ' · next: ' + r.now(k + 1) : ''}</small></div>
@@ -3259,8 +3259,8 @@ const FAQ_ALL = [
   ['Settings', 'The ⚙ button opens sound (music and effects), layout (vertical or horizontal) and, in the Android app, app updates. Gameplay options such as auto-eat and the forage threshold are in the Archive tab.'],
 ];
 // Shown once the drive is first lit.
-const FAQ_NGP = ['Act I rewards', 'There is no restarting: after the drive is lit, the story always moves forward into Act II. Moving forward earns <b>Act I reward points</b>: one for lighting the drive, one for each Act II section you first reach and two for each Act II branch you finish (11 in all). Spend them in the Archive; each level costs one point and is permanent. <b>Deep echo</b> (Act I tasks need about 30% less familiarity per step for \u00d710), <b>Drain dampener</b> (health drain in Act I divided by 2.3, 3.7, then 5) and <b>Template upgrade</b> (+167, +333, then +500 max health in Act I) work fully in Act I, which every clone crosses on its way, and at 15% strength in Act II. <b>Overclocked line</b> makes the whole game run faster in both acts (\u00d72.3, \u00d73.7, then \u00d75) without using banked time. Each reward has three levels, so 11 points can\u2019t max everything: choose. Lighting the drive the first time also unlocks the <b>Quartermaster\u2019s cache</b>: every clone starts with all of its automated gear already built, in both acts.'];
-const FAQ_A2 = ['Act II', 'Once the main drive is lit, a run can carry on into <b>Act II</b>. Choose a branch: <b>Boarders</b> (alien boarders cut into the hull; three sections of fighting, ending on their ship, after which you can merge into the long watch) or <b>The long watch</b> (the voyage goes on; the ship slowly wears out, which adds to the health drain until upkeep jobs bring it down; three sections to Tessaly orbit). Every clone that lights the drive carries on into the chosen branch. Act II tasks have their own familiarity, which Deep echo reduces only at 15% strength: it starts at 90 lives\u2019 worth for \u00d710 and drops by a quarter for every branch you finish. Act II familiarity, automation, records and <b>Honours</b> are kept for good. Honours (one per Act II section first reached, two per branch finished: 10 in all) buy Act II rewards in the Archive: Veteran template (Act II hazard damage \u221225% per level), Long-watch rhythm (strain \u221213%), Scavenger\u2019s eye (salvage +33%) and Field rations (meals 17% more often). Like Act I rewards they have three levels each, and spending is permanent.'];
+const FAQ_NGP = ['Act I rewards', 'There is no restarting: after the drive is lit, the story always moves forward into Act II. Moving forward earns <b>Act I reward points</b>: one for lighting the drive, one for each Act II section you first reach and two for each Act II branch you finish (11 in all). Spend them in the Archive; each level costs one point and is permanent. <b>Deep echo</b> (Act I tasks need about 30% less familiarity per step for \u00d710), <b>Drain dampener</b> (health drain in Act I divided by 2.3, 3.7, then 5) and <b>Template upgrade</b> (+167, +333, then +500 max health in Act I) work fully in Act I, which every clone crosses on its way, and at 10% strength in Act II. <b>Overclocked line</b> makes the whole game run faster in both acts (\u00d72.3, \u00d73.7, then \u00d75) without using banked time. Each reward has three levels, so 11 points can\u2019t max everything: choose. Lighting the drive the first time also unlocks the <b>Quartermaster\u2019s cache</b>: every clone starts with all of its automated gear already built, in both acts.'];
+const FAQ_A2 = ['Act II', 'Once the main drive is lit, a run can carry on into <b>Act II</b>. Choose a branch: <b>Boarders</b> (alien boarders cut into the hull; three sections of fighting, ending on their ship, after which you can merge into the long watch) or <b>The long watch</b> (the voyage goes on; the ship slowly wears out, which adds to the health drain until upkeep jobs bring it down; three sections to Tessaly orbit). Every clone that lights the drive carries on into the chosen branch. Act II tasks have their own familiarity, which Deep echo reduces only at 10% strength: it starts at 90 lives\u2019 worth for \u00d710 and drops by a quarter for every branch you finish. Act II familiarity, automation, records and <b>Honours</b> are kept for good. Honours (one per Act II section first reached, two per branch finished: 10 in all) buy Act II rewards in the Archive: Veteran template (Act II hazard damage \u221225% per level), Long-watch rhythm (strain \u221213%), Scavenger\u2019s eye (salvage +33%) and Field rations (meals 17% more often). Like Act I rewards they have three levels each, and spending is permanent.'];
 let faqDone = '';
 function renderFaq(){
   const k = String(!!(S.won || (S.pr && S.pr.n))) + !!(S.a2 && S.a2.open);
