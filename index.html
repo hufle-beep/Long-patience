@@ -490,7 +490,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
 
 <script id="logic">
 /* ===== Game data and rules (no DOM) ===== */
-const BUILD = '2026-11-04 · menu notes';   // shown in the main menu, to tell which version is loaded
+const BUILD = '2026-11-04 · difficulty curve';   // shown in the main menu, to tell which version is loaded
 const DPS = 8;             // simulation ticks per real second at 1x (doubled for the test version: same balance, half the real time)
 // Time is simulated in ticks. 80 ticks make one ship day (18 minutes each), so a day lasts
 // 20 real seconds at 1x and a clone lives weeks, not years. Everything is shown in days and hours.
@@ -511,7 +511,14 @@ const STRAIN_RES = 0.002;
 // well-fed late clones to roughly a month.
 const STRAIN_LATE = 540;
 const strainRate = wear => (1 + wear / STRAIN_ACCEL + Math.pow(wear / STRAIN_LATE, 2)) / STRAIN_RAMP / (1 + STRAIN_RES * (S.life.lv.res || 0)) * (M ? M.strainMul : 1) * (M ? M.a2strain : 1);   // Honours (Long-watch rhythm) work in both acts
-const MAX_DRAIN = 1.2;     // most health a clone can lose per day: a full bar lasts at least ~1 min at 1x
+const MAX_DRAIN = 1.2;     // most health a young clone can lose per tick (the cap grows with age, see drainNow)
+// Difficulty: the drain cap doubles every CAP_DOUBLE ship days of a clone's life, so strain always wins in
+// the end (good feeding buys time, not immortality); and each section is a little more dangerous than the
+// one before (hunger and hazards x DANGER), with a step up at the start of Act II.
+const CAP_DOUBLE = 30;
+const DANGER = {1:1, 2:1.05, 3:1.1, 4:1.15, 5:1.2, 6:1.25, 7:1.3, 8:1.35, 9:1.4, 10:1.45, 11:1.5};
+const danger = z => DANGER[z] || 1;
+function drainNow(strain, haz, wear, z){ const k = danger(z); return Math.min((HUNGER * strain + (haz || 0)) * k, MAX_DRAIN * k * Math.pow(2, (wear || 0) / (CAP_DOUBLE * TPD))) / drainDiv(); }
 // A meal restores the hunger of one cooldown plus the old resting regeneration.
 // Food deeper in the ship is better: each section past the first makes meals restore 12% more.
 const MEAL_SEC = 0;
@@ -552,7 +559,7 @@ function readyFoods(){ const L = S.life; return FOODS.filter(f => (L.food[f.id] 
 // at most one meal per cooldown
 function eatRate(){
   const L = S.life, cur = L.cur ? T[L.cur] : null;
-  let need = Math.min(HUNGER * (L.strain || 1) + (cur && cur.haz ? hazDmg(cur) : 0), MAX_DRAIN) / drainDiv(), units = 0;
+  let need = drainNow(L.strain || 1, cur && cur.haz ? hazDmg(cur) : 0, L.wear, L.sec || 1), units = 0;
   FOODS.slice().sort((a, b) => foodQ(b.id) - foodQ(a.id)).forEach(f => {
     if ((L.food[f.id] || 0) < FOOD_MIN || need <= 0) return;
     const mh = mealHp(f.id), take = Math.min(need, mh / mealCd(f.id)); units += take / mh; need -= take;
@@ -818,7 +825,7 @@ const TASKS = [
   {id:'wakefirst', z:11, kind:'act', finale:'B', name:'Wake the first sleeper', days:900, req:['prepwake'], perk:'tessaly2',
     log:'The first sleeper opens her eyes and sees a maintenance clone. “Who are you?” You have never had to answer that before.'},
 ];
-const ZDAYS = {1:0.275, 2:0.933, 3:0.692, 4:0.61, 5:0.375, 6:1.262, 7:1.637, 8:1.637, 9:0.924, 10:1.24, 11:1.24};   // no skill transfer: later sections are short, and speed comes from familiarity
+const ZDAYS = {1:0.239, 2:0.812, 3:0.602, 4:0.531, 5:0.326, 6:1.073, 7:1.391, 8:1.391, 9:0.785, 10:1.054, 11:1.054};   // no skill transfer: later sections are short, and speed comes from familiarity
 const TRAIN_CAP = 4, TRAIN_XP = 1.5;
 const T = {}; TASKS.forEach(t => { T[t.id] = t; t.sk = []; t.reps = t.kind === 'train' ? TRAIN_CAP : (t.reps || 1); if (t.days) t.days = Math.round(t.days * ZDAYS[t.z]); });
 // A section's finisher (its crossing, the ignition or an Act II finale) needs every other action of the section.
@@ -1359,7 +1366,7 @@ function feedJob(){
   if (!job) { L.feeding = false; return null; }
   const f = jobFood(job), cap = M.fcap[f], have = L.food[f] || 0;
   const low = cap * (S.set.foodPct || 40) / 100;
-  const drain = Math.min(HUNGER * (L.strain || 1), MAX_DRAIN) / drainDiv();
+  const drain = drainNow(L.strain || 1, 0, L.wear, L.sec || 1);
   const mh = mealHp(f), recoverable = mh / MEAL_CD > drain;
   const hpNeed = recoverable && L.hp < M.maxHp * 0.6 ? Math.ceil((M.maxHp - L.hp) / mh) : 0;
   const target = Math.min(cap - 0.01, Math.max(low * 2, hpNeed));
@@ -1505,7 +1512,7 @@ function step(dt){
   L.strain = (L.strain || 1) + dt * strainRate(L.wear);
   // The long watch: the ship slowly wears out; wear adds to the drain until upkeep jobs bring it down
   if (isWatch(L.sec)) L.shipWear = (L.shipWear || 0) + dt / TPD * M.wear;
-  const drain = Math.min(HUNGER * L.strain + h1, MAX_DRAIN) / drainDiv() * wearMul();
+  const drain = drainNow(L.strain, h1, L.wear, L.sec || 1) * wearMul();
   L.hp -= drain * dt;
   if (!L.mcd) L.mcd = {};
   FOODS.forEach(f => { if (L.mcd[f.id]) L.mcd[f.id] = Math.max(0, L.mcd[f.id] - dt); });
@@ -2065,7 +2072,7 @@ function survival(){
   const dt = 5, eatOn = S.set.autoEat;
   while (t < lifeLeft) {
     strain += dt * strainRate((L.wear || 0) + t);
-    hp -= Math.min(HUNGER * strain + haz, MAX_DRAIN) / drainDiv() * dt;
+    hp -= drainNow(strain, haz, (L.wear || 0) + t, L.sec || 1) * dt;
     fs.forEach(f => {
       f.stock = Math.min(f.cap, f.stock + f.gain * dt); f.cd -= dt;
       if (eatOn && f.cd <= 0 && f.stock >= 1 && (M.maxHp - hp >= f.hp || hp <= M.maxHp * 0.5)) { f.stock -= 1; hp = Math.min(M.maxHp, hp + f.hp); f.cd = f.full; }
@@ -3334,7 +3341,7 @@ const FAQ_ALL = [
   ['What are jobs, actions, training and rests?', '<b>Jobs</b> repeat and make food or salvage in batches; they stop when that storage is full. <b>Actions</b> are one-off tasks that unlock things and move the story on. Each needs certain earlier actions, and a section\u2019s last action (its crossing) needs every other action of that section. Tasks you have met before stay listed, greyed out, until what they need is done; you can still queue them. <b>Drills</b> each add a little familiarity to every task in their section, up to 4 sessions per life. <b>Rests</b> halve strain; each section has one, usable once per life.'],
   ['How does the queue work?', 'Tapping a task runs it right away, ahead of the queue (a job runs until its store is full); it is not added to the queue. <b>+</b> adds a task to the end of the queue; drag it or use the arrows to move it up. You can queue the same task several times at different places: tap + again for another copy. A task queued once runs until it is done; with several copies, each copy covers one repetition (one training session, one rep, or one fill of a store). The queue holds up to 100 items. Drag an item by the handle on its left to move it, or use the arrows; ✕ removes it. Queued jobs run until their storage is full. You can queue things you have seen before even if they are not available yet; they wait their turn. Gear can be queued too, with the <b>+</b> on its card (gear is listed in each section of the Tasks tab): the clone works the best salvage job until it can afford the design, then builds it. Five presets save and load whole queues, and <b>Keep queue between clones</b> gives each new clone the queue you planned, minus anything that is automated and switched on.'],
   ['Food and health', 'Health drains all the time and meals put it back. <b>Every meal heals the same amount</b>; what changes is how often the clone can eat. All food goes into one <b>ration store</b>: every food job fills it, and the store grows as the clone gets deeper into the ship (6 in the Vat Bay, up to 90 in the Main Drive), plus gear and records. A ration can be eaten every 12 hours at first. Each section has one <b>kitchen upgrade</b> action (heat the algae paste, splice richer strains, refit the ration packer, restart the galley ovens, reseal the pantry, and one in each Act II section) that shortens the wait between rations for the rest of that life, down to under 5 hours; each clone has to fix them again. Meals are always whole portions, and the clone only eats when it needs to: when a whole meal fits under full health, or sooner once health is down to half. At full health no food is used. Much later in the voyage, other foods can join the rations; each has its own store and its own, shorter meal timer, so a clone carrying them eats extra meals. With no food left at all you starve. The Hydroponics Ring has no food job until you restore its irrigation pumps, so arrive stocked.'],
-  ['What is strain?', 'Strain multiplies the health drain. It grows faster and faster the longer a clone lives, which is what eventually kills every clone. Rests halve it; good food heals faster than strain can drain early on. Watch <b>Time left</b> at the top: it says how long the clone will last and what will kill it.'],
+  ['What is strain?', 'Strain multiplies the health drain. It grows faster and faster the longer a clone lives, which is what eventually kills every clone. Rests halve it; good food heals faster than strain can drain early on. The drain has a ceiling, but that ceiling doubles every 30 ship days of a clone\u2019s life, so even a well-fed clone wears out in the end. Each section is also a little more dangerous than the one before (hunger and hazards), with a further step up once the drive is lit. Watch <b>Time left</b> at the top: it says how long the clone will last and what will kill it.'],
   ['What carries over when a clone dies?', '<b>Familiarity</b> is kept: every task stays as fast as your clones have made it (see the Speed tab). Each day a clone survives adds 0.8 to the base health of later clones, up to 500. <b>Archive records</b> found by finishing certain actions are permanent upgrades. Gear, rations, salvage and progress through the ship reset.'],
   ['What are sections?', 'The ship is split into five sections. A <b>red</b> action leads to the next one, and the way back is sealed for that clone, so finish what you need first (records, the rest, training, gear). Each new clone starts back in the Vat Bay.'],
   ['What is gear?', 'Gear is built from salvage and lasts for one clone. Each section has designs to build. Building one pays its salvage up front, then the clone spends time <b>assembling</b> it (bigger designs take longer, from minutes for a toolkit to a few days for the largest); assembly comes before other work and gets faster with familiarity. The gear works once it is assembled. Salvage storage is limited; opening up more of the ship raises it.'],
