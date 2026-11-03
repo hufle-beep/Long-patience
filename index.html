@@ -484,7 +484,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
 
 <script id="logic">
 /* ===== Game data and rules (no DOM) ===== */
-const BUILD = '2026-11-03 · double speed';   // shown in the main menu, to tell which version is loaded
+const BUILD = '2026-11-03 · steady food display';   // shown in the main menu, to tell which version is loaded
 const DPS = 8;             // simulation ticks per real second at 1x (doubled for the test version: same balance, half the real time)
 // Time is simulated in ticks. 80 ticks make one ship day (18 minutes each), so a day lasts
 // 20 real seconds at 1x and a clone lives weeks, not years. Everything is shown in days and hours.
@@ -1230,14 +1230,22 @@ function runSpan(z){
 // The run stops by itself (not by your Stop button): tell the UI, which may pause
 function endRun(L, why){ if (!L.chainRun) return; const from = L.runFrom || L.sec || 1; L.chainRun = false; L.runFrom = null; HOOK.change(); HOOK.runEnd(from, L.sec || 1, why); }
 // The best job in the current section for a storage that isn't full yet (rations first).
+// Topping stores up before a crossing: a store that has been filled once only needs topping up
+// again when it drops below FILL_RESUME of full, so meals eaten while the crossing runs don't make
+// the clone flick between the crossing and a food job many times a second.
+const FILL_RESUME = 0.85;
 function fillJob(){
+  const L = S.life;
   for (const res of ['rations', 'salvage']) {
     let best = null, br = 0;
     for (const t of TASKS) if (t.kind === 'job' && t.prod && t.prod[res] && available(t) && !jobFull(t)) {
+      const ratio = res === 'rations' ? (L.food[jobFood(t)] || 0) / M.fcap[jobFood(t)] : L.salvage / M.salCap;
+      if (L.fillOn !== t.id && ratio >= FILL_RESUME) continue;   // close enough to full: no top-up yet
       const r = t.prod[res] * speedOf(t) * (res === 'rations' ? foodQ(jobFood(t)) : 1); if (r > br) { br = r; best = t; }
     }
-    if (best) return best;
+    if (best) { L.fillOn = best.id; return best; }
   }
+  L.fillOn = null;
   return null;
 }
 const CROSS_HOLD = 0.5;   // ticks short of completion where an automated crossing waits
@@ -2671,6 +2679,8 @@ function renderTasks(){
   }));
 }
 let chainRefs = [];
+// What the current-task panel shows: food runs shorter than FOOD_BLIP_MS keep the interrupted task on screen
+const shown = {id:null, main:null, since:0}, FOOD_BLIP_MS = 1200;
 function updateTasks(){
   const L = S.life;
   chainRefs.forEach(r => {
@@ -2683,7 +2693,7 @@ function updateTasks(){
   });
   refs.forEach(r => {
     const t = r.t, on = L.cur === t.id || L.cur2 === t.id;
-    r.el.classList.toggle('on', on);
+    r.el.classList.toggle('on', shown.id ? shown.id === t.id : on);
     const sp = speedOf(t);
     if (t.kind !== 'job') {
       const p = (L.prog[t.id] || 0) / t.days;
@@ -2752,7 +2762,7 @@ function updateHud(){
   const hd = 'day ' + (L.day / TPD).toFixed(1); const he = $('#h-day'); if (he.textContent !== hd) he.textContent = hd;
   $('#b-hp').style.width = Math.max(0, L.hp / M.maxHp * 100) + '%';
   $('#t-hp').textContent = Math.ceil(L.hp) + ' / ' + M.maxHp;
-  const cur = L.cur ? T[L.cur] : null, cur2 = L.cur2 ? T[L.cur2] : null;
+  let cur = L.cur ? T[L.cur] : null; const cur2 = L.cur2 ? T[L.cur2] : null;
   const {rr, sr} = rates(cur, cur2);
   const sv = survival(), surv = $('#surv'); lastSvT = L.dead ? 0 : sv.t;
   const hl = $('#h-left');
@@ -2797,14 +2807,20 @@ function updateHud(){
   const now = $('#now');
   now.classList.toggle('idle', !cur && !L.dead && !S.set.paused);
   now.classList.toggle('paused', !!S.set.paused && !L.dead);
-  now.classList.toggle('forage', !!(cur && L.foraging));
+  // Short food runs (a meal's worth topped up in a blink) keep showing the task they interrupted
+  const nowMs = performance.now(), foodRun = cur && cur.kind === 'job' && cur.prod && cur.prod.rations && T[shown.main] && shown.main !== cur.id && !L.dead;
+  if (foodRun) { if (!shown.since) shown.since = nowMs; } else { shown.since = 0; if (cur && !(cur.kind === 'job' && cur.prod && cur.prod.rations)) shown.main = cur.id; }
+  const blip = foodRun && nowMs - shown.since < FOOD_BLIP_MS && available(T[shown.main]) && !complete(T[shown.main]);
+  shown.id = blip ? shown.main : cur ? cur.id : null;
+  if (blip) cur = T[shown.main];
+  now.classList.toggle('forage', !!(cur && L.foraging && !blip));
   if (!cur || cur.kind !== 'job') $('#n-fill').classList.remove('fast');
   $('#n-eta').classList.remove('over');
   if (L.dead) { $('#n-name').textContent = 'Clone terminated'; $('#n-eta').textContent = ''; $('#n-fill').style.width = '0'; }
   else if (S.set.paused) { $('#n-name').textContent = 'Paused' + (cur ? ': ' + cur.name : ''); $('#n-eta').textContent = 'tap Resume'; }
   else if (!cur) { $('#n-name').textContent = 'Time stopped. Pick a task below.'; $('#n-eta').textContent = ''; $('#n-fill').style.width = '0'; }
   else {
-    $('#n-name').textContent = (L.viaChain ? '\u26d3 \u00d7' + flowMul().toFixed(2) + ' \u00b7 ' : '') + (L.feeding ? 'Restocking food: ' : L.foraging ? 'Foraging: ' : '') + cur.name;
+    $('#n-name').textContent = (L.viaChain ? '\u26d3 \u00d7' + flowMul().toFixed(2) + ' \u00b7 ' : '') + (blip ? '' : L.feeding ? 'Restocking food: ' : L.foraging ? 'Foraging: ' : '') + cur.name;
     if (cur.kind !== 'job') {
       const sp = speedOf(cur) * (L.viaChain ? flowMul() : 1);
       $('#n-fill').style.width = ((L.prog[cur.id] || 0) / cur.days * 100).toFixed(1) + '%';
