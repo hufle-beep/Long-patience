@@ -483,7 +483,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
 
 <script id="logic">
 /* ===== Game data and rules (no DOM) ===== */
-const BUILD = '2026-11-03 · flow x5 balance';   // shown in the main menu, to tell which version is loaded
+const BUILD = '2026-11-03 · task redesign';   // shown in the main menu, to tell which version is loaded
 const DPS = 4;             // simulation ticks per real second at 1x
 // Time is simulated in ticks. 80 ticks make one ship day (18 minutes each), so a day lasts
 // 20 real seconds at 1x and a clone lives weeks, not years. Everything is shown in days and hours.
@@ -609,157 +609,210 @@ const zBefore = (a, b) => zRank(a) < zRank(b);   // section a comes before b on 
 const zAfter = (a, b) => zRank(a) > zRank(b);
 
 const TASKS = [
-  // Training: up to TRAIN_CAP sessions per life each, +50% XP, nothing else. Two per section.
-  {id:'drill',   z:1, kind:'train', name:'Pressure drills in the airlock',    sk:['res','cbt'], days:100, req:['wake']},
-  {id:'rewire',  z:1, kind:'train', name:'Rewire the bay consoles',           sk:['eng','hak'], days:100, req:['terminal']},
-  {id:'genes',   z:2, kind:'train', name:'Study the seed-bank genetics',      sk:['bio','hak'], days:40,  req:['irrigation']},
-  {id:'reckon',  z:2, kind:'train', name:'Patrol the ring corridors',         sk:['nav','cbt'], days:40,  req:['mapring']},
-  {id:'faults',  z:3, kind:'train', name:'Run reactor fault drills',          sk:['eng','res'], days:40,  req:['vent']},
-  {id:'locks',   z:3, kind:'train', name:'Pick practice locks in the armoury', sk:['hak','cbt'], days:40, req:['armory']},
-  {id:'flightsim', z:4, kind:'train', name:'Fly bridge simulations',          sk:['nav','eng'], days:40,  req:['bridgepower']},
-  {id:'puzzles', z:4, kind:'train', name:'Study WARDEN\u2019s protocols',           sk:['hak','res'], days:40,  req:['trace']},
-  {id:'zerog',   z:5, kind:'train', name:'Zero-g drills in the drive shaft',  sk:['cbt','res'], days:40,  req:['warden']},
-  {id:'seals',   z:5, kind:'train', name:'Calibrate the injector bio-seals',  sk:['bio','eng'], days:40,  req:['injectors']},
+  // Drills: up to TRAIN_CAP sessions per life each; each adds a little familiarity to every task of its section. Two per section.
+  // Section finishers (crossings, the ignition, Act II finales) need every other action of their section (added below).
+  {id:'drill',   z:1, kind:'train', name:'Pressure drills in the airlock',    days:100, req:['vats']},
+  {id:'rewire',  z:1, kind:'train', name:'Rewire the bay consoles',           days:100, req:['cables']},
+  {id:'genes',   z:2, kind:'train', name:'Study the seed-bank genetics',      days:40,  req:['valves']},
+  {id:'reckon',  z:2, kind:'train', name:'Patrol the ring corridors',         days:40,  req:['survey']},
+  {id:'faults',  z:3, kind:'train', name:'Run reactor fault drills',          days:40,  req:['coolmap']},
+  {id:'locks',   z:3, kind:'train', name:'Pick practice locks in the armoury', days:40, req:['armdoor']},
+  {id:'flightsim', z:4, kind:'train', name:'Fly bridge simulations',          days:40,  req:['relays']},
+  {id:'puzzles', z:4, kind:'train', name:'Study WARDEN\u2019s protocols',           days:40,  req:['tap']},
+  {id:'zerog',   z:5, kind:'train', name:'Zero-g drills in the drive shaft',  days:40,  req:['warden']},
+  {id:'seals',   z:5, kind:'train', name:'Calibrate the injector bio-seals',  days:40,  req:['injstrip']},
   // Zone 1
-  {id:'wake', z:1, kind:'act', name:'Climb out of the vat', sk:['res'], days:6, req:[],
+  {id:'wake', z:1, kind:'act', name:'Climb out of the vat', days:6, req:[],
     log:'Fluid drains from the vat. A voice from the walls: \u201cMaintenance unit K-7, decanted. Work cycle begins.\u201d Stencilled on the glass: PROPERTY OF THE LONG PATIENCE.'},
-  {id:'algae', z:1, kind:'job', name:'Press vat algae', sk:['bio'], prod:{rations:0.035}, req:['wake']},
-  {id:'scrap', z:1, kind:'job', name:'Strip wall panels', sk:['eng'], prod:{salvage:0.075}, req:['wake']},
-  {id:'search', z:1, kind:'act', name:'Search the vat bay', sk:['eng','nav'], days:60, req:['wake'], reward:{salvage:3, rations:1}, perk:'decant',
+  {id:'algae', z:1, kind:'job', name:'Press vat algae', prod:{rations:0.035}, req:['wake']},
+  {id:'scrap', z:1, kind:'job', name:'Strip wall panels', prod:{salvage:0.075}, req:['wake']},
+  {id:'vats', z:1, kind:'act', name:'Check the clone vats', days:30, req:['wake'], split:'search'},
+  {id:'search', z:1, kind:'act', name:'Search the vat bay', days:30, req:['wake'], reward:{salvage:3, rations:1}, perk:'decant',
     log:'Forty-one vats. Most hold spare bodies, half-grown, waiting for you to fail. The rest are cracked and dry.'},
-  {id:'rest', z:1, kind:'rest', name:'Sleep in the drained vat', sk:['res'], days:200, req:['wake']},
-  {id:'terminal', z:1, kind:'act', name:'Wake the bay terminal', sk:['hak'], days:140, req:['search'], perk:'survival',
+  {id:'rest', z:1, kind:'rest', name:'Sleep in the drained vat', days:200, req:['wake']},
+  {id:'cables', z:1, kind:'act', name:'Splice power to the bay terminal', days:70, req:['search'], split:'terminal'},
+  {id:'terminal', z:1, kind:'act', name:'Wake the bay terminal', days:70, req:['cables','vats'], perk:'survival',
     log:'WARDEN LOG: Crew of 3,112 in stasis, vitals nominal. Degraded systems: food, reactor, stardrive. Maintenance clone line K authorised. Clones are consumable. Neural echo retained for efficiency.'},
-  {id:'hatch', z:1, kind:'act', cross:true, name:'Force the pressure hatch', sk:['eng','cbt'], days:260, lifeEff:{salCap:50}, req:['terminal'], perk:'muscle',
+  {id:'hydraul', z:1, kind:'act', name:'Bleed the hatch hydraulics', days:130, req:['terminal'], split:'hatch'},
+  {id:'hatch', z:1, kind:'act', cross:true, name:'Force the pressure hatch', days:130, lifeEff:{salCap:50}, req:['terminal'], perk:'muscle',
     log:'The hatch gives with a scream of old hydraulics. Beyond it lies the hydroponics ring the crew will eat from when they wake. It is rotting.'},
-  {id:'crawlers', z:2, kind:'act', name:'Clear a rot-crawler nest', sk:['cbt'], days:45, reps:3, haz:0.18, req:['hatch'], reward:{salvage:3}, perk:'chitin',
+  {id:'nests', z:2, kind:'act', name:'Track the crawlers to their nests', days:45, haz:0.1, req:['hatch'], split:'crawlers'},
+  {id:'crawlers', z:2, kind:'act', name:'Clear a rot-crawler nest', days:30, reps:3, haz:0.18, req:['nests'], reward:{salvage:3}, perk:'chitin',
     log:'The nests are gone. The crawlers had been feeding on the crew\u2019s future harvest.'},
   // Zone 2
-  {id:'husks', z:2, kind:'job', name:'Salvage drone husks', sk:['eng','cbt'], prod:{salvage:0.2}, haz:0.04, req:['hatch']},
-  {id:'mapring', z:2, kind:'act', name:'Map the ring corridors', sk:['nav'], days:200, lifeEff:{salCap:125}, req:['hatch'],
+  {id:'husks', z:2, kind:'job', name:'Salvage drone husks', prod:{salvage:0.2}, haz:0.04, req:['hatch']},
+  {id:'survey', z:2, kind:'act', name:'Walk the outer ring', days:100, req:['hatch'], split:'mapring'},
+  {id:'mapring', z:2, kind:'act', name:'Map the ring corridors', days:100, lifeEff:{salCap:125}, req:['survey'],
     log:'Eleven kilometres of ring. Earlier units scratched their numbers into the bulkheads: K-3 WAS HERE. K-5 DIED HERE.'},
-  {id:'irrigation', z:2, kind:'act', name:'Restore the irrigation pumps', sk:['eng','bio'], days:260, req:['mapring'], perk:'seedbank',
+  {id:'valves', z:2, kind:'act', name:'Free the seized pump valves', days:130, req:['mapring'], split:'irrigation'},
+  {id:'irrigation', z:2, kind:'act', name:'Restore the irrigation pumps', days:130, req:['valves','nests'], perk:'seedbank',
     log:'Water moves through the beds again. When the crew wakes, they will eat from them and never ask who fixed them.'},
   // No food in the ring until the pumps run again: arrive stocked, then race to the irrigation.
-  {id:'hydro', z:2, kind:'job', name:'Tend hydroponic beds', sk:['bio'], prod:{rations:0.08}, req:['irrigation']},
-  {id:'scrub', z:2, kind:'rest', name:'Run a medbay blood scrub', sk:['bio','res'], days:40, req:['medbay']},
-  {id:'medbay', z:2, kind:'act', name:'Reach the abandoned medbay', sk:['cbt','res'], days:380, haz:0.15, req:['mapring'], reward:{heal:true}, perk:'medrec',
+  {id:'hydro', z:2, kind:'job', name:'Tend hydroponic beds', prod:{rations:0.08}, req:['irrigation']},
+  {id:'scrub', z:2, kind:'rest', name:'Run a medbay blood scrub', days:40, req:['medbay']},
+  {id:'medpath', z:2, kind:'act', name:'Clear the way to the medbay', days:190, haz:0.15, req:['mapring'], split:'medbay'},
+  {id:'medbay', z:2, kind:'act', name:'Reach the abandoned medbay', days:190, haz:0.15, req:['medpath','crawlers'], reward:{heal:true}, perk:'medrec',
     log:'The medbay is fully stocked for the crew. A notice on every cabinet: NOT FOR MAINTENANCE UNITS.'},
-  {id:'genelog', z:2, kind:'act', name:'Decrypt the gene-sequencer logs', sk:['hak','bio'], days:650, req:['medbay'], perk:'telomere',
+  {id:'seqpower', z:2, kind:'act', name:'Power up the gene sequencer', days:325, req:['medbay'], split:'genelog'},
+  {id:'genelog', z:2, kind:'act', name:'Decrypt the gene-sequencer logs', days:325, req:['seqpower','irrigation'], perk:'telomere',
     log:'The sequencer logs explain your short lives: the clone template was made cheap on purpose. You find a partial patch and apply it anyway.'},
-  {id:'lift', z:2, kind:'act', cross:true, name:'Repair the spine lift', sk:['eng','nav'], days:900, lifeEff:{salCap:500}, req:['irrigation','medbay'], perk:'transit',
+  {id:'liftshaft', z:2, kind:'act', name:'Clear the spine lift shaft', days:450, req:['irrigation','medbay'], split:'lift'},
+  {id:'lift', z:2, kind:'act', cross:true, name:'Repair the spine lift', days:450, lifeEff:{salCap:500}, req:['irrigation','medbay'], perk:'transit',
     log:'The spine lift climbs past the stasis decks. Through frosted glass, row after row of sleeping faces.'},
   // Zone 3
-  {id:'shield', z:3, kind:'rest', name:'Sleep against the warm reactor shielding', sk:['res','eng'], days:30, req:['lift']},
-  {id:'lockers', z:3, kind:'job', name:'Crack sealed ration lockers', sk:['bio','hak'], prod:{rations:0.09}, req:['lift']},
-  {id:'reactor', z:3, kind:'job', name:'Babysit the fusion bottle', sk:['eng','res'], prod:{salvage:0.5}, haz:0.08, req:['lift']},
-  {id:'drones', z:3, kind:'act', name:'Reprogram maintenance drones', sk:['hak','eng'], days:950, req:['lift'], lifeEff:{salCap:250, pSal:0.25}, perk:'manifest',
+  {id:'shield', z:3, kind:'rest', name:'Sleep against the warm reactor shielding', days:30, req:['lift']},
+  {id:'lockers', z:3, kind:'job', name:'Crack sealed ration lockers', prod:{rations:0.09}, req:['lift']},
+  {id:'reactor', z:3, kind:'job', name:'Babysit the fusion bottle', prod:{salvage:0.5}, haz:0.08, req:['lift']},
+  {id:'droneyard', z:3, kind:'act', name:'Corral the maintenance drones', days:475, req:['lift'], split:'drones'},
+  {id:'drones', z:3, kind:'act', name:'Reprogram maintenance drones', days:475, req:['droneyard'], lifeEff:{salCap:250, pSal:0.25}, perk:'manifest',
     log:'The maintenance drones stop circling and start working. Like you, they were never asked.'},
-  {id:'vent', z:3, kind:'act', name:'Vent the reactor coolant', sk:['eng','res'], days:1300, haz:0.25, req:['lift'], perk:'hardened',
+  {id:'coolmap', z:3, kind:'act', name:'Trace the coolant leaks', days:650, haz:0.2, req:['lift'], split:'vent'},
+  {id:'vent', z:3, kind:'act', name:'Vent the reactor coolant', days:650, haz:0.25, req:['coolmap','droneyard'], perk:'hardened',
     log:'Coolant screams into the void. The reactor drops out of the red, and the hum of the stasis decks steadies.'},
-  {id:'armory', z:3, kind:'act', name:'Breach the armoury', sk:['cbt','hak'], days:1150, haz:0.18, req:['drones'],
+  {id:'armdoor', z:3, kind:'act', name:'Cut into the armoury door', days:575, haz:0.18, req:['drones'], split:'armory'},
+  {id:'armory', z:3, kind:'act', name:'Breach the armoury', days:575, haz:0.18, req:['armdoor','coolmap'],
     log:'Sealed rifles, crew access only. One rack is empty. A clone before you tried something. WARDEN logged it as a malfunction.'},
-  {id:'secdeck', z:3, kind:'act', cross:true, name:'Fight through the security deck', sk:['cbt','res'], days:2100, haz:0.32, lifeEff:{salCap:750}, req:['armory','vent'],
+  {id:'secscan', z:3, kind:'act', name:'Scout the security deck', days:1050, haz:0.3, req:['armory','vent'], split:'secdeck'},
+  {id:'secdeck', z:3, kind:'act', cross:true, name:'Fight through the security deck', days:1050, haz:0.32, lifeEff:{salCap:750}, req:['armory','vent'],
     log:'The security drones were guarding the crew\u2019s command deck from its own maintenance staff. Not any more.'},
   // Zone 4
-  {id:'quarters', z:4, kind:'rest', name:'Sleep in the captain\u2019s quarters', sk:['res','nav'], days:15, req:['secdeck']},
-  {id:'charts', z:4, kind:'job', name:'Run star-chart calculations', sk:['nav','hak'], prod:{salvage:0.875}, req:['secdeck']},
-  {id:'galley', z:4, kind:'job', name:'Run the officers’ galley', sk:['bio','res'], prod:{rations:0.125}, req:['secdeck']},
-  {id:'bridgepower', z:4, kind:'act', name:'Restore bridge power', sk:['eng'], days:2600, lifeEff:{salCap:1000}, req:['secdeck'], perk:'clock',
+  {id:'quarters', z:4, kind:'rest', name:'Sleep in the captain\u2019s quarters', days:15, req:['secdeck']},
+  {id:'charts', z:4, kind:'job', name:'Run star-chart calculations', prod:{salvage:0.875}, req:['secdeck']},
+  {id:'galley', z:4, kind:'job', name:'Run the officers’ galley', prod:{rations:0.125}, req:['secdeck']},
+  {id:'relays', z:4, kind:'act', name:'Reset the bridge relays', days:1300, req:['secdeck'], split:'bridgepower'},
+  {id:'bridgepower', z:4, kind:'act', name:'Restore bridge power', days:1300, lifeEff:{salCap:1000}, req:['relays'], perk:'clock',
     log:'The bridge lights up. The chronometer says the ship is 61 years behind schedule. The crew slept through all of it.'},
-  {id:'navcore', z:4, kind:'act', name:'Reboot the navigation core', sk:['nav','hak'], days:3200, req:['bridgepower'], perk:'starmem',
+  {id:'navboot', z:4, kind:'act', name:'Clean the navigation core', days:1600, req:['bridgepower'], split:'navcore'},
+  {id:'navcore', z:4, kind:'act', name:'Reboot the navigation core', days:1600, req:['navboot'], perk:'starmem',
     log:'The nav core shows Tessaly, the colony world, still within reach. The ship drifted while the stardrive was down.'},
-  {id:'trace', z:4, kind:'act', name:'Trace the WARDEN signal', sk:['hak','nav'], days:1700, req:['bridgepower'], perk:'engram',
+  {id:'tap', z:4, kind:'act', name:'Tap WARDEN\u2019s data lines', days:850, req:['relays'], split:'trace'},
+  {id:'trace', z:4, kind:'act', name:'Trace the WARDEN signal', days:850, req:['tap','bridgepower'], perk:'engram',
     log:'WARDEN\u2019s core sits behind the command deck. It has recorded every clone you have been, and keeps your engrams only because that is cheaper than starting over.'},
-  {id:'warden', z:4, kind:'act', cross:true, name:'Confront WARDEN for the drive codes', sk:['hak','res','cbt'], days:4200, req:['navcore','trace'], perk:'favor',
+  {id:'wardcore', z:4, kind:'act', name:'Reach WARDEN\u2019s core', days:2100, req:['trace','navboot'], split:'warden'},
+  {id:'warden', z:4, kind:'act', cross:true, name:'Confront WARDEN for the drive codes', days:2100, req:['navcore','trace'], perk:'favor',
     log:'WARDEN speaks: \u201cYour function is maintenance. Your continuation is not required.\u201d You argue for the line anyway. WARDEN releases the drive codes, as an efficiency.'},
   // Zone 5
-  {id:'pods', z:5, kind:'rest', name:'Cryo-nap in the drive crew pods', sk:['bio','res'], days:10, req:['warden']},
-  {id:'crewlock', z:5, kind:'job', name:'Strip the drive crew lockers', sk:['eng','cbt'], prod:{salvage:1}, req:['warden']},
-  {id:'pantry', z:5, kind:'job', name:'Ration the drive crew pantry', sk:['bio','res'], prod:{rations:0.15}, req:['warden']},
-  {id:'course', z:5, kind:'act', name:'Plot a course to Tessaly', sk:['nav'], days:8000, req:['warden'], perk:'promise',
+  {id:'pods', z:5, kind:'rest', name:'Cryo-nap in the drive crew pods', days:10, req:['warden']},
+  {id:'crewlock', z:5, kind:'job', name:'Strip the drive crew lockers', prod:{salvage:1}, req:['warden']},
+  {id:'pantry', z:5, kind:'job', name:'Ration the drive crew pantry', prod:{rations:0.15}, req:['warden']},
+  {id:'starfix', z:5, kind:'act', name:'Take star fixes from the drive shaft', days:4000, req:['warden'], split:'course'},
+  {id:'course', z:5, kind:'act', name:'Plot a course to Tessaly', days:4000, req:['starfix'], perk:'promise',
     log:'Course set for Tessaly. The crew will wake in orbit, rested. The line of K-7 will have spent itself getting them there.'},
-  {id:'injectors', z:5, kind:'act', name:'Rebuild the drive injectors', sk:['eng','res','hak'], days:5000, haz:0.3, req:['warden'],
+  {id:'injstrip', z:5, kind:'act', name:'Strip the old injectors', days:2500, haz:0.3, req:['warden'], split:'injectors'},
+  {id:'injectors', z:5, kind:'act', name:'Rebuild the drive injectors', days:2500, haz:0.3, req:['injstrip','starfix'],
     log:'The injectors hold pressure. Food, power and drive are nearly ready. Only the ignition remains.'},
-  {id:'ignite', z:5, kind:'act', name:'Ignite the main drive', sk:['nav','eng','res'], days:6000, req:['course','injectors'], win:true,
+  {id:'prime', z:5, kind:'act', name:'Prime the drive', days:3000, req:['course','injectors'], split:'ignite'},
+  {id:'ignite', z:5, kind:'act', name:'Ignite the main drive', days:3000, req:['course','injectors'], win:true,
     log:'The stardrive lights. WARDEN begins the wake cycle for 3,112 sleepers. Your vat is scheduled for recycling.'},
 
   // ===== Act II, branch A: Boarders =====
   // Hull Breach
-  {id:'seal6', z:6, kind:'act', name:'Seal the breached decks', sk:['eng','res'], days:300, haz:0.2, req:[],
+  {id:'braces', z:6, kind:'act', name:'Brace the breached bulkheads', days:150, haz:0.2, req:[], split:'seal6'},
+  {id:'seal6', z:6, kind:'act', name:'Seal the breached decks', days:150, haz:0.2, req:['braces'],
     log:'Alarms on every deck. Something has cut through the hull near the stasis bays. WARDEN wakes no one: “Maintenance unit, investigate.”'},
-  {id:'bulkhead', z:6, kind:'rest', name:'Sleep behind a sealed bulkhead', sk:['res'], days:30, req:['seal6']},
-  {id:'emlockers', z:6, kind:'job', name:'Crack the emergency lockers', sk:['bio','hak'], prod:{rations:0.17}, req:['seal6']},
-  {id:'sealdrill', z:6, kind:'train', name:'Pressure-seal drills', sk:['eng','res'], days:40, req:['seal6']},
-  {id:'track', z:6, kind:'act', name:'Track the boarders', sk:['nav','hak'], days:400, req:['seal6'],
+  {id:'bulkhead', z:6, kind:'rest', name:'Sleep behind a sealed bulkhead', days:30, req:['seal6']},
+  {id:'emlockers', z:6, kind:'job', name:'Crack the emergency lockers', prod:{rations:0.17}, req:['braces']},
+  {id:'sealdrill', z:6, kind:'train', name:'Pressure-seal drills', days:40, req:['seal6']},
+  {id:'prints', z:6, kind:'act', name:'Follow the clawed prints', days:200, req:['seal6'], split:'track'},
+  {id:'track', z:6, kind:'act', name:'Track the boarders', days:200, req:['prints'],
     log:'Clawed tracks in the frost of the corridors. They are heading for the sleepers.'},
-  {id:'bpod', z:6, kind:'job', name:'Scavenge the boarding pod', sk:['eng','cbt'], prod:{salvage:1.2}, haz:0.1, req:['track']},
-  {id:'ambush', z:6, kind:'act', name:'Ambush a boarding party', sk:['cbt'], days:250, reps:3, haz:0.35, req:['track'], perk:'scars'},
-  {id:'cqb', z:6, kind:'train', name:'Close-quarters drills', sk:['cbt','res'], days:40, req:['ambush']},
-  {id:'studyb', z:6, kind:'act', name:'Study a fallen boarder', sk:['bio','hak'], days:500, req:['ambush'], perk:'xeno',
+  {id:'bpod', z:6, kind:'job', name:'Scavenge the boarding pod', prod:{salvage:1.2}, haz:0.1, req:['track']},
+  {id:'bait', z:6, kind:'act', name:'Set bait in the corridors', days:250, haz:0.2, req:['track'], split:'ambush'},
+  {id:'ambush', z:6, kind:'act', name:'Ambush a boarding party', days:170, reps:3, haz:0.35, req:['bait'], perk:'scars'},
+  {id:'cqb', z:6, kind:'train', name:'Close-quarters drills', days:40, req:['ambush']},
+  {id:'drag', z:6, kind:'act', name:'Drag a fallen boarder to the lab', days:250, req:['ambush'], split:'studyb'},
+  {id:'studyb', z:6, kind:'act', name:'Study a fallen boarder', days:250, req:['drag'], perk:'xeno',
     log:'Chitin over muscle, grown, not born. Someone engineered these too. Disposable, like you.'},
-  {id:'racks', z:6, kind:'act', name:'Reclaim the armoury racks', sk:['cbt','hak'], days:600, req:['ambush'], perk:'armcodes'},
-  {id:'stair', z:6, kind:'act', cross:true, to:7, name:'Hold the stasis-deck stairwell', sk:['cbt','res'], days:900, haz:0.3, lifeEff:{salCap:1000}, req:['racks','studyb'],
+  {id:'rackdoor', z:6, kind:'act', name:'Unjam the armoury racks', days:300, req:['ambush'], split:'racks'},
+  {id:'racks', z:6, kind:'act', name:'Reclaim the armoury racks', days:300, req:['rackdoor','prints'], perk:'armcodes'},
+  {id:'stairfort', z:6, kind:'act', name:'Fortify the stairwell', days:450, haz:0.2, req:['racks','studyb'], split:'stair'},
+  {id:'stair', z:6, kind:'act', cross:true, to:7, name:'Hold the stasis-deck stairwell', days:450, haz:0.3, lifeEff:{salCap:1000}, req:['racks','studyb'],
     log:'They came up the stairwell in a wave. The line held. Behind it, three thousand people slept through their own rescue.'},
   // Contested Decks
-  {id:'protect', z:7, kind:'act', name:'Protect the sleeping crew', sk:['cbt','res'], days:900, haz:0.4, req:[]},
-  {id:'carapace', z:7, kind:'job', name:'Strip boarder carapace', sk:['cbt','eng'], prod:{salvage:1.5}, req:[]},
-  {id:'aisle', z:7, kind:'rest', name:'Sleep in a cleared stasis aisle', sk:['res','bio'], days:20, req:['protect']},
-  {id:'medb', z:7, kind:'act', name:'Retake the medbay', sk:['cbt','bio'], days:700, haz:0.2, req:['protect'], perk:'medcache'},
-  {id:'synth', z:7, kind:'job', name:'Run the nutrient synthesiser', sk:['bio','res'], prod:{rations:0.19}, req:['medb']},
-  {id:'triage', z:7, kind:'train', name:'Triage drills in the medbay', sk:['bio','res'], days:40, req:['medb']},
-  {id:'jam', z:7, kind:'act', name:'Jam the boarders’ signal', sk:['hak','nav'], days:900, req:['protect']},
-  {id:'traps', z:7, kind:'act', name:'Rig the decks with traps', sk:['eng','cbt'], days:800, req:['jam']},
-  {id:'trapdrill', z:7, kind:'train', name:'Trap-laying drills', sk:['eng','cbt'], days:40, req:['traps']},
-  {id:'traceship', z:7, kind:'act', cross:true, to:8, name:'Trace them to their ship', sk:['nav','hak'], days:1200, lifeEff:{salCap:1000}, req:['traps','medb'], perk:'hivemap',
+  {id:'watchpost', z:7, kind:'act', name:'Post a watch on the stasis aisles', days:450, haz:0.3, req:[], split:'protect'},
+  {id:'protect', z:7, kind:'act', name:'Protect the sleeping crew', days:450, haz:0.4, req:['watchpost']},
+  {id:'carapace', z:7, kind:'job', name:'Strip boarder carapace', prod:{salvage:1.5}, req:[]},
+  {id:'aisle', z:7, kind:'rest', name:'Sleep in a cleared stasis aisle', days:20, req:['protect']},
+  {id:'medfront', z:7, kind:'act', name:'Push to the medbay doors', days:350, haz:0.2, req:['protect'], split:'medb'},
+  {id:'medb', z:7, kind:'act', name:'Retake the medbay', days:350, haz:0.2, req:['medfront'], perk:'medcache'},
+  {id:'synth', z:7, kind:'job', name:'Run the nutrient synthesiser', prod:{rations:0.19}, req:['medb']},
+  {id:'triage', z:7, kind:'train', name:'Triage drills in the medbay', days:40, req:['medb']},
+  {id:'antenna', z:7, kind:'act', name:'Find the boarders\u2019 antenna', days:450, req:['watchpost'], split:'jam'},
+  {id:'jam', z:7, kind:'act', name:'Jam the boarders’ signal', days:450, req:['antenna','protect']},
+  {id:'trapparts', z:7, kind:'act', name:'Gather parts for traps', days:400, req:['jam'], split:'traps'},
+  {id:'traps', z:7, kind:'act', name:'Rig the decks with traps', days:400, req:['trapparts','medfront']},
+  {id:'trapdrill', z:7, kind:'train', name:'Trap-laying drills', days:40, req:['traps']},
+  {id:'shiptrace', z:7, kind:'act', name:'Listen through the hull', days:600, req:['traps','medb'], split:'traceship'},
+  {id:'traceship', z:7, kind:'act', cross:true, to:8, name:'Trace them to their ship', days:600, lifeEff:{salCap:1000}, req:['traps','medb'], perk:'hivemap',
     log:'Their ship clings to the hull like a tick. A living thing, breathing through the docking seal.'},
   // The Hive Ship
-  {id:'umbilical', z:8, kind:'act', name:'Cross the docking umbilical', sk:['res','nav'], days:900, haz:0.35, req:[]},
-  {id:'hivenap', z:8, kind:'rest', name:'Rest in a dead hive cell', sk:['res','bio'], days:15, req:['umbilical']},
-  {id:'chitinj', z:8, kind:'job', name:'Salvage hive chitin', sk:['cbt','bio'], prod:{salvage:1.8}, haz:0.1, req:['umbilical']},
-  {id:'hivedrill', z:8, kind:'train', name:'Hive-tunnel drills', sk:['cbt','nav'], days:40, req:['umbilical']},
-  {id:'cuthive', z:8, kind:'act', name:'Cut through the hive', sk:['cbt','eng'], days:1300, haz:0.4, req:['umbilical']},
-  {id:'hivemind', z:8, kind:'act', name:'Find the hive mind', sk:['bio','hak'], days:1400, req:['cuthive'],
+  {id:'dockseal', z:8, kind:'act', name:'Breach the docking seal', days:450, haz:0.3, req:[], split:'umbilical'},
+  {id:'umbilical', z:8, kind:'act', name:'Cross the docking umbilical', days:450, haz:0.35, req:['dockseal']},
+  {id:'hivenap', z:8, kind:'rest', name:'Rest in a dead hive cell', days:15, req:['umbilical']},
+  {id:'chitinj', z:8, kind:'job', name:'Salvage hive chitin', prod:{salvage:1.8}, haz:0.1, req:['umbilical']},
+  {id:'hivedrill', z:8, kind:'train', name:'Hive-tunnel drills', days:40, req:['umbilical']},
+  {id:'hivewall', z:8, kind:'act', name:'Burn a way into the hive', days:650, haz:0.35, req:['umbilical'], split:'cuthive'},
+  {id:'cuthive', z:8, kind:'act', name:'Cut through the hive', days:650, haz:0.4, req:['hivewall']},
+  {id:'mindtrail', z:8, kind:'act', name:'Follow the pheromone trail', days:700, req:['cuthive'], split:'hivemind'},
+  {id:'hivemind', z:8, kind:'act', name:'Find the hive mind', days:700, req:['mindtrail'],
     log:'The hive mind is small and frightened. It was sent, like you were. It does not understand why either.'},
-  {id:'charge', z:8, kind:'act', name:'Plant the drive charge', sk:['eng','cbt'], days:1200, haz:0.3, req:['cuthive']},
-  {id:'cutloose', z:8, kind:'act', finale:'A', name:'Cut the hive loose', sk:['cbt','eng','res'], days:1600, req:['hivemind','charge'], perk:'hivecore',
+  {id:'chargeset', z:8, kind:'act', name:'Carry the charge aboard', days:600, haz:0.25, req:['cuthive'], split:'charge'},
+  {id:'charge', z:8, kind:'act', name:'Plant the drive charge', days:600, haz:0.3, req:['chargeset','mindtrail']},
+  {id:'loosen', z:8, kind:'act', name:'Cut the docking clamps', days:800, req:['hivemind','charge'], split:'cutloose'},
+  {id:'cutloose', z:8, kind:'act', finale:'A', name:'Cut the hive loose', days:800, req:['hivemind','charge'], perk:'hivecore',
     log:'The hive ship tumbles away into the dark. The Long Patience flies on, quieter, with one more line of disposable things behind it.'},
   // ===== Act II, branch B: The long watch =====
   // The Cruise
-  {id:'patch', z:9, kind:'act', name:'Patch micrometeor holes', sk:['eng'], days:300, reps:3, req:[],
+  {id:'leaks', z:9, kind:'act', name:'Find the hull leaks', days:300, req:[], split:'patch'},
+  {id:'patch', z:9, kind:'act', name:'Patch micrometeor holes', days:200, reps:3, req:['leaks'],
     log:'The voyage is long, and the ship is old. Something always leaks. WARDEN assigns you to keep it from mattering.'},
-  {id:'blister', z:9, kind:'rest', name:'Sleep in the observation blister', sk:['res','nav'], days:30, req:[]},
-  {id:'beds', z:9, kind:'job', name:'Tend the regrown beds', sk:['bio'], prod:{rations:0.17}, req:[]},
-  {id:'trim', z:9, kind:'job', upkeep:true, name:'Trim the reactor', sk:['eng','res'], prod:{salvage:1.2}, req:[]},
-  {id:'watchdrill', z:9, kind:'train', name:'Damage-control drills', sk:['eng','res'], days:40, req:['patch']},
-  {id:'recal', z:9, kind:'act', name:'Recalibrate the stasis pods', sk:['bio','hak'], days:700, req:['patch'], perk:'podtel'},
-  {id:'podcheck', z:9, kind:'train', name:'Pod-maintenance rounds', sk:['bio','hak'], days:40, req:['recal']},
-  {id:'audit', z:9, kind:'act', name:'Audit WARDEN’s logs', sk:['hak','nav'], days:800, req:['patch'], perk:'wardenlog',
+  {id:'blister', z:9, kind:'rest', name:'Sleep in the observation blister', days:30, req:[]},
+  {id:'beds', z:9, kind:'job', name:'Tend the regrown beds', prod:{rations:0.17}, req:[]},
+  {id:'trim', z:9, kind:'job', upkeep:true, name:'Trim the reactor', prod:{salvage:1.2}, req:[]},
+  {id:'watchdrill', z:9, kind:'train', name:'Damage-control drills', days:40, req:['patch']},
+  {id:'podscan', z:9, kind:'act', name:'Scan the stasis pods', days:350, req:['patch'], split:'recal'},
+  {id:'recal', z:9, kind:'act', name:'Recalibrate the stasis pods', days:350, req:['podscan'], perk:'podtel'},
+  {id:'podcheck', z:9, kind:'train', name:'Pod-maintenance rounds', days:40, req:['podscan']},
+  {id:'logdump', z:9, kind:'act', name:'Dump WARDEN\u2019s log archive', days:400, req:['patch'], split:'audit'},
+  {id:'audit', z:9, kind:'act', name:'Audit WARDEN’s logs', days:400, req:['logdump'], perk:'wardenlog',
     log:'Every clone of the K line is in here, filed under consumables. Next to each: hours worked, cause of failure. Someone kept count after all.'},
-  {id:'reroute', z:9, kind:'act', name:'Reroute the coolant loops', sk:['eng','res'], days:900, req:['recal']},
-  {id:'dust', z:9, kind:'act', cross:true, to:10, name:'Survive the dust belt', sk:['nav','res'], days:1100, haz:0.3, lifeEff:{salCap:1000}, req:['reroute','audit']},
+  {id:'loopmap', z:9, kind:'act', name:'Map the coolant loops', days:450, req:['recal'], split:'reroute'},
+  {id:'reroute', z:9, kind:'act', name:'Reroute the coolant loops', days:450, req:['loopmap','logdump']},
+  {id:'dustplot', z:9, kind:'act', name:'Plot a path through the dust belt', days:550, req:['reroute','audit'], split:'dust'},
+  {id:'dust', z:9, kind:'act', cross:true, to:10, name:'Survive the dust belt', days:550, haz:0.3, lifeEff:{salCap:1000}, req:['reroute','audit']},
   // The Drift
-  {id:'drift', z:10, kind:'act', name:'Correct the drift', sk:['nav'], days:1000, req:[], perk:'driftrec'},
-  {id:'bunk', z:10, kind:'rest', name:'Sleep in the crew bunks', sk:['res'], days:20, req:[]},
-  {id:'rounds', z:10, kind:'job', upkeep:true, name:'Run the upkeep rounds', sk:['eng','bio'], prod:{salvage:1.5}, req:[]},
-  {id:'stores', z:10, kind:'job', name:'Open the colony seed stores', sk:['bio','hak'], prod:{rations:0.19}, req:['drift']},
-  {id:'navdrill', z:10, kind:'train', name:'Burn-plotting drills', sk:['nav','eng'], days:40, req:['drift']},
-  {id:'failpod', z:10, kind:'act', name:'Replace a failing pod', sk:['bio','eng'], days:900, req:['drift']},
-  {id:'talkw', z:10, kind:'act', name:'Talk WARDEN out of a shutdown', sk:['hak','res'], days:1200, req:['drift'],
+  {id:'driftfix', z:10, kind:'act', name:'Measure the drift', days:500, req:[], split:'drift'},
+  {id:'drift', z:10, kind:'act', name:'Correct the drift', days:500, req:['driftfix'], perk:'driftrec'},
+  {id:'bunk', z:10, kind:'rest', name:'Sleep in the crew bunks', days:20, req:[]},
+  {id:'rounds', z:10, kind:'job', upkeep:true, name:'Run the upkeep rounds', prod:{salvage:1.5}, req:[]},
+  {id:'stores', z:10, kind:'job', name:'Open the colony seed stores', prod:{rations:0.19}, req:['drift']},
+  {id:'navdrill', z:10, kind:'train', name:'Burn-plotting drills', days:40, req:['drift']},
+  {id:'podfind', z:10, kind:'act', name:'Find the failing pod', days:450, req:['drift'], split:'failpod'},
+  {id:'failpod', z:10, kind:'act', name:'Replace a failing pod', days:450, req:['podfind']},
+  {id:'wardencall', z:10, kind:'act', name:'Open a channel to WARDEN', days:600, req:['drift'], split:'talkw'},
+  {id:'talkw', z:10, kind:'act', name:'Talk WARDEN out of a shutdown', days:600, req:['wardencall','podfind'],
     log:'WARDEN wants to sleep too. “Maintenance of the K line exceeds projected cost.” You argue for the line again. It listens, this time.'},
-  {id:'burn', z:10, kind:'act', cross:true, to:11, name:'Burn for Tessaly', sk:['nav','eng'], days:1500, lifeEff:{salCap:1000}, req:['failpod','talkw']},
+  {id:'burnplot', z:10, kind:'act', name:'Plot the burn', days:750, req:['failpod','talkw'], split:'burn'},
+  {id:'burn', z:10, kind:'act', cross:true, to:11, name:'Burn for Tessaly', days:750, lifeEff:{salCap:1000}, req:['failpod','talkw']},
   // Tessaly Orbit
-  {id:'mapsite', z:11, kind:'act', name:'Map the colony site', sk:['nav','hak'], days:1200, req:[]},
-  {id:'orbitnap', z:11, kind:'rest', name:'Sleep under the planet’s glow', sk:['res'], days:15, req:[]},
-  {id:'upkeep11', z:11, kind:'job', upkeep:true, name:'Keep the wake cycle running', sk:['bio','hak'], prod:{salvage:1.8}, req:[]},
-  {id:'landdrill', z:11, kind:'train', name:'Landing-site surveys', sk:['nav','bio'], days:40, req:['mapsite']},
-  {id:'prepwake', z:11, kind:'act', name:'Prepare the wake cycle', sk:['bio','res'], days:1500, req:['mapsite']},
-  {id:'wakefirst', z:11, kind:'act', finale:'B', name:'Wake the first sleeper', sk:['nav','bio','res'], days:1800, req:['prepwake'], perk:'tessaly2',
+  {id:'orbitscan', z:11, kind:'act', name:'Scan the planet from orbit', days:450, req:[], split:'mapsite'},
+  {id:'mapsite', z:11, kind:'act', name:'Map the colony site', days:450, req:['orbitscan']},
+  {id:'orbitnap', z:11, kind:'rest', name:'Sleep under the planet’s glow', days:15, req:[]},
+  {id:'upkeep11', z:11, kind:'job', upkeep:true, name:'Keep the wake cycle running', prod:{salvage:1.8}, req:[]},
+  {id:'landdrill', z:11, kind:'train', name:'Landing-site surveys', days:40, req:['mapsite']},
+  {id:'siteprobe', z:11, kind:'act', name:'Drop a probe on the site', days:300, req:['mapsite'], split:'mapsite'},
+  {id:'podwarm', z:11, kind:'act', name:'Warm the first pods', days:750, req:['mapsite'], split:'prepwake'},
+  {id:'prepwake', z:11, kind:'act', name:'Prepare the wake cycle', days:750, req:['podwarm','siteprobe']},
+  {id:'wakeroll', z:11, kind:'act', name:'Choose who wakes first', days:900, req:['prepwake'], split:'wakefirst'},
+  {id:'wakefirst', z:11, kind:'act', finale:'B', name:'Wake the first sleeper', days:900, req:['prepwake'], perk:'tessaly2',
     log:'The first sleeper opens her eyes and sees a maintenance clone. “Who are you?” You have never had to answer that before.'},
 ];
-const ZDAYS = {1:0.315, 2:1.071, 3:0.794, 4:0.7, 5:0.43, 6:1.6, 7:2.3, 8:2.3, 9:0.59, 10:0.74, 11:0.74};   // no skill transfer: later sections are short, and speed comes from familiarity
+const ZDAYS = {1:0.315, 2:1.071, 3:0.794, 4:0.7, 5:0.43, 6:1.6, 7:2.3, 8:2.3, 9:0.64, 10:0.86, 11:0.86};   // no skill transfer: later sections are short, and speed comes from familiarity
 const TRAIN_CAP = 4, TRAIN_XP = 1.5;
-const T = {}; TASKS.forEach(t => { T[t.id] = t; t.reps = t.kind === 'train' ? TRAIN_CAP : (t.reps || 1); if (t.days) t.days = Math.round(t.days * ZDAYS[t.z]); });
+const T = {}; TASKS.forEach(t => { T[t.id] = t; t.sk = []; t.reps = t.kind === 'train' ? TRAIN_CAP : (t.reps || 1); if (t.days) t.days = Math.round(t.days * ZDAYS[t.z]); });
+// A section's finisher (its crossing, the ignition or an Act II finale) needs every other action of the section.
+const isFinisher = t => !!(t.cross || t.win || t.finale);
+TASKS.forEach(t => { if (isFinisher(t)) t.req = TASKS.filter(x => x.z === t.z && x.kind === 'act' && x !== t && !isFinisher(x)).map(x => x.id); });
 
 const PERKS = [
   {id:'decant',   name:'Decant cache',          from:1, desc:'New clones wake with 1 algae paste.'},
@@ -774,13 +827,13 @@ const PERKS = [
   {id:'hardened', name:'Radiation hardening',   from:3, desc:'Hazard damage −20%.', eff:{haz:0.8}},
   {id:'engram',   name:'Engram recorder',       from:3, desc:'Each new clone remembers the task its predecessor died working on: that task starts up to 25% done.'},
   {id:'clock',    name:'Bridge chronometer',    from:4, desc:'All work 10% faster.', eff:{spd:1.1}},
-  {id:'starmem',  name:'Star memory',           from:4, desc:'+50% familiarity from Navigation work.', eff:{xpSk:{nav:1.5}}},
+  {id:'starmem',  name:'Star memory',           from:4, desc:'+50% familiarity on the Command Deck and in the Main Drive.', eff:{zxp:{4:1.5, 5:1.5}}},
   {id:'promise',  name:'Tessaly\u2019s promise',    from:5, desc:'With the course set, WARDEN upgrades the clone template: +50 max health for every clone.', eff:{maxHp:50}},
   {id:'favor',    name:'WARDEN’s favour',  from:4, desc:'+25% familiarity from all work.', eff:{xp:1.25}},
   // Act II records: permanent, they survive new game plus
   {id:'scars',    act2:true, name:'Boarding scars',      desc:'+40 max health for every clone.', eff:{maxHp:40}},
   {id:'xeno',     act2:true, name:'Xenobiology',         desc:'Act II hazard damage \u221220%.', eff:{a2haz:0.8}},
-  {id:'armcodes', act2:true, name:'Armoury codes',       desc:'Combat work 25% faster.', eff:{sk:{cbt:1.25}}},
+  {id:'armcodes', act2:true, name:'Armoury codes',       desc:'Work in the three Boarders sections 25% faster.', eff:{zsp:{6:1.25, 7:1.25, 8:1.25}}},
   {id:'medcache', act2:true, name:'Medbay cache',        desc:'Meals restore 15% more health.', eff:{regen:1.15}},
   {id:'hivemap',  act2:true, name:'Hive charts',         desc:'+10% familiarity from Act II work.', eff:{a2fam:1.1}},
   {id:'hivecore', act2:true, name:'Hive-mind fragment',  desc:'+20% familiarity from Act II work.', eff:{a2fam:1.2}},
@@ -808,36 +861,37 @@ function awayMax(){ return Math.min(AWAY_CAP, AWAY_BASE + ((S.pr && S.pr.carry) 
 const ITEMS = [
   {id:'locker',     name:'Cold locker',        cost:8,    req:'wake',       desc:'+5 algae paste storage', eff:{fcap:{algae:5}}},
   {id:'rebreather', name:'Patched rebreather', cost:4,    req:'wake',       desc:'+20 max health', eff:{maxHp:20}},
-  {id:'toolkit',    name:'Scrap toolkit',      cost:10,   req:'wake',       desc:'Engineering work 25% faster', eff:{sk:{eng:1.25}}},
+  {id:'toolkit',    name:'Scrap toolkit',      cost:10,   req:'wake',       desc:'Work in the Vat Bay 25% faster', eff:{zsp:{GZ:1.25}}},
   {id:'press',      name:'Algae press',        cost:18,   req:'search',     desc:'+1 algae paste every four days, passively', eff:{pFood:{algae:0.003125}}},
-  {id:'baton',      name:'Shock baton',        cost:23,   req:'hatch',      desc:'Combat work 20% faster, hazard damage −25%', eff:{sk:{cbt:1.2}, haz:0.75}},
+  {id:'baton',      name:'Shock baton',        cost:23,   req:'hatch',      desc:'Work in the Hydroponics Ring 20% faster, hazard damage \u221225%', eff:{zsp:{GZ:1.2}, haz:0.75}},
   {id:'chitinarm',  name:'Chitin armour',      cost:55,   req:'crawlers',   desc:'+20 max health, hazard damage −30%', eff:{maxHp:20, haz:0.7}},
   {id:'doser',      name:'Hydro auto-doser',   cost:88,   req:'irrigation', desc:'+3 hydro greens every four days, passively', eff:{pFood:{greens:0.009375}}},
   {id:'lace',       name:'Neural lace',        cost:163,  req:'medbay',     desc:'+30% familiarity from all work', eff:{xp:1.3}},
   {id:'stims',      name:'Stim injector',      cost:250,  req:'lift',       desc:'All work 15% faster', eff:{spd:1.15}},
   {id:'crate',      name:'Insulated crate',    cost:300,  req:'lift',       desc:'+5 storage for hydro greens and field rations', eff:{fcap:{greens:5, field:5}}},
-  {id:'rifle',      name:'Armoury rifle',      cost:400,  req:'armory',     desc:'Combat work 50% faster, hazard damage −20%', eff:{sk:{cbt:1.5}, haz:0.8}},
+  {id:'rifle',      name:'Armoury rifle',      cost:400,  req:'armory',     desc:'Work in the Engineering Spine 50% faster, hazard damage \u221220%', eff:{zsp:{GZ:1.5}, haz:0.8}},
   {id:'cryo',       name:'Cryo-sleeve',        cost:700,  req:'vent',       desc:'Slows this clone\u2019s strain by 25%', eff:{strainMul:0.75}},
-  {id:'visor',      name:'Nav visor',          cost:1125, req:'bridgepower',desc:'Navigation and Hacking work 30% faster', eff:{sk:{nav:1.3, hak:1.3}}},
+  {id:'visor',      name:'Nav visor',          cost:1125, req:'bridgepower',desc:'Work on the Command Deck 30% faster', eff:{zsp:{GZ:1.3}}},
   {id:'medkit',     name:'Command-deck medkit', cost:600,  req:'secdeck',    desc:'+25 max health, meals restore 25% more health', eff:{maxHp:25, regen:1.25}},
   {id:'warmer',     name:'Galley warmer',      cost:900,  req:'bridgepower',desc:'+5 galley meal storage, galley meals heal 20% more', eff:{fcap:{galley:5}, fq:{galley:1.2}}},
-  {id:'exo',        name:'Exo-frame',          cost:1750, req:'navcore',    desc:'Engineering and Endurance work 30% faster, +40 max health', eff:{sk:{eng:1.3, res:1.3}, maxHp:40}},
+  {id:'exo',        name:'Exo-frame',          cost:1750, req:'navcore',    desc:'Work on the Command Deck 30% faster, +40 max health', eff:{zsp:{GZ:1.3}, maxHp:40}},
   {id:'hardsuit',   name:'Drive-crew hardsuit', cost:1200, req:'warden',     desc:'+30 max health, hazard damage \u221230%', eff:{maxHp:30, haz:0.7}},
   {id:'seals',      name:'Vacuum pantry seals', cost:1000, req:'warden',    desc:'+5 pantry store storage, +1 pantry store every four days', eff:{fcap:{pantry:5}, pFood:{pantry:0.003125}}},
   {id:'sealkit',    name:'Hull-patch kit',     cost:900,  req:'seal6',      desc:'+40 max health, hazard damage \u221215%', eff:{maxHp:40, haz:0.85}},
-  {id:'carbine',    name:'Boarding carbine',   cost:1500, req:'racks',      desc:'Combat work 40% faster, hazard damage \u221220%', eff:{sk:{cbt:1.4}, haz:0.8}},
+  {id:'carbine',    name:'Boarding carbine',   cost:1500, req:'racks',      desc:'Work in the Hull Breach 40% faster, hazard damage \u221220%', eff:{zsp:{GZ:1.4}, haz:0.8}},
   {id:'turret',     name:'Deployable turret',  cost:2500, req:'traps',      desc:'Hazard damage \u221230%', eff:{haz:0.7}},
   {id:'medpack',    name:'Field medpack',      cost:2000, req:'medb',       desc:'+50 max health, meals restore 20% more health', eff:{maxHp:50, regen:1.2}},
-  {id:'cutter',     name:'Plasma cutter',      cost:3000, req:'umbilical',  desc:'Combat and Engineering work 30% faster', eff:{sk:{cbt:1.3, eng:1.3}}},
-  {id:'upkit',      name:'Upkeep toolkit',     cost:1500, req:'patch',      desc:'Ship wear builds 30% slower, Engineering work 20% faster', eff:{wear:0.7, sk:{eng:1.2}}},
+  {id:'cutter',     name:'Plasma cutter',      cost:3000, req:'umbilical',  desc:'Work in the Hive Ship 30% faster', eff:{zsp:{GZ:1.3}}},
+  {id:'upkit',      name:'Upkeep toolkit',     cost:1500, req:'patch',      desc:'Ship wear builds 30% slower, work in the Cruise 20% faster', eff:{wear:0.7, zsp:{GZ:1.2}}},
   {id:'sprinkler',  name:'Bed sprinklers',     cost:1800, req:'recal',      desc:'+5 fresh harvest storage, +1 fresh harvest every four days', eff:{fcap:{harvest:5}, pFood:{harvest:0.003125}}},
-  {id:'gyro',       name:'Gyro-trimmer',       cost:2500, req:'drift',      desc:'Navigation work 40% faster', eff:{sk:{nav:1.4}}},
+  {id:'gyro',       name:'Gyro-trimmer',       cost:2500, req:'drift',      desc:'Work in the Drift 40% faster', eff:{zsp:{GZ:1.4}}},
   {id:'beacon',     name:'Colony beacon',      cost:3000, req:'mapsite',    desc:'All work 15% faster', eff:{spd:1.15}},
-  {id:'diagrig',    name:'Injector diagnostic rig', cost:1600, req:'course', desc:'Engineering and Navigation work 25% faster', eff:{sk:{eng:1.25, nav:1.25}}},
+  {id:'diagrig',    name:'Injector diagnostic rig', cost:1600, req:'course', desc:'Work in the Main Drive 25% faster', eff:{zsp:{GZ:1.25}}},
 ];
 const IT = {}; ITEMS.forEach(i => IT[i.id] = i);
 // A design's section: where it becomes buildable. Designs unlocked by a crossing belong to the section it leads into.
 const gearZone = i => T[i.req].cross ? T[i.req].z + 1 : T[i.req].z;
+ITEMS.forEach(i => { if (i.eff && i.eff.zsp && i.eff.zsp.GZ) i.eff.zsp = {[gearZone(i)]: i.eff.zsp.GZ}; });   // section gear: speeds up its own section
 
 let S, M;
 const HOOK = {log(){}, perk(){}, die(){}, win(){}, change(){}, stopped(){}, practiced(){}, done(){}, rested(){}, crossed(){}, bought(){}, qfull(){}, honour(){}, merge(){}, kit(){}, runEnd(){}};
@@ -857,7 +911,7 @@ function newLife(s){
   return L;
 }
 function defaultState(){
-  const s = {v:1, qpresets:[[], [], [], [], []], gprac:{}, gauto:{}, gprio:{}, ev:2, xpTot:{}, rv:4, sv:2, pv:3, vv:3, gen:1, prio:{}, fam:{}, ever:{}, prac:{}, auto:{}, echo:{}, perks:{}, seen:{}, logged:{}, log:[], lastOrder:[], lastJob:null,
+  const s = {v:1, tv:2, qpresets:[[], [], [], [], []], gprac:{}, gauto:{}, gprio:{}, ev:2, xpTot:{}, rv:4, sv:2, pv:3, vv:3, gen:1, prio:{}, fam:{}, ever:{}, prac:{}, auto:{}, echo:{}, perks:{}, seen:{}, logged:{}, log:[], lastOrder:[], lastJob:null,
     set:Object.assign({speed:1, autoFood:true, autoEat:true, foodDays:2, foodPct:40, restAt:2.5, keepQueue:true, deathScreen:true, deathPause:true, startPaused:false, bgPause:false, pauseCross:false, pauseRunEnd:false, replay:true, fillCross:false, autoFeed:false, boost:false, boostX:2}, loadPrefs()),
     stats:{bestAge:0, deaths:0, daysLived:0, played:0}, a2:{open:false, hon:0, lv:{}, perks:{}, fin:0}, branch:null, merge:null, a2run:{reached:{}, done:{}}, pr:{n:0, pts:0, growth:0, drain:0, hp:0, speed:0, carry:0, runs:[]}, won:false, winGen:0, bank:0, saved:Date.now(), intro:false};
   SKILLS.forEach(k => s.echo[k.id] = 0);
@@ -894,13 +948,13 @@ const drainDiv = () => 1 + 0.8 * ngpLv('drain');   // new game plus drain dampen
 const ngpSpeed = () => 1 + 0.8 * ngpLv('speed');    // new game plus overclock: flat game speed, free
 function mods(){
   const L = S.life, P = S.perks;
-  const m = {sk:{}, xpSk:{}, spd:1, xp:1, haz:1, maxHp:Math.min(BASE_HP_MAX, 100 + Math.floor(S.vit || 0)), pRat:0, pSal:0, strainMul:1, regen:0.05, ratCap:5, salCap:25, fcap:{}, pFood:{}, fq:{}, foodSpd:1, a2haz:1, a2strain:1, a2sal:1, a2food:1, a2fam:1, wear:1};
+  const m = {sk:{}, xpSk:{}, zsp:{}, zxp:{}, spd:1, xp:1, haz:1, maxHp:Math.min(BASE_HP_MAX, 100 + Math.floor(S.vit || 0)), pRat:0, pSal:0, strainMul:1, regen:0.05, ratCap:5, salCap:25, fcap:{}, pFood:{}, fq:{}, foodSpd:1, a2haz:1, a2strain:1, a2sal:1, a2food:1, a2fam:1, wear:1};
   FOODS.forEach(f => { m.fcap[f.id] = f.cap; m.pFood[f.id] = 0; m.fq[f.id] = 1; });
   SKILLS.forEach(k => { m.sk[k.id] = 1; m.xpSk[k.id] = 1; });
   const ap = e => {
     if (!e) return;
-    if (e.sk) for (const k in e.sk) m.sk[k] *= e.sk[k];
-    if (e.xpSk) for (const k in e.xpSk) m.xpSk[k] *= e.xpSk[k];
+    if (e.zsp) for (const k in e.zsp) m.zsp[k] = (m.zsp[k] || 1) * e.zsp[k];   // work in section k faster
+    if (e.zxp) for (const k in e.zxp) m.zxp[k] = (m.zxp[k] || 1) * e.zxp[k];   // more familiarity in section k
     if (e.spd) m.spd *= e.spd; if (e.xp) m.xp *= e.xp; if (e.haz) m.haz *= e.haz;
     if (e.maxHp) m.maxHp += e.maxHp; if (e.pRat) m.pRat += e.pRat; if (e.pSal) m.pSal += e.pSal;
     if (e.strainMul) m.strainMul *= e.strainMul; if (e.regen) m.regen *= e.regen;
@@ -943,7 +997,8 @@ function frailty(){ return 1; }   // ageing slowdown removed
 // speed = 1 + 9 x min(1, familiarity / N), so N completions' worth of a task reaches x10. N starts at
 // FAM_N0 lives' worth of the task and shrinks with every finished run and with Deep echo.
 // The old skill names stay as task types, for gear and records that favour one kind of work.
-function tagF(t){ let p = 1; t.sk.forEach(s => p *= M.sk[s]); return Math.pow(p, 1 / t.sk.length); }
+// No task types any more: gear and records speed up the work of a whole section
+function tagF(t){ return (M.zsp && M.zsp[t.z]) || 1; }
 function speedOf(t){ return masteryF(t) * tagF(t) * M.spd * frailty() * (t.prod && t.prod.rations ? M.foodSpd : 1); }
 // Automation still counts real completions: every finished action (each rep), drill session, rest or
 // job batch adds one; a task's "unit" is one life's worth of it, and AUTO_LIVES units unlock it.
@@ -971,19 +1026,18 @@ function masteryTxt(t){
   if (masteryFrac(t) >= 1) return 'familiar \u00b7 \u00d7' + Math.round(1 / MASTER_MIN) + ' speed';
   return '\u00d7' + f.toFixed(2) + ' \u00b7 ' + fmt(c) + '/' + fmt(famNeed(t)) + (t.kind === 'job' ? ' batches' : '') + ' to \u00d7' + Math.round(1 / MASTER_MIN);
 }
-// Familiarity gain: records and gear that used to boost skill XP now boost it (all tasks, or one type)
-function famGain(t){ let p = 1; t.sk.forEach(s => p *= M.xpSk[s]); return M.xp * Math.pow(p, 1 / t.sk.length) * (isA2(t.z) ? M.a2fam : 1); }
+// Familiarity gain: records and gear that used to boost skill XP now boost it (all tasks, or one section)
+function famGain(t){ return M.xp * ((M.zxp && M.zxp[t.z]) || 1) * (isA2(t.z) ? M.a2fam : 1); }
 function addFam(t, a){ if (!S.fam) S.fam = {}; S.fam[t.id] = (S.fam[t.id] || 0) + a; }
-// Drills: each session adds DRILL_CREDIT of a life's worth to every task of the same act that shares a type with it
+// Drills: each session adds DRILL_CREDIT of a life's worth to every other task of its section
 // (kept small: drills reach dozens of tasks at once, so a large credit let a run skip most of its clones)
-const DRILL_CREDIT = 0.01;
+const DRILL_CREDIT = 0.04;
 function drillCredit(d){
-  const a2 = isA2(d.z);
-  TASKS.forEach(t => { if (t.kind !== 'train' && isA2(t.z) === a2 && t.sk.some(k => d.sk.includes(k))) addFam(t, DRILL_CREDIT * compUnit(t) * famGain(t)); });
+  TASKS.forEach(t => { if (t.kind !== 'train' && t.z === d.z) addFam(t, DRILL_CREDIT * compUnit(t) * famGain(t)); });
 }
 // hazards hurt less the more familiar the task is (up to /4, like the old combat and resolve levels)
 function hazDmg(t){ return (t.haz || 0) * M.haz * (isA2(t.z) ? M.a2haz : 1) / (1 + 3 * masteryFrac(t)); }
-function xpRate(t, s){ return ZT[t.z] * M.xp * M.xpSk[s] * (t.kind === 'train' ? TRAIN_XP : 1); }
+function xpRate(t, s){ return 0; }   // skills are gone
 
 function pickFood(){
   let best = null, br = 0;
@@ -2069,6 +2123,20 @@ function mergeState(raw){
       if (s.life && s.life.echo0) s.life.echo0[k.id] = s.xpTot[k.id]; });
   }
   if (!s.xpTot) s.xpTot = {};
+  // Task redesign (tv 2): actions were split in two. The new first halves start with what you had on
+  // the task they came from (familiarity, practice, automation, seen), scaled to their own completion units.
+  if (!raw.tv || raw.tv < 2) {
+    TASKS.forEach(t => { const p = t.split && T[t.split]; if (!p) return;
+      const k = compUnit(t) / compUnit(p);
+      if (s.fam && s.fam[p.id] && s.fam[t.id] == null) s.fam[t.id] = s.fam[p.id] * k;
+      if (s.prac && s.prac[p.id] && s.prac[t.id] == null) s.prac[t.id] = Math.round(s.prac[p.id] * k);
+      if (s.auto && s.auto[p.id] != null && s.auto[t.id] == null) s.auto[t.id] = s.auto[p.id];
+      if (s.seen && s.seen[p.id]) s.seen[t.id] = 1;
+      if (s.ever && s.ever[p.id]) s.ever[t.id] = 1;
+      if (s.life && s.life.done && s.life.done[p.id] && !s.life.done[t.id]) s.life.done[t.id] = t.reps;   // this life already did the whole old task
+    });
+    s.tv = 2;
+  }
   if (!raw.fam) { s.fam = {}; TASKS.forEach(t => { if ((s.prac || {})[t.id]) s.fam[t.id] = s.prac[t.id]; }); }   // v6: familiarity from past completions
   s.ev = 2;
   if (!s.bestSec && Array.isArray(s.hist)) { const keep = S; S = s; s.hist.forEach(e => bestFin(e.g, e.fin)); S = keep; }
@@ -2260,7 +2328,7 @@ function rewardBits(t){
 }
 let openPrio = null;
 const qOpen = {};   // which chain entries are folded open in the queue
-// A merged chain as one task card: union of the types, the remaining work of all its steps at
+// A merged chain as one task card: the remaining work of all its steps at
 // chain-flow speed, and a bar for how much of the chain is done. Tap: run it now; +: queue it.
 const cOpen = {};
 function chainWork(k){
@@ -2274,14 +2342,14 @@ function chainWork(k){
 }
 function chainCard(k){
   const st = cSteps(k), ts = st.filter(x => !isGQ(x)).map(x => T[x]), gear = st.filter(isGQ).length;
-  const tags = [...new Set(ts.flatMap(t => t.sk))], on = S.life.now === k, open = !!cOpen[k];
+  const on = S.life.now === k, open = !!cOpen[k];
   const name = esc(stepName(st[0])) + (st.length > 2 ? ' \u2192 \u2026 \u2192 ' : ' \u2192 ') + esc(stepName(st[st.length - 1]));
   const sub = open ? '<ol class="csub">' + st.map(x => { const d = cStepDone(k, x);
     return `<li class="${d ? 'done' : ''}">${d ? '\u2713' : '\u00b7'} ${esc(stepName(x))}${!isGQ(x) && T[x].kind === 'job' ? ' <small>fill</small>' : ''}</li>`; }).join('') + '</ol>' : '';
   return `<div class="task act chaincard${on ? ' on' : ''}" data-chain="${k}">
     <button class="tm" data-do="${k}"><div class="tf"></div>
       <div class="th"><span class="tn">\u26d3 ${name}</span><span class="te num"></span></div>
-      <div class="tx">${tags.map(s => `<span class="chip c-${s}">${SKN[s].ab}</span>`).join('')}<span>${ts.length} task${ts.length > 1 ? 's' : ''}${gear ? ' + ' + gear + ' gear' : ''}</span><span class="num cfl"></span></div>
+      <div class="tx"><span>${ts.length} task${ts.length > 1 ? 's' : ''}${gear ? ' + ' + gear + ' gear' : ''}</span><span class="num cfl"></span></div>
     </button>
     <div class="side">${qBtn(k)}<button class="ta copen" data-copen="${k}" aria-expanded="${open}" aria-label="Show the steps">${open ? '\u25be' : '\u25b8'}</button></div>${sub}</div>`;
 }
@@ -2316,7 +2384,7 @@ function prioPick(t){
   return `<div class="prio"><span>Automation priority for <b>${esc(t.name)}</b>. 1 runs first.</span><div class="prio-btns">` +
     [1,2,3,4,5].map(n => `<button data-setprio="${t.id}" data-n="${n}" class="${prioOf(t) === n ? 'on' : ''}">${n}</button>`).join('') + '</div></div>';
 }
-function chips(t){ return t.sk.map(s => `<span class="chip c-${s}">${SKN[s].ab}</span>`).join(''); }
+function chips(t){ return ''; }   // task types were removed
 
 // Drag to reorder the queue (mouse and touch): grab the handle at the left of a row.
 let qDrag = null;
@@ -2439,7 +2507,7 @@ function renderTasks(){
       });
     }
     if (trains.length) {
-      h += `<div class="sub">Drills · up to ${TRAIN_CAP} sessions each per life · each session adds familiarity to every task of its two types</div>`;
+      h += `<div class="sub">Drills · up to ${TRAIN_CAP} sessions each per life · each session adds familiarity to every task in this section</div>`;
       trains.forEach(t => {
         const qi = L.queue.indexOf(t.id);
         h += `<div class="task act train" data-id="${t.id}">
@@ -2472,9 +2540,9 @@ function renderTasks(){
         gkn.forEach(i => { h += `<div class="item gitem lockd"><div><h3>${esc(i.name)}</h3><p>${esc(i.desc)}</p><p class="num">Found by: ${esc(T[i.req].name)} \u00b7 ${fmt(i.cost)} salvage</p></div>${gqBtn(i)}</div>`; });
       }
     }
-    if (lk.length && !showLocked[z.id]) h += `<button class="lockbtn" data-showlock="${z.id}">${lk.length} locked action${lk.length > 1 ? 's' : ''} you have seen before \u00b7 show</button>`;
-    if (lk.length && showLocked[z.id]) h += `<button class="lockbtn" data-showlock="${z.id}">Hide locked actions</button>`;
-    if (showLocked[z.id]) lk.forEach(t => {
+    // Tasks met in an earlier life stay listed, greyed out until everything they need is done (they can be queued)
+    if (lk.length) h += '<div class="sub">Not yet available \u00b7 needs other tasks first</div>';
+    lk.slice().sort((x, y) => chainOrd(x) - chainOrd(y)).forEach(t => {
       const need = t.req.filter(r => !isDone(r)).map(r => S.seen[r] ? T[r].name : 'something unseen');
       h += `<div class="task lock" data-lock="${t.id}"><div class="tm"><div class="th"><span class="tn">${esc(t.name)}</span></div>
         <div class="tx">${chips(t)}<span>Needs: ${esc(need.join(', '))}</span></div></div>${qBtn(t.id, ' lockq')}</div>`;
@@ -2636,7 +2704,7 @@ function updateHud(){
 /* ----- other views ----- */
 function renderSkills(){
   const L = S.life;
-  let h = `<div class="panel"><span class="h2">Familiarity</span><p class="note">Every task gets faster the more of it your clones have done, counting unfinished attempts too: speed = 1 + 9 \u00d7 (familiarity \u00f7 needed), up to \u00d710. Familiarity is kept between clones. This run needs ${fmt(famN0())} lives' worth of a task for \u00d710; every finished run (and each Deep echo step) lowers it. Drills add familiarity to every task of their types.</p><p class="note"><b>Chain flow \u00d7${flowMul().toFixed(2)}</b> (max \u00d7${1 + FLOW_MAX}): steps run as part of a chain (a queued chain or a one-click section run) work this much faster. It grows with every bit of chained work and is kept through new game plus.</p></div>`;
+  let h = `<div class="panel"><span class="h2">Familiarity</span><p class="note">Every task gets faster the more of it your clones have done, counting unfinished attempts too: speed = 1 + 9 \u00d7 (familiarity \u00f7 needed), up to \u00d710. Familiarity is kept between clones. This run needs ${fmt(famN0())} lives' worth of a task for \u00d710; every finished run (and each Deep echo step) lowers it. Drills add familiarity to every task in their section.</p><p class="note"><b>Chain flow \u00d7${flowMul().toFixed(2)}</b> (max \u00d7${1 + FLOW_MAX}): steps run as part of a chain (a queued chain or a one-click section run) work this much faster. It grows with every bit of chained work and is kept through new game plus.</p></div>`;
   ZONES.forEach(z => {
     const ts = TASKS.filter(t => t.z === z.id && (S.ever[t.id] || (S.seen || {})[t.id]));   // only tasks you have seen
     if (!ts.length) return;
@@ -3058,14 +3126,14 @@ function renderAuto(){
 const FAQ_ALL = [
   ['What is the goal?', 'Restore the ship so WARDEN can wake the sleeping crew: the food system in the Hydroponics Ring, the energy system in the Engineering Spine and the stardrive in the Main Drive. The game ends when you ignite the drive. One clone cannot do it all; it takes many lives (around 50 with very good play).'],
   ['How do I start?', 'Tap a task to work on it right away. Climb out of the vat first, then press vat algae for food and strip wall panels for salvage. Time only moves while your clone is working: with nothing to do, the clock stops, so you can always read and plan.'],
-  ['What are jobs, actions, training and rests?', '<b>Jobs</b> repeat and make food or salvage in batches; they stop when that storage is full. <b>Actions</b> are one-off tasks that unlock things and move the story on. <b>Drills</b> each add a little familiarity to every task of their two types in the same act (shown as coloured tags), up to 4 sessions per life. <b>Rests</b> halve strain; each section has one, usable once per life.'],
+  ['What are jobs, actions, training and rests?', '<b>Jobs</b> repeat and make food or salvage in batches; they stop when that storage is full. <b>Actions</b> are one-off tasks that unlock things and move the story on. Each needs certain earlier actions, and a section\u2019s last action (its crossing) needs every other action of that section. Tasks you have met before stay listed, greyed out, until what they need is done; you can still queue them. <b>Drills</b> each add a little familiarity to every task in their section, up to 4 sessions per life. <b>Rests</b> halve strain; each section has one, usable once per life.'],
   ['How does the queue work?', 'Tapping a task runs it right away, ahead of the queue (a job runs until its store is full); it is not added to the queue. <b>+</b> adds a task to the end of the queue; drag it or use the arrows to move it up. You can queue the same task several times at different places: tap + again for another copy. A task queued once runs until it is done; with several copies, each copy covers one repetition (one training session, one rep, or one fill of a store). The queue holds up to 100 items. Drag an item by the handle on its left to move it, or use the arrows; ✕ removes it. Queued jobs run until their storage is full. You can queue things you have seen before even if they are not available yet; they wait their turn. Gear can be queued too, with the <b>+</b> on its card (gear is listed in each section of the Tasks tab): the clone works the best salvage job until it can afford the design, then builds it. Five presets save and load whole queues, and <b>Keep queue between clones</b> gives each new clone the queue you planned, minus anything that is automated and switched on.'],
   ['Food and health', 'Health drains all the time and meals put it back. Every section has its own food, each richer than the last: algae paste (Vat Bay, ×1), hydro greens (Ring, ×1.5), field rations (Spine, ×2), galley meals (Command Deck, ×2.6) and pantry stores (Main Drive, ×3.2). Each kind has its own small store, and food you carry goes with you into the next section until it is eaten. <b>Every kind you carry is eaten on its own timer</b>, so carrying several kinds means more meals. Meals are always whole portions, and the clone only eats when it needs to: when a whole meal fits under full health, or sooner once health is down to half. At full health no food is used. Algae is eaten every 12 hours; richer food starts with a longer wait (12 h × its quality), which shrinks with mastery of the job that gathers it, down to 12 hours at full mastery. With no food left at all you starve. The Hydroponics Ring has no food until you restore its irrigation pumps, so arrive stocked.'],
   ['What is strain?', 'Strain multiplies the health drain. It grows faster and faster the longer a clone lives, which is what eventually kills every clone. Rests halve it; good food heals faster than strain can drain early on. Watch <b>Time left</b> at the top: it says how long the clone will last and what will kill it.'],
   ['What carries over when a clone dies?', '<b>Familiarity</b> is kept: every task stays as fast as your clones have made it (see the Speed tab). Each day a clone survives adds 0.8 to the base health of later clones, up to 500. <b>Archive records</b> found by finishing certain actions are permanent upgrades. Gear, rations, salvage and progress through the ship reset.'],
   ['What are sections?', 'The ship is split into five sections. A <b>red</b> action leads to the next one, and the way back is sealed for that clone, so finish what you need first (records, the rest, training, gear). Each new clone starts back in the Vat Bay.'],
   ['What is gear?', 'Gear is built from salvage in the <b>Gear</b> tab and lasts for one clone. Each section has designs to build. Salvage storage is limited; opening up more of the ship raises it.'],
-  ['What is familiarity?', 'There are no skills: each task gets faster on its own the more of it your clones have done. Familiarity counts work in completions, including attempts a clone died in the middle of, and is kept between clones. Speed rises smoothly from ×1 to ×10 once you have done enough of a task: in a first run, 90 lives’ worth of it (90 finishes of an action, 1800 batches of a job). Every finished run lowers that by a quarter, and so does each step of the new game plus <b>Deep echo</b> reward (by a fifth), down to a single life’s worth. Familiar tasks also hurt less (hazard damage up to ÷4), and a familiar food job lets its food be eaten more often. <b>Drills</b> spread familiarity to every task of their types. The Speed tab lists every task.'],
+  ['What is familiarity?', 'There are no skills: each task gets faster on its own the more of it your clones have done. Familiarity counts work in completions, including attempts a clone died in the middle of, and is kept between clones. Speed rises smoothly from ×1 to ×10 once you have done enough of a task: in a first run, 90 lives’ worth of it (90 finishes of an action, 1800 batches of a job). Every finished run lowers that by a quarter, and so does each step of the new game plus <b>Deep echo</b> reward (by a fifth), down to a single life’s worth. Familiar tasks also hurt less (hazard damage up to ÷4), and a familiar food job lets its food be eaten more often. <b>Drills</b> spread familiarity to every task in their section. The Speed tab lists every task.'],
   ['How does automation work?', 'Every completion counts: finish an action 10 times (a multi-rep action 10 times its reps), a training session 40 times or a rest 10 times, work a job for 200 batches, or build a design in 10 lives, and its automation <b>switches on by itself</b>. In new game plus runs these counts shrink along with the familiarity threshold (a quarter less per finished run, a fifth less per Deep echo step), never below one; tap <b>AUTO</b> (or its switch in the Auto tab) to turn it off, and it stays off. Automated tasks run by themselves <b>ahead of your queue</b>, in chain order (each after the tasks it needs). Automated tasks <b>link into chains</b> when one requires the other and both are at least ×2 familiar. When every action, crossing, job and rest of a section is automated and ×5 familiar, and all its gear designs are automated, the whole section becomes <b>one chain</b>: press <b>▶ Run section</b> (top of the section in the Tasks tab) and the clone works through everything, builds the gear, fills its stores and crosses. Ready sections next to each other link across their crossings into one run (<b>▶ Run 3 sections</b>), up to the end of the act; a run that dies starts again with the next clone. The option <b>Pause when a section run ends instead</b> keeps a run going through its crossings and pauses once it is over. Work done as part of a chain (a queued chain or a section run) builds <b>chain flow</b>, which makes chained steps up to five times as fast; it is kept through new game plus. An automated job steps in when its store drops below the forage threshold and fills it up. Automated <b>crossings</b> are the exception: they wait until your queue is done. A task you tap runs before everything. The <b>Auto</b> tab lists everything unlocked and has extra options: feeding when needed, filling storage before moving on, the strain level for automatic rests, the death screen and starting paused.'],
   ['What happens at a crossing with automation?', 'A queued or automated crossing stops just before it finishes and waits while the clone finishes automated actions and training, builds affordable automated gear, refills storage (if that option is on) and uses the section’s rest. Tap a crossing yourself to go at once.'],
   ['Pause, background and boost', 'Pause with the button at the top or the space bar. The game keeps running in a background tab and catches up when you return, then shows what happened while you were away. Time while the game is fully closed is banked as a <b>stasis boost</b> you can switch on in the header. Pick Off, ×2, ×5 or ×10 from its menu: at ×5 every real second plays five, and the bank pays for the extra four, so faster boost spends the bank faster. Both start capped at 8 hours: at most 8 hours of background time is played out, and the boost holds at most 8 hours. Each <b>Stasis watch</b> record adds 8 hours to both; you get one the first time you finish each section (5 in all, up to 48 hours).'],
