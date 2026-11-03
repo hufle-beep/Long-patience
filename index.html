@@ -483,7 +483,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
 
 <script id="logic">
 /* ===== Game data and rules (no DOM) ===== */
-const BUILD = '2026-11-03 · drill fix';   // shown in the main menu, to tell which version is loaded
+const BUILD = '2026-11-03 · shared saves';   // shown in the main menu, to tell which version is loaded
 const DPS = 4;             // simulation ticks per real second at 1x
 // Time is simulated in ticks. 80 ticks make one ship day (18 minutes each), so a day lasts
 // 20 real seconds at 1x and a clone lives weeks, not years. Everything is shown in days and hours.
@@ -1943,6 +1943,7 @@ function parseSaveText(txt){
   return raw && raw.life ? raw : null;
 }
 document.addEventListener('change', e => {
+  if (e.target.id === 'share-name') { try { localStorage.setItem(SHARE_KEY, e.target.value.trim()); } catch(err) {} return; }
   if (e.target.id !== 'import-file' || !e.target.files || !e.target.files[0]) return;
   const f = e.target.files[0], rd = new FileReader();
   rd.onload = () => { const raw = parseSaveText(rd.result); e.target.value = ''; if (!raw) { sfx('error'); toast('That file isn’t a Long Patience save.'); return; } applyLoaded(raw, 'file ' + f.name); };
@@ -1960,6 +1961,59 @@ function applyLoaded(raw, from){
   if (S.life.dead) showDeath();
   toast('Loaded save from ' + from + ': clone ' + S.gen);
 }
+/* ----- shared saves: the saves/ folder of the game's public GitHub repository ----- */
+// No token is stored: sharing opens GitHub's own "new file" page with the save filled in, and the
+// player commits it there while signed in. Loading reads the public folder without signing in.
+const GH_REPO = 'hufle-beep/Long-patience', GH_DIR = 'saves', GH_URL_MAX = 7500;
+const SHARE_KEY = 'long-patience.sharename.v1';
+let ghList = null, ghBusy = false;
+function shareName(){ try { return localStorage.getItem(SHARE_KEY) || ''; } catch(e) { return ''; } }
+function ghFileName(){
+  const who = (shareName() || 'player').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 24) || 'player';
+  const d = new Date(), p = n => String(n).padStart(2, '0');
+  const when = d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + '-' + p(d.getHours()) + p(d.getMinutes());
+  return who + '-' + when + '-' + (S.pr && S.pr.n ? 'ngp' + S.pr.n + '-' : '') + 'clone' + S.gen + '.json';
+}
+function openOut(url){ const a = document.createElement('a'); a.href = url; a.target = '_blank'; a.rel = 'noopener'; document.body.appendChild(a); a.click(); a.remove(); }
+function shareToGitHub(){
+  save();
+  const json = JSON.stringify(S), name = ghFileName();
+  const base = 'https://github.com/' + GH_REPO + '/new/main?filename=' + encodeURIComponent(GH_DIR + '/' + name);
+  const full = base + '&value=' + encodeURIComponent(json);
+  if (full.length <= GH_URL_MAX) { openOut(full); toast('GitHub opens with the save filled in. Sign in and press “Commit changes”.', true); return; }
+  // too long to fit in a link: copy it, then the player pastes it into GitHub's editor
+  const ta = $('#save-code'); if (ta) ta.value = json;
+  const go = ok => { openOut(base); toast(ok ? 'Save copied. In GitHub, paste it into the empty file and press “Commit changes”.' : 'Save is in the text box below: copy it, paste it into the GitHub file and commit.', true); };
+  try { navigator.clipboard.writeText(json).then(() => go(true), () => go(false)); } catch(e) { go(false); }
+}
+async function ghRefresh(){
+  if (ghBusy) return; ghBusy = true; ghList = 'loading'; renderGhList();
+  try {
+    const r = await fetch('https://api.github.com/repos/' + GH_REPO + '/contents/' + GH_DIR + '?ref=main', {cache:'no-store'});
+    if (r.status === 404) ghList = [];
+    else if (!r.ok) throw new Error('GitHub answered ' + r.status + (r.status === 403 ? ' (too many requests; try again in a while)' : ''));
+    else ghList = (await r.json()).filter(f => f.type === 'file' && /\.(json|txt)$/i.test(f.name)).sort((a, b) => b.name.localeCompare(a.name)).slice(0, 40);
+  } catch(e) { ghList = 'error:' + (e.message || 'no connection'); }
+  ghBusy = false; renderGhList();
+}
+function renderGhList(){
+  const el = $('#gh-list'); if (!el) return;
+  if (ghList == null) { el.innerHTML = ''; return; }
+  if (ghList === 'loading') { el.innerHTML = '<p class="note">Loading the shared saves…</p>'; return; }
+  if (typeof ghList === 'string') { el.innerHTML = '<p class="note">Couldn’t reach GitHub: ' + ghList.slice(6).replace(/</g, '&lt;') + '</p>'; return; }
+  if (!ghList.length) { el.innerHTML = '<p class="note">No shared saves yet.</p>'; return; }
+  el.innerHTML = ghList.map((f, i) => `<div class="row"><p>${f.name.replace(/</g, '&lt;')}<small>${Math.max(1, Math.round(f.size / 1024))} KB</small></p><button class="btn" data-confirm="ghload" data-gi="${i}">Load</button></div>`).join('');
+}
+async function ghLoad(i){
+  const f = Array.isArray(ghList) && ghList[i]; if (!f) return;
+  toast('Downloading ' + f.name + '…');
+  try {
+    const r = await fetch(f.download_url, {cache:'no-store'}); if (!r.ok) throw new Error(r.status);
+    const raw = parseSaveText(await r.text());
+    if (!raw) { sfx('error'); toast('That file isn’t a Long Patience save.'); return; }
+    applyLoaded(raw, 'GitHub (' + f.name + ')');
+  } catch(e) { sfx('error'); toast('Couldn’t download it: ' + (e.message || 'no connection')); }
+}
 function savePanel(){
   return `<div class="panel set"><span class="h2">Save file</span>
     <p class="note">Export this slot as a JSON file to keep a backup or send it to another device, and import one to continue from it. Importing replaces the game in the current slot.</p>
@@ -1970,6 +2024,12 @@ function savePanel(){
     <p class="note">The same save as text you can copy and paste. JSON is readable; the save code is shorter. The box below accepts either.</p>
     <div class="fld"><label for="save-code">Save text</label><textarea id="save-code" spellcheck="false" placeholder="Paste a save code or save JSON here"></textarea></div>
     <div class="btns"><button class="btn" data-copysave>Copy save code</button><button class="btn" data-copyjson>Copy as JSON</button><button class="btn" data-confirm="import">Load pasted text</button></div>
+  </div>
+  <div class="panel set"><span class="h2">Shared saves on GitHub</span>
+    <p class="note">Share this slot to the <b>saves</b> folder of the game’s GitHub repository: GitHub opens with the save filled in, and you sign in and press <b>Commit changes</b>. No password or token is stored here. The folder is public, so anyone can download what you share. Loading a shared save replaces the game in the current slot.</p>
+    <div class="fld"><label for="share-name">Name on shared files</label><input type="text" id="share-name" autocomplete="off" maxlength="24" placeholder="player" value="${shareName().replace(/"/g, '&quot;')}"></div>
+    <div class="btns"><button class="btn pri" data-ghshare>Share to GitHub</button><button class="btn" data-ghlist>Show shared saves</button></div>
+    <div id="gh-list"></div>
   </div>`;
 }
 function mergeState(raw){
@@ -3134,6 +3194,8 @@ document.addEventListener('click', e => {
   }
   if ('eat' in d) { const f = readyFoods()[0], h0 = L.hp; if (f && eat(f)) sfx('eat'), toast('Ate ' + FD[f].name.toLowerCase() + '. +' + fmt(L.hp - h0) + ' health'); return; }
   if ('exportjson' in d) { exportJson(); return; }
+  if ('ghshare' in d) { shareToGitHub(); return; }
+  if ('ghlist' in d) { ghRefresh(); return; }
   if ('copyjson' in d) {
     save(); const code = JSON.stringify(S, null, 1), ta = $('#save-code'); ta.value = code;
     const fallback = () => { ta.focus(); ta.select(); toast('Save JSON selected. Copy it from the box.'); };
@@ -3221,11 +3283,12 @@ document.addEventListener('click', e => {
   if (d.confirm) {
     const k = d.confirm;
     if (!confirmT[k]) {
-      confirmT[k] = setTimeout(() => { confirmT[k] = null; if (b.isConnected) b.textContent = ({reset:'Restart', recycle:'Recycle', import:'Load pasted text', importfile:'Import save file'})[k]; }, 3000);
+      confirmT[k] = setTimeout(() => { confirmT[k] = null; if (b.isConnected) b.textContent = ({reset:'Restart', recycle:'Recycle', import:'Load pasted text', importfile:'Import save file', ghload:'Load'})[k]; }, 3000);
       b.textContent = 'Tap again'; return;
     }
     clearTimeout(confirmT[k]); confirmT[k] = null;
     if (k === 'importfile') { b.textContent = 'Import save file'; $('#import-file').click(); return; }
+    if (k === 'ghload') { b.textContent = 'Load'; ghLoad(+d.gi); return; }
     if (k === 'import') {
       b.textContent = 'Load pasted text';
       let raw = null; const txt = $('#save-code').value.trim();
