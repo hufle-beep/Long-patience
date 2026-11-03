@@ -484,7 +484,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
 
 <script id="logic">
 /* ===== Game data and rules (no DOM) ===== */
-const BUILD = '2026-11-03 · packed shared saves';   // shown in the main menu, to tell which version is loaded
+const BUILD = '2026-11-03 · forage fix';   // shown in the main menu, to tell which version is loaded
 const DPS = 8;             // simulation ticks per real second at 1x (doubled for the test version: same balance, half the real time)
 // Time is simulated in ticks. 80 ticks make one ship day (18 minutes each), so a day lasts
 // 20 real seconds at 1x and a clone lives weeks, not years. Everything is shown in days and hours.
@@ -1096,7 +1096,7 @@ function active(ex){
       if (L.rations < low) L.foraging = true;
       if (L.foraging && (L.food[f] || 0) >= Math.min(low * 2, cap - 0.5)) L.foraging = false;
       if (L.foraging && ok(food)) return food;
-    }
+    } else L.foraging = false;   // every food store is full (or there is no food job here): foraging is over
   } else L.foraging = false;
   const feed = feedJob();
   if (ok(feed)) return feed;
