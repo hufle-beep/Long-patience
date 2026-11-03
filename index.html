@@ -484,7 +484,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
 
 <script id="logic">
 /* ===== Game data and rules (no DOM) ===== */
-const BUILD = '2026-11-03 · Act I rewards';   // shown in the main menu, to tell which version is loaded
+const BUILD = '2026-11-03 · Act II rewards';   // shown in the main menu, to tell which version is loaded
 const DPS = 4;             // simulation ticks per real second at 1x
 // Time is simulated in ticks. 80 ticks make one ship day (18 minutes each), so a day lasts
 // 20 real seconds at 1x and a clone lives weeks, not years. Everything is shown in days and hours.
@@ -943,6 +943,8 @@ const NGP_GROWTH = 0.2, NGP_GROWTH_MAX = 5;   // deep echo: +20% skill growth pe
 // Each level costs one point and is permanent (no respec). Deep echo, Drain dampener and Template
 // upgrade work in Act I; Overclocked line speeds up the whole game.
 const NGP_MAX = 3;
+// Act II rewards per level (3 levels reach the old 5-level maximum)
+const A2_STEP = {vet:0.25, rhythm:0.4 / 3, scav:1 / 3, rations:0.5 / 3};
 const NGP = [
   {id:'growth', name:'Deep echo',       max:NGP_MAX, now:k => 'Act I familiarity needed ×' + Math.pow(FAM_ECHO, k).toFixed(2), step:'Act I tasks reach ×10 with about 30% less familiarity'},
   {id:'drain',  name:'Drain dampener',  max:NGP_MAX, now:k => 'health drain in Act I ÷' + drainAt(k).toFixed(1), step:'Divides health drain in Act I (÷2.3, ÷3.7, ÷5 at the last step)'},
@@ -988,9 +990,9 @@ function mods(){
     if (e.a2haz) m.a2haz *= e.a2haz; if (e.a2fam) m.a2fam *= e.a2fam; if (e.wear) m.wear *= e.wear;
   };
   PERKS.forEach(p => { if (hasPerk(p)) ap(p.eff); });
-  // Act II rewards bought with Honours (5 levels each)
-  const lv = id => Math.min(5, ((S.a2 || {}).lv || {})[id] || 0);
-  m.a2haz *= 1 - 0.15 * lv('vet'); m.a2strain *= 1 - 0.08 * lv('rhythm'); m.a2sal *= 1 + 0.2 * lv('scav'); m.a2food *= 1 + 0.1 * lv('rations');
+  // Act II rewards bought with Honours (3 levels each, permanent)
+  const lv = id => Math.min(NGP_MAX, ((S.a2 || {}).lv || {})[id] || 0);
+  m.a2haz *= 1 - A2_STEP.vet * lv('vet'); m.a2strain *= 1 - A2_STEP.rhythm * lv('rhythm'); m.a2sal *= 1 + A2_STEP.scav * lv('scav'); m.a2food *= 1 + A2_STEP.rations * lv('rations');
 
   if (!isA2(L.sec || 1)) m.maxHp += hpAt(ngpLv('hp'));   // Act I reward: template upgrade (Act I only)
   ITEMS.forEach(i => { if (L.owned[i.id]) ap(i.eff); });
@@ -2259,6 +2261,7 @@ function mergeState(raw){
   ['lv','perks'].forEach(k => { if (!s.a2[k]) s.a2[k] = {}; });
   if ((s.won || (s.pr && s.pr.n)) && !s.a2.open) s.a2.open = true;   // Act II opens for anyone who has lit the drive
   if (!s.a2run) s.a2run = {reached:{}, done:{}};
+  if (s.a2 && s.a2.lv) for (const k in s.a2.lv) s.a2.lv[k] = Math.min(NGP_MAX, s.a2.lv[k] || 0);   // Act II rewards now have 3 levels: levels above that become unspent Honours
   if (s.pr && (s.won || ((s.pr.pts != null ? s.pr.pts : s.pr.n) || 0) >= KIT_PTS)) s.pr.kit = true;   // Quartermaster's cache: any save that has lit the drive
   if (s.life && !s.life.visited) { s.life.visited = {}; for (let z = 1; z <= Math.min(5, s.life.sec || 1); z++) s.life.visited[z] = 1; }
   if (!s.autoDef) { s.autoDef = 1; const P = s.prac || {}; s.auto = s.auto || {};
@@ -2916,12 +2919,12 @@ document.addEventListener('change', e => {
   else { S.set.boost = true; S.set.boostX = x; toast('Stasis boost \u00d7' + x + ': the bank lasts ' + fmtSecs(S.bank / (x - 1)) + ' of running time.'); }
   audioStart(); sfx('toggle'); save(); renderSpeed(); e.target.blur();
 });
-// Act II: the branch for this run, and Honours spent on Act II rewards (respec any time)
+// Act II: the branch, and Honours spent on Act II rewards: like Act I rewards, 3 levels each and permanent
 const A2R = [
-  {id:'vet',     name:'Veteran template',  now:k => 'Act II hazard damage \u2212' + (15 * k) + '%'},
-  {id:'rhythm',  name:'Long-watch rhythm', now:k => 'strain in Act II \u2212' + (8 * k) + '%'},
-  {id:'scav',    name:'Scavenger\u2019s eye', now:k => 'Act II salvage +' + (20 * k) + '%'},
-  {id:'rations', name:'Field rations',     now:k => 'Act II meals come ' + (10 * k) + '% more often'},
+  {id:'vet',     name:'Veteran template',  now:k => 'Act II hazard damage \u2212' + Math.round(100 * A2_STEP.vet * k) + '%'},
+  {id:'rhythm',  name:'Long-watch rhythm', now:k => 'strain in Act II \u2212' + Math.round(100 * A2_STEP.rhythm * k) + '%'},
+  {id:'scav',    name:'Scavenger\u2019s eye', now:k => 'Act II salvage +' + Math.round(100 * A2_STEP.scav * k) + '%'},
+  {id:'rations', name:'Field rations',     now:k => 'Act II meals come ' + Math.round(100 * A2_STEP.rations * k) + '% more often'},
 ];
 function act2Panel(){
   const a = S.a2, spent = Object.values(a.lv || {}).reduce((x, y) => x + y, 0), free = Math.max(0, (a.hon || 0) - spent);
@@ -2929,12 +2932,12 @@ function act2Panel(){
   h += `<p class="note">After the drive is lit, a run can go on into Act II. Act II familiarity, automation, records and Honours are kept for good. Act II needs ${fmt(famN0A2())} lives' worth of a task for \u00d710 (a quarter less for every branch finished).</p>`;
   if (!S.branch) h += S.won ? '<div class="ngpick"><button class="btn" data-act2="A">Act II: Boarders<small>Repel alien boarders; can merge into the long watch afterwards.</small></button><button class="btn" data-act2="B">Act II: The long watch<small>Keep the ship running all the way to Tessaly.</small></button></div>'
                           : '<p class="note">Light the main drive in this run to choose an Act II branch.</p>';
-  else h += `<p class="note">This run: <b>${S.branch === 'A' ? 'Boarders' : 'The long watch'}</b>${S.branch === 'A' ? (S.merge ? ', then the long watch' : S.merge === false ? ' (ending there)' : '') : ''}.</p>` +
+  else h += `<p class="note">Your branch: <b>${S.branch === 'A' ? 'Boarders' : 'The long watch'}</b>${S.branch === 'A' ? (S.merge ? ', then the long watch' : S.merge === false ? ' (ending there)' : '') : ''}.</p>` +
     (S.branch === 'A' && S.merge === false ? '<div class="btns"><button class="btn" data-merge="1">Merge into the long watch after all</button></div>' : '');
-  h += `<div class="ngpts"><span class="lbl">Honours</span> <b class="num">${free}</b> unspent of ${a.hon || 0} \u00b7 one per Act II section first reached in a run, two per branch finished</div>`;
-  A2R.forEach(r => { const k = Math.min(5, (a.lv || {})[r.id] || 0);
-    h += `<div class="ngrow"><div><b>${r.name}</b> <span class="num">${k}/5</span><small>${k ? r.now(k) : 'not taken'}</small></div>
-      <button class="btn" data-a2adj="${r.id}" data-dd="-1" ${k ? '' : 'disabled'} aria-label="Remove an Honour from ${r.name}">\u2212</button><button class="btn" data-a2adj="${r.id}" data-dd="1" ${k < 5 && free ? '' : 'disabled'} aria-label="Add an Honour to ${r.name}">+</button></div>`; });
+  h += `<div class="ngpts"><span class="lbl">Honours</span> <b class="num">${free}</b> unspent of ${a.hon || 0} \u00b7 one per Act II section first reached, two per branch finished (10 in all); spending is permanent</div>`;
+  A2R.forEach(r => { const k = Math.min(NGP_MAX, (a.lv || {})[r.id] || 0);
+    h += `<div class="ngrow"><div><b>${r.name}</b> <span class="num">${k}/${NGP_MAX}</span><small>${k ? r.now(k) : 'not taken'}${k < NGP_MAX ? ' \u00b7 next: ' + r.now(k + 1) : ''}</small></div>
+      <button class="btn" data-confirm="a2add" data-a2r="${r.id}" ${k < NGP_MAX && free ? '' : 'disabled'} aria-label="Spend an Honour on ${r.name}">+</button></div>`; });
   return h + '</div>';
 }
 function ngpPanel(){
@@ -3256,7 +3259,7 @@ const FAQ_ALL = [
 ];
 // Shown once the drive is first lit.
 const FAQ_NGP = ['Act I rewards', 'There is no restarting: after the drive is lit, the story always moves forward into Act II. Moving forward earns <b>Act I reward points</b>: one for lighting the drive, one for each Act II section you first reach and two for each Act II branch you finish (11 in all). Spend them in the Archive; each level costs one point and is permanent. <b>Deep echo</b> (Act I tasks need about 30% less familiarity per step for \u00d710), <b>Drain dampener</b> (health drain in Act I divided by 2.3, 3.7, then 5) and <b>Template upgrade</b> (+167, +333, then +500 max health in Act I) help every clone through Act I on its way to Act II. <b>Overclocked line</b> makes the whole game run faster in both acts (\u00d72.3, \u00d73.7, then \u00d75) without using banked time. Each reward has three levels, so 11 points can\u2019t max everything: choose. Lighting the drive the first time also unlocks the <b>Quartermaster\u2019s cache</b>: every clone starts with all of its automated gear already built, in both acts.'];
-const FAQ_A2 = ['Act II', 'Once the main drive is lit, a run can carry on into <b>Act II</b>. Choose a branch: <b>Boarders</b> (alien boarders cut into the hull; three sections of fighting, ending on their ship, after which you can merge into the long watch) or <b>The long watch</b> (the voyage goes on; the ship slowly wears out, which adds to the health drain until upkeep jobs bring it down; three sections to Tessaly orbit). Every clone that lights the drive carries on into the chosen branch. Act II tasks have their own familiarity, which Deep echo does not reduce: it starts at 90 lives\u2019 worth for \u00d710 and drops by a quarter for every branch you finish. Act II familiarity, automation, records and <b>Honours</b> are kept for good. Honours (one per Act II section first reached in a run, two per branch finished) buy Act II rewards in the Archive, with free respec.'];
+const FAQ_A2 = ['Act II', 'Once the main drive is lit, a run can carry on into <b>Act II</b>. Choose a branch: <b>Boarders</b> (alien boarders cut into the hull; three sections of fighting, ending on their ship, after which you can merge into the long watch) or <b>The long watch</b> (the voyage goes on; the ship slowly wears out, which adds to the health drain until upkeep jobs bring it down; three sections to Tessaly orbit). Every clone that lights the drive carries on into the chosen branch. Act II tasks have their own familiarity, which Deep echo does not reduce: it starts at 90 lives\u2019 worth for \u00d710 and drops by a quarter for every branch you finish. Act II familiarity, automation, records and <b>Honours</b> are kept for good. Honours (one per Act II section first reached, two per branch finished: 10 in all) buy Act II rewards in the Archive: Veteran template (Act II hazard damage \u221225% per level), Long-watch rhythm (strain \u221213%), Scavenger\u2019s eye (salvage +33%) and Field rations (meals 17% more often). Like Act I rewards they have three levels each, and spending is permanent.'];
 let faqDone = '';
 function renderFaq(){
   const k = String(!!(S.won || (S.pr && S.pr.n))) + !!(S.a2 && S.a2.open);
@@ -3427,9 +3430,7 @@ document.addEventListener('click', e => {
   if (d.merge != null) { S.merge = d.merge === '1'; hideModal(); paused = false;
     if (S.merge && S.life.sec === 8 && !S.life.dead && complete(T.cutloose)) enterZone(9, 8);
     toast(S.merge ? 'The run continues into the long watch.' : 'The run ends with the boarders. You can still merge from the Archive.'); taskKey = ''; archKey = ''; renderView(); return; }
-  if (d.a2adj) { const k = d.a2adj, v = (S.a2.lv[k] || 0), dd = +d.dd, free = (S.a2.hon || 0) - Object.values(S.a2.lv).reduce((a, b) => a + b, 0);
-    if (dd > 0 && v < 5 && free > 0) S.a2.lv[k] = v + 1; else if (dd < 0 && v > 0) S.a2.lv[k] = v - 1; else return;
-    M = mods(); if (S.life.hp > M.maxHp) S.life.hp = M.maxHp; sfx('toggle'); archKey = ''; save(); renderView(true); return; }
+  if (d.a2adj) return;   // Honours can't be moved once spent
   if (d.ngpadj) { if (ngpAdjust(d.ngpadj, +d.dd)) { sfx('toggle'); archKey = ''; save(); renderView(true); } return; }
   if (d.ngpick) {
     const pr0 = S.pr || {};
@@ -3495,11 +3496,13 @@ document.addEventListener('click', e => {
   if (d.confirm) {
     const k = d.confirm;
     if (!confirmT[k]) {
-      confirmT[k] = setTimeout(() => { confirmT[k] = null; if (b.isConnected) b.textContent = ({reset:'Restart', recycle:'Recycle', import:'Load pasted text', importfile:'Import save file', ghload:'Load', ngpadd:'+'})[k]; }, 3000);
+      confirmT[k] = setTimeout(() => { confirmT[k] = null; if (b.isConnected) b.textContent = ({reset:'Restart', recycle:'Recycle', import:'Load pasted text', importfile:'Import save file', ghload:'Load', ngpadd:'+', a2add:'+'})[k]; }, 3000);
       b.textContent = 'Tap again'; return;
     }
     clearTimeout(confirmT[k]); confirmT[k] = null;
     if (k === 'importfile') { b.textContent = 'Import save file'; $('#import-file').click(); return; }
+    if (k === 'a2add') { b.textContent = '+'; const id = d.a2r, v = S.a2.lv[id] || 0, free = (S.a2.hon || 0) - Object.values(S.a2.lv).reduce((x, y) => x + y, 0);
+      if (v < NGP_MAX && free > 0) { S.a2.lv[id] = v + 1; M = mods(); const r = A2R.find(x => x.id === id); sfx('perk'); toast(r.name + ' ' + (v + 1) + '/' + NGP_MAX + ': ' + r.now(v + 1) + '.'); archKey = ''; save(); renderView(true); } return; }
     if (k === 'ngpadd') { b.textContent = '+'; if (ngpAdjust(d.ngr, 1)) { const r = NGP.find(x => x.id === d.ngr); sfx('perk'); toast(r.name + ' ' + ngpLv(r.id) + '/' + r.max + ': ' + r.now(ngpLv(r.id)) + '.'); archKey = ''; save(); renderView(true); } return; }
     if (k === 'ghload') { b.textContent = 'Load'; ghLoad(+d.gi); return; }
     if (k === 'import') {
