@@ -483,7 +483,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
 
 <script id="logic">
 /* ===== Game data and rules (no DOM) ===== */
-const BUILD = '2026-11-03 · chain gear fix';   // shown in the main menu, to tell which version is loaded
+const BUILD = '2026-11-03 · section runs';   // shown in the main menu, to tell which version is loaded
 const DPS = 4;             // simulation ticks per real second at 1x
 // Time is simulated in ticks. 80 ticks make one ship day (18 minutes each), so a day lasts
 // 20 real seconds at 1x and a clone lives weeks, not years. Everything is shown in days and hours.
@@ -840,12 +840,12 @@ const IT = {}; ITEMS.forEach(i => IT[i.id] = i);
 const gearZone = i => T[i.req].cross ? T[i.req].z + 1 : T[i.req].z;
 
 let S, M;
-const HOOK = {log(){}, perk(){}, die(){}, win(){}, change(){}, stopped(){}, practiced(){}, done(){}, rested(){}, crossed(){}, bought(){}, qfull(){}, honour(){}, merge(){}, kit(){}};
+const HOOK = {log(){}, perk(){}, die(){}, win(){}, change(){}, stopped(){}, practiced(){}, done(){}, rested(){}, crossed(){}, bought(){}, qfull(){}, honour(){}, merge(){}, kit(){}, runEnd(){}};
 
 // Player preferences (switches, thresholds, boost speed) are stored once for the device, not per save:
 // a new game or another slot starts with the same settings.
 const PREF_KEY = 'long-patience.prefs.v1';
-const PREF_KEYS = ['autoFood','autoEat','foodPct','restAt','keepQueue','deathScreen','deathPause','startPaused','bgPause','pauseCross','replay','fillCross','autoFeed','boostX'];
+const PREF_KEYS = ['autoFood','autoEat','foodPct','restAt','keepQueue','deathScreen','deathPause','startPaused','bgPause','pauseCross','pauseRunEnd','replay','fillCross','autoFeed','boostX'];
 function loadPrefs(){ try { const p = JSON.parse(localStorage.getItem(PREF_KEY) || '{}'); const o = {}; PREF_KEYS.forEach(k => { if (p[k] !== undefined) o[k] = p[k]; }); return o; } catch(e) { return {}; } }
 function savePrefs(){ try { if (!S || !S.set) return; const o = {}; PREF_KEYS.forEach(k => { if (S.set[k] !== undefined) o[k] = S.set[k]; }); localStorage.setItem(PREF_KEY, JSON.stringify(o)); } catch(e) {} }
 function newLife(s){
@@ -858,7 +858,7 @@ function newLife(s){
 }
 function defaultState(){
   const s = {v:1, qpresets:[[], [], [], [], []], gprac:{}, gauto:{}, gprio:{}, ev:2, xpTot:{}, rv:4, sv:2, pv:3, vv:3, gen:1, prio:{}, fam:{}, ever:{}, prac:{}, auto:{}, echo:{}, perks:{}, seen:{}, logged:{}, log:[], lastOrder:[], lastJob:null,
-    set:Object.assign({speed:1, autoFood:true, autoEat:true, foodDays:2, foodPct:40, restAt:2.5, keepQueue:true, deathScreen:true, deathPause:true, startPaused:false, bgPause:false, pauseCross:false, replay:true, fillCross:false, autoFeed:false, boost:false, boostX:2}, loadPrefs()),
+    set:Object.assign({speed:1, autoFood:true, autoEat:true, foodDays:2, foodPct:40, restAt:2.5, keepQueue:true, deathScreen:true, deathPause:true, startPaused:false, bgPause:false, pauseCross:false, pauseRunEnd:false, replay:true, fillCross:false, autoFeed:false, boost:false, boostX:2}, loadPrefs()),
     stats:{bestAge:0, deaths:0, daysLived:0, played:0}, a2:{open:false, hon:0, lv:{}, perks:{}, fin:0}, branch:null, merge:null, a2run:{reached:{}, done:{}}, pr:{n:0, pts:0, growth:0, drain:0, hp:0, speed:0, carry:0, runs:[]}, won:false, winGen:0, bank:0, saved:Date.now(), intro:false};
   SKILLS.forEach(k => s.echo[k.id] = 0);
   s.life = newLife(s);
@@ -1027,11 +1027,11 @@ function active(ex){
   const held = heldStep();
   if (ok(held)) return held;
   // One-click section run: everything in the section in chain order, then the crossing (no waiting).
-  // Food, feeding and rests still look after the clone. It carries on into the next section when that
-  // section's chain is ready too.
+  // Food, feeding and rests still look after the clone. It carries on across the crossing into the next
+  // section when that section's chain is ready too (see runSpan), up to the end of the act.
   if (L.chainRun) {
     const z = L.sec || 1, g = sectionGate(z), end = sectionEnd(z);
-    if (!g.ready || !end || complete(end)) { L.chainRun = false; HOOK.change(); }
+    if (!g.ready || !end || complete(end)) endRun(L, !end || complete(end) ? 'done' : 'notready');
     else {
       const step = pendingActs()[0] || pendingGearJob() || fillJob() || pendingRest();
       if (step) { if (ok(step)) { L.viaChain = true; return step; } }
@@ -1139,6 +1139,17 @@ function sectionGate(z){
   const ok = ts.filter(t => isAuto(t) && masteryF(t) >= SECTION_F).length + gs.filter(gearAuto).length;
   return {ok, n:ts.length + gs.length, ready:ok === ts.length + gs.length};
 }
+// Multi-section runs: the section you are in and every following section on this run's route whose
+// section chain is ready too, linked across their crossings. A run always stops at the end of an act
+// (lighting the drive, the end of the boarders, the landing): those are your decisions.
+const ACT_ENDS = [5, 8, 11];
+function runSpan(z){
+  const p = pathOf(), out = []; let i = p.indexOf(z);
+  while (i >= 0 && i < p.length && sectionGate(p[i]).ready) { out.push(p[i]); if (ACT_ENDS.includes(p[i])) break; i++; }
+  return out;
+}
+// The run stops by itself (not by your Stop button): tell the UI, which may pause
+function endRun(L, why){ if (!L.chainRun) return; const from = L.runFrom || L.sec || 1; L.chainRun = false; L.runFrom = null; HOOK.change(); HOOK.runEnd(from, L.sec || 1, why); }
 // The best job in the current section for a storage that isn't full yet (rations first).
 function fillJob(){
   for (const res of ['rations', 'salvage']) {
@@ -1333,6 +1344,7 @@ function enterZone(z, from){
   L.qdone.push(...L.queue.filter(id => !stay(id))); L.queue = L.queue.filter(stay);
   if (L.job && zBefore(T[L.job].z, z)) L.job = null;
   L.foraging = false; L.held = null;
+  if (L.chainRun && ACT_ENDS.includes(from)) endRun(L, 'act');   // e.g. merging from the boarders into the long watch
   if (isA2(z)) {   // Act II: an Honour for each section first reached in a run
     S.a2run = S.a2run || {reached:{}, done:{}};
     if (!S.a2run.reached[z]) { S.a2run.reached[z] = 1; S.a2.hon = (S.a2.hon || 0) + 1; HOOK.honour(1, 'reaching ' + zoneThe(z)); }
@@ -1638,6 +1650,8 @@ function decant(){
   S.life.queue = keep.slice(); S.life.qdone = [];
   // Engram recorder: the task the last clone died working on starts up to a quarter done (never more than it had)
   if (S.perks.engram && S.engramT && T[S.engramT.id]) { const t = T[S.engramT.id]; S.life.prog[t.id] = Math.min(S.engramT.p, ENGRAM_SHARE * t.days); }
+  // A multi-section run in progress starts again with the new clone, from its first section, if that section is ready
+  if (prev.chainRun && runSpan(S.life.sec || 1).length) { S.life.chainRun = true; S.life.runFrom = S.life.sec || 1; }
   // No fallback job carries over: a new clone waits for orders unless automation or a record says otherwise.
   HOOK.change();
 }
@@ -2188,7 +2202,14 @@ HOOK.bought = (it, auto, unlocked) => {
   if (unlocked) toast('Automated: ' + it.name + (S.gauto[it.id] ? ' is now built automatically (switch it off with AUTO).' : ' can now be built automatically.'), true);
 };
 HOOK.crossed = z => { sfx('perk'); taskKey = ''; mapKey = ''; toast('You enter ' + zoneThe(z) + '. The way back is sealed.', true);
+  if (S.set.pauseRunEnd && S.life.chainRun) return;   // a section run is going on: pause when it ends instead
   if (S.set.pauseCross) { S.set.paused = true; toast('Paused on entering ' + zoneThe(z) + '. Press Resume to carry on.'); } };
+HOOK.runEnd = (from, to, why) => { taskKey = ''; autoKey = '';
+  const p = pathOf(), last = why === 'notready' && from !== to ? p[p.indexOf(to) - 1] : to;
+  const span = from === last ? zoneThe(last) : 'sections ' + (p.indexOf(from) + 1) + '\u2013' + (p.indexOf(last) + 1);
+  const msg = why === 'act' ? 'Run finished at the end of the act.' : why === 'done' || from !== to ? 'Run finished: ' + span + '.' + (last !== to ? ' Now in ' + zoneThe(to) + ', which isn\u2019t ready to run yet.' : '') : 'Run stopped: ' + zoneThe(to) + ' isn\u2019t ready to run yet.';
+  if (S.set.pauseRunEnd) { S.set.paused = true; toast(msg + ' Paused; press Resume to carry on.', true); }
+  else toast(msg); };
 HOOK.rested = t => { sfx('eat'); toast('Rested. Strain halved to \u00d7' + (S.life.strain || 1).toFixed(2) + '.'); };
 HOOK.perk = p => { sfx('perk'); toast('Archive record: ' + p.name, true); if (tab !== 'archive') newPerk = true; archKey = ''; };
 HOOK.change = () => { taskKey = ''; gearKey = ''; };
@@ -2276,7 +2297,10 @@ function chainRow(id, i){
 // The one-click section chain: a Run button once the section is fully chained, else its progress
 function secRunHtml(z){
   const g = sectionGate(z), L = S.life;
-  if (L.chainRun && (L.sec || 1) === z) return `<div class="secrun on"><span>Running the whole section as one chain\u2026</span><button class="btn" data-secstop>Stop</button></div>`;
+  const sp = runSpan(z), names = sp.map(x => ZONES[x - 1].name).join(' \u2192 ');
+  const endNote = sp.length && ACT_ENDS.includes(sp[sp.length - 1]) ? ' It stops at the end of the act.' : '';
+  if (L.chainRun && (L.sec || 1) === z) return `<div class="secrun on"><span>${sp.length > 1 ? 'Running ' + sp.length + ' sections as one chain: ' + names + '\u2026' : 'Running the whole section as one chain\u2026'}</span><button class="btn" data-secstop>Stop</button></div>`;
+  if (sp.length > 1) return `<div class="secrun"><span>Sections linked: ${names}. Every task is automated and \u00d7${SECTION_F} familiar, so the run carries on across ${sp.length - 1 === 1 ? 'the crossing' : 'the crossings'}.${endNote}</span><button class="btn pri" data-secrun>\u25b6 Run ${sp.length} sections</button></div>`;
   if (g.ready) return `<div class="secrun"><span>Section chain ready: every task is automated and \u00d7${SECTION_F} familiar.</span><button class="btn pri" data-secrun>\u25b6 Run section</button></div>`;
   return g.ok ? `<div class="secrun dim"><span>Section chain: ${g.ok}/${g.n} parts automated at \u00d7${SECTION_F} (gear: automated). Details in the Auto tab.</span></div>` : '';
 }
@@ -2341,7 +2365,7 @@ function renderTasks(){
     if (av && !complete(t)) vis.push(t.id);
     else if (!av && S.seen[t.id]) locked.push(t.id);
   });
-  const key = vis.join() + '|' + locked.join() + '|' + [...chainedIds()].join() + JSON.stringify(cOpen) + JSON.stringify(qOpen) + JSON.stringify(L.cjd || {}) + L.queue.filter(isCQ).map(id => cSteps(id).filter(x => cStepDone(id, x)).length).join() + (L.now || '') + (L.chainRun ? 'R' : '') + JSON.stringify(sectionGate(L.sec || 1)) + ITEMS.filter(i => isDone(i.req)).map(i => i.id + (L.owned[i.id] ? 'o' : L.salvage >= i.cost ? 'y' : 'n') + (gearAuto(i) ? '*' : '') + ((S.gprac || {})[i.id] || 0)).join() + '|' + L.queue.join() + (L.queue.some(isGQ) ? Math.floor(L.salvage) + '/' + M.salCap + Object.keys(L.owned).join() : '') + '|' + L.job + '|' + Object.keys(S.perks).join() + '|' + S.gen + '|' + JSON.stringify(showLocked) + '|' + L.sec + '|' + (L.held || '') + holdList().join() + '|' + JSON.stringify(S.qpresets) + (L.qdone || []).length + (S.set.keepQueue !== false) + '|' + TASKS.filter(t => practiced(t)).map(t => t.id + (S.auto[t.id] ? '*' : '') + prioOf(t)).join() + '|' + openPrio;
+  const key = vis.join() + '|' + locked.join() + '|' + [...chainedIds()].join() + JSON.stringify(cOpen) + JSON.stringify(qOpen) + JSON.stringify(L.cjd || {}) + L.queue.filter(isCQ).map(id => cSteps(id).filter(x => cStepDone(id, x)).length).join() + (L.now || '') + (L.chainRun ? 'R' : '') + runSpan(L.sec || 1).join('') + JSON.stringify(sectionGate(L.sec || 1)) + ITEMS.filter(i => isDone(i.req)).map(i => i.id + (L.owned[i.id] ? 'o' : L.salvage >= i.cost ? 'y' : 'n') + (gearAuto(i) ? '*' : '') + ((S.gprac || {})[i.id] || 0)).join() + '|' + L.queue.join() + (L.queue.some(isGQ) ? Math.floor(L.salvage) + '/' + M.salCap + Object.keys(L.owned).join() : '') + '|' + L.job + '|' + Object.keys(S.perks).join() + '|' + S.gen + '|' + JSON.stringify(showLocked) + '|' + L.sec + '|' + (L.held || '') + holdList().join() + '|' + JSON.stringify(S.qpresets) + (L.qdone || []).length + (S.set.keepQueue !== false) + '|' + TASKS.filter(t => practiced(t)).map(t => t.id + (S.auto[t.id] ? '*' : '') + prioOf(t)).join() + '|' + openPrio;
   if (key === taskKey) return;
   taskKey = key;
 
@@ -2975,6 +2999,7 @@ function renderAuto(){
     <div class="row"><p>Start new clones paused<small>With the death screen on, the clone you decant from it waits paused until you press Resume, so you can plan its life first.</small></p><button class="tog${S.set.deathPause !== false ? ' on' : ''}" data-set="deathPause" aria-label="Start new clones paused" aria-pressed="${S.set.deathPause !== false}"></button></div>
     <div class="row"><p>Pause in the background<small>When the game tab or app is hidden, the clock stops instead of running on, and there is no catch-up. The time away is added to the stasis boost instead.</small></p><button class="tog${S.set.bgPause ? ' on' : ''}" data-set="bgPause" aria-label="Pause in the background" aria-pressed="${!!S.set.bgPause}"></button></div>
     <div class="row"><p>Pause after each new section<small>When a clone crosses into the next section, the clock stops until you press Resume, so you can plan the new section first.</small></p><button class="tog${S.set.pauseCross ? ' on' : ''}" data-set="pauseCross" aria-label="Pause after each new section" aria-pressed="${!!S.set.pauseCross}"></button></div>
+    <div class="row"><p>Pause when a section run ends instead<small>Overrides the pause above during a section run: a run across several sections keeps going through its crossings, and the clock stops once the run finishes or stops by itself. Your own Stop doesn\u2019t pause.</small></p><button class="tog${S.set.pauseRunEnd ? ' on' : ''}" data-set="pauseRunEnd" aria-label="Pause when a section run ends instead" aria-pressed="${!!S.set.pauseRunEnd}"></button></div>
     <div class="row"><p>Start the game paused<small>When you open the game, the clock waits until you press Resume.</small></p><button class="tog${S.set.startPaused ? ' on' : ''}" data-set="startPaused" aria-label="Start the game paused" aria-pressed="${!!S.set.startPaused}"></button></div>
     <div class="fld"><label for="rest-at">Automated rests fire at strain \u00d7</label><div class="pctin"><input type="text" id="rest-at" inputmode="decimal" autocomplete="off" value="${restAt()}"><span>Rests also fire just before an automated crossing if still unused.</span></div></div>
     <div class="row"><p>Feed when needed<small>Automated food jobs step in when food runs low, or when health is low and meals can still heal faster than strain drains it. They refill to what is needed, then the interrupted task carries on.</small></p><button class="tog${S.set.autoFeed ? ' on' : ''}" data-set="autoFeed" aria-label="Feed when needed" aria-pressed="${!!S.set.autoFeed}"></button></div>
@@ -3042,7 +3067,7 @@ const FAQ_ALL = [
   ['What are sections?', 'The ship is split into five sections. A <b>red</b> action leads to the next one, and the way back is sealed for that clone, so finish what you need first (records, the rest, training, gear). Each new clone starts back in the Vat Bay.'],
   ['What is gear?', 'Gear is built from salvage in the <b>Gear</b> tab and lasts for one clone. Each section has designs to build. Salvage storage is limited; opening up more of the ship raises it.'],
   ['What is familiarity?', 'There are no skills: each task gets faster on its own the more of it your clones have done. Familiarity counts work in completions, including attempts a clone died in the middle of, and is kept between clones. Speed rises smoothly from ×1 to ×10 once you have done enough of a task: in a first run, 90 lives’ worth of it (90 finishes of an action, 1800 batches of a job). Every finished run lowers that by a quarter, and so does each step of the new game plus <b>Deep echo</b> reward (by a fifth), down to a single life’s worth. Familiar tasks also hurt less (hazard damage up to ÷4), and a familiar food job lets its food be eaten more often. <b>Drills</b> spread familiarity to every task of their types. The Speed tab lists every task.'],
-  ['How does automation work?', 'Every completion counts: finish an action 10 times (a multi-rep action 10 times its reps), a training session 40 times or a rest 10 times, work a job for 200 batches, or build a design in 10 lives, and its automation <b>switches on by itself</b>. In new game plus runs these counts shrink along with the familiarity threshold (a quarter less per finished run, a fifth less per Deep echo step), never below one; tap <b>AUTO</b> (or its switch in the Auto tab) to turn it off, and it stays off. Automated tasks run by themselves <b>ahead of your queue</b>, in chain order (each after the tasks it needs). Automated tasks <b>link into chains</b> when one requires the other and both are at least ×2 familiar. When every action, crossing, job and rest of a section is automated and ×5 familiar, and all its gear designs are automated, the whole section becomes <b>one chain</b>: press <b>▶ Run section</b> (top of the section in the Tasks tab) and the clone works through everything, builds the gear, fills its stores and crosses, carrying on into the next section if that one is ready too. Work done as part of a chain (a queued chain or a section run) builds <b>chain flow</b>, which makes chained steps up to twice as fast; it is kept through new game plus. An automated job steps in when its store drops below the forage threshold and fills it up. Automated <b>crossings</b> are the exception: they wait until your queue is done. A task you tap runs before everything. The <b>Auto</b> tab lists everything unlocked and has extra options: feeding when needed, filling storage before moving on, the strain level for automatic rests, the death screen and starting paused.'],
+  ['How does automation work?', 'Every completion counts: finish an action 10 times (a multi-rep action 10 times its reps), a training session 40 times or a rest 10 times, work a job for 200 batches, or build a design in 10 lives, and its automation <b>switches on by itself</b>. In new game plus runs these counts shrink along with the familiarity threshold (a quarter less per finished run, a fifth less per Deep echo step), never below one; tap <b>AUTO</b> (or its switch in the Auto tab) to turn it off, and it stays off. Automated tasks run by themselves <b>ahead of your queue</b>, in chain order (each after the tasks it needs). Automated tasks <b>link into chains</b> when one requires the other and both are at least ×2 familiar. When every action, crossing, job and rest of a section is automated and ×5 familiar, and all its gear designs are automated, the whole section becomes <b>one chain</b>: press <b>▶ Run section</b> (top of the section in the Tasks tab) and the clone works through everything, builds the gear, fills its stores and crosses. Ready sections next to each other link across their crossings into one run (<b>▶ Run 3 sections</b>), up to the end of the act; a run that dies starts again with the next clone. The option <b>Pause when a section run ends instead</b> keeps a run going through its crossings and pauses once it is over. Work done as part of a chain (a queued chain or a section run) builds <b>chain flow</b>, which makes chained steps up to twice as fast; it is kept through new game plus. An automated job steps in when its store drops below the forage threshold and fills it up. Automated <b>crossings</b> are the exception: they wait until your queue is done. A task you tap runs before everything. The <b>Auto</b> tab lists everything unlocked and has extra options: feeding when needed, filling storage before moving on, the strain level for automatic rests, the death screen and starting paused.'],
   ['What happens at a crossing with automation?', 'A queued or automated crossing stops just before it finishes and waits while the clone finishes automated actions and training, builds affordable automated gear, refills storage (if that option is on) and uses the section’s rest. Tap a crossing yourself to go at once.'],
   ['Pause, background and boost', 'Pause with the button at the top or the space bar. The game keeps running in a background tab and catches up when you return, then shows what happened while you were away. Time while the game is fully closed is banked as a <b>stasis boost</b> you can switch on in the header. Pick Off, ×2, ×5 or ×10 from its menu: at ×5 every real second plays five, and the bank pays for the extra four, so faster boost spends the bank faster. Both start capped at 8 hours: at most 8 hours of background time is played out, and the boost holds at most 8 hours. Each <b>Stasis watch</b> record adds 8 hours to both; you get one the first time you finish each section (5 in all, up to 48 hours).'],
   ['Saves', 'The game saves itself every few seconds on this device, in three slots (☰ menu). Use <b>Save files and transfer</b> in the menu to export a save file, import one, or copy the save as text to move it between devices.'],
@@ -3274,8 +3299,8 @@ document.addEventListener('click', e => {
     L.qdone = []; L.queue = p.filter(id => isCQ(id) ? cSteps(id).some(x => !isGQ(x) && !zBefore(T[x].z, L.sec)) : isGQ(id) ? !L.owned[qItem(id).id] : !(T[id].kind !== 'job' && complete(T[id])) && !zBefore(T[id].z, L.sec));
     toast('Loaded preset ' + (+d.qload + 1)); taskKey = ''; renderView(); return;
   }
-  if ('secrun' in d) { if (sectionGate(L.sec || 1).ready) { L.chainRun = true; L.now = null; toast('Running the ' + ZONES[(L.sec || 1) - 1].name + ' as one chain'); } taskKey = ''; autoKey = ''; renderView(); return; }
-  if ('secstop' in d) { L.chainRun = false; taskKey = ''; autoKey = ''; renderView(); return; }
+  if ('secrun' in d) { const sp = runSpan(L.sec || 1); if (sp.length) { L.chainRun = true; L.runFrom = L.sec || 1; L.now = null; toast(sp.length > 1 ? 'Running ' + sp.length + ' sections as one chain: ' + sp.map(z => ZONES[z - 1].name).join(' \u2192 ') : 'Running the ' + ZONES[(L.sec || 1) - 1].name + ' as one chain'); } taskKey = ''; autoKey = ''; renderView(); return; }
+  if ('secstop' in d) { L.chainRun = false; L.runFrom = null; taskKey = ''; autoKey = ''; renderView(); return; }
   if (d.copen) { cOpen[d.copen] = !cOpen[d.copen]; taskKey = ''; renderView(); return; }
   if (d.qopen) { qOpen[d.qopen] = !qOpen[d.qopen]; taskKey = ''; renderView(); return; }
   if ('stopnow' in d) { L.now = null; taskKey = ''; renderView(); return; }
