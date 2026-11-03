@@ -486,7 +486,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
 
 <script id="logic">
 /* ===== Game data and rules (no DOM) ===== */
-const BUILD = '2026-11-04 · stats in log';   // shown in the main menu, to tell which version is loaded
+const BUILD = '2026-11-04 · slimmer archive';   // shown in the main menu, to tell which version is loaded
 const DPS = 8;             // simulation ticks per real second at 1x (doubled for the test version: same balance, half the real time)
 // Time is simulated in ticks. 80 ticks make one ship day (18 minutes each), so a day lasts
 // 20 real seconds at 1x and a clone lives weeks, not years. Everything is shown in days and hours.
@@ -3023,12 +3023,10 @@ function renderArchive(force){
     });
   });
   h += '</div>';
-  h += '<div class="panel set"><span class="h2">Settings</span>';
-  h += '<div class="row"><p>Sound, layout and app updates<small>These are in the settings menu.</small></p><button class="btn" data-settings="hud">Open</button></div></div><div class="panel set"><span class="h2">Clone</span>';
+  h += '<div class="panel set"><span class="h2">Clone</span>';
   h += `<div class="row"><p>Recycle this clone<small>End the current life now. Echoes are kept.</small></p><button class="btn warn" data-confirm="recycle">Recycle</button></div>
     <div class="row"><p>Restart this slot<small>Erases the game in this slot and starts over. Other slots are kept. The main menu has more options.</small></p><button class="btn warn" data-confirm="reset">Restart</button></div>
-    <p class="note">Progress is saved on this device only (this browser or the app). Use the save file below to back it up or move it. The game keeps running in a background tab. Time while it is fully closed is banked as a stasis boost that speeds the game up ×2, ×5 or ×10.</p></div>`;
-  h += '<div class="panel set"><div class="row"><p>Save files and transfer<small>Export, import or copy your save. Also in the main menu.</small></p><button class="btn" data-saves="hud">Open</button></div></div>';
+    <p class="note">Progress is saved on this device only (this browser or the app). Use Save files in the main menu (☰) to back it up or move it. The game keeps running in a background tab. Time while it is fully closed is banked as a stasis boost that speeds the game up ×2, ×5 or ×10.</p></div>`;
   $('#v-archive').innerHTML = h;
 }
 let histAll = false;
