@@ -484,7 +484,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
 
 <script id="logic">
 /* ===== Game data and rules (no DOM) ===== */
-const BUILD = '2026-11-04 · no spoilers';   // shown in the main menu, to tell which version is loaded
+const BUILD = '2026-11-04 · tidier archive';   // shown in the main menu, to tell which version is loaded
 const DPS = 8;             // simulation ticks per real second at 1x (doubled for the test version: same balance, half the real time)
 // Time is simulated in ticks. 80 ticks make one ship day (18 minutes each), so a day lasts
 // 20 real seconds at 1x and a clone lives weeks, not years. Everything is shown in days and hours.
@@ -3033,32 +3033,12 @@ function renderArchive(force){
   if (S.won || ngpPts() > 0) h += ngpPanel();
   if (S.a2 && S.a2.open) h += act2Panel();
   h += '<div class="panel set"><span class="h2">Settings</span>';
-  h += `<div class="row"><p>Auto-eat<small>Eat a ration whenever the meal cooldown is over and health has room for it.</small></p><button class="tog${S.set.autoEat ? ' on' : ''}" data-set="autoEat" aria-label="Auto-eat" aria-pressed="${S.set.autoEat}"></button></div>`;
-  if (S.perks.survival) {
-    h += `<div class="row"><p>Auto-forage<small>Switch to the best food job when your food runs below the threshold, and stay until its store reaches twice that.</small></p><button class="tog${S.set.autoFood ? ' on' : ''}" data-set="autoFood" aria-label="Auto-forage" aria-pressed="${S.set.autoFood}"></button></div>
-      <div><div class="row"><p>Forage threshold<small>Share of the store the best food job fills. When all the food you carry drops below it, food jobs step in; they stop at twice this level (or when the store is full).</small></p></div><div class="pctin"><input type="number" id="fd-n" inputmode="numeric" min="1" max="99" step="1" value="${S.set.foodPct || 40}" aria-label="Forage threshold percent"><span>%</span></div><input type="range" id="fd" min="1" max="99" step="1" value="${S.set.foodPct || 40}" aria-label="Forage threshold, percent of ration storage"></div>`;
-  }
   h += '<div class="row"><p>Sound, layout and app updates<small>These are in the settings menu.</small></p><button class="btn" data-settings="hud">Open</button></div></div><div class="panel set"><span class="h2">Clone</span>';
   h += `<div class="row"><p>Recycle this clone<small>End the current life now. Echoes are kept.</small></p><button class="btn warn" data-confirm="recycle">Recycle</button></div>
     <div class="row"><p>Restart this slot<small>Erases the game in this slot and starts over. Other slots are kept. The main menu has more options.</small></p><button class="btn warn" data-confirm="reset">Restart</button></div>
     <p class="note">Progress is saved on this device only (this browser or the app). Use the save file below to back it up or move it. The game keeps running in a background tab. Time while it is fully closed is banked as a stasis boost that speeds the game up ×2, ×5 or ×10.</p></div>`;
   h += '<div class="panel set"><div class="row"><p>Save files and transfer<small>Export, import or copy your save. Also in the main menu.</small></p><button class="btn" data-saves="hud">Open</button></div></div>';
   $('#v-archive').innerHTML = h;
-  const fd = $('#fd');
-  const fdn = $('#fd-n');
-  if (fd) fd.addEventListener('input', () => { S.set.foodPct = +fd.value; if (fdn) fdn.value = fd.value; });
-  if (fdn) {
-    const setPct = commit => {
-      let v = Math.round(+fdn.value);
-      if (!isFinite(v) || fdn.value === '') { if (commit) fdn.value = S.set.foodPct || 40; return; }
-      v = Math.max(1, Math.min(99, v));
-      S.set.foodPct = v; if (fd) fd.value = v;
-      if (commit) fdn.value = v;
-    };
-    fdn.addEventListener('input', () => setPct(false));
-    fdn.addEventListener('change', () => setPct(true));
-    fdn.addEventListener('keydown', e => { if (e.key === 'Enter') { setPct(true); fdn.blur(); } });
-  }
 }
 let histAll = false;
 function renderLog(){
@@ -3205,6 +3185,33 @@ document.addEventListener('click', e => {
 /* ----- automation tab: every task whose automation is unlocked ----- */
 let autoKey = '';
 const KIND_LABEL = {job:'Job', act:'Action', train:'Training', rest:'Rest'};
+// Food settings (Auto tab): auto-eat, auto-forage and its threshold
+function bindFoodPct(){
+  const fd = $('#fd');
+  const fdn = $('#fd-n');
+  if (fd) fd.addEventListener('input', () => { S.set.foodPct = +fd.value; if (fdn) fdn.value = fd.value; });
+  if (fdn) {
+    const setPct = commit => {
+      let v = Math.round(+fdn.value);
+      if (!isFinite(v) || fdn.value === '') { if (commit) fdn.value = S.set.foodPct || 40; return; }
+      v = Math.max(1, Math.min(99, v));
+      S.set.foodPct = v; if (fd) fd.value = v;
+      if (commit) fdn.value = v;
+    };
+    fdn.addEventListener('input', () => setPct(false));
+    fdn.addEventListener('change', () => setPct(true));
+    fdn.addEventListener('keydown', e => { if (e.key === 'Enter') { setPct(true); fdn.blur(); } });
+  }
+}
+function foodSettingsHtml(){
+  let h = '';
+  h += `<div class="row"><p>Auto-eat<small>Eat a ration whenever the meal cooldown is over and health has room for it.</small></p><button class="tog${S.set.autoEat ? ' on' : ''}" data-set="autoEat" aria-label="Auto-eat" aria-pressed="${S.set.autoEat}"></button></div>`;
+  if (S.perks.survival) {
+    h += `<div class="row"><p>Auto-forage<small>Switch to the best food job when your food runs below the threshold, and stay until its store reaches twice that.</small></p><button class="tog${S.set.autoFood ? ' on' : ''}" data-set="autoFood" aria-label="Auto-forage" aria-pressed="${S.set.autoFood}"></button></div>
+      <div><div class="row"><p>Forage threshold<small>Share of the store the best food job fills. When all the food you carry drops below it, food jobs step in; they stop at twice this level (or when the store is full).</small></p></div><div class="pctin"><input type="number" id="fd-n" inputmode="numeric" min="1" max="99" step="1" value="${S.set.foodPct || 40}" aria-label="Forage threshold percent"><span>%</span></div><input type="range" id="fd" min="1" max="99" step="1" value="${S.set.foodPct || 40}" aria-label="Forage threshold, percent of ration storage"></div>`;
+  }
+  return h;
+}
 function renderAuto(){
   const L = S.life;
   const list = TASKS.filter(t => practiced(t));
@@ -3221,6 +3228,7 @@ function renderAuto(){
     <div class="row"><p>Pause when a section run ends instead<small>Overrides the pause above during a section run: a run across several sections keeps going through its crossings, and the clock stops once the run finishes or stops by itself. Your own Stop doesn\u2019t pause.</small></p><button class="tog${S.set.pauseRunEnd ? ' on' : ''}" data-set="pauseRunEnd" aria-label="Pause when a section run ends instead" aria-pressed="${!!S.set.pauseRunEnd}"></button></div>
     <div class="row"><p>Pause when a task finishes<small>The clock stops whenever a task is done: an action (all its repeats), a rest, a drill once all its sessions for this life are done, or a job once its storage is full. Automated tasks count too.</small></p><button class="tog${S.set.pauseDone ? ' on' : ''}" data-set="pauseDone" aria-label="Pause when a task finishes" aria-pressed="${!!S.set.pauseDone}"></button></div>
     <div class="row"><p>Start the game paused<small>When you open the game, the clock waits until you press Resume.</small></p><button class="tog${S.set.startPaused ? ' on' : ''}" data-set="startPaused" aria-label="Start the game paused" aria-pressed="${!!S.set.startPaused}"></button></div>
+    ${foodSettingsHtml()}
     <div class="fld"><label for="rest-at">Automated rests fire at strain \u00d7</label><div class="pctin"><input type="text" id="rest-at" inputmode="decimal" autocomplete="off" value="${restAt()}"><span>Rests also fire just before an automated crossing if still unused.</span></div></div>
     <div class="row"><p>Feed when needed<small>Automated food jobs step in when food runs low, or when health is low and meals can still heal faster than strain drains it. They refill to what is needed, then the interrupted task carries on.</small></p><button class="tog${S.set.autoFeed ? ' on' : ''}" data-set="autoFeed" aria-label="Feed when needed" aria-pressed="${!!S.set.autoFeed}"></button></div>
     <div class="row"><p>Fill storage before moving on<small>A queued or automated crossing stops just before it finishes and steps out of the queue while the section is wrapped up: unfinished automated actions and drills (in chain order), affordable automated gear, refilling ration and salvage storage, and the unused automated rest. Then it returns to the front of the queue and completes. The queue shows what is left and a button to skip it; tapping a crossing yourself also goes at once.</small></p><button class="tog${S.set.fillCross ? ' on' : ''}" data-set="fillCross" aria-label="Fill storage before moving on" aria-pressed="${!!S.set.fillCross}"></button></div></div>`;
@@ -3259,6 +3267,7 @@ function renderAuto(){
     h += '</div></section>';
   });
   $('#v-auto').innerHTML = h;
+  bindFoodPct();
   const ra = $('#rest-at');
   if (ra) {
     const setRA = commit => {
