@@ -92,10 +92,12 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--amber);outline-
 .mn.train .mb{stroke-dasharray:1 3}
 .surv.warn b,.surv.warn em{color:var(--red)}
 .tx .tt{color:var(--dim)}
+.eat.rep{border-color:var(--cyan);color:var(--cyan)}
 .eat{flex-basis:100%;margin-top:4px;font-size:12px;padding:5px 8px;border:1px solid var(--green);color:var(--green);border-radius:4px;text-align:center}
 .eat:disabled{border-color:var(--line);color:var(--faint);cursor:default}
 .res .fq{display:block;font-size:11px;color:var(--green);font-family:var(--f-mono);font-weight:400;margin-top:2px}
 .res small{font-size:11px;margin-left:auto;white-space:nowrap}
+.res small#t-wear{white-space:normal}
 .pos{color:var(--green)} .neg{color:var(--red)}
 .ngp{border-color:var(--cyan-soft)}
 .ngp .h2{color:var(--cyan)}
@@ -457,7 +459,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
     <div class="surv" id="surv"><span class="lbl">Outlook</span><em id="s-why"></em><span id="s-plan" class="num plan" title="Planned work: the tapped task and everything in the queue, at today&#39;s speeds"></span><span id="s-strain" class="num strain"></span></div>
     <div class="res">
       <div><span class="lbl">Food</span><span id="t-foods" class="foods"></span><small id="t-ratt" class="rt num"></small><button id="eatb" class="eat num" data-eat>Eat</button></div>
-      <div><span class="lbl">Salvage</span><b id="t-sal" class="num"></b><small id="t-salr" class="num"></small><small id="t-salt" class="rt num"></small></div>
+      <div><span class="lbl" id="t-sall">Salvage</span><b id="t-sal" class="num"></b><small id="t-salr" class="num"></small><small id="t-salt" class="rt num"></small><small id="t-wear" class="rt num" hidden></small><button id="repb" class="eat rep num" data-repair hidden>Repair</button></div>
     </div>
     <div class="now" id="now"><div class="nf" id="n-fill"></div><span id="n-name"></span><span id="n-eta" class="num"></span></div>
   </div>
@@ -495,7 +497,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
 
 <script id="logic">
 /* ===== Game data and rules (no DOM) ===== */
-const BUILD = '2026-11-04 · sections run once ready';   // shown in the main menu, to tell which version is loaded
+const BUILD = '2026-11-04 · spare parts for the ship';   // shown in the main menu, to tell which version is loaded
 const DPS = 8;             // simulation ticks per real second at 1x (doubled for the test version: same balance, half the real time)
 // Time is simulated in ticks. 80 ticks make one ship day (18 minutes each), so a day lasts
 // 20 real seconds at 1x and a clone lives weeks, not years. Everything is shown in days and hours.
@@ -543,6 +545,8 @@ const FOOD_OF = {}; for (let z = 1; z <= 14; z++) FOOD_OF[z] = 'ration';
 const STORE_CAP = {1:6, 2:20, 3:36, 4:60, 5:90, 6:110, 7:125, 8:135, 9:110, 10:125, 11:135, 12:140, 13:145, 14:150};
 // The section upgrade actions and the ration strength each one brings (kept for the rest of the life)
 const MEAL_UP = {heatpaste:1.27, strains:1.54, packer:1.85, ovens:2.17, pantryfix:2.48, mess:2.55, synthfix:2.62, hivegel:2.7, graft:2.8, sprout:3.07, darkmess:3.2, burnmess:3.34, sysmess:3.45, feast:3.55};
+const REPAIR_UP = {ws6:1.15, ws7:1.3, ws8:1.45, ws9:1.6, ws10:1.75, ws11:1.9, ws12:2.05, ws13:2.2, ws14:2.35};
+function repairTier(){ const L = S && S.life; let q = 1; if (L) for (const id in REPAIR_UP) if (L.done && L.done[id]) q = Math.max(q, REPAIR_UP[id]); return q; }
 function mealTier(){ const L = S && S.life; let q = 1; if (L) for (const id in MEAL_UP) if (L.done && L.done[id]) q = Math.max(q, MEAL_UP[id]); return q; }
 const jobFood = t => !(t && t.prod && t.prod.rations) ? null : (FOODS.find(f => f.job === t.id) || FD.ration).id;
 // Meal pace: every meal heals the same; better food and kitchens make the meal timer shorter (12 h / pace)
@@ -866,6 +870,7 @@ const TASKS = [
   {id:'racks', z:6, kind:'act', name:'Reclaim the armoury racks', days:300, req:['rackdoor','prints'], perk:'armcodes'},
   {id:'stairfort', z:6, kind:'act', name:'Fortify the stairwell', days:450, haz:0.2, req:['racks','studyb'], split:'stair'},
   {id:'mess', z:6, kind:'act', meal:true, name:'Rig a mess behind the bulkheads', days:200, req:['braces']},   // kitchen upgrade: rations come more often
+  {id:'ws6', z:6, kind:'act', shop:true, name:'Rig a patch kit from the breach debris', days:200, req:['braces']},   // workshop: repairs come more often (costs spare parts)
   {id:'stair', z:6, kind:'act', cross:true, to:7, name:'Hold the stasis-deck stairwell', days:450, haz:0.3, lifeEff:{salCap:1000}, req:['racks','studyb'],
     log:'They came up the stairwell in a wave. The line held. Behind it, three thousand people slept through their own rescue.'},
   // Contested Decks
@@ -884,6 +889,7 @@ const TASKS = [
   {id:'trapdrill', z:7, kind:'train', name:'Trap-laying drills', days:40, req:['traps']},
   {id:'shiptrace', z:7, kind:'act', name:'Listen through the hull', days:600, req:['traps','medb'], split:'traceship'},
   {id:'synthfix', z:7, kind:'act', meal:true, name:'Tune the nutrient synthesiser', days:400, req:['watchpost']},   // kitchen upgrade: rations come more often
+  {id:'ws7', z:7, kind:'act', shop:true, name:'Strip a boarder cutter for tools', days:400, req:['watchpost']},   // workshop: repairs come more often (costs spare parts)
   {id:'traceship', z:7, kind:'act', cross:true, to:8, name:'Trace them to their ship', days:600, lifeEff:{salCap:1000}, req:['traps','medb'], perk:'hivemap',
     log:'Their ship clings to the hull like a tick. A living thing, breathing through the docking seal.'},
   // The Hive Ship
@@ -901,6 +907,7 @@ const TASKS = [
   {id:'charge', z:8, kind:'act', name:'Plant the drive charge', days:600, haz:0.3, req:['chargeset','mindtrail']},
   {id:'loosen', z:8, kind:'act', name:'Cut the docking clamps', days:800, req:['hivemind','charge'], split:'cutloose'},
   {id:'hivegel', z:8, kind:'act', meal:true, name:'Render hive gel into something edible', days:500, req:['dockseal']},   // kitchen upgrade: rations come more often
+  {id:'ws8', z:8, kind:'act', shop:true, name:'Bond hive resin into hull sealant', days:500, req:['dockseal']},   // workshop: repairs come more often (costs spare parts)
   {id:'cutloose', z:8, kind:'act', finale:'A', name:'Cut the hive loose', days:800, req:['hivemind','charge'], perk:'hivecore',
     log:'The hive ship tumbles away into the dark. The Long Patience flies on, quieter, with one more line of disposable things behind it.'},
   // ===== Act II, branch B: The long watch =====
@@ -922,6 +929,7 @@ const TASKS = [
   {id:'reroute', z:9, kind:'act', name:'Reroute the coolant loops', days:450, req:['loopmap','logdump']},
   {id:'dustplot', z:9, kind:'act', name:'Plot a path through the dust belt', days:550, req:['reroute','audit'], split:'dust'},
   {id:'graft', z:9, kind:'act', meal:true, name:'Graft the regrown beds', days:300, req:['leaks']},   // kitchen upgrade: rations come more often
+  {id:'ws9', z:9, kind:'act', shop:true, name:'Reopen the cruise machine shop', days:300, req:['leaks']},   // workshop: repairs come more often (costs spare parts)
   {id:'dust', z:9, kind:'act', cross:true, to:10, name:'Survive the dust belt', days:550, haz:0.3, lifeEff:{salCap:1000}, req:['reroute','audit']},
   // The Drift
   {id:'driftfix', z:10, kind:'act', name:'Measure the drift', days:500, req:[], split:'drift'},
@@ -937,6 +945,7 @@ const TASKS = [
     log:'WARDEN wants to sleep too. “Maintenance of the K line exceeds projected cost.” You argue for the line again. It listens, this time.'},
   {id:'burnplot', z:10, kind:'act', name:'Plot the burn', days:750, req:['failpod','talkw'], split:'burn'},
   {id:'sprout', z:10, kind:'act', meal:true, name:'Sprout the colony seed stock', days:400, req:['driftfix']},   // kitchen upgrade: rations come more often
+  {id:'ws10', z:10, kind:'act', shop:true, name:'Calibrate the drift-deck fabricator', days:400, req:['driftfix']},   // workshop: repairs come more often (costs spare parts)
   {id:'burn', z:10, kind:'act', cross:true, to:11, name:'Burn for Tessaly', days:750, lifeEff:{salCap:1000}, req:['failpod','talkw']},
   // The Long Dark (third section of the long watch; its finale ends the long watch)
   {id:'podalarm', z:11, kind:'act', name:'Trace the pod alarms', days:500, req:[], split:'nursepods'},
@@ -950,6 +959,7 @@ const TASKS = [
   {id:'creepbrace', z:11, kind:'act', name:'Brace the creeping hull', days:600, haz:0.2, req:['creepfind']},
   {id:'turnplot', z:11, kind:'act', name:'Plot the turnover point', days:700, req:['vaultseal','creepbrace'], split:'turnpoint'},
   {id:'darkmess', z:11, kind:'act', meal:true, name:'Stretch the rations with vat broth', days:400, req:['podalarm']},   // kitchen upgrade: rations come more often
+  {id:'ws11', z:11, kind:'act', shop:true, name:'Teach the drones hull repair', days:400, req:['podalarm']},   // workshop: repairs come more often (costs spare parts)
   {id:'upkeep11', z:11, kind:'job', upkeep:true, name:'Keep the stasis decks running', prod:{salvage:1.8}, req:[]},
   {id:'darkration', z:11, kind:'job', name:'Ration the colony stores', prod:{rations:0.18}, req:['podalarm']},
   {id:'darknap', z:11, kind:'rest', name:'Sleep on the dark observation deck', days:15, req:[]},
@@ -970,6 +980,7 @@ const TASKS = [
   {id:'approach', z:12, kind:'act', name:'Lay in the approach course', days:650, req:['routeplot','drivelive']},
   {id:'slowwatch', z:12, kind:'act', name:'Watch the speed fall', days:700, req:['approach'], split:'relslow'},
   {id:'burnmess', z:12, kind:'act', meal:true, name:'Rig a galley that works under thrust', days:400, req:['burncalc']},   // kitchen upgrade
+  {id:'ws12', z:12, kind:'act', shop:true, name:'Brace the frames for the braking burn', days:400, req:['burncalc']},   // workshop: repairs come more often (costs spare parts)
   {id:'burnration', z:12, kind:'job', name:'Portion out the deep stores', prod:{rations:0.19}, req:['burncalc']},
   {id:'shieldpatch', z:12, kind:'job', upkeep:true, name:'Patch the dust shield', prod:{salvage:1.9}, req:['shieldrig']},
   {id:'burnbunk', z:12, kind:'rest', name:'Sleep strapped in under thrust', days:15, req:[]},
@@ -993,6 +1004,7 @@ const TASKS = [
     log:'The inner world swings past close enough to see its craters. Its gravity bends the ship’s path toward Tessaly and takes a little more speed off.'},
   {id:'sighting', z:13, kind:'act', name:'Sight Tessaly', days:700, req:['assist'], split:'closein'},
   {id:'sysmess', z:13, kind:'act', meal:true, name:'Grow algae under the scanner lights', days:400, req:['scanout']},   // kitchen upgrade
+  {id:'ws13', z:13, kind:'act', shop:true, name:'Refit the fabricator for orbital work', days:400, req:['scanout']},   // workshop: repairs come more often (costs spare parts)
   {id:'sysration', z:13, kind:'job', name:'Thaw the last deep stores', prod:{rations:0.2}, req:['scanout']},
   {id:'debris', z:13, kind:'job', name:'Catch drifting debris', prod:{salvage:2}, haz:0.1, req:['giant']},
   {id:'scannap', z:13, kind:'rest', name:'Sleep while the scanners run', days:15, req:[]},
@@ -1008,6 +1020,7 @@ const TASKS = [
   {id:'sweep', z:14, kind:'act', name:'Sweep the orbit clean', days:600, haz:0.2, req:['debrisfind']},
   {id:'trimplan', z:14, kind:'act', name:'Trim the orbit', days:750, req:['chartsurf','sweep'], split:'safeorbit'},
   {id:'feast', z:14, kind:'act', meal:true, name:'Cook the first meal in orbit', days:400, req:['insert']},   // kitchen upgrade
+  {id:'ws14', z:14, kind:'act', shop:true, name:'Set up an orbital repair dock', days:400, req:['insert']},   // workshop: repairs come more often (costs spare parts)
   {id:'meatvats', z:14, kind:'job', name:'Grow meat in the cultured-protein tanks', prod:{rations:0.16}, req:['insertplan']},
   {id:'orbitkeep', z:14, kind:'job', upkeep:true, name:'Keep the stasis decks cold', prod:{salvage:2}, req:[]},
   {id:'orbitnap', z:14, kind:'rest', name:'Sleep under the planet’s glow', days:15, req:[]},
@@ -1016,7 +1029,7 @@ const TASKS = [
   {id:'safeorbit', z:14, kind:'act', finale:'C', name:'Establish a safe orbit over Tessaly', days:800, req:[], perk:'harbour',
     log:'The Long Patience settles into a stable orbit. Below, Tessaly turns: oceans, cloud, a long brown coast. Three thousand people are still asleep. They are home, nearly.'},
 ];
-const ZDAYS = {1:0.239, 2:0.812, 3:0.602, 4:0.531, 5:0.326, 6:0.778, 7:1.009, 8:1.009, 9:0.681, 10:0.915, 11:0.915, 12:0.87, 13:0.87, 14:0.87};   // no skill transfer: later sections are short, and speed comes from familiarity
+const ZDAYS = {1:0.239, 2:0.812, 3:0.602, 4:0.531, 5:0.326, 6:0.716, 7:0.928, 8:0.928, 9:0.627, 10:0.842, 11:0.842, 12:0.8, 13:0.8, 14:0.8};   // no skill transfer: later sections are short, and speed comes from familiarity
 const TRAIN_CAP = 4, TRAIN_XP = 1.5;
 const LEGACY_LEN = 0.6;   // legacy parts are needed for every crossing once revealed, so they are kept short
 const T = {}; TASKS.forEach(t => { T[t.id] = t; t.sk = []; t.reps = t.kind === 'train' ? TRAIN_CAP : (t.reps || 1); if (t.days) t.days = Math.round(t.days * ZDAYS[t.z] * (t.legacy && t.kind === 'act' ? LEGACY_LEN : 1)); });
@@ -1126,12 +1139,12 @@ ITEMS.forEach(i => { const t = {id:'b:' + i.id, gear:i.id, z:gearZone(i), kind:'
 
 let S, M;
 let HALT = false;   // set by the UI to stop the clock in the middle of a catch-up (e.g. pause on task completion)
-const HOOK = {legacy(){}, legacyAvail(){}, autoRun(){}, ngpEarn(){}, assembling(){}, taskDone(){}, log(){}, perk(){}, die(){}, win(){}, change(){}, stopped(){}, practiced(){}, done(){}, rested(){}, crossed(){}, bought(){}, qfull(){}, merge(){}, kit(){}, runEnd(){}};
+const HOOK = {repaired(){}, legacy(){}, legacyAvail(){}, autoRun(){}, ngpEarn(){}, assembling(){}, taskDone(){}, log(){}, perk(){}, die(){}, win(){}, change(){}, stopped(){}, practiced(){}, done(){}, rested(){}, crossed(){}, bought(){}, qfull(){}, merge(){}, kit(){}, runEnd(){}};
 
 // Player preferences (switches, thresholds, boost speed) are stored once for the device, not per save:
 // a new game or another slot starts with the same settings.
 const PREF_KEY = 'long-patience.prefs.v1';
-const PREF_KEYS = ['autoRun','autoFood','autoEat','foodPct','restAt','keepQueue','deathScreen','deathPause','startPaused','bgPause','pauseCross','pauseRunEnd','pauseDone','replay','fillCross','autoFeed','boostX'];
+const PREF_KEYS = ['autoRun','autoRepair','autoScav','partsDays','autoFood','autoEat','foodPct','restAt','keepQueue','deathScreen','deathPause','startPaused','bgPause','pauseCross','pauseRunEnd','pauseDone','replay','fillCross','autoFeed','boostX'];
 function loadPrefs(){ try { const p = JSON.parse(localStorage.getItem(PREF_KEY) || '{}'); const o = {}; PREF_KEYS.forEach(k => { if (p[k] !== undefined) o[k] = p[k]; }); return o; } catch(e) { return {}; } }
 function savePrefs(){ try { if (!S || !S.set) return; const o = {}; PREF_KEYS.forEach(k => { if (S.set[k] !== undefined) o[k] = S.set[k]; }); localStorage.setItem(PREF_KEY, JSON.stringify(o)); } catch(e) {} }
 function newLife(s){
@@ -1144,7 +1157,7 @@ function newLife(s){
 }
 function defaultState(){
   const s = {v:1, tv:3, qpresets:[[], [], [], [], []], gprac:{}, gauto:{}, gprio:{}, ev:2, xpTot:{}, rv:4, sv:2, pv:3, vv:3, gen:1, prio:{}, fam:{}, ever:{}, prac:{}, auto:{}, echo:{}, perks:{}, seen:{}, logged:{}, log:[], lastOrder:[], lastJob:null,
-    set:Object.assign({speed:1, autoFood:true, autoEat:true, foodDays:2, foodPct:40, restAt:2.5, keepQueue:true, autoRun:false, deathScreen:true, deathPause:true, startPaused:false, bgPause:false, pauseCross:false, pauseRunEnd:false, pauseDone:false, replay:true, fillCross:false, autoFeed:false, boost:false, boostX:2}, loadPrefs()),
+    set:Object.assign({speed:1, autoFood:true, autoEat:true, foodDays:2, foodPct:40, restAt:2.5, keepQueue:true, autoRun:false, autoRepair:true, autoScav:true, partsDays:2, deathScreen:true, deathPause:true, startPaused:false, bgPause:false, pauseCross:false, pauseRunEnd:false, pauseDone:false, replay:true, fillCross:false, autoFeed:false, boost:false, boostX:2}, loadPrefs()),
     stats:{bestAge:0, deaths:0, daysLived:0, played:0}, a2:{open:false, hon:0, lv:{}, perks:{}, fin:0}, branch:null, merge:null, a2run:{reached:{}, done:{}}, pr:{n:0, pts:0, growth:0, drain:0, hp:0, speed:0, carry:0, runs:[]}, won:false, winGen:0, bank:0, saved:Date.now(), intro:false};
   SKILLS.forEach(k => s.echo[k.id] = 0);
   s.life = newLife(s);
@@ -1233,7 +1246,7 @@ const isDone = id => (S.life.done[id] || 0) >= T[id].reps;
 const LEGACY_REVEAL = {hp:7, drain:9, growth:11, speed:13};   // Act II sections 2, 4, 6 and 8
 const legacyOpen = t => !t.legacy || !!(S.won && S.a2run && S.a2run.reached && S.a2run.reached[LEGACY_REVEAL[t.legacy]]);
 const reqMet = id => isDone(id) || !legacyOpen(T[id]);   // an unrevealed legacy final doesn't hold up its crossing
-const available = t => t.z === (S.life.sec || 1) && legacyOpen(t) && t.req.every(reqMet);
+const available = t => t.z === (S.life.sec || 1) && legacyOpen(t) && t.req.every(reqMet) && (!t.parts || complete(t) || (S.life.paid || {})[t.id] || S.life.salvage >= t.parts);
 const complete = t => t.kind !== 'job' && isDone(t.id);
 const lifeDays = () => Infinity;   // no lifespan limit
 function skF(s){ return (1 + 0.1 * S.life.lv[s]) * echoSpeed(s) * M.sk[s]; }
@@ -1324,6 +1337,8 @@ function active(ex){
   } else L.foraging = false;
   const feed = feedJob();
   if (ok(feed)) return feed;
+  const scav = scavJob();   // spare parts for the ship, like foraging
+  if (ok(scav)) return scav;
   if ((L.strain || 1) >= restAt()) { const r = TASKS.find(t => t.kind === 'rest' && isAuto(t) && available(t) && !complete(t) && ok(t)); if (r) return r; }
   // Gear paid for is assembled before anything else (after food and rests)
   if (L.assem && L.assem.length) { const bt = BT[L.assem[0]]; if (bt && ok(bt)) return bt; }
@@ -1739,8 +1754,10 @@ function step(dt){
   const h1 = t.haz ? hazDmg(t) : 0, h2 = 0, ht = t;
   L.wear = (L.wear || 0) + dt;
   L.strain = (L.strain || 1) + dt * strainRate(L.wear);
-  // The long watch: the ship slowly wears out; wear adds to the drain until upkeep jobs bring it down
-  if (isWatch(L.sec)) L.shipWear = (L.shipWear || 0) + dt / TPD * M.wear;
+  // Act II: the ship slowly wears out; wear adds to the drain until spare parts repair it
+  if (wearsHere(L.sec)) L.shipWear = (L.shipWear || 0) + dt / TPD * wearRate(L.sec || 1);
+  if (L.rcd) L.rcd = Math.max(0, L.rcd - dt);
+  if (S.set.autoRepair && (L.shipWear || 0) >= REPAIR_AMT - 1e-9) repair();
   const drain = drainNow(L.strain, h1, L.wear, L.sec || 1) * wearMul();
   L.hp -= drain * dt;
   if (!L.mcd) L.mcd = {};
@@ -1748,7 +1765,7 @@ function step(dt){
   if (S.set.autoEat) readyFoods().forEach(f => { if (wantsMeal(f)) eat(f); });
   if (L.hp <= 0) {
     L.hp = 0;
-    die(!nextFood() ? 'Starved' : (h1 || h2 ? 'Killed while trying to ' + ht.name.charAt(0).toLowerCase() + ht.name.slice(1) : 'Collapsed from exhaustion'));
+    die(!nextFood() ? 'Starved' : (wearMul() >= 2 ? 'Worn down with the ship' : h1 || h2 ? 'Killed while trying to ' + ht.name.charAt(0).toLowerCase() + ht.name.slice(1) : 'Collapsed from exhaustion'));
     return;
   }
   L.day += dt;
@@ -1759,16 +1776,48 @@ function step(dt){
 // (half of the bonus after 20 ship days of chained work). Kept through new game plus.
 const FLOW_MAX = 4, FLOW_HALF = 20 * TPD;
 const flowMul = () => 1 + FLOW_MAX * (S.flow || 0) / ((S.flow || 0) + FLOW_HALF);
-const isWatch = z => z >= 9 && z <= 12;   // ship wear: the long watch and the turnover burn
-const SHIP_WEAR = 0.06;   // extra drain per day of wear
-const wearMul = () => isWatch(S.life.sec) ? 1 + SHIP_WEAR * (S.life.shipWear || 0) : 1;
+const isWatch = z => z >= 9 && z <= 12;   // the long watch and the turnover burn (fresh food in play)
+// Ship wear (all of Act II): the ship wears out as a clone works; wear adds to the drain. Spare parts
+// (salvage) repair it the way rations heal: each repair takes a fixed share of wear for a fixed number
+// of parts, then a cooldown (shortened by workshop upgrades). Parts jobs are the "forage" for them.
+const WEAR_RATE = {6:0.4, 7:0.5, 8:0.6, 9:0.9, 10:1, 11:1.1, 12:1.3, 13:1.1, 14:1.2};   // wear per ship day
+const SHIP_WEAR = 0.08;   // extra drain per point of wear
+const REPAIR_AMT = 1.5, REPAIR_CD = TPD, PARTS_PER_WEAR = 40;   // a repair: 1.5 wear, at most one a day before workshops
+const wearsHere = z => isA2(z || S.life.sec || 1);
+const wearMul = () => wearsHere() ? 1 + SHIP_WEAR * (S.life.shipWear || 0) : 1;
+const wearRate = z => (WEAR_RATE[z] || 0) * ((M && M.wear) || 1);
+const PART_RATE = {}; TASKS.forEach(t => { if (t.kind === 'job' && t.prod && t.prod.salvage) PART_RATE[t.z] = Math.max(PART_RATE[t.z] || 0, t.prod.salvage); });
+const partRate = z => { for (let k = z; k >= 1; k--) if (PART_RATE[k]) return PART_RATE[k]; return 1; };
+const repairCost = (z, amt) => Math.max(1, Math.round(PARTS_PER_WEAR * partRate(z || S.life.sec || 1) * (amt == null ? REPAIR_AMT : amt)));   // parts per repair
+const repairCd = () => REPAIR_CD / repairTier();
+const partsPerDay = z => { z = z || S.life.sec || 1; return wearsHere(z) ? wearRate(z) * PARTS_PER_WEAR * partRate(z) : 0; };
+TASKS.forEach(t => { if (t.shop) t.parts = repairCost(t.z, 3 * REPAIR_AMT); });   // a workshop costs three repairs' worth of parts
+function canRepair(){ const L = S.life; if (L.dead || !wearsHere() || (L.rcd || 0) > 0) return false; const a = Math.min(REPAIR_AMT, L.shipWear || 0); return a >= 0.25 && L.salvage >= repairCost(null, a); }
+function repair(){
+  const L = S.life; if (!canRepair()) return 0;
+  const a = Math.min(REPAIR_AMT, L.shipWear || 0); L.salvage -= repairCost(null, a); L.shipWear = Math.max(0, (L.shipWear || 0) - a); L.rcd = repairCd(); return a;
+}
+// Parts jobs step in when spare parts run low (like auto-forage): below partsDays of repairs, until twice that
+function scavJob(){
+  const L = S.life;
+  if (!S.set.autoScav || !wearsHere()) { L.scav = false; return null; }
+  let job = null, br = 0;
+  for (const t of TASKS) if (t.kind === 'job' && t.prod && t.prod.salvage && available(t) && !jobFull(t)) { const r = t.prod.salvage * speedOf(t); if (r > br) { br = r; job = t; } }
+  if (!job) { L.scav = false; return null; }
+  const low = Math.min(M.salCap * 0.5, partsPerDay() * (S.set.partsDays || 2) + shopNeed());
+  if (L.salvage < low) L.scav = true;
+  if (L.scav && L.salvage >= Math.min(M.salCap - 0.01, low * 2)) L.scav = false;
+  return L.scav ? job : null;
+}
+// parts still needed for this section's workshop (not paid for yet, otherwise ready to start)
+function shopNeed(){ const L = S.life; let n = 0; TASKS.forEach(t => { if (t.parts && t.z === (L.sec || 1) && !complete(t) && !(L.paid || {})[t.id] && t.req.every(reqMet)) n += t.parts; }); return n; }
 function work(t, dt, chained){
   const L = S.life;
   {
     const sp = speedOf(t) * (chained ? flowMul() : 1);
     if (chained) S.flow = (S.flow || 0) + dt;   // chain flow grows with every tick of chained work
     addFam(t, (t.kind === 'job' ? sp * dt / JOB_CYCLE : sp * dt / t.days) * famGain(t));
-    if (t.upkeep) L.shipWear = Math.max(0, (L.shipWear || 0) - sp * dt / TPD * 1.5);   // upkeep work repairs wear
+    if (t.parts && !(L.paid || {})[t.id]) { L.salvage -= t.parts; (L.paid = L.paid || {})[t.id] = 1; }   // a workshop takes its parts when work starts
     if (t.kind === 'job') {
       // Jobs work in batches: the bar fills over JOB_CYCLE days of work, then delivers and empties.
       L.cyc[t.id] = (L.cyc[t.id] || 0) + sp * dt / JOB_CYCLE;
@@ -3109,6 +3158,17 @@ function updateHud(){
   $('#t-sal').innerHTML = fmt(L.salvage) + '<span class="cap">/' + Math.round(M.salCap) + '</span>';
   $('#t-sal').classList.toggle('full', L.salvage >= M.salCap - 0.01);
   const sa = $('#t-salr'); sa.textContent = sr > 0 ? '+' + fmt(perDay(sr)) + '/d' : ''; sa.className = 'num pos';
+  { // Act II: salvage doubles as spare parts for the ship's wear
+    const wh = wearsHere() && !L.dead, tw = $('#t-wear'), rb = $('#repb'), w = L.shipWear || 0, ppd = partsPerDay();
+    tw.hidden = !wh; rb.hidden = !wh; $('#t-sall').textContent = wh ? 'Parts' : 'Salvage';
+    if (wh) {
+      tw.textContent = 'ship wear ' + fmt(w) + ' (drain +' + Math.round(100 * (wearMul() - 1)) + '%)' + (ppd > 0 ? ' \u00b7 parts last ' + both(L.salvage / ppd * TPD) : '');
+      tw.classList.toggle('neg', w >= 2 * REPAIR_AMT || L.salvage < repairCost());
+      const a = Math.min(REPAIR_AMT, w);
+      rb.disabled = !canRepair();
+      rb.textContent = (L.rcd || 0) > 0 ? 'Next repair in ' + both(L.rcd) : a < 0.25 ? 'Hull sound: no repair needed' : L.salvage < repairCost(null, a) ? 'Not enough parts to repair (' + repairCost(null, a) + ')' : 'Repair (\u2212' + fmt(a) + ' wear, ' + repairCost(null, a) + ' parts)';
+    }
+  }
   const now = $('#now');
   now.classList.toggle('idle', !cur && !L.dead && !S.set.paused);
   now.classList.toggle('paused', !!S.set.paused && !L.dead);
@@ -3499,6 +3559,12 @@ function bindFoodPct(){
     fdn.addEventListener('keydown', e => { if (e.key === 'Enter') { setPct(true); fdn.blur(); } });
   }
 }
+function partsSettingsHtml(){
+  if (!(S.a2 && S.a2.open)) return '';
+  let h = `<div class="row"><p>Auto-repair<small>Act II: spend spare parts (salvage) on the ship whenever its wear reaches a full repair and the repair cooldown is over.</small></p><button class="tog${S.set.autoRepair ? ' on' : ''}" data-set="autoRepair" aria-label="Auto-repair" aria-pressed="${!!S.set.autoRepair}"></button></div>`;
+  h += `<div class="row"><p>Auto-scavenge<small>Act II: work the best parts job when spare parts drop below ${S.set.partsDays || 2} days of repairs (plus any workshop you are about to build), and stay until twice that.</small></p><button class="tog${S.set.autoScav ? ' on' : ''}" data-set="autoScav" aria-label="Auto-scavenge" aria-pressed="${!!S.set.autoScav}"></button></div>`;
+  return h;
+}
 function foodSettingsHtml(){
   let h = '';
   h += `<div class="row"><p>Auto-eat<small>Eat a ration whenever the meal cooldown is over and health has room for it.</small></p><button class="tog${S.set.autoEat ? ' on' : ''}" data-set="autoEat" aria-label="Auto-eat" aria-pressed="${S.set.autoEat}"></button></div>`;
@@ -3530,7 +3596,7 @@ function renderAuto(){
   const key = JSON.stringify(secFold) + (S.life.sec || 1) + list.map(t => t.id + (S.auto[t.id] ? '*' : '') + (masteryF(t) >= SECTION_F ? 5 : masteryF(t) >= LINK_F ? 2 : 1)).join() + '|' + glist.map(i => i.id + (S.gauto[i.id] ? '*' : '')).join() + '|' + (S.life.chainRun ? 'R' : '') + '|' + L.sec + '|' + S.gen + '|' + !!S.set.fillCross + !!S.set.autoFeed + '|' + restAt() + '|' + (S.set.deathScreen !== false) + (S.set.deathPause !== false) + !!S.set.startPaused + !!S.set.bgPause + !!S.set.pauseCross + decantUnlocked() + (S.stats.deaths || 0);
   if (key === autoKey) return; autoKey = key;
   let h = `<div class="panel"><span class="h2">Automation</span><p class="note">Tasks finished often enough can run by themselves (${autoScale() < 1 ? 'this run needs ' + Math.round(autoScale() * 100) + '% of' : ''} 10 lives' worth: an action 10 times, a training session 40 times, a job ${AUTO_LIVES * JOB_UNIT} batches), and gear built in ${AUTO_LIVES} lives can be built automatically (in ship order; the clone saves up for the next one). Switch them on here. They run in chain order: each after the tasks it needs. Linked tasks form chains, and a fully chained section can be run with one click. Automated tasks run ahead of your queue (automated jobs when their store drops below the forage threshold); automated crossings wait until the queue is done. Rests fire on their own at strain ×${restAt()}, and also just before an automated crossing if the section\u2019s rest is still unused.</p>
-    ${foodSettingsHtml()}
+    ${foodSettingsHtml()}${partsSettingsHtml()}
     <div class="fld"><label for="rest-at">Automated rests fire at strain \u00d7</label><div class="pctin"><input type="text" id="rest-at" inputmode="decimal" autocomplete="off" value="${restAt()}"><span>Rests also fire just before an automated crossing if still unused.</span></div></div>
     <div class="row"><p>Feed when needed<small>Automated food jobs step in when food runs low, or when health is low and meals can still heal faster than strain drains it. They refill to what is needed, then the interrupted task carries on.</small></p><button class="tog${S.set.autoFeed ? ' on' : ''}" data-set="autoFeed" aria-label="Feed when needed" aria-pressed="${!!S.set.autoFeed}"></button></div>
     <div class="row"><p>Fill storage before moving on<small>A queued or automated crossing stops just before it finishes and steps out of the queue while the section is wrapped up: unfinished automated actions and drills (in chain order), affordable automated gear, refilling ration and salvage storage, and the unused automated rest. Then it returns to the front of the queue and completes. The queue shows what is left and a button to skip it; tapping a crossing yourself also goes at once.</small></p><button class="tog${S.set.fillCross ? ' on' : ''}" data-set="fillCross" aria-label="Fill storage before moving on" aria-pressed="${!!S.set.fillCross}"></button></div></div>`;
@@ -3606,12 +3672,13 @@ const FAQ_ALL = [
 ];
 // Shown once the drive is first lit.
 const FAQ_NGP = ['Legacy tasks', 'There is no restarting: after the drive is lit, the story always moves forward. As Act II unfolds, <b>legacy tasks</b> open up in Act I, one theme at a time. Each theme adds a set of five parts to every Act I section, open once a clone has done that section\u2019s last regular action: two pairs of steps, then a <b>final</b> that needs both pairs. Revealed sets are <b>needed for the crossing</b> (and for lighting the drive). Finishing a final gives its bonus for the rest of that life, growing with the final\u2019s mastery (nothing untrained, full share at twice the usual familiarity). All five finals of a theme, done and mastered, give its full effect. Each set has an optional <b>drill</b> that trains only its five parts; section drills don\u2019t train them. Legacy parts are never queued for you: a toast and a dot on the Tasks tab say when they open up. Once automated they join chains and section runs like any other task. The <b>Legacy</b> tab shows what each revealed theme does and how far it has got. Lighting the drive the first time also unlocks the <b>Quartermaster\u2019s cache</b>: every clone starts with all of its automated gear already built, in both acts.'];
+const FAQ_WEAR = ['Ship wear and spare parts', 'In Act II the ship wears out as your clones work: a little in the Boarders, more over the Long Watch, most during Arrival. Every point of wear adds 8% to the health drain. <b>Salvage</b> doubles as <b>spare parts</b>: a <b>repair</b> takes off 1.5 wear for a fixed number of parts (more in later sections), then needs a cooldown, like a meal. <b>Auto-repair</b> does this for you; the <b>Repair</b> button under Parts does it by hand. Parts jobs are the forage for parts: <b>Auto-scavenge</b> works the best one when parts run low. Each Act II section has a <b>workshop</b> action that makes repairs come more often; it costs three repairs\u2019 worth of parts when work on it starts. Run out of parts and the wear keeps climbing until the clone is worn down with the ship.'];
 const FAQ_A2 = ['Act II', 'Once the main drive is lit, every clone that lights it carries on into <b>Act II</b>: nine more sections, one after another, each revealed when a clone first reaches it. Act II tasks have their own familiarity, which Echo legacy tasks reduce only at 10% strength: it starts at 90 lives\u2019 worth for \u00d710 and drops by a quarter at each of Act II\u2019s three big milestones. Act II familiarity, automation and records are kept for good.'];
 let faqDone = '';
 function renderFaq(){
   const k = String(!!(S.won || (S.pr && S.pr.n))) + !!(S.a2 && S.a2.open);
   if (faqDone === k) return; faqDone = k;
-  const FAQ = FAQ_ALL.concat(S.won ? [FAQ_NGP] : [], S.a2 && S.a2.open ? [FAQ_A2] : []);
+  const FAQ = FAQ_ALL.concat(S.won ? [FAQ_NGP] : [], S.a2 && S.a2.open ? [FAQ_A2, FAQ_WEAR] : []);
   $('#v-faq').innerHTML = '<div class="panel"><span class="h2">FAQ</span><p class="note">How Long Patience works. Tap a question to open it.</p></div><div class="faq">' +
     FAQ.map(([q, a], i) => `<details${i < 2 ? ' open' : ''}><summary>${q}</summary><p>${a}</p></details>`).join('') + '</div>';
 }
@@ -3752,6 +3819,7 @@ document.addEventListener('click', e => {
     document.querySelectorAll(`[data-atog="${d.atog}"]`).forEach(x => { x.classList.toggle('on', ASET[d.atog]); x.setAttribute('aria-pressed', ASET[d.atog]); });
     renderSpeed(); return;
   }
+  if ('repair' in d) { const a = repair(); if (a) { sfx('toggle'); toast('Repaired ' + fmt(a) + ' wear.'); } return; }
   if ('eat' in d) { const f = readyFoods()[0], h0 = L.hp; if (f && eat(f)) sfx('eat'), toast('Ate ' + FD[f].name.toLowerCase() + '. +' + fmt(L.hp - h0) + ' health'); return; }
   if ('exportjson' in d) { exportJson(); return; }
   if ('ghshare' in d) { shareToGitHub(); return; }
