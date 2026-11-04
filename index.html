@@ -355,6 +355,7 @@ input[type=range]{width:100%;accent-color:var(--amber)}
 .mn.lock{opacity:.4}
 .me{fill:none;stroke:var(--line);stroke-width:1.5}
 .me.lit{stroke:var(--amber);opacity:.7}
+.me.dash{stroke-dasharray:4 4}
 .secstrip{display:flex;flex-wrap:wrap;gap:4px 6px;align-items:center;font-family:var(--f-disp);text-transform:uppercase;letter-spacing:.06em;font-size:12px;color:var(--faint)}
 .secstrip span.past{color:var(--faint);text-decoration:line-through}
 .secstrip span.here{color:var(--amber)}
@@ -493,7 +494,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
 
 <script id="logic">
 /* ===== Game data and rules (no DOM) ===== */
-const BUILD = '2026-11-04 · run bar always on top';   // shown in the main menu, to tell which version is loaded
+const BUILD = '2026-11-04 · map and update fixes';   // shown in the main menu, to tell which version is loaded
 const DPS = 8;             // simulation ticks per real second at 1x (doubled for the test version: same balance, half the real time)
 // Time is simulated in ticks. 80 ticks make one ship day (18 minutes each), so a day lasts
 // 20 real seconds at 1x and a clone lives weeks, not years. Everything is shown in days and hours.
@@ -1919,6 +1920,7 @@ function legacyIdle(){
 }
 function absorbChains(){
   const L = S.life; let changed = false;
+  { const n = L.queue.length; L.queue = L.queue.filter(q => !(T[q] && T[q].legacy && !legacyOpen(T[q]))); if (L.queue.length !== n) changed = true; }   // legacy tasks of themes not revealed yet (old builds queued them)
   const p = pathOf(), from = Math.max(0, p.indexOf(L.sec || 1));
   p.slice(from).forEach(z => chainsOf(z).forEach(c => {
     const ck = chainKeyFor(c[0]); if (!ck) return;
@@ -2528,6 +2530,7 @@ function mergeState(raw){
   ['lv','perks'].forEach(k => { if (!s.a2[k]) s.a2[k] = {}; });
   if ((s.won || (s.pr && s.pr.n)) && !s.a2.open) s.a2.open = true;   // Act II opens for anyone who has lit the drive
   if (!s.a2run) s.a2run = {reached:{}, done:{}};
+  if (s.life && Array.isArray(s.life.queue)) { const rv = (s.a2run || {}).reached || {}; s.life.queue = s.life.queue.filter(q => !(T[q] && T[q].legacy && !(s.won && rv[LEGACY_REVEAL[T[q].legacy]]))); }   // old builds queued legacy tasks of themes not revealed yet
   if (!s.lgSplit) { s.lgSplit = 1; if (s.fam) TASKS.forEach(t => { if (t.lfin && s.fam[t.id]) s.fam[t.id] /= 3; }); }   // legacy tasks split in five: the final is a third as long, so keep its trained share
   { const ok = q => typeof q === 'string' && (isCQ(q) ? cSteps(q).length > 0 : isGQ(q) ? !!IT[q.slice(2)] : !!T[q]);
     if (s.life) { ['queue', 'qdone'].forEach(k => { if (Array.isArray(s.life[k])) s.life[k] = s.life[k].filter(ok); });
@@ -3367,7 +3370,7 @@ const a2Done = () => !!((S.a2run && S.a2run.done && S.a2run.done.C) || (S.a2 && 
 
 /* ----- map: every action ever performed, by section, wired by requirement ----- */
 let mapKey = '', mapRefs = [];
-const MW = 340, NH = 50, RG = 34, PAD = 8;
+const MW = 340, NH = 50, RG = 34, PAD = 8, MAP_ROW = 3;
 function wrap2(txt, max){
   const w = txt.split(' '), lines = ['']; 
   w.forEach(x => { const l = lines[lines.length - 1]; if ((l + ' ' + x).trim().length > max && lines.length < 2 && l) lines.push(x); else lines[lines.length - 1] = (l + ' ' + x).trim(); });
@@ -3376,31 +3379,38 @@ function wrap2(txt, max){
 }
 function renderMap(){
   const ever = S.ever || {};
-  const key = Object.keys(ever).join() + '|' + S.gen;
+  const key = Object.keys(ever).join() + '|' + S.gen + '|' + JSON.stringify((S.a2run || {}).reached || {});
   if (key === mapKey) return; mapKey = key;
   let h = '<div class="panel"><span class="h2">Ship map</span><p class="note">Every action your clones have ever performed, by section. Lines show what each one needs. Filled boxes are done in this life; the glowing one is in progress. Tap an action to work on it.</p></div>';
   let any = false;
   ZONES.forEach(z => {
-    const nodes = TASKS.filter(t => t.kind !== 'job' && t.z === z.id && ever[t.id]);
+    const nodes = TASKS.filter(t => t.kind !== 'job' && t.z === z.id && ever[t.id] && legacyOpen(t));   // unrevealed legacy themes stay off the map
     if (!nodes.length) return;
     any = true;
     const ids = new Set(nodes.map(t => t.id)), depth = {};
-    const dOf = t => { if (depth[t.id] != null) return depth[t.id]; let d = 0; t.req.forEach(r => { if (ids.has(r)) d = Math.max(d, dOf(T[r]) + 1); }); return depth[t.id] = d; };
+    // depth by everything an action really needs in this section, mapped or not, so a legacy final sits
+    // above the crossing even before its earlier steps are on the map
+    const dOf = t => { if (depth[t.id] != null) return depth[t.id]; let d = 0; t.req.forEach(r => { if (T[r] && T[r].z === z.id) d = Math.max(d, dOf(T[r]) + 1); }); return depth[t.id] = d; };
     nodes.forEach(dOf);
-    const rows = [];
-    nodes.forEach(t => (rows[depth[t.id]] = rows[depth[t.id]] || []).push(t));
+    const byD = {};
+    nodes.forEach(t => (byD[depth[t.id]] = byD[depth[t.id]] || []).push(t));
+    const rows = [];   // empty levels skipped; at most MAP_ROW boxes per row so names stay readable
+    Object.keys(byD).map(Number).sort((a, b) => a - b).forEach(d => { const r = byD[d]; for (let i = 0; i < r.length; i += MAP_ROW) rows.push(r.slice(i, i + MAP_ROW)); });
     const pos = {};
     rows.forEach((row, ri) => {
       const n = row.length, gap = 8, w = (MW - PAD * 2 - gap * (n - 1)) / n;
       row.forEach((t, i) => pos[t.id] = {x: PAD + i * (w + gap), y: PAD + ri * (NH + RG), w});
     });
+    // nearest mapped actions behind an unmapped requirement (drawn dashed)
+    const via = (r, seen) => { if (pos[r]) return [r]; if (!T[r] || T[r].z !== z.id || seen.has(r)) return []; seen.add(r); return [...new Set(T[r].req.flatMap(x => via(x, seen)))]; };
     const H = PAD * 2 + rows.length * NH + (rows.length - 1) * RG;
     let edges = '', boxes = '';
     nodes.forEach(t => {
       const p = pos[t.id];
-      t.req.forEach(r => { if (!pos[r]) return; const q = pos[r];
+      const link = (r, dash) => { const q = pos[r]; if (!q) return;
         const x1 = q.x + q.w / 2, y1 = q.y + NH, x2 = p.x + p.w / 2, y2 = p.y, my = (y1 + y2) / 2;
-        edges += `<path class="me" data-from="${r}" d="M${x1} ${y1} C${x1} ${my} ${x2} ${my} ${x2} ${y2}"/>`; });
+        edges += `<path class="me${dash ? ' dash' : ''}" data-from="${r}" d="M${x1} ${y1} C${x1} ${my} ${x2} ${my} ${x2} ${y2}"/>`; };
+      t.req.forEach(r => { if (pos[r]) link(r, false); else if (T[r] && T[r].z === z.id) via(r, new Set()).forEach(a => link(a, true)); });
       const lines = wrap2(t.name, Math.max(10, Math.floor(p.w / 6.6)));
       const outside = t.req.filter(r => !ids.has(r) && T[r] && T[r].z !== z.id);
       boxes += `<g class="mn${t.kind === 'rest' ? ' rest' : t.kind === 'train' ? ' train' : ''}" data-mapdo="${t.id}" transform="translate(${p.x} ${p.y})">
@@ -3999,9 +4009,13 @@ function startAppUpdate(){
   AndroidBridge.downloadUpdate(APK_URL);
 }
 // Called by the Android app while downloading and installing
+let updTries = 0;
 window.onAppUpdate = (state, msg) => {
-  if (state === 'progress') setUpd('Downloading\u2026 ' + msg + '%');
-  else { updBusy = false; setUpd(msg); if (state === 'error') sfx('error'); }
+  if (state === 'progress') { setUpd('Downloading\u2026 ' + msg + '%'); return; }
+  updBusy = false;
+  // a 404 right after a new build is announced: the file is usually still uploading, so try again shortly
+  if (state === 'error' && /404/.test(String(msg)) && updTries < 3) { updTries++; setUpd('Build is still uploading, retrying in 30 s (' + updTries + '/3)\u2026'); setTimeout(startAppUpdate, 30000); return; }
+  updTries = 0; setUpd(msg); if (state === 'error') sfx('error');
 };
 let settingsFrom = null;
 function updatePanel(){

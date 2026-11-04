@@ -62,9 +62,17 @@ jobs:
 
           Download LongPatience.apk below and open it on your Android phone to install or update.
           Updates install over the previous version and keep your saves."
-          if gh release view android-latest >/dev/null 2>&1; then
-            gh release edit android-latest --title "Long Patience for Android (build ${GITHUB_RUN_NUMBER})" --notes "$NOTES"
-          else
-            gh release create android-latest --title "Long Patience for Android (build ${GITHUB_RUN_NUMBER})" --notes "$NOTES" --target "$GITHUB_SHA"
+          TITLE="Long Patience for Android (build ${GITHUB_RUN_NUMBER})"
+          if ! gh release view android-latest >/dev/null 2>&1; then
+            # first time only: create the release (its title names a build once the file is up)
+            gh release create android-latest --title "Long Patience for Android" --notes "$NOTES" --target "$GITHUB_SHA"
           fi
-          gh release upload android-latest "$RUNNER_TEMP/LongPatience.apk" --clobber
+          # Upload the new file under a temporary name first, so the download link never points at nothing,
+          # then swap it in and only then announce the new build number (the app reads it from the title).
+          cp "$RUNNER_TEMP/LongPatience.apk" "$RUNNER_TEMP/LongPatience-next.apk"
+          gh release upload android-latest "$RUNNER_TEMP/LongPatience-next.apk" --clobber
+          REPO="${GITHUB_REPOSITORY}"
+          ids() { gh api "repos/$REPO/releases/tags/android-latest" --jq ".assets[] | select(.name==\"$1\") | .id"; }
+          for id in $(ids LongPatience.apk); do gh api -X DELETE "repos/$REPO/releases/assets/$id"; done
+          for id in $(ids LongPatience-next.apk); do gh api -X PATCH "repos/$REPO/releases/assets/$id" -f name=LongPatience.apk >/dev/null; done
+          gh release edit android-latest --title "$TITLE" --notes "$NOTES"
