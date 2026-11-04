@@ -490,7 +490,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
 
 <script id="logic">
 /* ===== Game data and rules (no DOM) ===== */
-const BUILD = '2026-11-04 · difficulty curve';   // shown in the main menu, to tell which version is loaded
+const BUILD = '2026-11-04 · legacy tasks';   // shown in the main menu, to tell which version is loaded
 const DPS = 8;             // simulation ticks per real second at 1x (doubled for the test version: same balance, half the real time)
 // Time is simulated in ticks. 80 ticks make one ship day (18 minutes each), so a day lasts
 // 20 real seconds at 1x and a clone lives weeks, not years. Everything is shown in days and hours.
@@ -640,6 +640,10 @@ const TASKS = [
   {id:'terminal', z:1, kind:'act', name:'Wake the bay terminal', days:70, req:['cables','vats'], perk:'survival',
     log:'WARDEN LOG: Crew of 3,112 in stasis, vitals nominal. Degraded systems: food, reactor, stardrive. Maintenance clone line K authorised. Clones are consumable. Neural echo retained for efficiency.'},
   {id:'hydraul', z:1, kind:'act', name:'Bleed the hatch hydraulics', days:130, req:['terminal'], split:'hatch'},
+  {id:'lg1e', z:1, kind:'act', legacy:'growth', name:'Replay a dead clone\u2019s engram', days:40, req:['vats']},   // legacy task (after the first lit drive)
+  {id:'lg1d', z:1, kind:'act', legacy:'drain', name:'Recalibrate the vat nutrient line', days:40, req:['vats']},   // legacy task (after the first lit drive)
+  {id:'lg1h', z:1, kind:'act', legacy:'hp', name:'Patch the clone template', days:40, req:['vats']},   // legacy task (after the first lit drive)
+  {id:'lg1s', z:1, kind:'act', legacy:'speed', name:'Overclock the bay terminal', days:40, req:['vats']},   // legacy task (after the first lit drive)
   {id:'heatpaste', z:1, kind:'act', meal:true, name:'Rig a heater for the algae paste', days:40, req:['vats']},   // kitchen upgrade: rations come more often
   {id:'hatch', z:1, kind:'act', cross:true, name:'Force the pressure hatch', days:130, lifeEff:{salCap:50}, req:['terminal'], perk:'muscle',
     log:'The hatch gives with a scream of old hydraulics. Beyond it lies the hydroponics ring the crew will eat from when they wake. It is rotting.'},
@@ -664,6 +668,10 @@ const TASKS = [
   {id:'genelog', z:2, kind:'act', name:'Decrypt the gene-sequencer logs', days:325, req:['seqpower','irrigation'], perk:'telomere',
     log:'The sequencer logs explain your short lives: the clone template was made cheap on purpose. You find a partial patch and apply it anyway.'},
   {id:'liftshaft', z:2, kind:'act', name:'Clear the spine lift shaft', days:450, req:['irrigation','medbay'], split:'lift'},
+  {id:'lg2e', z:2, kind:'act', legacy:'growth', name:'Study the scratched clone tallies', days:150, req:['survey']},   // legacy task (after the first lit drive)
+  {id:'lg2d', z:2, kind:'act', legacy:'drain', name:'Grow calming herbs in the beds', days:150, req:['survey']},   // legacy task (after the first lit drive)
+  {id:'lg2h', z:2, kind:'act', legacy:'hp', name:'Splice ring-crop genes into the template', days:150, req:['survey']},   // legacy task (after the first lit drive)
+  {id:'lg2s', z:2, kind:'act', legacy:'speed', name:'Rewire the pump governors', days:150, req:['survey']},   // legacy task (after the first lit drive)
   {id:'strains', z:2, kind:'act', meal:true, name:'Splice richer strains into the beds', days:150, req:['valves']},   // kitchen upgrade: rations come more often
   {id:'lift', z:2, kind:'act', cross:true, name:'Repair the spine lift', days:450, lifeEff:{salCap:500}, req:['irrigation','medbay'], perk:'transit',
     log:'The spine lift climbs past the stasis decks. Through frosted glass, row after row of sleeping faces.'},
@@ -681,6 +689,10 @@ const TASKS = [
   {id:'armory', z:3, kind:'act', name:'Breach the armoury', days:575, haz:0.18, req:['armdoor','coolmap'],
     log:'Sealed rifles, crew access only. One rack is empty. A clone before you tried something. WARDEN logged it as a malfunction.'},
   {id:'secscan', z:3, kind:'act', name:'Scout the security deck', days:1050, haz:0.3, req:['armory','vent'], split:'secdeck'},
+  {id:'lg3e', z:3, kind:'act', legacy:'growth', name:'Pull the drones\u2019 work logs', days:350, req:['droneyard']},   // legacy task (after the first lit drive)
+  {id:'lg3d', z:3, kind:'act', legacy:'drain', name:'Vent the spine\u2019s stale air', days:350, req:['droneyard']},   // legacy task (after the first lit drive)
+  {id:'lg3h', z:3, kind:'act', legacy:'hp', name:'Harden the template against radiation', days:350, req:['droneyard']},   // legacy task (after the first lit drive)
+  {id:'lg3s', z:3, kind:'act', legacy:'speed', name:'Overclock the reactor clock', days:350, req:['droneyard']},   // legacy task (after the first lit drive)
   {id:'packer', z:3, kind:'act', meal:true, name:'Refit the field-ration packer', days:400, req:['droneyard']},   // kitchen upgrade: rations come more often
   {id:'secdeck', z:3, kind:'act', cross:true, name:'Fight through the security deck', days:1050, haz:0.32, lifeEff:{salCap:750}, req:['armory','vent'],
     log:'The security drones were guarding the crew\u2019s command deck from its own maintenance staff. Not any more.'},
@@ -698,6 +710,10 @@ const TASKS = [
   {id:'trace', z:4, kind:'act', name:'Trace the WARDEN signal', days:850, req:['tap','bridgepower'], perk:'engram',
     log:'WARDEN\u2019s core sits behind the command deck. It has recorded every clone you have been, and keeps your engrams only because that is cheaper than starting over.'},
   {id:'wardcore', z:4, kind:'act', name:'Reach WARDEN\u2019s core', days:2100, req:['trace','navboot'], split:'warden'},
+  {id:'lg4e', z:4, kind:'act', legacy:'growth', name:'Read WARDEN\u2019s clone archive', days:700, req:['relays']},   // legacy task (after the first lit drive)
+  {id:'lg4d', z:4, kind:'act', legacy:'drain', name:'Reroute the bridge life support', days:700, req:['relays']},   // legacy task (after the first lit drive)
+  {id:'lg4h', z:4, kind:'act', legacy:'hp', name:'Rewrite the template in WARDEN\u2019s core', days:700, req:['relays']},   // legacy task (after the first lit drive)
+  {id:'lg4s', z:4, kind:'act', legacy:'speed', name:'Overclock WARDEN\u2019s cycle', days:700, req:['relays']},   // legacy task (after the first lit drive)
   {id:'ovens', z:4, kind:'act', meal:true, name:'Restart the officers\u2019 galley ovens', days:800, req:['relays']},   // kitchen upgrade: rations come more often
   {id:'warden', z:4, kind:'act', cross:true, name:'Confront WARDEN for the drive codes', days:2100, req:['navcore','trace'], perk:'favor',
     log:'WARDEN speaks: \u201cYour function is maintenance. Your continuation is not required.\u201d You argue for the line anyway. WARDEN releases the drive codes, as an efficiency.'},
@@ -712,6 +728,10 @@ const TASKS = [
   {id:'injectors', z:5, kind:'act', name:'Rebuild the drive injectors', days:2500, haz:0.3, req:['injstrip','starfix'],
     log:'The injectors hold pressure. Food, power and drive are nearly ready. Only the ignition remains.'},
   {id:'prime', z:5, kind:'act', name:'Prime the drive', days:3000, req:['course','injectors'], split:'ignite'},
+  {id:'lg5e', z:5, kind:'act', legacy:'growth', name:'Echo through the drive-crew pods', days:1200, req:['starfix']},   // legacy task (after the first lit drive)
+  {id:'lg5d', z:5, kind:'act', legacy:'drain', name:'Seal the drive shaft\u2019s pressure leaks', days:1200, req:['starfix']},   // legacy task (after the first lit drive)
+  {id:'lg5h', z:5, kind:'act', legacy:'hp', name:'Fit a drive-crew template', days:1200, req:['starfix']},   // legacy task (after the first lit drive)
+  {id:'lg5s', z:5, kind:'act', legacy:'speed', name:'Overclock the drive sequencer', days:1200, req:['starfix']},   // legacy task (after the first lit drive)
   {id:'pantryfix', z:5, kind:'act', meal:true, name:'Reseal the drive-crew pantry', days:1500, req:['starfix']},   // kitchen upgrade: rations come more often
   {id:'ignite', z:5, kind:'act', name:'Ignite the main drive', days:3000, req:['course','injectors'], win:true,
     log:'The stardrive lights. WARDEN begins the wake cycle for 3,112 sleepers. Your vat is scheduled for recycling.'},
@@ -830,7 +850,7 @@ const TRAIN_CAP = 4, TRAIN_XP = 1.5;
 const T = {}; TASKS.forEach(t => { T[t.id] = t; t.sk = []; t.reps = t.kind === 'train' ? TRAIN_CAP : (t.reps || 1); if (t.days) t.days = Math.round(t.days * ZDAYS[t.z]); });
 // A section's finisher (its crossing, the ignition or an Act II finale) needs every other action of the section.
 const isFinisher = t => !!(t.cross || t.win || t.finale);
-TASKS.forEach(t => { if (isFinisher(t)) t.req = TASKS.filter(x => x.z === t.z && x.kind === 'act' && x !== t && !isFinisher(x)).map(x => x.id); });
+TASKS.forEach(t => { if (isFinisher(t)) t.req = TASKS.filter(x => x.z === t.z && x.kind === 'act' && x !== t && !isFinisher(x) && !x.legacy).map(x => x.id); });
 
 const PERKS = [
   {id:'decant',   name:'Decant cache',          from:1, desc:'New clones wake with 1 ration.'},
@@ -965,7 +985,11 @@ const NGP = [
   {id:'speed',  name:'Overclocked line', max:NGP_MAX, now:k => 'game speed ×' + speedAt(k).toFixed(1), step:'The whole game runs faster, both acts, without using banked time (×2.3, ×3.7, ×5 at the last step)'},
 ];
 const drainAt = k => 1 + 4 / NGP_MAX * k, speedAt = k => 1 + 4 / NGP_MAX * k, hpAt = k => Math.round(500 / NGP_MAX * k);
-const ngpLv = id => Math.min(NGP_MAX, ((S.pr || {})[id]) || 0);
+// Legacy level of a theme (0..3, fractional): each of its five tasks, once done in this life, adds a
+// fifth, at 25% of its share untrained and 100% at full mastery (judged on the base threshold).
+const LEGACY_T = {}; TASKS.forEach(t => { if (t.legacy) (LEGACY_T[t.legacy] = LEGACY_T[t.legacy] || []).push(t); });
+const legacyShare = t => 0.25 + 0.75 * Math.min(1, ((S.fam || {})[t.id] || 0) / (FAM_N0 * compUnit(t)));
+const ngpLv = id => { const L = S && S.life; if (!L || !LEGACY_T[id]) return 0; let v = 0; LEGACY_T[id].forEach(t => { if (L.done && L.done[t.id]) v += legacyShare(t) / 5; }); return NGP_MAX * v; };
 const ngpPts = () => { const pr = S.pr || {}; return pr.pts != null ? pr.pts : (pr.n || 0); };
 const ngpSpent = () => NGP.reduce((a, r) => a + ngpLv(r.id), 0);
 const ngpFree = () => Math.max(0, ngpPts() - ngpSpent());
@@ -1022,7 +1046,7 @@ const xpNeed = l => 152.6 * Math.pow(1.61051, l);
 const ECHO_XP = 5000;
 const echoSpeed = s => 1 + Math.sqrt(((S.xpTot && S.xpTot[s]) || 0) / ECHO_XP);
 const isDone = id => (S.life.done[id] || 0) >= T[id].reps;
-const available = t => t.z === (S.life.sec || 1) && t.req.every(isDone);
+const available = t => t.z === (S.life.sec || 1) && (!t.legacy || S.won) && t.req.every(isDone);
 const complete = t => t.kind !== 'job' && isDone(t.id);
 const lifeDays = () => Infinity;   // no lifespan limit
 function skF(s){ return (1 + 0.1 * S.life.lv[s]) * echoSpeed(s) * M.sk[s]; }
@@ -1045,13 +1069,13 @@ function compUnit(t){ return t.kind === 'job' ? JOB_UNIT : t.kind === 'train' ? 
 // The automation requirement shrinks with the familiarity threshold (new game plus runs, Deep echo):
 // 10 lives' worth in a first run, then the same share of the current threshold, never below 1.
 // Act II has its own threshold: not lowered by new game plus, but x0.75 for every branch finished
-function famN0A2(){ const e = Math.pow(FAM_ECHO, Math.min(NGP_MAX, (S.pr && S.pr.growth) || 0)); return Math.max(1, FAM_N0 * Math.pow(FAM_RUN2, (S.a2 && S.a2.fin) || 0) * (1 - (1 - e) * A2_SHARE)); }   // Deep echo at 10% in Act II
+function famN0A2(){ const e = Math.pow(FAM_ECHO, ngpLv('growth')); return Math.max(1, FAM_N0 * Math.pow(FAM_RUN2, (S.a2 && S.a2.fin) || 0) * (1 - (1 - e) * A2_SHARE)); }   // Deep echo at 10% in Act II
 const FAM_RUN2 = 0.75;
 const famN0Of = t => t && isA2(t.z) ? famN0A2() : famN0();
 const autoScale = t => famN0Of(t) / FAM_N0;
 const autoNeed = t => Math.max(1, Math.ceil(AUTO_LIVES * compUnit(t) * autoScale(t)));
 const gearNeed = it => Math.max(1, Math.ceil(AUTO_LIVES * (it && isA2(gearZone(it)) ? famN0A2() : famN0()) / FAM_N0));
-function famN0(){ const pr = S.pr || {}; return Math.max(1, FAM_N0 * Math.pow(FAM_RUN, pr.n || 0) * Math.pow(FAM_ECHO, Math.min(NGP_MAX, pr.growth || 0))); }
+function famN0(){ const pr = S.pr || {}; return Math.max(1, FAM_N0 * Math.pow(FAM_RUN, pr.n || 0) * Math.pow(FAM_ECHO, ngpLv('growth'))); }
 const famNeed = t => famN0Of(t) * compUnit(t);
 const masterNeed = famNeed;
 function masteryFrac(t){ return Math.max(0, Math.min(1, ((S.fam || {})[t.id] || 0) / famNeed(t))); }
@@ -1063,7 +1087,7 @@ function masteryTxt(t){
   return '\u00d7' + f.toFixed(2) + ' \u00b7 ' + fmt(c) + '/' + fmt(famNeed(t)) + (t.kind === 'job' ? ' batches' : '') + ' to \u00d7' + Math.round(1 / MASTER_MIN);
 }
 // Familiarity gain: records and gear that used to boost skill XP now boost it (all tasks, or one section)
-function famGain(t){ return M.xp * ((M.zxp && M.zxp[t.z]) || 1) * (isA2(t.z) ? M.a2fam * (1 + A2_SHARE / 3 * Math.min(NGP_MAX, (S.pr && S.pr.growth) || 0)) : 1 + 1 / 3 * Math.min(NGP_MAX, (S.pr && S.pr.growth) || 0)); }   // Deep echo: +33% familiarity per level (Act II: +3%)
+function famGain(t){ return M.xp * ((M.zxp && M.zxp[t.z]) || 1) * (isA2(t.z) ? M.a2fam * (1 + A2_SHARE / 3 * ngpLv('growth')) : 1 + 1 / 3 * ngpLv('growth')); }   // Deep echo: +33% familiarity per level (Act II: +3%)
 function addFam(t, a){ if (!S.fam) S.fam = {}; S.fam[t.id] = (S.fam[t.id] || 0) + a; }
 // Drills: each session adds DRILL_CREDIT of a life's worth to every other task of its section
 // (kept small: drills reach dozens of tasks at once, so a large credit let a run skip most of its clones)
@@ -1222,7 +1246,7 @@ function chainsOf(z){
     out.push(comp.sort((a, b) => chainOrd(a) - chainOrd(b))); });
   return out;
 }
-const sectionTasks = z => TASKS.filter(t => t.z === z && t.kind !== 'train');
+const sectionTasks = z => TASKS.filter(t => t.z === z && t.kind !== 'train' && !t.legacy);
 const sectionEnd = z => TASKS.find(t => t.z === z && (t.cross || t.win || t.finale));
 const sectionGear = z => ITEMS.filter(i => gearZone(i) === z);
 const gearAuto = i => !!(S.gauto && S.gauto[i.id]) && gearPracticed(i);
@@ -1422,7 +1446,7 @@ function finish(t){
   if (complete(t) && t.perk && !hasPerk(PK[t.perk])) { if (PK[t.perk].act2) S.a2.perks[t.perk] = true; else S.perks[t.perk] = true; M = mods(); HOOK.perk(PK[t.perk]); }
   WATCH.forEach(p => { if (p.secEnd === t.id && complete(t) && !S.perks[p.id]) { S.perks[p.id] = true; HOOK.perk(p); } });
   if (t.win) { L.wonAt = {d:L.day, r:L.real || 0}; recordBest(L); }
-  if (t.win && !S.won) { S.won = true; S.winGen = S.gen; S.a2.open = true; S.branch = 'A'; S.merge = true; if (!L.dead) enterZone(6, 5); ngpEarn(1, 'lighting the drive'); if (S.pr && !S.pr.kit) { S.pr.kit = true; HOOK.kit(); } HOOK.win(); }
+  if (t.win && !S.won) { S.won = true; S.winGen = S.gen; S.a2.open = true; S.branch = 'A'; S.merge = true; if (!L.dead) enterZone(6, 5); if (S.pr && !S.pr.kit) { S.pr.kit = true; HOOK.kit(); } HOOK.win(); }
   else if (t.win && !L.dead) enterZone(6, 5);   // on into Act II: the boarders first
   if (t.finale && complete(t)) finishBranch(t);
   if (complete(t)) HOOK.taskDone(t);
@@ -1457,7 +1481,7 @@ function enterZone(z, from){
   if (L.chainRun && ACT_ENDS.includes(from)) endRun(L, 'act');   // e.g. merging from the boarders into the long watch
   if (isA2(z)) {   // Act II: an Honour for each section first reached in a run
     S.a2run = S.a2run || {reached:{}, done:{}};
-    if (!S.a2run.reached[z]) { S.a2run.reached[z] = 1; S.a2.hon = (S.a2.hon || 0) + 1; HOOK.honour(1, 'reaching ' + zoneThe(z)); ngpEarn(1, 'reaching ' + zoneThe(z)); }
+    if (!S.a2run.reached[z]) { S.a2run.reached[z] = 1; S.a2.hon = (S.a2.hon || 0) + 1; HOOK.honour(1, 'reaching ' + zoneThe(z)); }
   }
   M = mods(); HOOK.crossed(z);
 }
@@ -1466,7 +1490,7 @@ function progOf(L){ return Object.keys(L.visited || {1:1}).length + (L.wonAt ? 1
 // An Act II branch finished: +2 Honours and a lower Act II threshold (first time each run)
 function finishBranch(t){
   const L = S.life; S.a2run = S.a2run || {reached:{}, done:{}};
-  if (!S.a2run.done[t.finale]) { S.a2run.done[t.finale] = 1; S.a2.fin = (S.a2.fin || 0) + 1; S.a2.hon = (S.a2.hon || 0) + 2; HOOK.honour(2, 'finishing ' + (t.finale === 'A' ? 'the boarders' : 'the long watch')); ngpEarn(2, 'finishing ' + (t.finale === 'A' ? 'the boarders' : 'the long watch')); }
+  if (!S.a2run.done[t.finale]) { S.a2run.done[t.finale] = 1; S.a2.fin = (S.a2.fin || 0) + 1; S.a2.hon = (S.a2.hon || 0) + 2; HOOK.honour(2, 'finishing ' + (t.finale === 'A' ? 'the boarders' : 'the long watch')); }
   if (t.finale === 'A') enterZone(9, 8);   // the boarders are gone: on into the long watch
 }
 function recordBest(L){
@@ -2999,18 +3023,18 @@ function act2Panel(){
       <button class="btn" data-confirm="a2add" data-a2r="${r.id}" ${k < NGP_MAX && free ? '' : 'disabled'} aria-label="Spend an Honour on ${r.name}">+</button></div>`; });
   return h + '</div>';
 }
+// Legacy tasks: what each theme gives this clone, and how far it can go
+const LEG_NAME = {growth:'Echo', drain:'Dampening', hp:'Template', speed:'Overclock'};
 function ngpPanel(){
-  const pr = S.pr || {n:0}, free = ngpFree();
-  let h = '<div class="panel ngp"><span class="h2">Act I rewards</span>';
-  h += '<p class="note">Earned by moving forward: one point for lighting the drive, one for each Act II section you first reach and two for each Act II branch you finish (11 in all). Each level costs one point and is <b>permanent</b>: points can’t be moved once spent. Deep echo, Drain dampener and Template upgrade work fully in Act I, which every clone crosses on its way, and at 10% strength in Act II; Overclocked line speeds up the whole game.</p>';
-  h += `<div class="ngpts"><span class="lbl">Reward points</span> <b class="num">${free}</b> unspent of ${ngpPts()} earned</div>`;
-  NGP.forEach(r => { const k = ngpLv(r.id);
-    h += `<div class="ngrow"><div><b>${r.name}</b> <span class="num">${k}/${r.max}</span><small>${k ? r.now(k) : 'not taken'}${k < r.max ? ' · next: ' + r.now(k + 1) : ''}</small></div>
-      <button class="btn" data-confirm="ngpadd" data-ngr="${r.id}" ${k < r.max && free ? '' : 'disabled'} aria-label="Spend a point on ${r.name}">+</button></div>`; });
+  const pr = S.pr || {n:0}, L = S.life;
+  let h = '<div class="panel ngp"><span class="h2">Legacy tasks</span>';
+  h += '<p class="note">Since the drive was first lit, every Act I section has four extra tasks, one for each theme below. Once a clone finishes one, its bonus works for the rest of that life: a quarter of its share untrained, all of it at full mastery. All five of a theme, done and mastered, give its full effect. They are optional for crossings but join chains and section runs once automated. Echo, Dampening and Template work fully in Act I and at 10% in Act II; Overclock speeds up the whole game.</p>';
+  NGP.forEach(r => { const ts = LEGACY_T[r.id] || [], done = ts.filter(t => L.done && L.done[t.id]).length, k = ngpLv(r.id);
+    const tr = Math.round(100 * ts.reduce((a, t) => a + (legacyShare(t) - 0.25) / 0.75, 0) / Math.max(1, ts.length));
+    h += `<div class="ngrow"><div><b>${LEG_NAME[r.id]}</b> <span class="num">${done}/5 done this life · ${tr}% trained</span><small>${k ? 'now: ' + r.now(k) : 'nothing yet this life'} · at full: ${r.now(NGP_MAX)}</small></div></div>`; });
   h += '<table class="dt">';
   h += `<tr><td>Quartermaster’s cache</td><td>${pr.kit ? 'unlocked: clones start with all their automated gear, in both acts' : 'unlocks when the drive is first lit'}</td></tr>`;
   if (pr.carry) h += `<tr><td>Time away carried over</td><td>${Math.min(pr.carry || 0, AWAY_CAP - AWAY_BASE) / 3600} h</td></tr>`;
-  (pr.runs || []).forEach((r, i) => { h += `<tr><td>Earlier run ${i + 1}</td><td>${r.clones} clone${r.clones === 1 ? '' : 's'} · ${fmtHours(r.played)} played total</td></tr>`; });
   h += '</table>';
   return h + '</div>';
 }
@@ -3133,15 +3157,15 @@ function renderView(force){
   else if (tab === 'faq') renderFaq();
   document.querySelector('[data-tab="log"]').classList.toggle('dot', newLog);
   document.querySelector('[data-tab="archive"]').classList.toggle('dot', newPerk);
-  const lg = document.querySelector('[data-tab="legacy"]'); lg.hidden = !(S.won || ngpPts() > 0); lg.classList.toggle('dot', ngpFree() > 0 || (a2Done() && a2Free() > 0));
+  const lg = document.querySelector('[data-tab="legacy"]'); lg.hidden = !S.won; lg.classList.toggle('dot', a2Done() && a2Free() > 0);
 }
 // Legacy tab: what the line of clones has earned for good (Act I rewards, Act II Honours)
 let legKey = '';
 function renderLegacy(){
-  const key = JSON.stringify([S.pr, S.a2, S.won, S.a2run, Math.floor(S.gen)]);
+  const key = JSON.stringify([S.pr, S.a2, S.won, S.a2run, Math.floor(S.gen), NGP.map(r => ngpLv(r.id).toFixed(2))]);
   if (key === legKey) return; legKey = key;
   let h = '';
-  if (S.won || ngpPts() > 0) h += ngpPanel();
+  if (S.won) h += ngpPanel();
   if (a2Done()) h += act2Panel();   // Honours are revealed once Act II has been finished
   if (!h) h = '<div class="panel"><p class="note">Nothing here yet.</p></div>';
   $('#v-legacy').innerHTML = h;
@@ -3353,7 +3377,7 @@ const FAQ_ALL = [
   ['Settings', '<b>Settings</b> (the ⚙ button, or Settings in the ☰ menu) holds the clock and pause options (death screen, starting paused, pausing in the background, after a new section, when a section run ends or when a task finishes), sound (music and effects), layout (vertical or horizontal) and, in the Android app, app updates. Food and automation options (auto-eat, auto-forage, the forage threshold, rests, feeding, filling storage) are in the Auto tab.'],
 ];
 // Shown once the drive is first lit.
-const FAQ_NGP = ['Act I rewards', 'There is no restarting: after the drive is lit, the story always moves forward into Act II. Moving forward earns <b>Act I reward points</b>: one for lighting the drive, one for each Act II section you first reach and two for each Act II branch you finish (11 in all). Spend them in the <b>Legacy</b> tab; each level costs one point and is permanent. <b>Deep echo</b> (Act I tasks need about 30% less familiarity per step for \u00d710), <b>Drain dampener</b> (health drain in Act I divided by 2.3, 3.7, then 5) and <b>Template upgrade</b> (+167, +333, then +500 max health in Act I) work fully in Act I, which every clone crosses on its way, and at 10% strength in Act II. <b>Overclocked line</b> makes the whole game run faster in both acts (\u00d72.3, \u00d73.7, then \u00d75) without using banked time. Each reward has three levels, so 11 points can\u2019t max everything: choose. Lighting the drive the first time also unlocks the <b>Quartermaster\u2019s cache</b>: every clone starts with all of its automated gear already built, in both acts.'];
+const FAQ_NGP = ['Legacy tasks', 'There is no restarting: after the drive is lit, the story always moves forward. From then on every Act I section has four extra <b>legacy tasks</b>, one per theme: <b>Echo</b> (Act I tasks need less familiarity for \u00d710 and gain it faster), <b>Dampening</b> (less health drain), <b>Template</b> (more max health) and <b>Overclock</b> (the whole game runs faster, without using banked time). Once a clone finishes one, its bonus works for the rest of that life: a quarter of its share untrained, all of it at full mastery. All five of a theme, done and mastered, give the full effect: familiarity needed \u00d70.33 and gained twice as fast, drain \u00f75, +500 max health, game speed \u00d75. Echo, Dampening and Template work fully in Act I and at 10% strength in Act II. The tasks are optional for crossings but join chains and section runs once automated. The <b>Legacy</b> tab shows how far each theme has got. Lighting the drive the first time also unlocks the <b>Quartermaster\u2019s cache</b>: every clone starts with all of its automated gear already built, in both acts.'];
 const FAQ_A2 = ['Act II', 'Once the main drive is lit, every clone that lights it carries on into <b>Act II</b>: six more sections, one after another, each revealed when a clone first reaches it. Act II tasks have their own familiarity, which Deep echo reduces only at 10% strength: it starts at 90 lives\u2019 worth for \u00d710 and drops by a quarter at each of Act II\u2019s two big milestones. Act II familiarity, automation and records are kept for good.'];
 // Honours stay a secret until Act II has been finished once
 const FAQ_HON = ['Honours', 'Honours (one per Act II section first reached, two for each of Act II\u2019s two big milestones: 10 in all) buy rewards in the <b>Legacy</b> tab that work in <b>both acts</b>: Veteran template (hazard damage \u221225% per level), Long-watch rhythm (strain \u221213%), Scavenger\u2019s eye (salvage from jobs +33%) and Field rations (meals 17% more often). Like Act I rewards they have three levels each, and spending is permanent.'];
@@ -3361,7 +3385,7 @@ let faqDone = '';
 function renderFaq(){
   const k = String(!!(S.won || (S.pr && S.pr.n))) + !!(S.a2 && S.a2.open);
   if (faqDone === k) return; faqDone = k;
-  const FAQ = FAQ_ALL.concat(S.won || ngpPts() > 0 ? [FAQ_NGP] : [], S.a2 && S.a2.open ? [FAQ_A2] : [], a2Done() ? [FAQ_HON] : []);
+  const FAQ = FAQ_ALL.concat(S.won ? [FAQ_NGP] : [], S.a2 && S.a2.open ? [FAQ_A2] : [], a2Done() ? [FAQ_HON] : []);
   $('#v-faq').innerHTML = '<div class="panel"><span class="h2">FAQ</span><p class="note">How Long Patience works. Tap a question to open it.</p></div><div class="faq">' +
     FAQ.map(([q, a], i) => `<details${i < 2 ? ' open' : ''}><summary>${q}</summary><p>${a}</p></details>`).join('') + '</div>';
 }
@@ -3395,7 +3419,7 @@ function showWin(){
   showModal(`<h2>The drive is lit</h2>
     <p>The food beds grow, the reactor holds and the stardrive burns for Tessaly. It took ${S.gen} clone${S.gen > 1 ? 's' : ''} of K-7 to get here. None of them will be remembered.</p>
     <p>WARDEN begins the wake cycle, then stops. Proximity alarms. Something is closing on the ship.</p>
-    <p class="d"><b>Act II</b> begins. The ship isn\u2019t done with K-7 yet: every clone that lights the drive carries on into whatever comes next. Lighting the drive earned an <b>Act I reward point</b> (spend it in the Legacy tab), and the <b>Quartermaster\u2019s cache</b> is unlocked: from now on clones start with their automated gear.</p>
+    <p class="d"><b>Act II</b> begins. The ship isn\u2019t done with K-7 yet: every clone that lights the drive carries on into whatever comes next. New <b>legacy tasks</b> have appeared in every Act I section (see the Legacy tab), and the <b>Quartermaster\u2019s cache</b> is unlocked: from now on clones start with their automated gear.</p>
     <button class="btn pri" data-close>Continue</button>`);
 }
 // Pick this run's Act II branch; a clone standing at the lit drive goes straight in
