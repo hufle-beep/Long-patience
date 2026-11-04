@@ -336,6 +336,7 @@ input[type=range]{width:100%;accent-color:var(--amber)}
 .slot span{font-size:12px;color:var(--dim)}
 .slot em{font-style:normal;font-size:12px;color:var(--amber)}
 .slot .btn{padding:6px 10px;font-size:12px}
+.owname{display:grid;gap:4px;margin:8px 0}.owname input{font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:6px;background:var(--panel2);color:inherit}
 .owarn{border-left:3px solid var(--red);padding:6px 10px;background:var(--panel2);border-radius:4px}
 .slot .dslot{margin:2px 0 0 10px;padding:8px;border-left:3px solid var(--red, #c55);background:var(--panel)}
 .slot .dslot b{font-size:13px}
@@ -489,7 +490,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
 
 <script id="logic">
 /* ===== Game data and rules (no DOM) ===== */
-const BUILD = '2026-11-04 · run totals';   // shown in the main menu, to tell which version is loaded
+const BUILD = '2026-11-04 · save names';   // shown in the main menu, to tell which version is loaded
 const DPS = 8;             // simulation ticks per real second at 1x (doubled for the test version: same balance, half the real time)
 // Time is simulated in ticks. 80 ticks make one ship day (18 minutes each), so a day lasts
 // 20 real seconds at 1x and a clone lives weeks, not years. Everything is shown in days and hours.
@@ -2414,7 +2415,7 @@ const b64dec = str => decodeURIComponent(escape(atob(str.replace(/\s/g, ''))));
 try { localStorage.removeItem('long-patience.github.v1'); } catch(e) {}   // forget any stored GitHub token
 
 /* ----- save file export / import (works in browsers and in the Android app) ----- */
-function saveFileName(){ return 'long-patience-slot' + baseSlot(slot) + (isDeathSlot(slot) ? '-death' : '') + '-clone' + S.gen + '.json'; }
+function saveFileName(){ const nm = (S.name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''); return 'long-patience-' + (nm || 'slot' + baseSlot(slot)) + (isDeathSlot(slot) ? '-death' : '') + '-clone' + S.gen + '.json'; }
 function exportJson(){
   save();
   const json = JSON.stringify(S, null, 1), name = saveFileName();
@@ -2663,7 +2664,7 @@ function showMenu(view){
     h += '<p>Start a new game in which slot? A used slot is overwritten; tap it twice to confirm.</p><div class="slots">';
     for (let i = 1; i <= SLOTS; i++) {
       const r = readSlot(i);
-      h += `<button class="slot" data-newin="${i}" data-used="${r ? 1 : 0}"><b>Slot ${i}</b><span>${esc(slotInfo(r))}</span><em>${r ? 'Overwrite' : 'Start here'}</em></button>`;
+      h += `<button class="slot" data-newin="${i}" data-used="${r ? 1 : 0}"><b>Slot ${i}${r && r.name ? ' \u00b7 ' + esc(r.name) : ''}</b><span>${esc(slotInfo(r))}</span><em>${r ? 'Overwrite' : 'Start here'}</em></button>`;
     }
     h += '</div><button class="btn" data-menu="back">Back</button>';
   } else if (view === 'saves') {
@@ -2671,7 +2672,8 @@ function showMenu(view){
     h += '<span class="lbl">Save slots</span><div class="slots">';
     for (let i = 1; i <= SLOTS; i++) {
       const r = readSlot(i), act = i === slot;
-      h += `<div class="slot${act ? ' act' : ''}"><b>Slot ${i}${act ? ' \u00b7 playing' : ''}</b><span>${esc(slotInfo(r))}</span><div class="btns">`;
+      h += `<div class="slot${act ? ' act' : ''}"><b>Slot ${i}${r && r.name ? ' \u00b7 ' + esc(r.name) : ''}${act ? ' \u00b7 playing' : ''}</b><span>${esc(slotInfo(r))}</span><div class="btns">`;
+      if (r) h += `<button class="btn" data-rename="${i}">Rename</button>`;
       const fromD = slot === 'd' + i;   // playing this slot's own death save
       if (!act && r) h += fromD ? `<button class="btn" data-loadslot="${i}" data-leaved="1">Load slot ${i} (leave the death save)</button>` : `<button class="btn" data-loadslot="${i}">Load</button>`;
       if (!act && cur2) h += `<button class="btn" data-saveto="${i}">${fromD ? 'Copy this death save into slot ' + i : r ? 'Save over' : 'Save here'}</button>`;
@@ -2680,7 +2682,7 @@ function showMenu(view){
       h += '</div>';
       const dk = 'd' + i, dr = readSlot(dk), dact = slot === dk;
       if (dr || dact) {
-        h += `<div class="slot dslot${dact ? ' act' : ''}"><b>\u21b3 Death save \u00b7 linked to slot ${i}${dact ? ' \u00b7 playing' : ''}</b><span>${esc(slotInfo(dr))}</span><div class="btns">`;
+        h += `<div class="slot dslot${dact ? ' act' : ''}"><b>\u21b3 Death save${dr && dr.name ? ' of \u201c' + esc(dr.name) + '\u201d' : ''} \u00b7 linked to slot ${i}${dact ? ' \u00b7 playing' : ''}</b><span>${esc(slotInfo(dr))}</span><div class="btns">`;
         if (!dact && dr) h += `<button class="btn" data-loadslot="${dk}">Load</button><button class="btn warn" data-delslot="${dk}">Delete</button>`;
         if (dact) h += `<span class="ghst">Playing from the last death of slot ${i}. Too far gone? Load slot ${i} above to go back (this death save is then deleted).</span>`;
         h += '</div></div>';
@@ -2691,17 +2693,24 @@ function showMenu(view){
     h += '<button class="btn" data-menu="back">Back</button>';
   } else {
     h += '<div class="mbtns">';
-    if (cur && cur.life) h += `<button class="btn pri" data-menu="continue">Continue \u00b7 ${slotLabel(slot)}<small>${esc(slotInfo(cur))}</small></button>`;
+    if (cur && cur.life) h += `<button class="btn pri" data-menu="continue">Continue \u00b7 ${slotLabel(slot)}${cur.name ? ' \u00b7 ' + esc(cur.name) : ''}<small>${esc(slotInfo(cur))}</small></button>`;
     h += '<button class="btn" data-menu="new">New game</button><button class="btn" data-menu="saves">Save Management</button><button class="btn" data-settings="menu">Settings</button></div>';
   }
   showModal(h);
 }
 const armed = {};
+// Save names: kept inside the save, so they travel with copies, exports and death saves
+const NAME_MAX = 30;
+const cleanName = v => String(v || '').replace(/\s+/g, ' ').trim().slice(0, NAME_MAX);
+const nameIn = () => { const el = $('#ow-name'); return el ? cleanName(el.value) : ''; };
+const slotDesc = r => (r && r.name ? '\u201c' + r.name + '\u201d, ' : '') + slotInfo(r);
 // Overwrite warning: a panel that says what will be lost, with the choices and Cancel.
 let owActs = {};
-function askOverwrite(title, body, choices, back){
+function askOverwrite(title, body, choices, back, name){
   owActs = {};
-  let h = '<h2>' + esc(title) + '</h2><p class="owarn">\u26a0 ' + esc(body) + '</p><div class="mbtns">';
+  let h = '<h2>' + esc(title) + '</h2>' + (body ? '<p class="owarn">\u26a0 ' + esc(body) + '</p>' : '');
+  if (name != null) h += `<label class="owname"><span class="lbl">Save name (optional)</span><input id="ow-name" type="text" maxlength="${NAME_MAX}" value="${esc(name)}" placeholder="No name: shown as the slot number" autocomplete="off"></label>`;
+  h += '<div class="mbtns">';
   choices.forEach(([label, cls, fn], n) => { owActs['c' + n] = fn; h += `<button class="btn ${cls}" data-ow="c${n}">${esc(label)}</button>`; });
   owActs.x = () => showMenu(back || 'saves');
   h += '<button class="btn" data-ow="x">Cancel</button></div>';
@@ -3653,7 +3662,7 @@ const FAQ_ALL = [
   ['How does automation work?', 'Every completion counts: finish an action 10 times (a multi-rep action 10 times its reps), or a training session 40 times, or build a design in 10 lives, and its automation <b>switches on by itself</b>. For Act I tasks these counts shrink along with the familiarity threshold (Echo legacy), never below one; tap <b>AUTO</b> (or its switch in the Auto tab) to turn it off, and it stays off. Automated tasks run by themselves <b>ahead of your queue</b>, in chain order (each after the tasks it needs). Automated tasks <b>link into chains</b> when one requires the other and both are at least ×2 familiar. When every action and crossing of a section is automated and ×5 familiar, and all its gear designs are automated, the whole section becomes <b>one chain</b>: press <b>▶ Run section</b> (above the queue in the Tasks tab) and the clone works through everything, builds the gear, fills its stores and crosses. The run is pinned at the top of the queue and the queue\u2019s leftovers for its sections are cleared. Pressing it also turns on <b>Always run sections once ready</b> (Auto tab): from then on a run starts by itself whenever the section you are in is ready. Stop turns that off again. Ready sections next to each other link across their crossings into one run (<b>▶ Run 3 sections</b>), up to the end of the act; a run that dies starts again with the next clone. The option <b>Pause when a section run ends instead</b> keeps a run going through its crossings and pauses once it is over. A chain picks its next step itself each time: gear first, then charger upgrades, then the actions and drills in the order they depend on each other, and the crossing last. When a chain forms or grows, it <b>queues itself</b>, including the chains of sections still ahead, and chain entries are kept in the order they will run: section by section, and within a section the chain that starts earliest first, with the crossing\u2019s chain last, and anything of it you had queued separately is dropped from the queue. If you remove a chain from the queue, it stays out for the rest of that clone\u2019s life. Work done as part of a chain (a queued chain or a section run) builds <b>chain flow</b>, which makes chained steps up to five times as fast; it is kept for good. Jobs are never automated: auto-forage keeps the food up, queued and automated gear work the salvage jobs, and every crossing tops the stores up before the clone moves on. An automated <b>salvage</b> job only gathers what gear needs: the next auto-built or queued design that is found and not built yet; it does not top the store up to full (except while filling up before a crossing). Automated <b>crossings</b> are the exception: they wait until your queue is done. A task you tap runs before everything. The <b>Auto</b> tab lists everything unlocked and has extra options: charging when needed, the death screen and starting paused.'],
   ['What happens at a crossing with automation?', 'A queued or automated crossing stops just before it finishes and waits while the clone finishes automated actions and training, builds affordable automated gear, refills storage (if that option is on) and uses the section’s rest. Tap a crossing yourself to go at once.'],
   ['Pause, saving and speed', 'Progress is saved on this device only (this browser or the app); use <b>Save files</b> in the main menu (\u2630) to back it up or move it, and <b>Restart</b> next to the slot there to start this slot over. Pause with the button at the top or the space bar. The game only runs while it is on screen: in another app, a background tab or closed, the clock stops and carries on where it left off. Each <b>Stasis watch</b> record (one for leaving each section the first time) tunes the clones\u2019 stasis: energy drains a little slower, more with each one, up to \u221250% in all. The <b>speed menu</b> (\u00bb) at the top appears once Act I has been cleared: \u00d72 then, and \u00d75 once Act II has been cleared. It is a flat speed-up of real time, kept on this device for every save.'],
-  ['Save management', 'The game saves itself every few seconds on this device. <b>Save Management</b> in the \u2630 menu holds: the five <b>save slots</b> (load one, copy your current game into another as a save state with \u201cSave here\u201d, or delete one); under each used slot, its <b>death save</b>, written automatically at every death in that slot (load it to go back to that death; playing it never changes the regular slot. If it is too far gone, load the regular slot again from there, which deletes that death save. Deleting or starting over a slot removes its death save too); <b>Restart</b>, next to the slot you are playing, which starts that slot over; and <b>Save files and transfer</b>: export a save file, import one, copy the save as text to move it between devices, or share it to the game\u2019s GitHub folder and load shared saves from there.'],
+  ['Save management', 'The game saves itself every few seconds on this device. <b>Save Management</b> in the \u2630 menu holds: the five <b>save slots</b> (give each a name when you start a new game or save into it, or with <b>Rename</b>; load one, copy your current game into another as a save state with \u201cSave here\u201d, or delete one); under each used slot, its <b>death save</b>, written automatically at every death in that slot (load it to go back to that death; playing it never changes the regular slot. If it is too far gone, load the regular slot again from there, which deletes that death save. Deleting or starting over a slot removes its death save too); <b>Restart</b>, next to the slot you are playing, which starts that slot over; and <b>Save files and transfer</b>: export a save file, import one, copy the save as text to move it between devices, or share it to the game\u2019s GitHub folder and load shared saves from there.'],
   ['Settings', '<b>Settings</b> (the ⚙ button, or Settings in the ☰ menu) holds the clock and pause options (death screen, starting paused, pausing in the background, after a new section, when a section run ends or when a task finishes), sound (music and effects), layout (vertical or horizontal) and, in the Android app, app updates. Energy and automation options (auto-recharge, auto-charge, the charge threshold, rests, charging when needed) are in the Auto tab.'],
 ];
 // Shown once the drive is first lit.
@@ -3744,15 +3753,16 @@ document.addEventListener('click', e => {
   if (d.newin) {
     const i = +d.newin, r = readSlot(i);
     const go = () => {
+      const nm = nameIn();
       save();
-      slot = i; S = defaultState(); M = mods(); S.life.hp = M.maxHp; resetViews(); save();
+      slot = i; S = defaultState(); M = mods(); S.life.hp = M.maxHp; if (nm) S.name = nm; resetViews(); save();
       try { localStorage.removeItem(slotKey('d' + i)); } catch(e) {}   // the old game's death save goes with it
       toast('New game in slot ' + i);
       startGame();
     };
-    if (!r) return go();
-    return askOverwrite('Start a new game in slot ' + i + '?', 'Slot ' + i + ' (' + slotInfo(r) + ')' + (readSlot('d' + i) ? ' and its death save' : '') + ' will be overwritten by a new game. This can’t be undone.',
-      [['Overwrite slot ' + i, 'warn', go]], 'new');
+    if (!r) return askOverwrite('Start a new game in slot ' + i + '?', '', [['Start here', 'pri', go]], 'new', '');
+    return askOverwrite('Start a new game in slot ' + i + '?', 'Slot ' + i + ' (' + slotDesc(r) + ')' + (readSlot('d' + i) ? ' and its death save' : '') + ' will be overwritten by a new game. This can’t be undone.',
+      [['Overwrite slot ' + i, 'warn', go]], 'new', '');
   }
   if (d.loadslot) {
     const i = /^d[1-5]$/.test(d.loadslot) ? d.loadslot : +d.loadslot, r = readSlot(i); if (!r) return;
@@ -3764,21 +3774,33 @@ document.addEventListener('click', e => {
     };
     if (!(d.leaved === '1' && slot === 'd' + i)) return load(false);
     save();
-    return askOverwrite('Go back to slot ' + i + '?', 'Slot ' + i + ': ' + slotInfo(r) + '. Your death save (' + slotInfo(readSlot('d' + i)) + ') is still there. Overwrite it, or keep it to come back to later?',
+    return askOverwrite('Go back to slot ' + i + '?', 'Slot ' + i + ': ' + slotDesc(r) + '. Your death save (' + slotDesc(readSlot('d' + i)) + ') is still there. Overwrite it, or keep it to come back to later?',
       [['Load slot ' + i + ' and overwrite the death save', 'warn', () => load(true)], ['Load slot ' + i + ' and keep the death save', '', () => load(false)]]);
   }
   if (d.saveto) {
     const i = +d.saveto, r = readSlot(i);
     const go = () => {
+      const nm = nameIn();
       save();
-      try { localStorage.setItem(slotKey(i), JSON.stringify(S)); toast('Saved to slot ' + i); } catch(e) { toast('Couldn’t save: browser storage is full or blocked.'); }
+      const copy = JSON.parse(JSON.stringify(S)); if (nm) copy.name = nm; else delete copy.name;
+      try { localStorage.setItem(slotKey(i), JSON.stringify(copy)); toast('Saved to slot ' + i + (nm ? ': ' + nm : '')); } catch(e) { toast('Couldn’t save: browser storage is full or blocked.'); }
       showMenu('saves');
     };
-    if (!r) return go();
     save();
+    if (!r) return askOverwrite('Save into slot ' + i + '?', '', [['Save here', 'pri', go]], 'saves', S.name || '');
     const what = isDeathSlot(slot) ? 'this death save' : 'your current game (' + slotLabel(slot) + ')';
-    return askOverwrite('Overwrite slot ' + i + '?', 'Slot ' + i + ' (' + slotInfo(r) + ') will be replaced by ' + what + ' (' + slotInfo(S) + '). This can’t be undone.',
-      [['Overwrite slot ' + i, 'warn', go]]);
+    return askOverwrite('Overwrite slot ' + i + '?', 'Slot ' + i + ' (' + slotDesc(r) + ') will be replaced by ' + what + ' (' + slotDesc(S) + '). This can’t be undone.',
+      [['Overwrite slot ' + i, 'warn', go]], 'saves', S.name || '');
+  }
+  if (d.rename) {
+    const i = +d.rename, r = readSlot(i); if (!r) return;
+    return askOverwrite('Name slot ' + i, '', [['Save name', 'pri', () => {
+      const nm = nameIn();
+      if (slot === i) { if (nm) S.name = nm; else delete S.name; save(); }
+      else { const x = readSlot(i); if (x) { if (nm) x.name = nm; else delete x.name; try { localStorage.setItem(slotKey(i), JSON.stringify(x)); } catch(e) {} } }
+      toast(nm ? 'Slot ' + i + ' named \u201c' + nm + '\u201d' : 'Slot ' + i + ' name cleared');
+      showMenu('saves');
+    }]], 'saves', r.name || '');
   }
   if (d.delslot) {
     const i = /^d[1-5]$/.test(d.delslot) ? d.delslot : +d.delslot;
@@ -3788,12 +3810,12 @@ document.addEventListener('click', e => {
       showMenu('saves');
     };
     const dn = isDeathSlot(i), hasD = !dn && readSlot('d' + i);
-    return askOverwrite(dn ? 'Delete the death save of slot ' + baseSlot(i) + '?' : 'Delete slot ' + i + '?', (dn ? 'The death save (' : 'Slot ' + i + ' (') + slotInfo(readSlot(i)) + ')' + (hasD ? ' and its death save' : '') + ' will be deleted. This can’t be undone.',
+    return askOverwrite(dn ? 'Delete the death save of slot ' + baseSlot(i) + '?' : 'Delete slot ' + i + '?', (dn ? 'The death save (' : 'Slot ' + i + ' (') + slotDesc(readSlot(i)) + ')' + (hasD ? ' and its death save' : '') + ' will be deleted. This can’t be undone.',
       [['Delete', 'warn', go]]);
   }
   if ('askreset' in d) {
     save();
-    return askOverwrite('Restart ' + slotLabel(slot) + '?', 'Your current game (' + slotInfo(S) + ')' + (!isDeathSlot(slot) && readSlot('d' + slot) ? ' and its death save' : '') + ' will be overwritten by a fresh start. This can’t be undone.',
+    return askOverwrite('Restart ' + slotLabel(slot) + '?', 'Your current game (' + slotDesc(S) + ')' + (!isDeathSlot(slot) && readSlot('d' + slot) ? ' and its death save' : '') + ' will be overwritten by a fresh start. This can’t be undone.',
       [['Restart', 'warn', () => {
         hideModal(); S = defaultState(); M = mods(); S.life.hp = M.maxHp; resetViews(); save();
         if (!isDeathSlot(slot)) try { localStorage.removeItem(slotKey('d' + slot)); } catch(e) {}
