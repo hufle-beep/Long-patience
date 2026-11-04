@@ -502,7 +502,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
 
 <script id="logic">
 /* ===== Game data and rules (no DOM) ===== */
-const BUILD = '2026-11-04 · salvage ÷10';   // shown in the main menu, to tell which version is loaded
+const BUILD = '2026-11-04 · steps of 5';   // shown in the main menu, to tell which version is loaded
 const DPS = 8;             // simulation ticks per real second at 1x (doubled for the test version: same balance, half the real time)
 // Time is simulated in ticks. 80 ticks make one ship day (18 minutes each), so a day lasts
 // 20 real seconds at 1x and a clone lives weeks, not years. Everything is shown in days and hours.
@@ -540,14 +540,14 @@ const MEAL_SEC = 0;
 // In the long watch the repaired ship grows three extra foods (fresh harvest, colony seed stock, cultured protein). Each has
 // its own small store and its own meal timer, so carrying them means extra meals.
 const FOODS = [
-  {id:'ration',  z:1,  name:'Rations',           q:1,   cap:6,  job:null},
-  {id:'harvest', z:9,  name:'Fresh harvest',     q:2.4, cap:24, job:'beds'},
-  {id:'seed',    z:10, name:'Colony seed stock', q:2.8, cap:28, job:'stores'},
-  {id:'protein', z:14, name:'Cultured protein',  q:3.4, cap:28, job:'meatvats'},
+  {id:'ration',  z:1,  name:'Rations',           q:1,   cap:5,  job:null},
+  {id:'harvest', z:9,  name:'Fresh harvest',     q:2.4, cap:25, job:'beds'},
+  {id:'seed',    z:10, name:'Colony seed stock', q:2.8, cap:30, job:'stores'},
+  {id:'protein', z:14, name:'Cultured protein',  q:3.4, cap:30, job:'meatvats'},
 ];
 const FD = {}; FOODS.forEach(f => FD[f.id] = f);
 const FOOD_OF = {}; for (let z = 1; z <= 14; z++) FOOD_OF[z] = 'ration';
-const STORE_CAP = {1:6, 2:20, 3:36, 4:60, 5:90, 6:110, 7:125, 8:135, 9:110, 10:125, 11:135, 12:140, 13:145, 14:150};
+const STORE_CAP = {1:5, 2:20, 3:35, 4:60, 5:90, 6:110, 7:125, 8:135, 9:110, 10:125, 11:135, 12:140, 13:145, 14:150}   // store sizes and increases come in steps of 5;
 // The section upgrade actions and the ration strength each one brings (kept for the rest of the life)
 const MEAL_UP = {heatpaste:1.27, strains:1.54, packer:1.85, ovens:2.17, pantryfix:2.48, mess:2.55, synthfix:2.62, hivegel:2.7, graft:2.8, sprout:3.07, darkmess:3.2, burnmess:3.34, sysmess:3.45, feast:3.55};
 const REPAIR_UP = {ws6:1.15, ws7:1.3, ws8:1.45, ws9:1.6, ws10:1.75, ws11:1.9, ws12:2.05, ws13:2.2, ws14:2.35};
@@ -648,9 +648,9 @@ const TASKS = [
   {id:'wake', z:1, kind:'act', name:'Climb out of the vat', days:2, req:[],
     log:'Fluid drains from the vat. A voice from the walls: \u201cMaintenance unit K-7, decanted. Work cycle begins.\u201d Stencilled on the glass: PROPERTY OF THE LONG PATIENCE.'},
   {id:'algae', z:1, kind:'job', name:'Press vat algae', prod:{rations:0.035}, req:['wake']},
-  {id:'scrap', z:1, kind:'job', name:'Strip wall panels', prod:{salvage:0.0075}, req:['wake']},
+  {id:'scrap', z:1, kind:'job', name:'Strip wall panels', prod:{salvage:0.05}, req:['wake']},
   {id:'vats', z:1, kind:'act', name:'Check the clone vats', days:19, req:['wake'], split:'search'},
-  {id:'search', z:1, kind:'act', name:'Search the vat bay', days:19, req:['wake'], reward:{salvage:0.3, rations:1}, perk:'decant',
+  {id:'search', z:1, kind:'act', name:'Search the vat bay', days:19, req:['wake'], reward:{salvage:2, rations:1}, perk:'decant',
     log:'Forty-one vats. Most hold spare bodies, half-grown, waiting for you to fail. The rest are cracked and dry.'},
   {id:'rest', z:1, kind:'rest', name:'Sleep in the drained vat', days:200, req:['wake']},
   {id:'cables', z:1, kind:'act', name:'Splice power to the bay terminal', days:45, req:['search'], split:'terminal'},
@@ -685,12 +685,12 @@ const TASKS = [
   {id:'hatch', z:1, kind:'act', cross:true, name:'Force the pressure hatch', days:193, lifeEff:{salCap:5}, req:['terminal'], perk:'muscle',
     log:'The hatch gives with a scream of old hydraulics. Beyond it lies the hydroponics ring the crew will eat from when they wake. It is rotting.'},
   {id:'nests', z:2, kind:'act', name:'Track the crawlers to their nests', days:22, haz:0.1, req:['hatch'], split:'crawlers'},
-  {id:'crawlers', z:2, kind:'act', name:'Clear a rot-crawler nest', days:21, reps:3, haz:0.18, req:['nests'], reward:{salvage:0.3}, perk:'chitin',
+  {id:'crawlers', z:2, kind:'act', name:'Clear a rot-crawler nest', days:21, reps:3, haz:0.18, req:['nests'], reward:{salvage:1}, perk:'chitin',
     log:'The nests are gone. The crawlers had been feeding on the crew\u2019s future harvest.'},
   // Zone 2
-  {id:'husks', z:2, kind:'job', name:'Salvage drone husks', prod:{salvage:0.02}, haz:0.04, req:['hatch']},
+  {id:'husks', z:2, kind:'job', name:'Salvage drone husks', prod:{salvage:0.03}, haz:0.04, req:['hatch']},
   {id:'survey', z:2, kind:'act', name:'Walk the outer ring', days:71, req:['hatch'], split:'mapring'},
-  {id:'mapring', z:2, kind:'act', name:'Map the ring corridors', days:114, lifeEff:{salCap:13}, req:['survey'],
+  {id:'mapring', z:2, kind:'act', name:'Map the ring corridors', days:114, lifeEff:{salCap:15}, req:['survey'],
     log:'Eleven kilometres of ring. Earlier units scratched their numbers into the bulkheads: K-3 WAS HERE. K-5 DIED HERE.'},
   {id:'valves', z:2, kind:'act', name:'Free the seized pump valves', days:93, req:['mapring'], split:'irrigation'},
   {id:'irrigation', z:2, kind:'act', name:'Restore the irrigation pumps', days:148, req:['valves','nests'], perk:'seedbank',
@@ -1052,7 +1052,7 @@ const PERKS = [
   {id:'muscle',   name:'Muscle memory',         from:1, desc:'+15% familiarity from all work.', eff:{xp:1.15}},
   {id:'chitin',   name:'Chitin lore',           from:1, desc:'Hazard damage −10%.', eff:{haz:0.9}},
   {id:'medrec',   name:'Medbay records',        from:2, desc:'Meals come 25% more often.', eff:{pace:1.25}},
-  {id:'seedbank', name:'Seed-bank index',       from:2, desc:'The ration store holds 12 more.', eff:{fcap:12}},
+  {id:'seedbank', name:'Seed-bank index',       from:2, desc:'The ration store holds 10 more.', eff:{fcap:10}},
   {id:'manifest', name:'Supply manifests',      from:3, desc:'Food jobs work 20% faster.', eff:{foodSpd:1.2}},
   {id:'telomere', name:'Telomere patch',        from:2, desc:'+25 max health for every clone.', eff:{maxHp:25}},
   {id:'transit',  name:'Ring transit',          from:2, desc:'+10% speed on every task.', eff:{spd:1.1}},
@@ -1094,19 +1094,19 @@ const AWAY_CAP = 168 * 3600;   // the limit never goes past one week, however ma
 function awayMax(){ return Math.min(AWAY_CAP, AWAY_BASE + ((S.pr && S.pr.carry) || 0) + AWAY_STEP * WATCH.filter(p => S.perks[p.id]).length); }
 
 const ITEMS = [
-  {id:'locker',     name:'Cold locker',        cost:1,    req:'wake',       desc:'+6 ration storage', eff:{fcap:6}},
-  {id:'rebreather', name:'Patched rebreather', cost:1,    req:'wake',       desc:'+20 max health', eff:{maxHp:20}},
-  {id:'toolkit',    name:'Scrap toolkit',      cost:1,   req:'wake',       desc:'Work in the Vat Bay 25% faster', eff:{zsp:{GZ:1.25}}},
-  {id:'press',      name:'Algae press',        cost:2,   req:'search',     desc:'Algae pressing works twice as fast', eff:{fspd:{algae:2}}},
-  {id:'baton',      name:'Shock baton',        cost:2,   req:'hatch',      desc:'Work in the Hydroponics Ring 20% faster, hazard damage \u221225%', eff:{zsp:{GZ:1.2}, haz:0.75}},
-  {id:'chitinarm',  name:'Chitin armour',      cost:6,   req:'crawlers',   desc:'+20 max health, hazard damage −30%', eff:{maxHp:20, haz:0.7}},
-  {id:'doser',      name:'Hydro auto-doser',   cost:9,   req:'irrigation', desc:'Hydroponic beds yield twice as fast', eff:{fspd:{hydro:2}}},
-  {id:'lace',       name:'Neural lace',        cost:16,  req:'medbay',     desc:'+30% familiarity from all work', eff:{xp:1.3}},
+  {id:'locker',     name:'Cold locker',        cost:5,    req:'wake',       desc:'+5 ration storage', eff:{fcap:5}},
+  {id:'rebreather', name:'Patched rebreather', cost:5,    req:'wake',       desc:'+20 max health', eff:{maxHp:20}},
+  {id:'toolkit',    name:'Scrap toolkit',      cost:5,   req:'wake',       desc:'Work in the Vat Bay 25% faster', eff:{zsp:{GZ:1.25}}},
+  {id:'press',      name:'Algae press',        cost:5,   req:'search',     desc:'Algae pressing works twice as fast', eff:{fspd:{algae:2}}},
+  {id:'baton',      name:'Shock baton',        cost:5,   req:'hatch',      desc:'Work in the Hydroponics Ring 20% faster, hazard damage \u221225%', eff:{zsp:{GZ:1.2}, haz:0.75}},
+  {id:'chitinarm',  name:'Chitin armour',      cost:5,   req:'crawlers',   desc:'+20 max health, hazard damage −30%', eff:{maxHp:20, haz:0.7}},
+  {id:'doser',      name:'Hydro auto-doser',   cost:10,   req:'irrigation', desc:'Hydroponic beds yield twice as fast', eff:{fspd:{hydro:2}}},
+  {id:'lace',       name:'Neural lace',        cost:15,  req:'medbay',     desc:'+30% familiarity from all work', eff:{xp:1.3}},
   {id:'stims',      name:'Stim injector',      cost:25,  req:'lift',       desc:'All work 15% faster', eff:{spd:1.15}},
   {id:'crate',      name:'Insulated crate',    cost:30,  req:'lift',       desc:'+20 ration storage', eff:{fcap:20}},
   {id:'rifle',      name:'Armoury rifle',      cost:40,  req:'armory',     desc:'Work in the Engineering Spine 50% faster, hazard damage \u221220%', eff:{zsp:{GZ:1.5}, haz:0.8}},
   {id:'cryo',       name:'Cryo-sleeve',        cost:70,  req:'vent',       desc:'Slows this clone\u2019s strain by 25%', eff:{strainMul:0.75}},
-  {id:'visor',      name:'Nav visor',          cost:112, req:'bridgepower',desc:'Work on the Command Deck 30% faster', eff:{zsp:{GZ:1.3}}},
+  {id:'visor',      name:'Nav visor',          cost:110, req:'bridgepower',desc:'Work on the Command Deck 30% faster', eff:{zsp:{GZ:1.3}}},
   {id:'medkit',     name:'Command-deck medkit', cost:60,  req:'secdeck',    desc:'+25 max health, meals come 10% more often', eff:{maxHp:25, pace:1.1}},
   {id:'warmer',     name:'Galley warmer',      cost:90,  req:'bridgepower',desc:'+10 ration storage, rations come 20% more often', eff:{fcap:10, fq:1.2}},
   {id:'exo',        name:'Exo-frame',          cost:175, req:'navcore',    desc:'Work on the Command Deck 30% faster, +40 max health', eff:{zsp:{GZ:1.3}, maxHp:40}},
@@ -1219,7 +1219,7 @@ const drainDiv = () => S && S.life && isA2(S.life.sec || 1) ? 1 + (drainAt(ngpLv
 const ngpSpeed = () => speedAt(ngpLv('speed'));    // Act I reward: overclock, flat game speed for the whole game, free
 function mods(){
   const L = S.life, P = S.perks;
-  const m = {sk:{}, xpSk:{}, zsp:{}, zxp:{}, spd:1, xp:1, haz:1, maxHp:Math.min(BASE_HP_MAX, 100 + Math.floor(S.vit || 0)), pRat:0, pSal:0, strainMul:1, regen:0.05, ratCap:5, salCap:3, fcap:{}, pFood:{}, fq:{}, foodSpd:1, a2haz:1, a2strain:1, a2sal:1, a2food:1, a2fam:1, wear:1};
+  const m = {sk:{}, xpSk:{}, zsp:{}, zxp:{}, spd:1, xp:1, haz:1, maxHp:Math.min(BASE_HP_MAX, 100 + Math.floor(S.vit || 0)), pRat:0, pSal:0, strainMul:1, regen:0.05, ratCap:5, salCap:5, fcap:{}, pFood:{}, fq:{}, foodSpd:1, a2haz:1, a2strain:1, a2sal:1, a2food:1, a2fam:1, wear:1};
   FOODS.forEach(f => { m.fcap[f.id] = f.cap; m.pFood[f.id] = 0; m.fq[f.id] = 1; }); m.fcap.ration = STORE_CAP[L.sec || 1] || 5; m.fspd = {};
   SKILLS.forEach(k => { m.sk[k.id] = 1; m.xpSk[k.id] = 1; });
   const ap = e => {
@@ -1801,10 +1801,12 @@ const wearMul = () => wearsHere() ? 1 + SHIP_WEAR * (S.life.shipWear || 0) : 1;
 const wearRate = z => (WEAR_RATE[z] || 0) * ((M && M.wear) || 1);
 const PART_RATE = {}; TASKS.forEach(t => { if (t.kind === 'job' && t.prod && t.prod.salvage) PART_RATE[t.z] = Math.max(PART_RATE[t.z] || 0, t.prod.salvage); });
 const partRate = z => { for (let k = z; k >= 1; k--) if (PART_RATE[k]) return PART_RATE[k]; return 1; };
-const repairCost = (z, amt) => Math.max(1, Math.round(PARTS_PER_WEAR * partRate(z || S.life.sec || 1) * (amt == null ? REPAIR_AMT : amt)));   // parts per repair
+const r5 = n => Math.max(5, 5 * Math.round(n / 5));   // costs and stores come in steps of 5
+const repairFull = z => r5(PARTS_PER_WEAR * partRate(z || S.life.sec || 1) * REPAIR_AMT);
+const repairCost = (z, amt) => amt == null || amt >= REPAIR_AMT - 1e-9 ? repairFull(z) : Math.max(1, Math.ceil(repairFull(z) * amt / REPAIR_AMT));   // parts per repair (a partial repair costs its share)
 const repairCd = () => REPAIR_CD / repairTier();
 const partsPerDay = z => { z = z || S.life.sec || 1; return wearsHere(z) ? wearRate(z) * PARTS_PER_WEAR * partRate(z) : 0; };
-TASKS.forEach(t => { if (t.shop) t.parts = repairCost(t.z, 3 * REPAIR_AMT); });   // a workshop costs three repairs' worth of parts
+TASKS.forEach(t => { if (t.shop) t.parts = r5(3 * repairFull(t.z)); });   // a workshop costs three repairs' worth of parts
 function canRepair(){ const L = S.life; if (L.dead || !wearsHere() || (L.rcd || 0) > 0) return false; const a = Math.min(REPAIR_AMT, L.shipWear || 0); return a >= 0.25 && L.salvage >= repairCost(null, a); }
 function repair(){
   const L = S.life; if (!canRepair()) return 0;
@@ -3687,7 +3689,7 @@ const FAQ_ALL = [
   ['How do I start?', 'Tap a task to work on it right away. Climb out of the vat first, then press vat algae for food and strip wall panels for salvage. Time only moves while your clone is working: with nothing to do, the clock stops, so you can always read and plan.'],
   ['What are jobs, actions, training and rests?', '<b>Jobs</b> repeat and make food or salvage in batches; they stop when that storage is full. <b>Actions</b> are one-off tasks that unlock things and move the story on. Each needs certain earlier actions, and a section\u2019s last action (its crossing) needs every other action of that section. Tasks you have met before stay listed, greyed out, until what they need is done; you can still queue them. <b>Drills</b> each add a little familiarity to every task in their section, up to 4 sessions per life. <b>Rests</b> halve strain; each section has one, usable once per life.'],
   ['How does the queue work?', 'Tapping a task runs it right away, ahead of the queue (a job runs until its store is full); it is not added to the queue. <b>+</b> adds a task to the end of the queue; drag it or use the arrows to move it up. You can queue the same task several times at different places: tap + again for another copy. A task queued once runs until it is done; with several copies, each copy covers one repetition (one training session, one rep, or one fill of a store). The queue holds up to 100 items. Drag an item by the handle on its left to move it, or use the arrows; ✕ removes it. Queued jobs run until their storage is full. You can queue things you have seen before even if they are not available yet; they wait their turn. Gear can be queued too, with the <b>+</b> on its card (gear is listed in each section of the Tasks tab): the clone works the best salvage job until it can afford the design, then builds it. Five presets save and load whole queues, and <b>Keep queue between clones</b> gives each new clone the queue you planned, minus anything that is automated and switched on.'],
-  ['Food and health', 'Health drains all the time and meals put it back. <b>Every meal heals the same amount</b>; what changes is how often the clone can eat. All food goes into one <b>ration store</b>: every food job fills it, and the store grows as the clone gets deeper into the ship (6 in the Vat Bay, up to 90 in the Main Drive), plus gear and records. At first a ration can be eaten every 5 seconds of in-game time. Each section has one <b>kitchen upgrade</b> action (heat the algae paste, splice richer strains, refit the ration packer, restart the galley ovens, reseal the pantry, and one in each Act II section) that shortens the wait between rations for the rest of that life, down to about 2 seconds; each clone has to fix them again. Meals are always whole portions, and the clone only eats when it needs to: when a whole meal fits under full health, or sooner once health is down to half. At full health no food is used. Much later in the voyage, other foods can join the rations; each has its own store and its own, shorter meal timer, so a clone carrying them eats extra meals. With no food left at all you starve. The Hydroponics Ring has no food job until you restore its irrigation pumps, so arrive stocked.'],
+  ['Food and health', 'Health drains all the time and meals put it back. <b>Every meal heals the same amount</b>; what changes is how often the clone can eat. All food goes into one <b>ration store</b>: every food job fills it, and the store grows as the clone gets deeper into the ship (5 in the Vat Bay, up to 90 in the Main Drive, in steps of 5), plus gear and records. At first a ration can be eaten every 5 seconds of in-game time. Each section has one <b>kitchen upgrade</b> action (heat the algae paste, splice richer strains, refit the ration packer, restart the galley ovens, reseal the pantry, and one in each Act II section) that shortens the wait between rations for the rest of that life, down to about 2 seconds; each clone has to fix them again. Meals are always whole portions, and the clone only eats when it needs to: when a whole meal fits under full health, or sooner once health is down to half. At full health no food is used. Much later in the voyage, other foods can join the rations; each has its own store and its own, shorter meal timer, so a clone carrying them eats extra meals. With no food left at all you starve. The Hydroponics Ring has no food job until you restore its irrigation pumps, so arrive stocked.'],
   ['What is strain?', 'Strain multiplies the health drain. It grows faster and faster the longer a clone lives, which is what eventually kills every clone. Rests halve it; good food heals faster than strain can drain early on. The drain has a ceiling, but that ceiling doubles every 5 minutes of in-game time in a clone\u2019s life, so even a well-fed clone wears out in the end. Each section is also a little more dangerous than the one before (hunger and hazards), with a further step up once the drive is lit. Watch <b>Time left</b> at the top: it says how long the clone will last and what will kill it.'],
   ['What carries over when a clone dies?', '<b>Familiarity</b> is kept: every task stays as fast as your clones have made it (see the Speed tab). Every 10 seconds of in-game time a clone survives adds 0.8 to the base health of later clones, up to 500. <b>Archive records</b> found by finishing certain actions are permanent upgrades. Gear, rations, salvage and progress through the ship reset.'],
   ['What are sections?', 'The ship is split into five sections. A <b>red</b> action leads to the next one, and the way back is sealed for that clone, so finish what you need first (records, the rest, training, gear). Each new clone starts back in the Vat Bay.'],
