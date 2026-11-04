@@ -502,7 +502,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
 
 <script id="logic">
 /* ===== Game data and rules (no DOM) ===== */
-const BUILD = '2026-11-04 · longer vat bay';   // shown in the main menu, to tell which version is loaded
+const BUILD = '2026-11-04 · no fault';   // shown in the main menu, to tell which version is loaded
 const DPS = 8;             // simulation ticks per real second at 1x (doubled for the test version: same balance, half the real time)
 // Time is simulated in ticks. 80 ticks make one ship day (18 minutes each), so a day lasts
 // 20 real seconds at 1x and a clone lives weeks, not years. Everything is shown in days and hours.
@@ -522,15 +522,16 @@ const STRAIN_RES = 0.002;
 // Late wear: after a couple of weeks the growth rate climbs much faster (squared term), which keeps
 // well-fed late clones to roughly a month.
 const STRAIN_LATE = 540;
-const strainRate = wear => (1 + wear / STRAIN_ACCEL + Math.pow(wear / STRAIN_LATE, 2)) / STRAIN_RAMP / (1 + STRAIN_RES * (S.life.lv.res || 0)) * (M ? M.strainMul : 1) * (M ? M.a2strain : 1);
+const strainRate = wear => 0 * (1 + wear / STRAIN_ACCEL + Math.pow(wear / STRAIN_LATE, 2)) / STRAIN_RAMP / (1 + STRAIN_RES * (S.life.lv.res || 0)) * (M ? M.strainMul : 1) * (M ? M.a2strain : 1);
 const MAX_DRAIN = 1.2;     // most health a young clone can lose per tick (the cap grows with age, see drainNow)
 // Difficulty: the drain cap doubles every CAP_DOUBLE ship days of a clone's life, so strain always wins in
 // the end (good feeding buys time, not immortality); and each section is a little more dangerous than the
 // one before (hunger and hazards x DANGER), with a step up at the start of Act II.
 const CAP_DOUBLE = 30;
-const DANGER = {1:1, 2:1.05, 3:1.1, 4:1.15, 5:1.2, 6:1.4, 7:1.45, 8:1.5, 9:1.55, 10:1.6, 11:1.65, 12:1.7, 13:1.75, 14:1.8};
+const DANGER = {1:1.0, 2:1.05, 3:1.1, 4:1.15, 5:1.2, 6:2.8, 7:2.9, 8:3.0, 9:3.1, 10:3.2, 11:3.3, 12:3.4, 13:3.5, 14:3.6};
 const danger = z => DANGER[z] || 1;
-function drainNow(strain, haz, wear, z){ const k = danger(z); return Math.min((HUNGER * strain + (haz || 0)) * k, MAX_DRAIN * k * Math.pow(2, (wear || 0) / (CAP_DOUBLE * TPD))) / drainDiv() / vitDiv(); }
+function drainNow(strain, haz, wear, z){ const k = danger(z); return Math.min((HUNGER * strain + (haz || 0)) * k, MAX_DRAIN * k) * DRAIN_X / drainDiv() / vitDiv(); }
+const DRAIN_X = 3.2;   // overall energy drain (with the fault gone, energy alone limits a clone)
 // Efficiency optimization: every clone's survival makes later clones drain more slowly (at the cap: drain / (1 + VIT_K))
 const VIT_K = 0.6;
 const vitDiv = () => 1 + VIT_K * Math.min(BASE_HP_MAX - 100, (S && S.vit) || 0) / (BASE_HP_MAX - 100);
@@ -550,12 +551,12 @@ const FOOD_OF = {}; for (let z = 1; z <= 14; z++) FOOD_OF[z] = 'ration';
 // Energy pressure: each crossing costs a share of the cells carried (Supply manifests halve it), and each
 // section's charging station holds a limited reserve per clone life (its charger upgrade adds half again).
 const crossCost = z => Math.min(0.45, 0.08 + 0.03 * Math.max(0, z - 2)) * ((M && M.crossCost) || 1);
-const RESERVE_K = 0.3;   // share of an untrained clone's recharges for the whole section that its station holds
+const RESERVE_K = 0.15;   // share of an untrained clone's recharges for the whole section that its station holds
 const SEC_TICKS = {};
 function stationMax(z){
   if (SEC_TICKS[z] == null) SEC_TICKS[z] = TASKS.filter(t => t.z === z && t.kind === 'act' && !t.legacy).reduce((a, t) => a + t.days * (t.reps || 1), 0);
   const up = TASKS.find(t => t.z === z && t.meal);
-  return Math.max(10, 5 * Math.round(RESERVE_K * (z >= 6 ? 1.6 : 1) * SEC_TICKS[z] / MEAL_CD / 5)) * (up && isDone(up.id) ? 1.5 : 1) * ((M && M.stationRes) || 1);
+  return Math.max(10, 5 * Math.round(RESERVE_K * (z >= 6 ? 0.5 : 1) * SEC_TICKS[z] / MEAL_CD / 5)) * (up && isDone(up.id) ? 1.5 : 1) * ((M && M.stationRes) || 1);
 }
 const stationLeft = z => Math.max(0, stationMax(z) - ((S.life.used || {})[z] || 0));
 const STORE_CAP = {1:5, 2:20, 3:35, 4:60, 5:90, 6:55, 7:60, 8:70, 9:55, 10:60, 11:70, 12:70, 13:70, 14:75}   // store sizes and increases come in steps of 5;
@@ -1047,9 +1048,10 @@ const TASKS = [
   {id:'safeorbit', z:14, kind:'act', finale:'C', name:'Establish a safe orbit over Tessaly', days:937, req:[], perk:'harbour',
     log:'The Long Patience settles into a stable orbit. Below, Tessaly turns: oceans, cloud, a long brown coast. Three thousand people are still asleep. They are home, nearly. WARDEN holds the wake cycle. Someone has to look at the ground first.'},
 ];
-const ZDAYS = {1:1.891, 2:0.891, 3:0.528, 4:0.466, 5:0.286, 6:0.719, 7:0.932, 8:0.932, 9:0.629, 10:0.846, 11:0.846, 12:0.803, 13:0.803, 14:0.803};   // no skill transfer: later sections are short, and speed comes from familiarity
+const ZDAYS = {1:2.458, 2:1.158, 3:0.686, 4:0.606, 5:0.372, 6:0.633, 7:0.82, 8:0.82, 9:0.554, 10:0.744, 11:0.744, 12:0.707, 13:0.707, 14:0.707};   // no skill transfer: later sections are short, and speed comes from familiarity
 const TRAIN_CAP = 4, TRAIN_XP = 1.5;
 const LEGACY_LEN = 0.6;   // legacy parts are needed for every crossing once revealed, so they are kept short
+for (let i = TASKS.length - 1; i >= 0; i--) if (TASKS[i].kind === 'rest') TASKS.splice(i, 1);   // the fault is gone, and with it the patches
 const T = {}; TASKS.forEach(t => { T[t.id] = t; t.sk = []; t.reps = t.kind === 'train' ? TRAIN_CAP : (t.reps || 1); if (t.days) t.days = Math.round(t.days * ZDAYS[t.z] * (t.legacy && t.kind === 'act' ? LEGACY_LEN : 1)); });
 // A section's finisher (its crossing, the ignition or an Act II finale) needs every other action of the section.
 const isFinisher = t => !!(t.cross || t.win || t.finale);
@@ -1083,11 +1085,11 @@ const PERKS = [
   {id:'hivecore', act2:true, name:'Hive-mind fragment',  desc:'+20% familiarity from Act II work.', eff:{a2fam:1.2}},
   {id:'podtel',   act2:true, name:'Pod telemetry',       desc:'Recharges come 5% more often, and every charging station holds 25% more.', eff:{pace:1.05, stationRes:1.25}},
   {id:'wardenlog',act2:true, name:'WARDEN\u2019s confession', desc:'+20% familiarity from Act II work.', eff:{a2fam:1.2}},
-  {id:'driftrec', act2:true, name:'Drift log',           desc:'The fault worsens 10% slower.', eff:{strainMul:0.9}},
+  {id:'driftrec', act2:true, name:'Drift log',           desc:'Charging stations hold 15% more.', eff:{stationRes:1.15}},
   {id:'wardenmem', act2:true, name:'WARDEN\u2019s memory',  desc:'+15% familiarity from Act II work.', eff:{a2fam:1.15}},
-  {id:'turnlog',  act2:true, name:'Turnover log',        desc:'The fault worsens 10% slower.', eff:{strainMul:0.9}},
+  {id:'turnlog',  act2:true, name:'Turnover log',        desc:'Charging stations hold 15% more.', eff:{stationRes:1.15}},
   {id:'syschart', act2:true, name:'System charts',       desc:'Act II hazard damage \u221215%.', eff:{a2haz:0.85}},
-  {id:'harbour',  act2:true, name:'Safe harbour',        desc:'The fault worsens 10% slower.', eff:{strainMul:0.9}},
+  {id:'harbour',  act2:true, name:'Safe harbour',        desc:'Crossings cost 25% less energy.', eff:{crossCost:0.75}},
   // Watch records: one for finishing each section (its crossing, or lighting the drive). Each adds 8 h of time away.
   {id:'watch1', name:'Stasis watch I',   secEnd:'hatch',   desc:'+8 hours of time away.'},
   {id:'watch2', name:'Stasis watch II',  secEnd:'lift',    desc:'+8 hours of time away.'},
@@ -1117,7 +1119,7 @@ const ITEMS = [
   {id:'stims',      name:'Stim injector',      cost:25,  req:'lift',       desc:'All work 15% faster', eff:{spd:1.15}},
   {id:'crate',      name:'Insulated cell case',    cost:30,  req:'lift',       desc:'+20 cell storage capacity', eff:{fcap:20}},
   {id:'rifle',      name:'Armoury rifle',      cost:40,  req:'armory',     desc:'Work in the Engineering Spine 50% faster, hazard damage \u221220%', eff:{zsp:{GZ:1.5}, haz:0.8}},
-  {id:'cryo',       name:'Cryo-sleeve',        cost:70,  req:'vent',       desc:'Firmware fix: the fault worsens 25% slower, +15 energy (additional cells)', eff:{strainMul:0.75, maxHp:15}},
+  {id:'cryo',       name:'Cryo-sleeve',        cost:70,  req:'vent',       desc:'Recharges come 15% more often, +15 energy (additional cells)', eff:{pace:1.15, maxHp:15}},
   {id:'visor',      name:'Nav visor',          cost:110, req:'bridgepower',desc:'Work on the Command Deck 30% faster', eff:{zsp:{GZ:1.3}}},
   {id:'medkit',     name:'Command-deck medkit', cost:60,  req:'secdeck',    desc:'+20 energy (additional cells), recharges come 10% more often', eff:{maxHp:20, pace:1.1}},
   {id:'warmer',     name:'Docking charger booster',      cost:90,  req:'bridgepower',desc:'+10 cell storage capacity, recharges come 20% more often', eff:{fcap:10, fq:1.2}},
@@ -1796,7 +1798,7 @@ function step(dt){
   if (S.set.autoEat) readyFoods().forEach(f => { if (wantsMeal(f)) eat(f); });
   if (L.hp <= 0) {
     L.hp = 0;
-    die(!nextFood() ? 'Ran out of energy' : (wearMul() >= 2 ? 'Worn down with the ship' : h1 || h2 ? 'Killed while trying to ' + ht.name.charAt(0).toLowerCase() + ht.name.slice(1) : 'Shut down by the fault'));
+    die(!nextFood() ? 'Ran out of energy' : (wearMul() >= 2 ? 'Worn down with the ship' : h1 || h2 ? 'Killed while trying to ' + ht.name.charAt(0).toLowerCase() + ht.name.slice(1) : 'Drained faster than it could recharge'));
     return;
   }
   L.day += dt;
@@ -2382,7 +2384,7 @@ function setH(el, h){ if (el && el._h !== h) { el._h = h; el.innerHTML = h; } }
 // Ship time this clone has left at the current hunger and strain (from the HUD's survival forecast)
 let lastSvT = Infinity;
 const tooLong = days => isFinite(lastSvT) && days > lastSvT + 1e-6;
-const OVER_TIP = 'More than this clone has left at the current energy use and fault';
+const OVER_TIP = 'More than this clone has left at the current energy use';
 // Net ration and salvage change per day if task t is the one being worked
 function rates(t, t2){
   let rr = M.pRat - eatRate(), sr = M.pSal;
@@ -2422,7 +2424,7 @@ function survival(){
       if (eatOn && f.cd <= 0 && f.stock >= 1 && (M.maxHp - hp >= f.hp || hp <= M.maxHp * 0.5)) { f.stock -= 1; hp = Math.min(M.maxHp, hp + f.hp); f.cd = f.full; }
     });
     t += dt;
-    if (hp <= 0) { why = haz ? 'injuries' : fs.every(f => f.stock < 1) ? 'running out of cells' : 'the fault'; break; }
+    if (hp <= 0) { why = haz ? 'injuries' : fs.every(f => f.stock < 1) ? 'running out of cells' : 'drain outpacing recharges'; break; }
   }
   if (!why) t = Infinity;
   if (t >= lifeLeft) { t = Infinity; why = 'nothing soon'; }
@@ -3185,9 +3187,7 @@ function updateHud(){
       pe.classList.toggle('over', isFinite(sv.t) && pt > sv.t);
     }
   }
-  const st = L.strain || 1, se2 = $('#s-strain');
-  se2.textContent = 'fault \u00d7' + st.toFixed(2);
-  se2.classList.toggle('hi', st >= 1.6);
+  $('#s-strain').hidden = true;   // (the fault is gone)
   surv.classList.toggle('warn', !L.dead && sv.why !== 'nothing soon');
   const re = storeEta(L.rations, M.ratCap, rr), se = storeEta(L.salvage, M.salCap, sr);
   // only a warning about running out altogether; the stores themselves are listed per food
@@ -3652,8 +3652,7 @@ function renderAuto(){
   if (key === autoKey) return; autoKey = key;
   let h = `<div class="panel"><span class="h2">Automation</span><p class="note">Tasks finished often enough can run by themselves (${autoScale() < 1 ? 'this run needs ' + Math.round(autoScale() * 100) + '% of' : ''} 10 lives' worth: an action 10 times, a training session 40 times), and gear built in ${AUTO_LIVES} lives can be built automatically (in ship order; the clone saves up for the next one). Switch them on here. They run in chain order: each after the tasks it needs. Linked tasks form chains, and a fully chained section can be run with one click. Automated tasks run ahead of your queue; automated crossings wait until the queue is done. Rests fire on their own at strain ×${restAt()}, and also just before an automated crossing if the section\u2019s rest is still unused.</p>
     ${foodSettingsHtml()}${partsSettingsHtml()}
-    <div class="fld"><label for="rest-at">Auto-patch at fault \u00d7</label><div class="pctin"><input type="text" id="rest-at" inputmode="decimal" autocomplete="off" value="${restAt()}"><span>Patches also run just before an automated crossing if still unused.</span></div></div>
-    <div class="row"><p>Charge when needed<small>Charging stations step in when charge cells run low, or when energy is low and recharges can still restore it faster than the fault burns it. They refill to what is needed, then the interrupted task carries on.</small></p><button class="tog${S.set.autoFeed ? ' on' : ''}" data-set="autoFeed" aria-label="Charge when needed" aria-pressed="${!!S.set.autoFeed}"></button></div>
+    <div class="row"><p>Charge when needed<small>Charging stations step in when charge cells run low, or when energy is low and recharges can still restore it faster than it drains. They refill to what is needed, then the interrupted task carries on.</small></p><button class="tog${S.set.autoFeed ? ' on' : ''}" data-set="autoFeed" aria-label="Charge when needed" aria-pressed="${!!S.set.autoFeed}"></button></div>
 </div>`;
   if (!list.length && !glist.length) {
     h += `<p class="note">Nothing unlocked yet. Finish an action 10 times (a multi-rep action 10 times its reps), a training session 40 times, or work a job for ${AUTO_LIVES * JOB_UNIT} batches, and it will appear here. Gear counts once built in ${AUTO_LIVES} different lives.</p>`;
@@ -3711,15 +3710,14 @@ function renderAuto(){
 const FAQ_ALL = [
   ['What is the goal?', 'Restore the ship so WARDEN can wake the sleeping crew: the food system in the Hydroponics Ring, the energy system in the Engineering Spine and the stardrive in the Main Drive. The game ends when you ignite the drive. One clone cannot do it all; it takes many lives (around 50 with very good play).'],
   ['How do I start?', 'Tap a task to work on it right away. Climb out of the vat first, then tap the vat bay power bus for charge cells and strip wall panels for salvage. Time only moves while your clone is working: with nothing to do, the clock stops, so you can always read and plan.'],
-  ['What are jobs, actions, training and patches?', '<b>Jobs</b> repeat and make charge cells or salvage in batches; they stop when that storage is full. <b>Actions</b> are one-off tasks that unlock things and move the story on. Each needs certain earlier actions, and a section\u2019s last action (its crossing) needs every other action of that section. Tasks you have met before stay listed, greyed out, until what they need is done; you can still queue them. <b>Drills</b> each add a little familiarity to every task in their section, up to 4 sessions per life. <b>Patches</b> halve the fault; each section has one, usable once per life.'],
+  ['What are jobs, actions and training?', '<b>Jobs</b> repeat and make charge cells or salvage in batches; they stop when that storage is full. <b>Actions</b> are one-off tasks that unlock things and move the story on. Each needs certain earlier actions, and a section\u2019s last action (its crossing) needs every other action of that section. Tasks you have met before stay listed, greyed out, until what they need is done; you can still queue them. <b>Drills</b> each add a little familiarity to every task in their section, up to 4 sessions per life.'],
   ['How does the queue work?', 'Tapping a task runs it right away, ahead of the queue (a job runs until its store is full); it is not added to the queue. <b>+</b> adds a task to the end of the queue; drag it or use the arrows to move it up. You can queue the same task several times at different places: tap + again for another copy. A task queued once runs until it is done; with several copies, each copy covers one repetition (one training session, one rep, or one fill of a store). The queue holds up to 100 items. Drag an item by the handle on its left to move it, or use the arrows; ✕ removes it. Queued jobs run until their storage is full. You can queue things you have seen before even if they are not available yet; they wait their turn. Gear can be queued too, with the <b>+</b> on its card (gear is listed in each section of the Tasks tab): the clone works the best salvage job until it can afford the design, then builds it. Five presets save and load whole queues, and <b>Keep queue between clones</b> gives each new clone the queue you planned, minus anything that is automated and switched on.'],
   ['Energy and charge cells', 'Clones are biomechanical: as long as they have energy, the body is sustained. The <b>Energy</b> bar drains all the time; each recharge uses one <b>charge cell</b> and puts energy back. <b>Every recharge restores the same amount</b>; what changes is how often the clone can recharge. Charge cells are carried up to the clone\u2019s <b>storage capacity</b>, which grows as the clone gets deeper into the ship (5 in the Vat Bay, up to 90 in the Main Drive, in steps of 5), plus gear and records. Each section has a <b>charging station</b> job, but it only opens partway into the section and holds a limited <b>reserve</b> per clone life; when it is drained, the clone has to cross or run down. Every crossing also costs a share of the cells carried, more the further into the ship you go, so a clone always arrives living on what it brought. At first a clone can recharge every 5 seconds of in-game time. Each section has one <b>charger upgrade</b> action that shortens the wait between recharges for the rest of that life, down to about 2 seconds, and adds half again to that section\u2019s station reserve; each clone has to fix them again. Recharges are always whole, and the clone only recharges when it needs to: when a whole recharge fits under full energy, or sooner once energy is down to half. At full energy no cell is used. With no cells left at all, the clone runs down. The Hive Ship\u2019s only charging comes late, so arrive charged.'],
-  ['What is the fault?', 'A flaw in the clone line\u2019s software makes every clone burn more energy than it needs. The <b>fault</b> multiplies the energy drain, and it gets worse and worse the longer a clone runs, which is what eventually ends every clone. <b>Patches</b> (one per section, once per life) halve it, and some records and gear are updates that make it worsen more slowly; regular recharges keep up with it early on. The drain has a ceiling, but that ceiling doubles every 5 minutes of in-game time in a clone\u2019s life, so even a well-charged clone wears out in the end. Each section is also a little more dangerous than the one before (energy use and hazards), with a further step up once the drive is lit. Watch <b>Time left</b> at the top: it says how long the clone will last and what will end it.'],
   ['What carries over when a clone dies?', '<b>Familiarity</b> is kept: every task stays as fast as your clones have made it (see the Speed tab). Every 10 seconds of in-game time a clone survives is analysed afterwards, run and memory alike, and becomes an <b>efficiency patch</b>: later clones drain their energy a little more slowly, up to \u00f71.6. <b>Archive records</b> found by finishing certain actions are permanent upgrades. Gear, charge cells, salvage and progress through the ship reset.'],
   ['What are sections?', 'The ship is split into five sections. A <b>red</b> action leads to the next one, and the way back is sealed for that clone, so finish what you need first (records, the rest, training, gear). Each new clone starts back in the Vat Bay.'],
   ['What is gear?', 'Gear is built from salvage (called spare parts in Act II: the same store) and lasts for one clone. Each section has designs to build. Building one pays its salvage up front, then the clone spends time <b>assembling</b> it (bigger designs take longer, from a moment for a toolkit to half a minute or so of in-game time for the largest); assembly comes before other work and gets faster with familiarity. The gear works once it is assembled. Salvage storage is limited; opening up more of the ship raises it.'],
   ['What is familiarity?', 'There are no skills: each task gets faster on its own the more of it your clones have done. Familiarity counts work in completions, including attempts a clone died in the middle of, and is kept between clones. Speed rises smoothly from ×1 to ×10 once you have done enough of a task: in a first run, 90 lives’ worth of it (90 finishes of an action, 1800 batches of a job). Each level of the Act I reward <b>Deep echo</b> lowers that for Act I tasks by about 30%. Familiar tasks also hurt less (hazard damage up to ÷4), and a familiar charging station charges faster. <b>Drills</b> spread familiarity to every task in their section. The Speed tab lists every task.'],
-  ['How does automation work?', 'Every completion counts: finish an action 10 times (a multi-rep action 10 times its reps), a training session 40 times or a patch 10 times, or build a design in 10 lives, and its automation <b>switches on by itself</b>. For Act I tasks these counts shrink along with the familiarity threshold (Deep echo), never below one; tap <b>AUTO</b> (or its switch in the Auto tab) to turn it off, and it stays off. Automated tasks run by themselves <b>ahead of your queue</b>, in chain order (each after the tasks it needs). Automated tasks <b>link into chains</b> when one requires the other and both are at least ×2 familiar. When every action, crossing and patch of a section is automated and ×5 familiar, and all its gear designs are automated, the whole section becomes <b>one chain</b>: press <b>▶ Run section</b> (above the queue in the Tasks tab) and the clone works through everything, builds the gear, fills its stores and crosses. The run is pinned at the top of the queue and the queue\u2019s leftovers for its sections are cleared. Pressing it also turns on <b>Always run sections once ready</b> (Auto tab): from then on a run starts by itself whenever the section you are in is ready. Stop turns that off again. Ready sections next to each other link across their crossings into one run (<b>▶ Run 3 sections</b>), up to the end of the act; a run that dies starts again with the next clone. The option <b>Pause when a section run ends instead</b> keeps a run going through its crossings and pauses once it is over. A chain picks its next step itself each time: gear first, then charger upgrades, then the actions and drills in the order they depend on each other, then patches, and the crossing last. When a chain forms or grows, it <b>queues itself</b>, including the chains of sections still ahead, and chain entries are kept in the order they will run: section by section, and within a section the chain that starts earliest first, with the crossing\u2019s chain last, and anything of it you had queued separately is dropped from the queue. If you remove a chain from the queue, it stays out for the rest of that clone\u2019s life. Work done as part of a chain (a queued chain or a section run) builds <b>chain flow</b>, which makes chained steps up to five times as fast; it is kept for good. Jobs are never automated: auto-forage keeps the food up, queued and automated gear work the salvage jobs, and every crossing tops the stores up before the clone moves on. An automated <b>salvage</b> job only gathers what gear needs: the next auto-built or queued design that is found and not built yet; it does not top the store up to full (except while filling up before a crossing). Automated <b>crossings</b> are the exception: they wait until your queue is done. A task you tap runs before everything. The <b>Auto</b> tab lists everything unlocked and has extra options: feeding when needed, filling storage before moving on, the fault level for automatic patches, the death screen and starting paused.'],
+  ['How does automation work?', 'Every completion counts: finish an action 10 times (a multi-rep action 10 times its reps), or a training session 40 times, or build a design in 10 lives, and its automation <b>switches on by itself</b>. For Act I tasks these counts shrink along with the familiarity threshold (Deep echo), never below one; tap <b>AUTO</b> (or its switch in the Auto tab) to turn it off, and it stays off. Automated tasks run by themselves <b>ahead of your queue</b>, in chain order (each after the tasks it needs). Automated tasks <b>link into chains</b> when one requires the other and both are at least ×2 familiar. When every action and crossing of a section is automated and ×5 familiar, and all its gear designs are automated, the whole section becomes <b>one chain</b>: press <b>▶ Run section</b> (above the queue in the Tasks tab) and the clone works through everything, builds the gear, fills its stores and crosses. The run is pinned at the top of the queue and the queue\u2019s leftovers for its sections are cleared. Pressing it also turns on <b>Always run sections once ready</b> (Auto tab): from then on a run starts by itself whenever the section you are in is ready. Stop turns that off again. Ready sections next to each other link across their crossings into one run (<b>▶ Run 3 sections</b>), up to the end of the act; a run that dies starts again with the next clone. The option <b>Pause when a section run ends instead</b> keeps a run going through its crossings and pauses once it is over. A chain picks its next step itself each time: gear first, then charger upgrades, then the actions and drills in the order they depend on each other, and the crossing last. When a chain forms or grows, it <b>queues itself</b>, including the chains of sections still ahead, and chain entries are kept in the order they will run: section by section, and within a section the chain that starts earliest first, with the crossing\u2019s chain last, and anything of it you had queued separately is dropped from the queue. If you remove a chain from the queue, it stays out for the rest of that clone\u2019s life. Work done as part of a chain (a queued chain or a section run) builds <b>chain flow</b>, which makes chained steps up to five times as fast; it is kept for good. Jobs are never automated: auto-forage keeps the food up, queued and automated gear work the salvage jobs, and every crossing tops the stores up before the clone moves on. An automated <b>salvage</b> job only gathers what gear needs: the next auto-built or queued design that is found and not built yet; it does not top the store up to full (except while filling up before a crossing). Automated <b>crossings</b> are the exception: they wait until your queue is done. A task you tap runs before everything. The <b>Auto</b> tab lists everything unlocked and has extra options: feeding when needed, filling storage before moving on, the death screen and starting paused.'],
   ['What happens at a crossing with automation?', 'A queued or automated crossing stops just before it finishes and waits while the clone finishes automated actions and training, builds affordable automated gear, refills storage (if that option is on) and uses the section’s rest. Tap a crossing yourself to go at once.'],
   ['Pause, background and speed', 'Progress is saved on this device only (this browser or the app); use <b>Save files</b> in the main menu (\u2630) to back it up or move it, and <b>Restart</b> next to the slot there to start this slot over. Pause with the button at the top or the space bar. The game keeps running in a background tab and catches up when you return, then shows what happened while you were away. At most 8 hours of background time is played out; each <b>Stasis watch</b> record adds 8 hours (you get one the first time you finish each Act I section). Time while the game is fully closed does not count. The <b>speed menu</b> (\u00bb) at the top appears once Act I has been cleared: \u00d72 then, and \u00d75 once Act II has been cleared. It is a flat speed-up of real time, kept on this device for every save.'],
   ['Save management', 'The game saves itself every few seconds on this device. <b>Save Management</b> in the \u2630 menu holds: the three <b>save slots</b> (load one, copy your current game into another as a save state with \u201cSave here\u201d, or delete one); <b>Restart</b>, next to the slot you are playing, which starts that slot over; and <b>Save files and transfer</b>: export a save file, import one, copy the save as text to move it between devices, or share it to the game\u2019s GitHub folder and load shared saves from there.'],
@@ -3746,7 +3744,7 @@ function showIntro(){
   showModal(`<h2>Long Patience</h2>
     <p>You are K-7, a disposable maintenance clone aboard the colony ship <b>Long Patience</b>. Its 3,112 crew sleep in stasis. WARDEN, the ship\u2019s overseer, wakes clones like you to do the work nobody else will: repair the <b>food system</b>, the <b>energy system</b> and the <b>stardrive</b>, so the crew can be woken.</p>
     <p class="d">Each body lasts weeks, not years. When it fails, WARDEN decants another. What you learn echoes into the next one.</p>
-    <p class="faqwarn"><b>New to the game?</b> Read the <b>FAQ</b> tab first. It explains tasks, energy, the fault, sections, automation and saves.</p>
+    <p class="faqwarn"><b>New to the game?</b> Read the <b>FAQ</b> tab first. It explains tasks, energy, sections, automation and saves.</p>
     <button class="btn pri" data-close>Begin the work cycle</button>`);
 }
 function showDeath(){
