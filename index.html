@@ -497,7 +497,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
 
 <script id="logic">
 /* ===== Game data and rules (no DOM) ===== */
-const BUILD = '2026-11-04 · spare parts for the ship';   // shown in the main menu, to tell which version is loaded
+const BUILD = '2026-11-04 · game speed menu';   // shown in the main menu, to tell which version is loaded
 const DPS = 8;             // simulation ticks per real second at 1x (doubled for the test version: same balance, half the real time)
 // Time is simulated in ticks. 80 ticks make one ship day (18 minutes each), so a day lasts
 // 20 real seconds at 1x and a clone lives weeks, not years. Everything is shown in days and hours.
@@ -1083,7 +1083,7 @@ const hasPerk = p => !!(p.act2 ? ((S.a2 || {}).perks || {})[p.id] : (S.perks || 
 PERKS.forEach(p => { const t = TASKS.find(t => t.perk === p.id || t.id === p.secEnd); if (t) { p.from = t.z; p.by = t.id; } });
 const AWAY_BASE = 8 * 3600, AWAY_STEP = 8 * 3600;
 const WATCH = PERKS.filter(p => p.secEnd);
-// Time away that is played out, and the most the stasis boost can hold: 8 h, +8 h per finished section (48 h max).
+// Time away that is played out: 8 h, +8 h per finished section (48 h max).
 const AWAY_CAP = 168 * 3600;   // the limit never goes past one week, however many runs add to it
 function awayMax(){ return Math.min(AWAY_CAP, AWAY_BASE + ((S.pr && S.pr.carry) || 0) + AWAY_STEP * WATCH.filter(p => S.perks[p.id]).length); }
 
@@ -1144,7 +1144,7 @@ const HOOK = {repaired(){}, legacy(){}, legacyAvail(){}, autoRun(){}, ngpEarn(){
 // Player preferences (switches, thresholds, boost speed) are stored once for the device, not per save:
 // a new game or another slot starts with the same settings.
 const PREF_KEY = 'long-patience.prefs.v1';
-const PREF_KEYS = ['autoRun','autoRepair','autoScav','partsDays','autoFood','autoEat','foodPct','restAt','keepQueue','deathScreen','deathPause','startPaused','bgPause','pauseCross','pauseRunEnd','pauseDone','replay','fillCross','autoFeed','boostX'];
+const PREF_KEYS = ['speed','autoRun','autoRepair','autoScav','partsDays','autoFood','autoEat','foodPct','restAt','keepQueue','deathScreen','deathPause','startPaused','bgPause','pauseCross','pauseRunEnd','pauseDone','replay','fillCross','autoFeed','boostX'];
 function loadPrefs(){ try { const p = JSON.parse(localStorage.getItem(PREF_KEY) || '{}'); const o = {}; PREF_KEYS.forEach(k => { if (p[k] !== undefined) o[k] = p[k]; }); return o; } catch(e) { return {}; } }
 function savePrefs(){ try { if (!S || !S.set) return; const o = {}; PREF_KEYS.forEach(k => { if (S.set[k] !== undefined) o[k] = S.set[k]; }); localStorage.setItem(PREF_KEY, JSON.stringify(o)); } catch(e) {} }
 function newLife(s){
@@ -2079,14 +2079,14 @@ function qMoveTo(i, to){
   if (to === i) return;
   const [id] = L.queue.splice(i, 1); L.queue.splice(to, 0, id);
 }
-// New game plus: everything resets except the rewards, settings, presets, the stasis boost and the
+// New game plus: everything resets except the rewards, settings, presets and the
 // time-away limit, which carries over and keeps adding up (+8 h per section finished, every run).
 function prestige(choice){
   const o = S, pr = o.pr || {n:0, growth:0, drain:0, hp:0, carry:0, runs:[]};
   const carry = Math.min(AWAY_CAP - AWAY_BASE, (pr.carry || 0) + AWAY_STEP * WATCH.filter(p => o.perks[p.id]).length);
   const ns = defaultState();
-  ns.set = o.set; ns.set.paused = false; ns.set.boost = false;
-  ns.qpresets = o.qpresets; ns.bank = o.bank || 0; ns.intro = true; ns.flow = o.flow || 0; ns.bestAll = o.bestAll || null;
+  ns.set = o.set; ns.set.paused = false;
+  ns.qpresets = o.qpresets; ns.intro = true; ns.flow = o.flow || 0; ns.bestAll = o.bestAll || null;
   ns.a2 = o.a2 || ns.a2;   // Act II familiarity, practice, and records carry over; its sections are replayed
   TASKS.forEach(t => { if (isA2(t.z)) { if ((o.fam || {})[t.id]) ns.fam[t.id] = o.fam[t.id]; if ((o.prac || {})[t.id]) ns.prac[t.id] = o.prac[t.id]; } });
   ITEMS.forEach(i => { if (isA2(gearZone(i)) && (o.gprac || {})[i.id]) ns.gprac[i.id] = o.gprac[i.id]; });   // the best clone ever survives new game plus
@@ -2316,9 +2316,17 @@ function fmtDays(t){
   return (d < 10 ? d.toFixed(1) : Math.ceil(d)) + ' d';
 }
 // Real time it takes for a number of in-game days to pass at the chosen speed
-const BOOST_RATES = [2, 5, 10];
-function boostX(){ const x = +(S.set.boostX || 2); return BOOST_RATES.includes(x) ? x : 2; }
-function realSecs(days){ return days / (DPS * S.set.speed * ngpSpeed() * (S.set.boost && S.bank > 0 ? boostX() : 1)); }
+// Game speed: a flat real-time speed-up picked in the header. x2 opens once Act I has been cleared,
+// x5 once Act II has; both the choice and the unlocks are kept on this device for every save.
+const SPEEDS = [1, 2, 5], SPD_KEY = 'long-patience.speeds.v1';
+let spdUnl = 1; try { spdUnl = +(localStorage.getItem(SPD_KEY) || 1) || 1; } catch(e) {}
+function speedOpen(x){ return x === 1 || (x === 2 && (spdUnl >= 2 || !!S.won)) || (x === 5 && (spdUnl >= 5 || a2Done())); }
+function gameSpeed(){ const x = +(S.set.speed || 1); return SPEEDS.includes(x) && speedOpen(x) ? x : 1; }
+function unlockSpeeds(quiet){
+  const top = SPEEDS.filter(speedOpen).pop();
+  if (top > spdUnl) { spdUnl = top; try { localStorage.setItem(SPD_KEY, String(top)); } catch(e) {} lastSpd = ''; renderSpeed(); if (!quiet) toast('Game speed \u00d7' + top + ' unlocked: pick it from the speed menu at the top.', true); }
+}
+function realSecs(days){ return days / (DPS * gameSpeed() * ngpSpeed()); }
 function fmtHours(sec){ const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60); return h + 'h ' + String(m).padStart(2, '0') + 'm'; }
 function fmtReal(sec){
   if (!isFinite(sec)) return '\u221e';
@@ -2326,7 +2334,7 @@ function fmtReal(sec){
   const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
   return h ? h + ':' + String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0') : m + ':' + String(s).padStart(2, '0');
 }
-// Clocks show ship (in-game) time only; real time appears only for play time, the stasis boost and the Log's records
+// Clocks show ship (in-game) time only; real time appears only for play time and the Log's records
 const both = days => fmtDays(days);
 // Work estimates (tasks, chains, the queue) also show the real time they take at the current speed
 const bothR = days => isFinite(days) ? fmtDays(days) + ' \u00b7 ' + fmtReal(realSecs(days)) : '\u221e';
@@ -3091,21 +3099,11 @@ function jobBar(el, t, sp){
 /* ----- HUD ----- */
 let lastSpd = '';
 function renderSpeed(){
-  // Time runs at 1x (speed-ups were removed); pause and the stasis boost remain.
-  S.set.speed = 1;
+  // Pause, plus the game-speed menu once a faster speed has been unlocked
   let h = `<button data-settings="hud" class="flip" aria-label="Settings" title="Settings">\u2699</button><button data-atog="musicOn" class="mus${ASET.musicOn ? ' on' : ''}" aria-label="Music ${ASET.musicOn ? 'on' : 'off'}">\u266a</button><button data-pause class="pause${S.set.paused ? ' on' : ''}" aria-label="${S.set.paused ? 'Resume' : 'Pause'}">${S.set.paused ? '\u25b6 Resume' : '\u275a\u275a Pause'}</button>`;
-  // The boost control is built once and then only its text changes, so taps and the open
-  // dropdown are never interrupted by the countdown.
-  if (S.bank >= 1) h += `<label class="boost bsel" title="Stasis boost: banked time plays faster"><span aria-hidden="true">\u00bb</span><span class="bk-t num"></span><select id="bk-sel" aria-label="Stasis boost speed"><option value="0">Off</option>${BOOST_RATES.map(x => `<option value="${x}">\u00d7${x}</option>`).join('')}</select></label>`;
+  const open = SPEEDS.filter(speedOpen), cur = gameSpeed();
+  if (open.length > 1) h += `<label class="bsel${cur > 1 ? ' on' : ''}" title="Game speed"><span aria-hidden="true">\u00bb</span><select id="spd-sel" aria-label="Game speed">${open.map(x => `<option value="${x}"${x === cur ? ' selected' : ''}>${x === 1 ? '\u00d71 Normal' : '\u00d7' + x}</option>`).join('')}</select></label>`;
   if (h !== lastSpd) { lastSpd = h; $('#h-spd').innerHTML = h; }
-  const sel = $('#bk-sel');
-  if (sel) {
-    const v = S.set.boost ? String(boostX()) : '0';
-    if (sel.value !== v && document.activeElement !== sel) sel.value = v;
-    const lab = sel.parentNode; lab.classList.toggle('on', !!S.set.boost);
-    const t = lab.querySelector('.bk-t'), txt = fmtSecs(S.bank);
-    if (t.textContent !== txt) t.textContent = txt;
-  }
 }
 let lastHg = '', planT = 0, lastQEta = '';   // the queue box is rebuilt on changes: it starts from the last estimate, so nothing blinks
 function updateHud(){
@@ -3297,10 +3295,9 @@ document.addEventListener('input', e => {
 });
 document.addEventListener('change', e => { if (e.target.dataset && e.target.dataset.avol) sfx('click'); });
 document.addEventListener('change', e => {
-  if (e.target.id !== 'bk-sel') return;
-  const x = +e.target.value;
-  if (!x) { S.set.boost = false; toast('Stasis boost off. Banked: ' + fmtSecs(S.bank) + '.'); }
-  else { S.set.boost = true; S.set.boostX = x; toast('Stasis boost \u00d7' + x + ': the bank lasts ' + fmtSecs(S.bank / (x - 1)) + ' of running time.'); }
+  if (e.target.id !== 'spd-sel') return;
+  const x = +e.target.value; if (!SPEEDS.includes(x) || !speedOpen(x)) return;
+  S.set.speed = x; savePrefs(); toast(x === 1 ? 'Normal speed.' : 'Game speed \u00d7' + x + '.');
   audioStart(); sfx('toggle'); save(); renderSpeed(); e.target.blur();
 });
 // Legacy tasks: what each theme gives this clone, and how far it can go
@@ -3581,7 +3578,7 @@ function pauseSettingsHtml(){
       ? `<div class="row"><p>Show the death screen<small>On: the game stops at each death until you decant the next clone. Off: the next clone is decanted at once and the run keeps going; a short message sums up the death.</small></p><button class="tog${S.set.deathScreen !== false ? ' on' : ''}" data-set="deathScreen" aria-label="Show the death screen" aria-pressed="${S.set.deathScreen !== false}"></button></div>`
       : `<div class="fld"><label>Death screen</label><small class="note">Automatic decanting unlocks after ${AUTO_LIVES} clones have died (${S.stats.deaths || 0}/${AUTO_LIVES}). Until then the game stops at each death.</small></div>`}
     <div class="row"><p>Start new clones paused<small>With the death screen on, the clone you decant from it waits paused until you press Resume, so you can plan its life first.</small></p><button class="tog${S.set.deathPause !== false ? ' on' : ''}" data-set="deathPause" aria-label="Start new clones paused" aria-pressed="${S.set.deathPause !== false}"></button></div>
-    <div class="row"><p>Pause in the background<small>When the game tab or app is hidden, the clock stops instead of running on, and there is no catch-up. The time away is added to the stasis boost instead.</small></p><button class="tog${S.set.bgPause ? ' on' : ''}" data-set="bgPause" aria-label="Pause in the background" aria-pressed="${!!S.set.bgPause}"></button></div>
+    <div class="row"><p>Pause in the background<small>When the game tab or app is hidden, the clock stops instead of running on, and there is no catch-up. The hidden time is simply skipped.</small></p><button class="tog${S.set.bgPause ? ' on' : ''}" data-set="bgPause" aria-label="Pause in the background" aria-pressed="${!!S.set.bgPause}"></button></div>
     <div class="row"><p>Always run sections once ready<small>Whenever the section a clone is in is fully automated, a section run starts by itself: the queue\u2019s leftovers for its sections are cleared and the run is pinned at the top of the queue. Pressing Run section turns this on; Stop turns it off.</small></p><button class="tog${S.set.autoRun ? ' on' : ''}" data-set="autoRun" aria-label="Always run sections once ready" aria-pressed="${!!S.set.autoRun}"></button></div>
     <div class="row"><p>Pause after each new section<small>When a clone crosses into the next section, the clock stops until you press Resume, so you can plan the new section first.</small></p><button class="tog${S.set.pauseCross ? ' on' : ''}" data-set="pauseCross" aria-label="Pause after each new section" aria-pressed="${!!S.set.pauseCross}"></button></div>
     <div class="row"><p>Pause when a section run ends instead<small>Overrides the pause above during a section run: a run across several sections keeps going through its crossings, and the clock stops once the run finishes or stops by itself. Your own Stop doesn\u2019t pause.</small></p><button class="tog${S.set.pauseRunEnd ? ' on' : ''}" data-set="pauseRunEnd" aria-label="Pause when a section run ends instead" aria-pressed="${!!S.set.pauseRunEnd}"></button></div>
@@ -3666,7 +3663,7 @@ const FAQ_ALL = [
   ['What is familiarity?', 'There are no skills: each task gets faster on its own the more of it your clones have done. Familiarity counts work in completions, including attempts a clone died in the middle of, and is kept between clones. Speed rises smoothly from ×1 to ×10 once you have done enough of a task: in a first run, 90 lives’ worth of it (90 finishes of an action, 1800 batches of a job). Each level of the Act I reward <b>Deep echo</b> lowers that for Act I tasks by about 30%. Familiar tasks also hurt less (hazard damage up to ÷4), and a familiar food job lets its food be eaten more often. <b>Drills</b> spread familiarity to every task in their section. The Speed tab lists every task.'],
   ['How does automation work?', 'Every completion counts: finish an action 10 times (a multi-rep action 10 times its reps), a training session 40 times or a rest 10 times, work a job for 200 batches, or build a design in 10 lives, and its automation <b>switches on by itself</b>. For Act I tasks these counts shrink along with the familiarity threshold (Deep echo), never below one; tap <b>AUTO</b> (or its switch in the Auto tab) to turn it off, and it stays off. Automated tasks run by themselves <b>ahead of your queue</b>, in chain order (each after the tasks it needs). Automated tasks <b>link into chains</b> when one requires the other and both are at least ×2 familiar. When every action, crossing, job and rest of a section is automated and ×5 familiar, and all its gear designs are automated, the whole section becomes <b>one chain</b>: press <b>▶ Run section</b> (above the queue in the Tasks tab) and the clone works through everything, builds the gear, fills its stores and crosses. The run is pinned at the top of the queue and the queue\u2019s leftovers for its sections are cleared. Pressing it also turns on <b>Always run sections once ready</b> (Auto tab): from then on a run starts by itself whenever the section you are in is ready. Stop turns that off again. Ready sections next to each other link across their crossings into one run (<b>▶ Run 3 sections</b>), up to the end of the act; a run that dies starts again with the next clone. The option <b>Pause when a section run ends instead</b> keeps a run going through its crossings and pauses once it is over. A chain picks its next step itself each time: gear first, then kitchen upgrades, then the actions and drills in the order they depend on each other, then rests and storage-filling jobs, and the crossing last. When a chain forms or grows, it <b>queues itself</b>, including the chains of sections still ahead, and chain entries are kept in the order they will run: section by section, and within a section the chain that starts earliest first, with the crossing\u2019s chain last, and anything of it you had queued separately is dropped from the queue. If you remove a chain from the queue, it stays out for the rest of that clone\u2019s life. Work done as part of a chain (a queued chain or a section run) builds <b>chain flow</b>, which makes chained steps up to five times as fast; it is kept for good. An automated food job steps in when its store drops below the forage threshold and fills it up. An automated <b>salvage</b> job only gathers what gear needs: the next auto-built or queued design that is found and not built yet; it does not top the store up to full (except while filling up before a crossing). Automated <b>crossings</b> are the exception: they wait until your queue is done. A task you tap runs before everything. The <b>Auto</b> tab lists everything unlocked and has extra options: feeding when needed, filling storage before moving on, the strain level for automatic rests, the death screen and starting paused.'],
   ['What happens at a crossing with automation?', 'A queued or automated crossing stops just before it finishes and waits while the clone finishes automated actions and training, builds affordable automated gear, refills storage (if that option is on) and uses the section’s rest. Tap a crossing yourself to go at once.'],
-  ['Pause, background and boost', 'Progress is saved on this device only (this browser or the app); use <b>Save files</b> in the main menu (\u2630) to back it up or move it, and <b>Restart</b> next to the slot there to start this slot over. Pause with the button at the top or the space bar. The game keeps running in a background tab and catches up when you return, then shows what happened while you were away. Time while the game is fully closed is banked as a <b>stasis boost</b> you can switch on in the header. Pick Off, ×2, ×5 or ×10 from its menu: at ×5 every real second plays five, and the bank pays for the extra four, so faster boost spends the bank faster. Both start capped at 8 hours: at most 8 hours of background time is played out, and the boost holds at most 8 hours. Each <b>Stasis watch</b> record adds 8 hours to both; you get one the first time you finish each section (5 in all, up to 48 hours).'],
+  ['Pause, background and speed', 'Progress is saved on this device only (this browser or the app); use <b>Save files</b> in the main menu (\u2630) to back it up or move it, and <b>Restart</b> next to the slot there to start this slot over. Pause with the button at the top or the space bar. The game keeps running in a background tab and catches up when you return, then shows what happened while you were away. At most 8 hours of background time is played out; each <b>Stasis watch</b> record adds 8 hours (you get one the first time you finish each Act I section). Time while the game is fully closed does not count. The <b>speed menu</b> (\u00bb) at the top appears once Act I has been cleared: \u00d72 then, and \u00d75 once Act II has been cleared. It is a flat speed-up of real time, kept on this device for every save.'],
   ['Save management', 'The game saves itself every few seconds on this device. <b>Save Management</b> in the \u2630 menu holds: the three <b>save slots</b> (load one, copy your current game into another as a save state with \u201cSave here\u201d, or delete one); <b>Restart</b>, next to the slot you are playing, which starts that slot over; and <b>Save files and transfer</b>: export a save file, import one, copy the save as text to move it between devices, or share it to the game\u2019s GitHub folder and load shared saves from there.'],
   ['Settings', '<b>Settings</b> (the ⚙ button, or Settings in the ☰ menu) holds the clock and pause options (death screen, starting paused, pausing in the background, after a new section, when a section run ends or when a task finishes), sound (music and effects), layout (vertical or horizontal) and, in the Android app, app updates. Food and automation options (auto-eat, auto-forage, the forage threshold, rests, feeding, filling storage) are in the Auto tab.'],
 ];
@@ -3743,18 +3740,13 @@ document.addEventListener('click', e => {
   if (d.speed) { S.set.speed = +d.speed; S.set.paused = false; renderSpeed(); return; }
   if ('pause' in d) { togglePause(); return; }
 
-  if (false) { const i = BOOST_RATES.indexOf(boostX()); S.set.boostX = BOOST_RATES[(i + 1) % BOOST_RATES.length]; toast('Stasis boost speed: \u00d7' + S.set.boostX + '. Banked time lasts ' + fmtSecs(S.bank / (S.set.boostX - 1)) + ' at this speed.'); renderSpeed(); return; }
   if ('skiphold' in d) { skipHold(); taskKey = ''; toast('Crossing now.'); renderView(); return; }
   if ('histall' in d) { histAll = !histAll; logKey = ''; renderView(); return; }
   if ('awayundo' in d) {
     if (awayState) {
       S = mergeState(JSON.parse(awayState)); M = mods(); resetViews(); pendingDecant = false;
-      // The discarded time becomes stasis boost: exactly the time the tab was hidden (not the time this screen was open).
-      const before = S.bank || 0;
-      S.bank = Math.min(before + awayGone, awayMax());
-      const added = S.bank - before;
       last = performance.now(); save();
-      toast('Back to where you left off. +' + fmtSecs(added) + ' added to the stasis boost (now ' + fmtSecs(S.bank) + ')' + (added < awayGone - 1 ? '; the boost is full at ' + fmtSecs(awayMax()) + '.' : '.'));
+      toast('Back to where you left off.');
     }
     awayState = null; hideModal(); paused = false; setTab(tab); return;
   }
@@ -3950,13 +3942,11 @@ document.addEventListener('keydown', e => {
 let last = performance.now(), saveT = 0, viewT = 0;
 // The game keeps running when the tab is hidden: a slow timer keeps ticking, and any gap
 // (tab throttled, phone asleep) is simulated in one go when the page gets time again.
-// Gaps longer than awayMax() are partly turned into stasis boost instead.
+// Gaps longer than awayMax() are cut to it.
 // awayMax(): see the watch records next to PERKS.
 function simulate(dt){
   if (dt <= 0 || S.life.dead || paused || S.set.paused) return;
-  let mult = S.set.speed * ngpSpeed(), extra = 0;
-  // Stasis boost at xN: each real second plays N seconds; the banked time pays for the extra N-1.
-  if (S.set.boost && S.bank > 0) { const x = boostX(); extra = Math.min(S.bank, dt * (x - 1)); mult *= (dt + extra) / dt; S.bank = Math.max(0, S.bank - extra); }
+  const mult = gameSpeed() * ngpSpeed();
   let left = dt * DPS * mult, done = 0;
   const total = left, perTick = dt / left;
   while (left > 1e-9 && !S.life.dead) {
@@ -3968,18 +3958,15 @@ function simulate(dt){
     if (ran < chunk - 1e-6) break;   // stopped: idle, paused or dead
     left -= chunk;
   }
-  // boost time is only spent while the clock actually runs: give back the unused part
-  if (extra > 0 && done < total - 1e-9) S.bank += extra * (1 - done / total);
-  if (S.set.boost && S.bank <= 0) S.set.boost = false;
 }
 function tick(now){
   let dt = (now - last) / 1000; last = now;
   const cap = awayMax();
-  if (dt > cap) { S.bank = Math.min(S.bank + dt - cap, cap); dt = cap; }
+  if (dt > cap) dt = cap;   // time away past the limit is lost
   simulate(dt);
   if (pendingDecant) { autoDecant(); simulate(0); }
   saveT += dt;
-  if (saveT > 5) { saveT = 0; save(); }
+  if (saveT > 5) { saveT = 0; save(); unlockSpeeds(); }
   return dt;
 }
 function frame(now){
@@ -4000,12 +3987,6 @@ function snapshot(){
   return {t:Date.now(), gen:S.gen, days:(S.stats.daysLived || 0) + S.life.day, rations:S.life.rations, salvage:S.life.salvage,
     xp:Object.assign({}, S.xpTot || {}), deaths:S.stats.deaths || 0, log:S.log.length, perks:Object.keys(S.perks).length,
     sec:S.life.sec, hp:S.life.hp, owned:Object.keys(S.life.owned).length, hist:(S.hist || []).length};
-}
-function awayBoostNote(){
-  if (!awayState) return 'The time away becomes stasis boost';
-  const old = JSON.parse(awayState), was = old.bank || 0, cap = AWAY_BASE + AWAY_STEP * WATCH.filter(p => (old.perks || {})[p.id]).length;
-  const add = Math.max(0, Math.min(was + awayGone, cap) - was);
-  return '+' + fmtSecs(add) + ' of stasis boost' + (add < awayGone - 1 ? ' (boost full at ' + fmtSecs(cap) + ')' : '');
 }
 function showAway(a){
   const L = S.life, b = snapshot();
@@ -4040,7 +4021,7 @@ function showAway(a){
   }
   if (newPerks > 0) h += `<p class="d">New archive record${newPerks > 1 ? 's' : ''}: ${newPerks}.</p>`;
   if (newLogs.length) h += `<p class="d">Log: ${esc(newLogs.join(', '))}.</p>`;
-  h += '<p class="d">The game is paused until you choose.</p><div class="btns"><button class="btn pri" data-awayok>Keep this progress</button><button class="btn" data-awayundo>Discard it and go back<small>' + awayBoostNote() + '</small></button></div>';
+  h += '<p class="d">The game is paused until you choose.</p><div class="btns"><button class="btn pri" data-awayok>Keep this progress</button><button class="btn" data-awayundo>Discard it and go back</button></div>';
   paused = true; showModal(h);
   return true;
 }
@@ -4052,17 +4033,7 @@ document.addEventListener('visibilitychange', () => {
     if ($('#modal').hidden && !S.life.dead) { awaySnap = snapshot(); awayState = JSON.stringify(S); awayAt = Date.now(); }
     return;
   }
-  if (S.set.bgPause) {   // skip the gap, but the hidden time becomes stasis boost
-    last = performance.now();
-    if (bgHideAt) {
-      const gone = Math.max(0, (Date.now() - bgHideAt) / 1000), before = S.bank || 0;
-      bgHideAt = 0;
-      S.bank = Math.min(before + gone, awayMax());
-      const added = S.bank - before;
-      if (added >= 1) { save(); renderSpeed(); toast('Paused while away: +' + fmtSecs(added) + ' added to the stasis boost (now ' + fmtSecs(S.bank) + ')' + (added < gone - 1 ? '; the boost is full.' : '.')); }
-    }
-    return;
-  }
+  if (S.set.bgPause) { last = performance.now(); bgHideAt = 0; return; }   // skip the gap
   if (!awaySnap) return;
   awayGone = Math.max(0, (Date.now() - awayAt) / 1000);   // how long the tab was hidden
   tick(performance.now());   // finish catching up first
@@ -4141,7 +4112,8 @@ function boot(data){
   M = mods();
   if (!raw) S.life.hp = M.maxHp;
   if (S.set.startPaused && !S.life.dead) S.set.paused = true;   // option: open the game paused
-  if (raw && raw.saved) S.bank = Math.min((S.bank || 0) + Math.max(0, (Date.now() - raw.saved) / 1000), awayMax());
+  S.bank = 0; S.set.boost = false;   // the stasis boost is gone
+  unlockSpeeds(true);
   setTab('tasks');
   if (raw) showMenu(); else startGame();
   last = performance.now();
