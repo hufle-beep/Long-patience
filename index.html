@@ -40,6 +40,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--amber);outline-
 .htimes{display:inline-flex;gap:10px;flex-wrap:wrap}
 .ident .htimes span{font-family:var(--f-mono);font-size:13px;letter-spacing:0;text-transform:none}
 .ident .hday{color:var(--green)}
+.ident .hday i{font-style:normal;color:var(--cyan)}
 .ident .hleft{color:var(--red)}
 .ident b{white-space:nowrap;font-family:var(--f-disp);font-size:22px;font-weight:700;letter-spacing:.04em;color:var(--amber);line-height:1}
 .ident span{font-family:var(--f-disp);font-size:14px;color:var(--dim);letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
@@ -455,7 +456,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
 <header id="hud" class="gut">
   <div class="wrap">
     <div class="r1">
-      <div class="ident"><button class="menub" data-menu="open" aria-label="Main menu">☰</button><b>K-7</b><span id="h-gen">Clone 1</span><span class="htimes"><span id="h-day" class="num hday" title="Elapsed: ship days this clone has lived"></span><span id="h-left" class="num hleft" title="Remaining: ship days this clone has left, and the real time that takes at the current speed"></span></span></div>
+      <div class="ident"><button class="menub" data-menu="open" aria-label="Main menu">☰</button><b>K-7</b><span id="h-gen">Clone 1</span><span class="htimes"><span id="h-day" class="num hday" title="Elapsed: in-game time this clone has lived, then real time"></span><span id="h-left" class="num hleft" title="Remaining: in-game time this clone has left, then the real time that takes at the current speed"></span></span></div>
       <div class="spd" id="h-spd"></div>
     </div>
     <div class="meter"><span class="lbl" style="min-width:0;text-align:left">Health</span><div class="bar hp"><i id="b-hp"></i></div><span id="t-hp" class="num"></span></div>
@@ -500,7 +501,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
 
 <script id="logic">
 /* ===== Game data and rules (no DOM) ===== */
-const BUILD = '2026-11-04 · realistic action lengths';   // shown in the main menu, to tell which version is loaded
+const BUILD = '2026-11-04 · in-game and real time';   // shown in the main menu, to tell which version is loaded
 const DPS = 8;             // simulation ticks per real second at 1x (doubled for the test version: same balance, half the real time)
 // Time is simulated in ticks. 80 ticks make one ship day (18 minutes each), so a day lasts
 // 20 real seconds at 1x and a clone lives weeks, not years. Everything is shown in days and hours.
@@ -2321,15 +2322,11 @@ function fmt(n){
   if (a >= 10) return n.toFixed(1);
   return n.toFixed(a > 0 && a < 1 ? 2 : 1);
 }
-const perDay = r => r * TPD;                       // per-tick rate -> per-day rate
+const perDay = r => r * DPS * 60;                  // per-tick rate -> per minute of in-game time
 const lifeShown = ticks => ticks / TPD;            // ticks -> days
-function fmtDays(t){
-  if (!isFinite(t)) return '\u221e';
-  const d = t / TPD;
-  if (d * 24 < 1) return Math.max(1, Math.ceil(d * 1440)) + ' min';
-  if (d < 1) return (d * 24 < 10 ? (d * 24).toFixed(1) : Math.ceil(d * 24)) + ' h';
-  return (d < 10 ? d.toFixed(1) : Math.ceil(d)) + ' d';
-}
+// In-game time: how long something takes at normal speed (x1, no Overclock), as a clock. Real time is
+// the same span at the current game speed (see realSecs). Ticks are the game's internal unit.
+function fmtDays(t){ return isFinite(t) ? fmtReal(t / DPS) : '\u221e'; }
 // Real time it takes for a number of in-game days to pass at the chosen speed
 // Game speed: a flat real-time speed-up picked in the header. x2 opens once Act I has been cleared,
 // x5 once Act II has; both the choice and the unlocks are kept on this device for every save.
@@ -2351,8 +2348,8 @@ function fmtReal(sec){
   const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
   return h ? h + ':' + String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0') : m + ':' + String(s).padStart(2, '0');
 }
-// Clocks show ship (in-game) time only; real time appears only for play time and the Log's records
-const both = days => fmtDays(days);
+// Durations show in-game time and the real time it takes at the current speed
+const both = t => isFinite(t) ? fmtDays(t) + ' \u00b7 ' + fmtReal(realSecs(t)) : '\u221e';
 // Work estimates (tasks, chains, the queue) also show the real time they take at the current speed
 const bothR = days => isFinite(days) ? fmtDays(days) + ' \u00b7 ' + fmtReal(realSecs(days)) : '\u221e';
 // Ship time this clone has left at the current hunger and strain (from the HUD's survival forecast)
@@ -2432,10 +2429,10 @@ function readSlot(i){
 }
 function slotInfo(raw){
   if (!raw || !raw.life) return 'Empty';
-  const age = ((raw.life.day || 0) / TPD).toFixed(1);
+  const age = fmtDays(raw.life.day || 0);
   const rec = Object.keys(raw.perks || {}).length;
   const when = raw.saved ? new Date(raw.saved).toLocaleString([], {month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'}) : '';
-  return 'Clone ' + raw.gen + (raw.life.dead ? ' (dead)' : ', day ' + age) + ' \u00b7 ' + rec + '/' + PERKS.length + ' records' + (raw.pr && raw.pr.n ? ' \u00b7 NG+' + raw.pr.n : '') + (raw.won ? ' \u00b7 drive lit' : '') + (when ? ' \u00b7 ' + when : '');
+  return 'Clone ' + raw.gen + (raw.life.dead ? ' (dead)' : ', ' + age + ' lived') + ' \u00b7 ' + rec + '/' + PERKS.length + ' records' + (raw.pr && raw.pr.n ? ' \u00b7 NG+' + raw.pr.n : '') + (raw.won ? ' \u00b7 drive lit' : '') + (when ? ' \u00b7 ' + when : '');
 }
 /* ----- saves are local: text helpers, and old GitHub settings are wiped ----- */
 const b64enc = str => btoa(unescape(encodeURIComponent(str)));
@@ -2796,7 +2793,7 @@ HOOK.die = () => {
 function autoDecant(){
   pendingDecant = false;
   const L = S.life; if (!L.dead) return;
-  const msg = 'Clone ' + S.gen + ' died on day ' + (L.day / TPD).toFixed(1) + ' (' + L.cause.toLowerCase() + '). Clone ' + (S.gen + 1) + ' decanted.';
+  const msg = 'Clone ' + S.gen + ' died after ' + fmtDays(L.day) + ' (in-game) ('  + L.cause.toLowerCase() + '). Clone ' + (S.gen + 1) + ' decanted.';
   decant(); taskKey = ''; mapKey = ''; autoKey = '';
   save(); toast(msg);
 }
@@ -2820,7 +2817,7 @@ function rewardBits(t){
   if (r.rations) b.push('+' + r.rations + ' ' + FD[FOOD_OF[t.z]].name.toLowerCase());
   if (r.heal) b.push('full heal');
   if (MEAL_UP[t.id]) b.push('a ration every ' + fmtDays(MEAL_CD / MEAL_UP[t.id]) + (mealTier() >= MEAL_UP[t.id] && isDone(t.id) ? '' : ' (now ' + fmtDays(mealCd('ration')) + ')'));
-  if (t.lifeEff && t.lifeEff.pSal) b.push('+' + fmt(perDay(t.lifeEff.pSal)) + ' salvage/d');
+  if (t.lifeEff && t.lifeEff.pSal) b.push('+' + fmt(perDay(t.lifeEff.pSal)) + ' salvage/min');
   if (t.lifeEff && t.lifeEff.salCap) b.push('+' + fmt(t.lifeEff.salCap) + ' salvage storage');
 
   if ((t.perk && !S.perks[t.perk]) || WATCH.some(p => p.secEnd === t.id && !S.perks[p.id])) b.push('<span class="star">★ archive record</span>');
@@ -3094,7 +3091,7 @@ function updateTasks(){
         const res = t.prod.rations ? 'rations' : 'salvage';
         const batch = t.prod[res] * JOB_CYCLE;
         const unit = res === 'rations' ? jobFood(t) : res;
-        r.e.textContent = jobFast(sp) ? 'continuous \u00b7 +' + fmt(perDay(t.prod[res] * sp)) + '/d' : '+' + fmt(batch) + ' ' + unit + ' every ' + fmtDays(JOB_CYCLE / sp);
+        r.e.textContent = jobFast(sp) ? 'continuous \u00b7 +' + fmt(perDay(t.prod[res] * sp)) + '/min' : '+' + fmt(batch) + ' ' + unit + ' every ' + fmtDays(JOB_CYCLE / sp);
         if (r.tt && res === 'rations') r.tt.dataset.q = mealTier();
         if (r.tt) {
           const rt = rates(t), isR = res === 'rations', f = jobFood(t);
@@ -3136,7 +3133,7 @@ function updateHud(){
   const hg = 'Clone ' + S.gen + (S.pr && (S.pr.n || ngpLv('speed')) ? ' <span class="hng">' + [S.pr.n ? 'NG+' + S.pr.n : '', ngpLv('speed') ? '\u00d7' + ngpSpeed().toFixed(1) : ''].filter(Boolean).join(' \u00b7 ') + '</span>' : '');
   if (hg !== lastHg) { lastHg = hg; $('#h-gen').innerHTML = hg; }
   // time elapsed aboard (ship days)
-  const hd = 'day ' + (L.day / TPD).toFixed(1); const he = $('#h-day'); if (he.textContent !== hd) he.textContent = hd;
+  const hd = fmtDays(L.day) + ' <i>' + fmtReal(L.real || 0) + '</i>'; const he = $('#h-day'); if (he.innerHTML !== hd) he.innerHTML = hd;   // elapsed: in-game, then real
   $('#b-hp').style.width = Math.max(0, L.hp / M.maxHp * 100) + '%';
   $('#t-hp').textContent = Math.ceil(L.hp) + ' / ' + M.maxHp;
   let cur = L.cur ? T[L.cur] : null; const cur2 = L.cur2 ? T[L.cur2] : null;
@@ -3145,7 +3142,7 @@ function updateHud(){
   const hl = $('#h-left');
   if (L.dead) { hl.textContent = '0 left'; $('#s-why').textContent = 'dead'; }
   else {
-    const lt = fmtDays(sv.t) + ' left' + (isFinite(sv.t) ? ' \u00b7 ' + fmtReal(realSecs(sv.t)) : '');   // ship days and the real-time countdown
+    const lt = (isFinite(sv.t) ? fmtDays(sv.t) + ' \u00b7 ' + fmtReal(realSecs(sv.t)) : '\u221e') + ' left';   // in-game and real time left
     if (hl.textContent !== lt) hl.textContent = lt;
     $('#s-why').textContent = (isFinite(sv.t) ? 'ends by ' + sv.why : 'nothing ends it soon') + (cur ? '' : ' (time left counts once working)');
     if (performance.now() - planT > 400) {   // planned work, refreshed a few times a second
@@ -3180,7 +3177,7 @@ function updateHud(){
   eb.textContent = L.dead ? 'Eat' : !nextFood() ? 'No food to eat' : miss < EAT_GAP ? 'Health full: no food used' : ready ? 'Eat ' + FD[ready].name.toLowerCase() + ' (+' + fmt(Math.min(mealHp(ready), miss)) + ' health)' : 'Next meal in ' + both(nextMealIn());
   $('#t-sal').innerHTML = fmt(L.salvage) + '<span class="cap">/' + Math.round(M.salCap) + '</span>';
   $('#t-sal').classList.toggle('full', L.salvage >= M.salCap - 0.01);
-  const sa = $('#t-salr'); sa.textContent = sr > 0 ? '+' + fmt(perDay(sr)) + '/d' : ''; sa.className = 'num pos';
+  const sa = $('#t-salr'); sa.textContent = sr > 0 ? '+' + fmt(perDay(sr)) + '/min' : ''; sa.className = 'num pos';
   { // Act II: salvage doubles as spare parts for the ship's wear
     const wh = wearsHere() && !L.dead, tw = $('#t-wear'), rb = $('#repb'), w = L.shipWear || 0, ppd = partsPerDay();
     tw.hidden = !wh; rb.hidden = !wh; $('#t-sall').textContent = wh ? 'Parts' : 'Salvage';
@@ -3398,7 +3395,7 @@ function renderLog(){
   const secName = n => n >= 6 ? 'Drive lit' : ZONES[n - 1].name;
   const histName = e => e.z && isA2(e.z) ? ZN(e.z).name : secName(e.sec);
   const realT = r => '<span class="trl">' + fmtReal(r) + '</span>';   // real time: amber
-  const gameT = d => '<span class="tgm">' + d + '</span>';   // ship time: cyan
+  const gameT = d => '<span class="tgm">' + d + '</span>';   // in-game time
   const allH = S.hist || [], hist = allH.slice(histAll ? -50 : -5).reverse();
   // Play time: the whole save across new game plus, and how long each run took (from run start to
   // the moment its new game plus began)
@@ -3412,25 +3409,25 @@ function renderLog(){
   h += '<div class="panel"><span class="h2">Recent clones</span>';
   const lastH = allH[allH.length - 1];
   if (!lastH) h += '<p class="note">No clone has died yet.</p>';
-  if (lastH) h += `<p class="note">Last: clone ${lastH.g}, ${histName(lastH)}, ${(lastH.d / TPD).toFixed(1)} ship days${lastH.cause ? ' (' + esc(lastH.cause.toLowerCase()) + ')' : ''}.</p><button class="btn histm" data-logfold>${logTables ? 'Hide the tables' : 'Show clone and section tables'}</button>`;
+  if (lastH) h += `<p class="note">Last: clone ${lastH.g}, ${histName(lastH)}, ${fmtDays(lastH.d)} in-game${lastH.cause ? ' (' + esc(lastH.cause.toLowerCase()) + ')' : ''}.</p><button class="btn histm" data-logfold>${logTables ? 'Hide the tables' : 'Show clone and section tables'}</button>`;
   if (logTables) {
   if (allH.length > 5) h += `<button class="btn histm" data-histall>${histAll ? 'Show last 5' : 'Show all ' + allH.length}</button>`;
   if (!hist.length) h += '<p class="note">No clone has died yet. Each clone\u2019s furthest section and time will appear here.</p>';
-  else h += `<div class="rtab"><table class="dt"><thead><tr><th>Clone</th><th>Furthest</th><th><span class="tgm">Ship days</span></th><th><span class="trl">Real</span></th></tr></thead><tbody>${hist.map(e => `<tr title="${esc(e.cause)}"><td>${e.g}</td><td>${histName(e)}</td><td>${gameT((e.d / TPD).toFixed(1))}</td><td>${realT(e.r)}</td></tr>`).join('')}</tbody></table></div>`;
+  else h += `<div class="rtab"><table class="dt"><thead><tr><th>Clone</th><th>Furthest</th><th><span class="tgm">In-game</span></th><th><span class="trl">Real</span></th></tr></thead><tbody>${hist.map(e => `<tr title="${esc(e.cause)}"><td>${e.g}</td><td>${histName(e)}</td><td>${gameT(fmtDays(e.d))}</td><td>${realT(e.r)}</td></tr>`).join('')}</tbody></table></div>`;
   if (hist.length) {
     // columns: when each section was first reached (unlocked) in a clone's life, and when the drive was lit
     const short = ['Ring', 'Spine', 'Deck', 'Drive', 'Lit'], longN = ['Reached the Hydroponics Ring', 'Reached the Engineering Spine', 'Reached the Command Deck', 'Reached the Main Drive', 'Lit the main drive'];
-    h += '<span class="lbl" style="display:block;margin-top:12px">Section unlock times</span><p class="note"><span class="tgm">Ship day</span> and <span class="trl">real time</span> when each clone first reached a section, and when the drive was lit. <b>Best clone</b> is your best single clone ever (most sections, then fewest ship days), kept through new game plus. <b>Best</b> keeps the earliest unlock of each section from any clone in this run, with the clone number.</p>';
-    h += `<div class="rtab"><table class="dt ft"><thead><tr><th>Clone</th>${short.map((n, i) => `<th title="${longN[i]}">${n}</th>`).join('')}</tr></thead><tbody>${S.bestAll ? `<tr class="ftbest ftall"><td>Best clone<small>#${S.bestAll.g}${S.bestAll.ng ? ' NG+' + S.bestAll.ng : ''}</small></td>${ZONES.slice(0, 5).map((z, i) => { const f = S.bestAll.fin[i]; return `<td>${f ? gameT('d' + f[0].toFixed(1)) + '<small>' + realT(f[1]) + '</small>' : '\u2014'}</td>`; }).join('')}</tr>` : ''}${S.bestSec && S.bestSec.some(Boolean) ? `<tr class="ftbest"><td>Best</td>${ZONES.slice(0, 5).map((z, i) => { const b = S.bestSec[i]; return `<td>${b ? gameT('d' + b.d.toFixed(1)) + '<small>' + realT(b.r) + '</small><small>clone ' + b.g + '</small>' : '\u2014'}</td>`; }).join('')}</tr>` : ''}${hist.map(e => `<tr><td>${e.g}</td>${ZONES.slice(0, 5).map((z, i) => { const f = e.fin && e.fin[i]; return `<td>${f ? gameT('d' + f[0].toFixed(1)) + '<small>' + realT(f[1]) + '</small>' : '\u2014'}</td>`; }).join('')}</tr>`).join('')}</tbody></table></div>`;
+    h += '<span class="lbl" style="display:block;margin-top:12px">Section unlock times</span><p class="note"><span class="tgm">In-game</span> and <span class="trl">real time</span> when each clone first reached a section, and when the drive was lit. <b>Best clone</b> is your best single clone ever (most sections, then least in-game time), kept through new game plus. <b>Best</b> keeps the earliest unlock of each section from any clone in this run, with the clone number.</p>';
+    h += `<div class="rtab"><table class="dt ft"><thead><tr><th>Clone</th>${short.map((n, i) => `<th title="${longN[i]}">${n}</th>`).join('')}</tr></thead><tbody>${S.bestAll ? `<tr class="ftbest ftall"><td>Best clone<small>#${S.bestAll.g}${S.bestAll.ng ? ' NG+' + S.bestAll.ng : ''}</small></td>${ZONES.slice(0, 5).map((z, i) => { const f = S.bestAll.fin[i]; return `<td>${f ? gameT(fmtDays(f[0] * TPD)) + '<small>' + realT(f[1]) + '</small>' : '\u2014'}</td>`; }).join('')}</tr>` : ''}${S.bestSec && S.bestSec.some(Boolean) ? `<tr class="ftbest"><td>Best</td>${ZONES.slice(0, 5).map((z, i) => { const b = S.bestSec[i]; return `<td>${b ? gameT(fmtDays(b.d * TPD)) + '<small>' + realT(b.r) + '</small><small>clone ' + b.g + '</small>' : '\u2014'}</td>`; }).join('')}</tr>` : ''}${hist.map(e => `<tr><td>${e.g}</td>${ZONES.slice(0, 5).map((z, i) => { const f = e.fin && e.fin[i]; return `<td>${f ? gameT(fmtDays(f[0] * TPD)) + '<small>' + realT(f[1]) + '</small>' : '\u2014'}</td>`; }).join('')}</tr>`).join('')}</tbody></table></div>`;
   }
   }
   const b = S.best;
-  h += b ? `<p class="best"><span class="lbl">Best run</span> Clone ${b.g} ${b.z && isA2(b.z) ? 'reached ' + ZN(b.z).name : b.sec >= 6 ? 'lit the drive' : 'reached the ' + secName(b.sec)} after ${gameT((b.d / TPD).toFixed(1) + ' ship days')} \u00b7 ${realT(b.r)} <span class="trl">real</span></p>` : '';
+  h += b ? `<p class="best"><span class="lbl">Best run</span> Clone ${b.g} ${b.z && isA2(b.z) ? 'reached ' + ZN(b.z).name : b.sec >= 6 ? 'lit the drive' : 'reached the ' + secName(b.sec)} after ${gameT(fmtDays(b.d) + ' in-game')} \u00b7 ${realT(b.r)} <span class="trl">real</span></p>` : '';
   h += '</div>';
   h += '<div class="panel"><span class="h2">Ship log</span><p class="note">What your clones have learned about the Long Patience, its sleeping crew and WARDEN.</p></div><div>';
   if (!S.log.length) h += '<p class="note">Nothing yet.</p>';
   S.log.slice().reverse().forEach(e => {
-    h += `<article class="le"><header><h3>${esc(e.t)}</h3><time>Clone ${e.g} · day ${e.a}</time></header><p>${esc(e.x)}</p></article>`;
+    h += `<article class="le"><header><h3>${esc(e.t)}</h3><time>Clone ${e.g} · at ${fmtDays((e.a || 0) * TPD)}</time></header><p>${esc(e.x)}</p></article>`;
   });
   h += '</div>';
   $('#v-log').innerHTML = h;
@@ -3584,7 +3581,7 @@ function bindFoodPct(){
 function partsSettingsHtml(){
   if (!(S.a2 && S.a2.open)) return '';
   let h = `<div class="row"><p>Auto-repair<small>Act II: spend spare parts (salvage) on the ship whenever its wear reaches a full repair and the repair cooldown is over.</small></p><button class="tog${S.set.autoRepair ? ' on' : ''}" data-set="autoRepair" aria-label="Auto-repair" aria-pressed="${!!S.set.autoRepair}"></button></div>`;
-  h += `<div class="row"><p>Auto-scavenge<small>Act II: work the best parts job when spare parts drop below ${S.set.partsDays || 2} days of repairs (plus any workshop you are about to build), and stay until twice that.</small></p><button class="tog${S.set.autoScav ? ' on' : ''}" data-set="autoScav" aria-label="Auto-scavenge" aria-pressed="${!!S.set.autoScav}"></button></div>`;
+  h += `<div class="row"><p>Auto-scavenge<small>Act II: work the best parts job when spare parts drop below ${(S.set.partsDays || 2) * TPD / DPS} seconds of repairs (plus any workshop you are about to build), and stay until twice that.</small></p><button class="tog${S.set.autoScav ? ' on' : ''}" data-set="autoScav" aria-label="Auto-scavenge" aria-pressed="${!!S.set.autoScav}"></button></div>`;
   return h;
 }
 function foodSettingsHtml(){
@@ -3680,11 +3677,11 @@ const FAQ_ALL = [
   ['How do I start?', 'Tap a task to work on it right away. Climb out of the vat first, then press vat algae for food and strip wall panels for salvage. Time only moves while your clone is working: with nothing to do, the clock stops, so you can always read and plan.'],
   ['What are jobs, actions, training and rests?', '<b>Jobs</b> repeat and make food or salvage in batches; they stop when that storage is full. <b>Actions</b> are one-off tasks that unlock things and move the story on. Each needs certain earlier actions, and a section\u2019s last action (its crossing) needs every other action of that section. Tasks you have met before stay listed, greyed out, until what they need is done; you can still queue them. <b>Drills</b> each add a little familiarity to every task in their section, up to 4 sessions per life. <b>Rests</b> halve strain; each section has one, usable once per life.'],
   ['How does the queue work?', 'Tapping a task runs it right away, ahead of the queue (a job runs until its store is full); it is not added to the queue. <b>+</b> adds a task to the end of the queue; drag it or use the arrows to move it up. You can queue the same task several times at different places: tap + again for another copy. A task queued once runs until it is done; with several copies, each copy covers one repetition (one training session, one rep, or one fill of a store). The queue holds up to 100 items. Drag an item by the handle on its left to move it, or use the arrows; ✕ removes it. Queued jobs run until their storage is full. You can queue things you have seen before even if they are not available yet; they wait their turn. Gear can be queued too, with the <b>+</b> on its card (gear is listed in each section of the Tasks tab): the clone works the best salvage job until it can afford the design, then builds it. Five presets save and load whole queues, and <b>Keep queue between clones</b> gives each new clone the queue you planned, minus anything that is automated and switched on.'],
-  ['Food and health', 'Health drains all the time and meals put it back. <b>Every meal heals the same amount</b>; what changes is how often the clone can eat. All food goes into one <b>ration store</b>: every food job fills it, and the store grows as the clone gets deeper into the ship (6 in the Vat Bay, up to 90 in the Main Drive), plus gear and records. A ration can be eaten every 12 hours at first. Each section has one <b>kitchen upgrade</b> action (heat the algae paste, splice richer strains, refit the ration packer, restart the galley ovens, reseal the pantry, and one in each Act II section) that shortens the wait between rations for the rest of that life, down to under 5 hours; each clone has to fix them again. Meals are always whole portions, and the clone only eats when it needs to: when a whole meal fits under full health, or sooner once health is down to half. At full health no food is used. Much later in the voyage, other foods can join the rations; each has its own store and its own, shorter meal timer, so a clone carrying them eats extra meals. With no food left at all you starve. The Hydroponics Ring has no food job until you restore its irrigation pumps, so arrive stocked.'],
-  ['What is strain?', 'Strain multiplies the health drain. It grows faster and faster the longer a clone lives, which is what eventually kills every clone. Rests halve it; good food heals faster than strain can drain early on. The drain has a ceiling, but that ceiling doubles every 30 ship days of a clone\u2019s life, so even a well-fed clone wears out in the end. Each section is also a little more dangerous than the one before (hunger and hazards), with a further step up once the drive is lit. Watch <b>Time left</b> at the top: it says how long the clone will last and what will kill it.'],
-  ['What carries over when a clone dies?', '<b>Familiarity</b> is kept: every task stays as fast as your clones have made it (see the Speed tab). Each day a clone survives adds 0.8 to the base health of later clones, up to 500. <b>Archive records</b> found by finishing certain actions are permanent upgrades. Gear, rations, salvage and progress through the ship reset.'],
+  ['Food and health', 'Health drains all the time and meals put it back. <b>Every meal heals the same amount</b>; what changes is how often the clone can eat. All food goes into one <b>ration store</b>: every food job fills it, and the store grows as the clone gets deeper into the ship (6 in the Vat Bay, up to 90 in the Main Drive), plus gear and records. At first a ration can be eaten every 5 seconds of in-game time. Each section has one <b>kitchen upgrade</b> action (heat the algae paste, splice richer strains, refit the ration packer, restart the galley ovens, reseal the pantry, and one in each Act II section) that shortens the wait between rations for the rest of that life, down to about 2 seconds; each clone has to fix them again. Meals are always whole portions, and the clone only eats when it needs to: when a whole meal fits under full health, or sooner once health is down to half. At full health no food is used. Much later in the voyage, other foods can join the rations; each has its own store and its own, shorter meal timer, so a clone carrying them eats extra meals. With no food left at all you starve. The Hydroponics Ring has no food job until you restore its irrigation pumps, so arrive stocked.'],
+  ['What is strain?', 'Strain multiplies the health drain. It grows faster and faster the longer a clone lives, which is what eventually kills every clone. Rests halve it; good food heals faster than strain can drain early on. The drain has a ceiling, but that ceiling doubles every 5 minutes of in-game time in a clone\u2019s life, so even a well-fed clone wears out in the end. Each section is also a little more dangerous than the one before (hunger and hazards), with a further step up once the drive is lit. Watch <b>Time left</b> at the top: it says how long the clone will last and what will kill it.'],
+  ['What carries over when a clone dies?', '<b>Familiarity</b> is kept: every task stays as fast as your clones have made it (see the Speed tab). Every 10 seconds of in-game time a clone survives adds 0.8 to the base health of later clones, up to 500. <b>Archive records</b> found by finishing certain actions are permanent upgrades. Gear, rations, salvage and progress through the ship reset.'],
   ['What are sections?', 'The ship is split into five sections. A <b>red</b> action leads to the next one, and the way back is sealed for that clone, so finish what you need first (records, the rest, training, gear). Each new clone starts back in the Vat Bay.'],
-  ['What is gear?', 'Gear is built from salvage and lasts for one clone. Each section has designs to build. Building one pays its salvage up front, then the clone spends time <b>assembling</b> it (bigger designs take longer, from minutes for a toolkit to a few days for the largest); assembly comes before other work and gets faster with familiarity. The gear works once it is assembled. Salvage storage is limited; opening up more of the ship raises it.'],
+  ['What is gear?', 'Gear is built from salvage and lasts for one clone. Each section has designs to build. Building one pays its salvage up front, then the clone spends time <b>assembling</b> it (bigger designs take longer, from a moment for a toolkit to half a minute or so of in-game time for the largest); assembly comes before other work and gets faster with familiarity. The gear works once it is assembled. Salvage storage is limited; opening up more of the ship raises it.'],
   ['What is familiarity?', 'There are no skills: each task gets faster on its own the more of it your clones have done. Familiarity counts work in completions, including attempts a clone died in the middle of, and is kept between clones. Speed rises smoothly from ×1 to ×10 once you have done enough of a task: in a first run, 90 lives’ worth of it (90 finishes of an action, 1800 batches of a job). Each level of the Act I reward <b>Deep echo</b> lowers that for Act I tasks by about 30%. Familiar tasks also hurt less (hazard damage up to ÷4), and a familiar food job lets its food be eaten more often. <b>Drills</b> spread familiarity to every task in their section. The Speed tab lists every task.'],
   ['How does automation work?', 'Every completion counts: finish an action 10 times (a multi-rep action 10 times its reps), a training session 40 times or a rest 10 times, work a job for 200 batches, or build a design in 10 lives, and its automation <b>switches on by itself</b>. For Act I tasks these counts shrink along with the familiarity threshold (Deep echo), never below one; tap <b>AUTO</b> (or its switch in the Auto tab) to turn it off, and it stays off. Automated tasks run by themselves <b>ahead of your queue</b>, in chain order (each after the tasks it needs). Automated tasks <b>link into chains</b> when one requires the other and both are at least ×2 familiar. When every action, crossing, job and rest of a section is automated and ×5 familiar, and all its gear designs are automated, the whole section becomes <b>one chain</b>: press <b>▶ Run section</b> (above the queue in the Tasks tab) and the clone works through everything, builds the gear, fills its stores and crosses. The run is pinned at the top of the queue and the queue\u2019s leftovers for its sections are cleared. Pressing it also turns on <b>Always run sections once ready</b> (Auto tab): from then on a run starts by itself whenever the section you are in is ready. Stop turns that off again. Ready sections next to each other link across their crossings into one run (<b>▶ Run 3 sections</b>), up to the end of the act; a run that dies starts again with the next clone. The option <b>Pause when a section run ends instead</b> keeps a run going through its crossings and pauses once it is over. A chain picks its next step itself each time: gear first, then kitchen upgrades, then the actions and drills in the order they depend on each other, then rests and storage-filling jobs, and the crossing last. When a chain forms or grows, it <b>queues itself</b>, including the chains of sections still ahead, and chain entries are kept in the order they will run: section by section, and within a section the chain that starts earliest first, with the crossing\u2019s chain last, and anything of it you had queued separately is dropped from the queue. If you remove a chain from the queue, it stays out for the rest of that clone\u2019s life. Work done as part of a chain (a queued chain or a section run) builds <b>chain flow</b>, which makes chained steps up to five times as fast; it is kept for good. An automated food job steps in when its store drops below the forage threshold and fills it up. An automated <b>salvage</b> job only gathers what gear needs: the next auto-built or queued design that is found and not built yet; it does not top the store up to full (except while filling up before a crossing). Automated <b>crossings</b> are the exception: they wait until your queue is done. A task you tap runs before everything. The <b>Auto</b> tab lists everything unlocked and has extra options: feeding when needed, filling storage before moving on, the strain level for automatic rests, the death screen and starting paused.'],
   ['What happens at a crossing with automation?', 'A queued or automated crossing stops just before it finishes and waits while the clone finishes automated actions and training, builds affordable automated gear, refills storage (if that option is on) and uses the section’s rest. Tap a crossing yourself to go at once.'],
@@ -3712,7 +3709,7 @@ function showIntro(){
   paused = true;
   showModal(`<h2>Long Patience</h2>
     <p>You are K-7, a disposable maintenance clone aboard the colony ship <b>Long Patience</b>. Its 3,112 crew sleep in stasis. WARDEN, the ship\u2019s overseer, wakes clones like you to do the work nobody else will: repair the <b>food system</b>, the <b>energy system</b> and the <b>stardrive</b>, so the crew can be woken.</p>
-    <p class="d">Each body lasts days, not years. When it fails, WARDEN decants another. What you learn echoes into the next one.</p>
+    <p class="d">Each body lasts weeks, not years. When it fails, WARDEN decants another. What you learn echoes into the next one.</p>
     <p class="faqwarn"><b>New to the game?</b> Read the <b>FAQ</b> tab first. It explains tasks, food, strain, sections, automation and saves.</p>
     <button class="btn pri" data-close>Begin the work cycle</button>`);
 }
@@ -3723,7 +3720,7 @@ function showDeath(){
     .sort((x, y) => (y.b - y.a) - (x.b - x.a)).slice(0, 6);
   let rows = gains.map(x => `<tr><td>${esc(x.t.name)}</td><td><span class="up">\u00d7${fmt(masteryF(x.t))} (+${fmt(9 * (x.b - x.a))})</span></td></tr>`).join('');
   showModal(`<h2>Clone ${S.gen} terminated</h2>
-    <p>${esc(L.cause)}.</p><p class="d">Lived ${age.toFixed(1)} days · ${L.order.length} actions completed</p>
+    <p>${esc(L.cause)}.</p><p class="d">Lived ${fmtDays(L.day)} in-game \u00b7 ${fmtReal(L.real || 0)} real \u00b7 ${L.order.length} actions completed</p>
     <p class="d">Hardened genome: <span class="up">+${fmt(L.vitGain || 0)} max health</span> for every future clone (base now ${Math.min(BASE_HP_MAX, 100 + Math.floor(S.vit || 0))}${100 + Math.floor(S.vit || 0) >= BASE_HP_MAX ? ', the maximum' : ''}).</p>
     <table class="dt">${rows}</table>
     ${S.perks.engram && S.engramT && T[S.engramT.id] ? '<p class="d">Engram recorder: the next clone starts \u201c' + T[S.engramT.id].name + '\u201d ' + Math.round(Math.min(S.engramT.p, ENGRAM_SHARE * T[S.engramT.id].days) / T[S.engramT.id].days * 100) + '% done.</p>' : ''}
@@ -4013,7 +4010,7 @@ function showAway(a){
   const xpRows = SKILLS.map(k => ({k, g:(b.xp[k.id] || 0) - (a.xp[k.id] || 0)})).filter(r => r.g > 0.5);
   const newLogs = S.log.slice(a.log).map(e => e.t);
   const newPerks = Object.keys(S.perks).length - a.perks;
-  let h = `<h2>While you were away</h2><p class="d">${fmtSecs(secs)} in the background \u00b7 ${days.toFixed(1)} days aboard</p><table class="dt">`;
+  let h = `<h2>While you were away</h2><p class="d">${fmtSecs(secs)} in the background \u00b7 ${fmtDays(days * TPD)} in-game aboard</p><table class="dt">`;
   const loops = b.gen - a.gen;
   h += `<tr><td>Loops run</td><td>${loops}${loops ? ' \u00b7 now clone ' + b.gen : ''}</td></tr>`;
   h += `<tr><td>Section</td><td>${ZONES[(L.sec || 1) - 1].name}${(L.sec || 1) !== a.sec && b.gen === a.gen ? ' (new)' : ''}</td></tr>`;
@@ -4029,7 +4026,7 @@ function showAway(a){
   if (loops) {
     const secName = n => n >= 6 ? 'Drive lit' : ZONES[n - 1].name;
   const histName = e => e.z && isA2(e.z) ? ZN(e.z).name : secName(e.sec);
-    h += `<div class="rtab"><table class="dt"><thead><tr><th>Clone</th><th>Furthest</th><th>Days</th><th>Cause</th></tr></thead><tbody>${ran.slice(-10).reverse().map(e => `<tr><td>${e.g}</td><td>${histName(e)}</td><td>${(e.d / TPD).toFixed(1)}</td><td>${esc(e.cause)}</td></tr>`).join('')}</tbody></table></div>`;
+    h += `<div class="rtab"><table class="dt"><thead><tr><th>Clone</th><th>Furthest</th><th>In-game</th><th>Cause</th></tr></thead><tbody>${ran.slice(-10).reverse().map(e => `<tr><td>${e.g}</td><td>${histName(e)}</td><td>${fmtDays(e.d)}</td><td>${esc(e.cause)}</td></tr>`).join('')}</tbody></table></div>`;
     if (loops > 10) h += `<p class="d">Showing the last 10 of ${loops} loops.</p>`;
     const far = ran.reduce((m, e) => Math.max(m, e.sec), 0);
     S.log.push({g:b.gen, a:+(L.day / TPD).toFixed(1), t:'Background run', x:loops + ' loop' + (loops > 1 ? 's' : '') + ' ran while you were away (clones ' + a.gen + '\u2013' + (b.gen - 1) + '), furthest: ' + secName(far) + '.'});
