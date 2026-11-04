@@ -39,5 +39,24 @@ with sync_playwright() as p:
             except Exception as e: problems.append(f'{name}/{fn}: EXC {str(e)[:120]}')
         pg.evaluate("hideModal()")
     b.close()
+# static check: every data-* marker in the markup has code that reacts to it
+src=open('/home/claude/long-patience/index.html').read()
+marks=set(re.findall(r'\sdata-([a-z][a-z0-9-]*)(?=[\s=>])', src))
+def camel(x): p=x.split('-'); return p[0]+''.join(w.title() for w in p[1:])
+PASSIVE={'lock','r','used'}   # labels only, nothing reacts to them by design
+orphan=[m for m in sorted(marks-PASSIVE) if not re.search(r"(d\.%s\b|'%s' in d|\.dataset\.%s\b|\[data-%s[\]=])" % (camel(m),camel(m),camel(m),m), src)]
+print('data markers without a handler:', orphan or 'none')
+# real taps on the pop-up buttons players must press
+with sync_playwright() as p:
+    b=p.chromium.launch(); pg=b.new_page(viewport={'width':420,'height':900}); pg.on('pageerror', lambda e: errs.append('taps: '+str(e)))
+    pg.goto(URL); pg.wait_for_timeout(800)
+    def vis(): return not pg.evaluate("$('#modal').hidden")
+    pg.click('#mbox button.pri'); taps=['intro:'+('ok' if not vis() else 'STUCK')]
+    pg.evaluate("()=>{ paused=true; S.storyQ=[{t:'Test',x:'Story'}]; showStory(); }"); pg.wait_for_timeout(100); pg.click('#mbox [data-storyok]'); taps.append('story:'+('ok' if not vis() else 'STUCK'))
+    pg.evaluate("()=>{ S.life.hp=-1; die('x'); }"); pg.wait_for_timeout(300); g=pg.evaluate('S.gen'); pg.click('#mbox button.pri'); pg.wait_for_timeout(200); taps.append('death:'+('ok' if pg.evaluate('S.gen')==g+1 and not vis() else 'STUCK'))
+    pg.evaluate("showMenu()"); pg.click('#mbox [data-menu="continue"]'); taps.append('menu:'+('ok' if not vis() else 'STUCK'))
+    pg.evaluate("showSettings()"); pg.click('#mbox [data-settingsclose]'); taps.append('settings:'+('ok' if not vis() else 'STUCK'))
+    b.close()
+print('pop-up taps:', taps)
 print('page errors:', errs or 'none')
 print('text problems:', sorted(set(problems)) or 'none')

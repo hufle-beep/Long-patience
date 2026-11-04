@@ -301,7 +301,9 @@ input[type=range]{width:100%;accent-color:var(--amber)}
 
 /* modal + toast */
 #modal{position:fixed;inset:0;z-index:20;background:rgba(14,10,5,.84);display:flex;align-items:center;justify-content:center;padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
-.mbox{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:18px;max-width:440px;width:100%;max-height:100%;overflow:auto;display:grid;gap:12px}
+html.mopen,html.mopen body{overflow:hidden;overscroll-behavior:none}
+#modal{overscroll-behavior:contain;touch-action:pan-y}
+.mbox{overscroll-behavior:contain;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:18px;max-width:440px;width:100%;max-height:100%;overflow:auto;display:grid;gap:12px}
 .mbox h2{margin:0;font-family:var(--f-disp);font-size:26px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:var(--amber);line-height:1.1;text-wrap:balance}
 .mbox p{margin:0;font-size:14px;color:var(--fg)}
 .mbox p.d{color:var(--dim);font-size:13px}
@@ -488,7 +490,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
 // Renamed from Long Patience: move this device's old storage keys to the new 'selene.' names once
 try { const old = []; for (let n = 0; n < localStorage.length; n++) old.push(localStorage.key(n)); old.forEach(k => { if (k && k.indexOf('long-patience.') === 0) { const nk = 'selene.' + k.slice(14); if (localStorage.getItem(nk) == null) localStorage.setItem(nk, localStorage.getItem(k)); localStorage.removeItem(k); } }); } catch(e) {}
 /* ===== Game data and rules (no DOM) ===== */
-const BUILD = '2026-11-04 · FAQ unfolds, reset';   // shown in the main menu, to tell which version is loaded
+const BUILD = '2026-11-04 · death screen fix';   // shown in the main menu, to tell which version is loaded
 const DPS = 8;             // simulation ticks per real second at 1x (doubled for the test version: same balance, half the real time)
 // Time is simulated in ticks. 80 ticks make one day unit (18 minutes each), so a day lasts
 // 20 real seconds at 1x and Players only ever see in-game time and real time, never days.
@@ -3732,8 +3734,9 @@ function faqSeen(q, keepTag){ const st = faqLoad(); if (st.seen[q]) return; st.s
 document.addEventListener('toggle', e => { const d = e.target; if (d && d.dataset && d.dataset.faq && d.open) { faqSeen(d.dataset.faq, true); const t = d.querySelector('.fnew'); if (t) t.remove(); } }, true);
 
 /* ----- modals ----- */
-function showModal(h){ $('#mbox').innerHTML = h; $('#modal').hidden = false; }
-function hideModal(){ $('#modal').hidden = true; }
+// While a pop-up is open the page behind it is locked in place (only the pop-up itself scrolls)
+function showModal(h){ $('#mbox').innerHTML = h; $('#modal').hidden = false; document.documentElement.classList.add('mopen'); $('#mbox').scrollTop = 0; }
+function hideModal(){ $('#modal').hidden = true; document.documentElement.classList.remove('mopen'); }
 function showIntro(){
   paused = true;
   showModal(`<h2>Selene: Tidelocked</h2>
@@ -3753,7 +3756,7 @@ function showDeath(){
     <p class="d">WARDEN analysed this run and the seedling\u2019s memory and pushed an efficiency patch: <span class="up">energy now drains \u00f7${vitDiv().toFixed(2)}</span> for every future seedling${vitDiv() >= 1 + VIT_K - 1e-9 ? ' (fully optimized)' : ''}.</p>
     <table class="dt">${rows}</table>
     ${S.perks.engram && S.engramT && T[S.engramT.id] ? '<p class="d">Engram recorder: the next seedling starts \u201c' + T[S.engramT.id].name + '\u201d ' + Math.round(Math.min(S.engramT.p, ENGRAM_SHARE * T[S.engramT.id].days) / T[S.engramT.id].days * 100) + '% done.</p>' : ''}
-    <button class="btn pri" data-sprout>Sprout seedling ${S.gen + 1}</button>`);
+    <button class="btn pri" data-decant>Sprout seedling ${S.gen + 1}</button>`);
 }
 function showWin(){
   paused = true;

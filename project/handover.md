@@ -100,10 +100,12 @@ The tools:
   - every tab and pop-up;
   - a scan for leftover old words.
   
-  It must print `page errors: none` and `text problems: none`.
+  It also checks that every `data-*` button marker has code that reacts to it, and really taps the intro, story, death, menu and settings buttons. It must print `page errors: none`, `text problems: none`, `data markers without a handler: none` and all pop-up taps `ok`.
+  Lesson (2026-11-04): a text-renaming pass once renamed the death button's marker (`data-decant`), which trapped every player at the first death; calling functions directly in tests did not catch it.
 - `python3 shots.py`: screenshots of every screen to `/home/claude/shots`, at device scale 2.
 - `pw161.py`: test speed switch (x5 open, no unlock written).
 - `pw162.py`: FAQ unfolding, both resets, export-all and restore-all.
+- `pw163.py`: plays a fresh seedling to its first death in real time, taps Sprout, and checks the page can't scroll behind a pop-up.
 - `pw151/152/153/158/159/160.py`: Playwright checks (header and pause, stasis, death saves, save names, compact cards, storage migration). Each must print `errors []`.
 - `oneoff/`: the scripts that did the Hearth Tree reskin, cleanup and comment rewording (history and reference only).
 

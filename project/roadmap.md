@@ -2,9 +2,15 @@
 
 Last updated: 2026-11-04. Update in every push.
 
+## Order of work (owner, 2026-11-04)
+1. **Section-by-section playtesting and tuning** (now). Section 1 frozen; next the Taproot Galleries, then sections 3-14 one by one: the owner plays and uploads a save after each crossing, Claude proposes options for that section's knobs only, the owner freezes it.
+2. **A full play of all available content**, start to end.
+3. **Polishing: mechanics first.**
+4. **Texts and story:** a friend of the owner will write texts and story to replace the AI-generated ones (then the owner's own story beats and flavour texts fit in here too).
+5. **Then either Act III, or publishing** on Google Play, itch.io and galaxy.click (see "Later" below).
+
 ## Next up
-1. **Section 2 retune: Taproot Galleries.** Waiting for the owner's playtest save (completionist style; seedling count is the target). Then: read the save, propose options for section 2's knobs only, wait for approval, freeze on the owner's word. Then sections 3-14 one by one.
-2. **Story beats and flavour texts** from the owner: announced, not sent yet. Map each to a place (log entries, intro, FAQ, records) and propose before building.
+- Section 2 (Taproot Galleries) retune: waiting for the owner's playtest save.
 
 ## Decided
 - **No iOS app** (owner, 2026-11-04): share the web link instead; iPhones play it in Safari. Don't propose a home-screen web app or a TestFlight build again unless the owner asks.
@@ -20,6 +26,12 @@ Last updated: 2026-11-04. Update in every push.
 - Turn **`TEST_ALL_SPEEDS`** off (index.html, next to `SPEEDS`): in the test version x1/x2/x5 are open from the start; the final version unlocks x2 after Act I and x5 after Act II again. The switch never writes unlocks into saves or devices, so nothing leaks into the final version.
 - Replace the five per-slot death saves with **one global death save** (owner's decision; per-slot is for testing only).
 - Re-check every section freeze and the Act I/Act II totals.
+
+## Later, once the game is mature (owner, 2026-11-04)
+- **Google Play, private first.** Owner: a Play Console developer account (one-time fee, ID check); the app setup forms (content rating, data safety, target audience, ads, privacy policy link, basic listing with a 512x512 icon). Publish on **Internal testing** (up to 100 testers by email, not visible in the store); Closed testing is reviewed. Going public later needs a closed test with 12+ testers opted in for 14 days in a row (new personal accounts).
+  Claude: (1) build an .aab next to the APK; (2) target API 36 (required for new apps/updates since 2026-08-31) and fix edge-to-edge insets; (3) a Play build without the self-updater and REQUEST_INSTALL_PACKAGES (Play forbids self-updating); (4) optional automatic upload to the internal track from GitHub with a Play service-account secret; a privacy policy page on GitHub Pages.
+  Catch: Play re-signs with its own key, so the Play app and the GitHub APK can't install over each other and keep separate saves (move them with "Export all saves").
+- **Android developer verification:** from 2027 (worldwide; 4 countries from 2026-09-30) certified phones install only apps from verified developers, sideloaded APKs included. A Play Console account covers it; a free "limited distribution" account allows up to 20 devices. Needed before 2027 if the GitHub APK keeps being shared.
 
 ## Ideas noted (not approved)
 - **Chain names (owner, 2026-11-04, later):** generate an own name for every possible combination of chained tasks (shown on chain cards instead of the list of step names). Propose naming scheme first.

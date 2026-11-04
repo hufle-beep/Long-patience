@@ -37,5 +37,6 @@ Automated "commit and push your changes" reminders from the tooling do **not** o
   - Clones are **seedlings**; salvage is **deadwood**; Act II spare parts are **grafts**; charge cells are **sap cells**; decant is **sprout**; recycle is **return to the roots**; energy stays energy.
   - The White Star (Babylon 5) is a shape reference only; never name it or Babylon 5 in the game.
   - Avoid over-explaining "X, not Y" turns of phrase (for example "grown, not built").
+- **Google Play / publishing notes:** mention them only when the owner asks for the roadmap or what's next.
 - **Act III stays parked** until the owner reopens it; its questions stay open.
 - **Commits** end with the attribution lines the session provides (Co-Authored-By and Claude-Session).

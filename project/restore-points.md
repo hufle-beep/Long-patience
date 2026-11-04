@@ -8,7 +8,8 @@ The **Restore points** workflow (`.github/workflows/restore-points.yml`) runs on
 What the recent commits are (newest first):
 | Commit | What it is |
 |---|---|
-| (next) | FAQ unfolds with progress (kept on the device); Reset in Settings; export/restore all saves |
+| (next) | Fix: the death screen's Sprout button works again; page locked behind pop-ups |
+| `443fcae` | FAQ unfolds with progress (kept on the device); Reset in Settings; export/restore all saves |
 | `8c63e56` | Test speed switch: x1/x2/x5 open from the start (test version only) |
 | `10c323a` | Restore points doc note |
 | `10d77dc` | Restore-point workflow; project docs updated |
