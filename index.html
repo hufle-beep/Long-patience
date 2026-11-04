@@ -483,7 +483,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
 
 <script id="logic">
 /* ===== Game data and rules (no DOM) ===== */
-const BUILD = '2026-11-04 · cleanup';   // shown in the main menu, to tell which version is loaded
+const BUILD = '2026-11-04 · gear build times';   // shown in the main menu, to tell which version is loaded
 const DPS = 8;             // simulation ticks per real second at 1x (doubled for the test version: same balance, half the real time)
 // Time is simulated in ticks. 80 ticks make one ship day (18 minutes each), so a day lasts
 // 20 real seconds at 1x and a clone lives weeks, not years. Everything is shown in days and hours.
@@ -3026,7 +3026,24 @@ function renderSpeed(){
   if (h !== lastSpd) { lastSpd = h; $('#h-spd').innerHTML = h; }
 }
 let lastHg = '', planT = 0, lastQEta = '';   // the queue box is rebuilt on changes: it starts from the last estimate, so nothing blinks
+// Projected build time on gear cards: gathering the missing salvage (best salvage job here) plus assembly
+let getaT = 0;
+function updateGearEta(){
+  if (performance.now() - getaT < 400) return; getaT = performance.now();
+  const L = S.life;
+  document.querySelectorAll('.geta[data-g]').forEach(el => { const it = IT[el.dataset.g]; if (!it) return;
+    let h = '';
+    if (!L.owned[it.id] && !L.dead) {
+      const need = Math.max(0, it.cost - L.salvage), w = salW(gearZone(it));
+      if (!isDone(it.req)) h = '';
+      else if (it.cost > M.salCap) h = 'needs bigger ' + w + ' storage';
+      else if (need > 0 && !bestSalvageJob()) h = 'needs ' + fmt(need) + ' more ' + w + ' \u00b7 no ' + w + ' job here';
+      else h = (assembling(it.id) ? 'done in \u2248 ' : 'built in \u2248 ') + bothH(gearLeft(it)) + (need > 0 && !assembling(it.id) ? ' <small>(gathering ' + fmt(need) + ' ' + w + ' + assembly)</small>' : ' <small>(assembly)</small>');
+    }
+    setH(el, h); });
+}
 function updateHud(){
+  updateGearEta();
   if (S.storyQ && S.storyQ.length) showStory();
   const L = S.life;
   const hg = 'Clone ' + S.gen + (S.pr && (S.pr.n || ngpLv('speed')) ? ' <span class="hng">' + [S.pr.n ? 'NG+' + S.pr.n : '', ngpLv('speed') ? '\u00d7' + ngpSpeed().toFixed(1) : ''].filter(Boolean).join(' \u00b7 ') + '</span>' : '');
@@ -3158,7 +3175,7 @@ const gearReady = i => { const L = S.life; return isDone(i.req) && !L.owned[i.id
 function gearRow(i){
   const L = S.life, pr = gearPracticed(i), on = !!(S.gauto && S.gauto[i.id]);
   const st = pr ? (on ? 'built automatically when affordable' : 'can be automated') : 'built in ' + ((S.gprac || {})[i.id] || 0) + '/' + gearNeed(i) + ' lives';
-  return `<div class="item gitem"><div><h3${gearReady(i) ? ' class="gready"' : ''}>${esc(i.name)}</h3><p>${esc(i.desc)}</p><p class="num">${st}</p></div>` +
+  return `<div class="item gitem"><div><h3${gearReady(i) ? ' class="gready"' : ''}>${esc(i.name)}</h3><p>${esc(i.desc)}</p><p class="num">${st}</p><p class="num geta" data-g="${i.id}"></p></div>` +
     (L.owned[i.id] ? '<span class="owned">Built</span>' : assembling(i.id) ? `<span class="owned">Assembling ${Math.floor((L.prog['b:' + i.id] || 0) / BT[i.id].days * 100)}%</span>` : `<button class="buy" data-buy="${i.id}" ${L.salvage >= i.cost ? '' : 'disabled'}>${fmt(i.cost)} ${salW(gearZone(i))}${i.cost > M.salCap ? '<br><small>needs storage</small>' : ''}</button>${gqBtn(i)}`) +
     (pr ? `<button class="ta${on ? ' on' : ''}" data-gauto="${i.id}" aria-pressed="${on}" aria-label="Build ${esc(i.name)} automatically">AUTO</button>` : '') + '</div>';
 }
@@ -3174,7 +3191,7 @@ function renderGear(){
   av.slice().sort((a, b) => gearZone(a) - gearZone(b)).forEach(i => {
     const z = gearZone(i);
     if (z !== lastZ) { lastZ = z; h += `<div class="sub" style="margin-top:12px">${ZONES[z - 1].name}</div>`; }
-    h += `<div class="item"><div><h3${gearReady(i) ? ' class="gready"' : ''}>${esc(i.name)}</h3><p>${esc(i.desc)}</p><p class="num">${gearPracticed(i) ? (S.gauto && S.gauto[i.id] ? 'Built automatically \u00b7 P' + gearPrio(i) : 'Automation available in the Auto tab') : 'Built in ' + ((S.gprac || {})[i.id] || 0) + '/' + AUTO_LIVES + ' lives'}</p></div>` +
+    h += `<div class="item"><div><h3${gearReady(i) ? ' class="gready"' : ''}>${esc(i.name)}</h3><p>${esc(i.desc)}</p><p class="num geta" data-g="${i.id}"></p><p class="num">${gearPracticed(i) ? (S.gauto && S.gauto[i.id] ? 'Built automatically \u00b7 P' + gearPrio(i) : 'Automation available in the Auto tab') : 'Built in ' + ((S.gprac || {})[i.id] || 0) + '/' + AUTO_LIVES + ' lives'}</p></div>` +
       (L.owned[i.id] ? '<span class="owned">Built</span>' : assembling(i.id) ? `<span class="owned">Assembling ${Math.floor((L.prog['b:' + i.id] || 0) / BT[i.id].days * 100)}%</span>` : `<button class="buy" data-buy="${i.id}" ${L.salvage >= i.cost ? '' : 'disabled'}>${fmt(i.cost)} ${salW(gearZone(i))}${i.cost > M.salCap ? '<br><small>needs storage</small>' : ''}</button>${gqBtn(i)}`) + '</div>';
   });
   if (known.length) {
