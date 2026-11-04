@@ -501,7 +501,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
 
 <script id="logic">
 /* ===== Game data and rules (no DOM) ===== */
-const BUILD = '2026-11-04 · in-game and real time';   // shown in the main menu, to tell which version is loaded
+const BUILD = '2026-11-04 · parts in Act II';   // shown in the main menu, to tell which version is loaded
 const DPS = 8;             // simulation ticks per real second at 1x (doubled for the test version: same balance, half the real time)
 // Time is simulated in ticks. 80 ticks make one ship day (18 minutes each), so a day lasts
 // 20 real seconds at 1x and a clone lives weeks, not years. Everything is shown in days and hours.
@@ -863,7 +863,7 @@ const TASKS = [
   {id:'prints', z:6, kind:'act', name:'Follow the clawed prints', days:63, req:['seal6'], split:'track'},
   {id:'track', z:6, kind:'act', name:'Track the boarders', days:158, req:['prints'],
     log:'Clawed tracks in the frost of the corridors. They are heading for the sleepers.'},
-  {id:'bpod', z:6, kind:'job', name:'Scavenge the boarding pod', prod:{salvage:1.2}, haz:0.1, req:['track']},
+  {id:'bpod', z:6, kind:'job', name:'Scavenge the boarding pod', prod:{salvage:1.2}, haz:0.1, req:[]},
   {id:'bait', z:6, kind:'act', name:'Set bait in the corridors', days:138, haz:0.2, req:['track'], split:'ambush'},
   {id:'ambush', z:6, kind:'act', name:'Ambush a boarding party', days:134, reps:3, haz:0.35, req:['bait'], perk:'scars'},
   {id:'cqb', z:6, kind:'train', name:'Close-quarters drills', days:40, req:['ambush']},
@@ -901,7 +901,7 @@ const TASKS = [
   {id:'dockseal', z:8, kind:'act', name:'Breach the docking seal', days:527, haz:0.3, req:[], split:'umbilical'},
   {id:'umbilical', z:8, kind:'act', name:'Cross the docking umbilical', days:330, haz:0.35, req:['dockseal']},
   {id:'hivenap', z:8, kind:'rest', name:'Rest in a dead hive cell', days:15, req:['umbilical']},
-  {id:'chitinj', z:8, kind:'job', name:'Salvage hive chitin', prod:{salvage:1.8}, haz:0.1, req:['umbilical']},
+  {id:'chitinj', z:8, kind:'job', name:'Salvage hive chitin', prod:{salvage:1.8}, haz:0.1, req:[]},
   {id:'hivedrill', z:8, kind:'train', name:'Hive-tunnel drills', days:40, req:['umbilical']},
   {id:'hivewall', z:8, kind:'act', name:'Burn a way into the hive', days:762, haz:0.35, req:['umbilical'], split:'cuthive'},
   {id:'cuthive', z:8, kind:'act', name:'Cut through the hive', days:762, haz:0.4, req:['hivewall']},
@@ -987,7 +987,7 @@ const TASKS = [
   {id:'burnmess', z:12, kind:'act', meal:true, name:'Rig a galley that works under thrust', days:400, req:['burncalc']},   // kitchen upgrade
   {id:'ws12', z:12, kind:'act', shop:true, name:'Brace the frames for the braking burn', days:400, req:['burncalc']},   // workshop: repairs come more often (costs spare parts)
   {id:'burnration', z:12, kind:'job', name:'Portion out the deep stores', prod:{rations:0.19}, req:['burncalc']},
-  {id:'shieldpatch', z:12, kind:'job', upkeep:true, name:'Patch the dust shield', prod:{salvage:1.9}, req:['shieldrig']},
+  {id:'shieldpatch', z:12, kind:'job', upkeep:true, name:'Patch the dust shield', prod:{salvage:1.9}, req:[]},
   {id:'burnbunk', z:12, kind:'rest', name:'Sleep strapped in under thrust', days:15, req:[]},
   {id:'flipdrill', z:12, kind:'train', name:'Turnover drills', days:40, req:['flip']},
   {id:'shielddrill', z:12, kind:'train', name:'Shield-repair drills', days:40, req:['shieldrig']},
@@ -1011,7 +1011,7 @@ const TASKS = [
   {id:'sysmess', z:13, kind:'act', meal:true, name:'Grow algae under the scanner lights', days:400, req:['scanout']},   // kitchen upgrade
   {id:'ws13', z:13, kind:'act', shop:true, name:'Refit the fabricator for orbital work', days:400, req:['scanout']},   // workshop: repairs come more often (costs spare parts)
   {id:'sysration', z:13, kind:'job', name:'Thaw the last deep stores', prod:{rations:0.2}, req:['scanout']},
-  {id:'debris', z:13, kind:'job', name:'Catch drifting debris', prod:{salvage:2}, haz:0.1, req:['giant']},
+  {id:'debris', z:13, kind:'job', name:'Catch drifting debris', prod:{salvage:2}, haz:0.1, req:[]},
   {id:'scannap', z:13, kind:'rest', name:'Sleep while the scanners run', days:15, req:[]},
   {id:'scandrill', z:13, kind:'train', name:'Scanner calibration drills', days:40, req:['giant']},
   {id:'evadedrill', z:13, kind:'train', name:'Evasive-burn drills', days:40, req:['belt']},
@@ -2039,6 +2039,8 @@ function salvageNeed(){
   return need;
 }
 const salvageJob = t => !!(t && t.kind === 'job' && t.prod && t.prod.salvage);
+// Salvage is called spare parts in Act II (the same store)
+const salW = z => isA2(z || S.life.sec || 1) ? 'parts' : 'salvage';
 function bestSalvageJob(ok){
   let job = null, br = 0;
   for (const t of TASKS) if (t.kind === 'job' && t.prod && t.prod.salvage && available(t) && !jobFull(t) && (!ok || ok(t))) {
@@ -2813,12 +2815,12 @@ function toast(msg, gold){
 function rewardBits(t){
   const b = [];
   const r = t.reward || {};
-  if (r.salvage) b.push('+' + r.salvage + ' salvage');
+  if (r.salvage) b.push('+' + r.salvage + ' ' + salW(t.z));
   if (r.rations) b.push('+' + r.rations + ' ' + FD[FOOD_OF[t.z]].name.toLowerCase());
   if (r.heal) b.push('full heal');
   if (MEAL_UP[t.id]) b.push('a ration every ' + fmtDays(MEAL_CD / MEAL_UP[t.id]) + (mealTier() >= MEAL_UP[t.id] && isDone(t.id) ? '' : ' (now ' + fmtDays(mealCd('ration')) + ')'));
-  if (t.lifeEff && t.lifeEff.pSal) b.push('+' + fmt(perDay(t.lifeEff.pSal)) + ' salvage/min');
-  if (t.lifeEff && t.lifeEff.salCap) b.push('+' + fmt(t.lifeEff.salCap) + ' salvage storage');
+  if (t.lifeEff && t.lifeEff.pSal) b.push('+' + fmt(perDay(t.lifeEff.pSal)) + ' ' + salW(t.z) + '/min');
+  if (t.lifeEff && t.lifeEff.salCap) b.push('+' + fmt(t.lifeEff.salCap) + ' ' + salW(t.z) + ' storage');
 
   if ((t.perk && !S.perks[t.perk]) || WATCH.some(p => p.secEnd === t.id && !S.perks[p.id])) b.push('<span class="star">★ archive record</span>');
   if (t.win) b.push('<span class="star">the end of the voyage</span>');
@@ -2956,7 +2958,7 @@ function renderTasks(){
       if (isCQ(id)) return chainRow(id, i);
       const g = isGQ(id), t = g ? {name:qName(id)} : T[id], it = g ? qItem(id) : null;
       const bl = g ? (!isDone(it.req) || it.cost > M.salCap) : !available(t);
-      const why = g ? (!isDone(it.req) ? 'after: ' + T[it.req].name : it.cost > M.salCap ? 'needs bigger salvage storage' : fmt(Math.min(L.salvage, it.cost)) + '/' + fmt(it.cost) + ' salvage')
+      const why = g ? (!isDone(it.req) ? 'after: ' + T[it.req].name : it.cost > M.salCap ? 'needs bigger ' + salW() + ' storage' : fmt(Math.min(L.salvage, it.cost)) + '/' + fmt(it.cost) + ' ' + salW() + (L.salvage < it.cost && !bestSalvageJob() ? ' \u00b7 no ' + salW() + ' job here yet' : ''))
         : L.held === id ? 'on hold: wrapping up the section' : !bl ? '' : zAfter(t.z, L.sec) ? 'waits for ' + zoneThe(t.z) : zBefore(t.z, L.sec) ? 'left behind' : 'waiting for its requirements';
       return `<li class="qrow${bl ? ' blocked' : ''}${g ? ' gq' : ''}" data-qid="${id}"><span class="qdrag" data-qdrag="${i}" aria-hidden="true" title="Drag to reorder">⠇</span><span class="qn">${i + 1}.</span><span class="qt">${esc(t.name)}${t.kind === 'job' ? ' <small>until full</small>' : ''}${why ? ` <small>${why}</small>` : ''}</span>
         <button data-qmove="${i}" data-dir="-1" ${i <= qPinned() ? 'disabled' : ''} aria-label="Move ${esc(t.name)} up">\u2191</button><button data-qmove="${i}" data-dir="1" ${i === L.queue.length - 1 ? 'disabled' : ''} aria-label="Move ${esc(t.name)} down">\u2193</button><button data-unqi="${i}" aria-label="Remove ${esc(t.name)} from queue">\u2715</button></li>`;
@@ -3041,9 +3043,9 @@ function renderTasks(){
       const gav = ITEMS.filter(i => gearZone(i) === z.id && isDone(i.req) && !inChain.has('g:' + i.id));
       const gkn = ITEMS.filter(i => gearZone(i) === z.id && !isDone(i.req) && !inChain.has('g:' + i.id) && ((S.gprac || {})[i.id] || 0) > 0 && !zBefore(z.id, L.sec || 1));
       if (gav.length || gkn.length) {
-        h += '<div class="sub">Gear \u00b7 built from salvage, lasts this clone</div>';
+        h += '<div class="sub">Gear \u00b7 built from ' + salW() + ', lasts this clone</div>';
         gav.forEach(i => { h += gearRow(i); });
-        gkn.forEach(i => { h += `<div class="item gitem lockd"><div><h3>${esc(i.name)}</h3><p>${esc(i.desc)}</p><p class="num">Found by: ${esc(T[i.req].name)} \u00b7 ${fmt(i.cost)} salvage</p></div>${gqBtn(i)}</div>`; });
+        gkn.forEach(i => { h += `<div class="item gitem lockd"><div><h3>${esc(i.name)}</h3><p>${esc(i.desc)}</p><p class="num">Found by: ${esc(T[i.req].name)} \u00b7 ${fmt(i.cost)} ${salW(gearZone(i))}</p></div>${gqBtn(i)}</div>`; });
       }
     }
     // Tasks met in an earlier life stay listed, greyed out until everything they need is done (they can be queued)
@@ -3090,7 +3092,7 @@ function updateTasks(){
       if (t.prod) {
         const res = t.prod.rations ? 'rations' : 'salvage';
         const batch = t.prod[res] * JOB_CYCLE;
-        const unit = res === 'rations' ? jobFood(t) : res;
+        const unit = res === 'rations' ? jobFood(t) : salW(t.z);
         r.e.textContent = jobFast(sp) ? 'continuous \u00b7 +' + fmt(perDay(t.prod[res] * sp)) + '/min' : '+' + fmt(batch) + ' ' + unit + ' every ' + fmtDays(JOB_CYCLE / sp);
         if (r.tt && res === 'rations') r.tt.dataset.q = mealTier();
         if (r.tt) {
@@ -3201,7 +3203,9 @@ function updateHud(){
   now.classList.toggle('forage', !!(cur && L.foraging && !blip));
   if (!cur || cur.kind !== 'job') $('#n-fill').classList.remove('fast');
   $('#n-eta').classList.remove('over');
-  if (L.dead) { $('#n-name').textContent = 'Clone terminated'; $('#n-eta').textContent = ''; $('#n-fill').style.width = '0'; }
+  const gWait = !cur && !L.dead && !S.set.paused ? L.queue.map(qItem).find((it, i) => isGQ(L.queue[i]) && it && !L.owned[it.id] && !assembling(it.id) && isDone(it.req) && L.salvage < it.cost) : null;
+  if (gWait) { $('#n-name').textContent = 'Waiting: ' + gWait.name + ' needs ' + fmt(gWait.cost) + ' ' + salW() + (bestSalvageJob() ? '' : ' (no ' + salW() + ' job here yet)'); $('#n-eta').textContent = ''; }
+  else if (L.dead) { $('#n-name').textContent = 'Clone terminated'; $('#n-eta').textContent = ''; $('#n-fill').style.width = '0'; }
   else if (S.set.paused) { $('#n-name').textContent = 'Paused' + (cur ? ': ' + cur.name : ''); $('#n-eta').textContent = 'tap Resume'; }
   else if (!cur) { $('#n-name').textContent = 'Time stopped. Pick a task below.'; $('#n-eta').textContent = ''; $('#n-fill').style.width = '0'; }
   else {
@@ -3255,7 +3259,7 @@ function gearRow(i){
   const L = S.life, pr = gearPracticed(i), on = !!(S.gauto && S.gauto[i.id]);
   const st = pr ? (on ? 'built automatically when affordable' : 'can be automated') : 'built in ' + ((S.gprac || {})[i.id] || 0) + '/' + gearNeed(i) + ' lives';
   return `<div class="item gitem"><div><h3${gearReady(i) ? ' class="gready"' : ''}>${esc(i.name)}</h3><p>${esc(i.desc)}</p><p class="num">${st}</p></div>` +
-    (L.owned[i.id] ? '<span class="owned">Built</span>' : assembling(i.id) ? `<span class="owned">Assembling ${Math.floor((L.prog['b:' + i.id] || 0) / BT[i.id].days * 100)}%</span>` : `<button class="buy" data-buy="${i.id}" ${L.salvage >= i.cost ? '' : 'disabled'}>${fmt(i.cost)} salvage${i.cost > M.salCap ? '<br><small>needs storage</small>' : ''}</button>${gqBtn(i)}`) +
+    (L.owned[i.id] ? '<span class="owned">Built</span>' : assembling(i.id) ? `<span class="owned">Assembling ${Math.floor((L.prog['b:' + i.id] || 0) / BT[i.id].days * 100)}%</span>` : `<button class="buy" data-buy="${i.id}" ${L.salvage >= i.cost ? '' : 'disabled'}>${fmt(i.cost)} ${salW(gearZone(i))}${i.cost > M.salCap ? '<br><small>needs storage</small>' : ''}</button>${gqBtn(i)}`) +
     (pr ? `<button class="ta${on ? ' on' : ''}" data-gauto="${i.id}" aria-pressed="${on}" aria-label="Build ${esc(i.name)} automatically">AUTO</button>` : '') + '</div>';
 }
 function renderGear(){
@@ -3264,18 +3268,18 @@ function renderGear(){
   const known = ITEMS.filter(i => !isDone(i.req) && ((S.gprac || {})[i.id] || 0) > 0 && !zBefore(gearZone(i), L.sec || 1));
   const key = M.salCap + '|' + L.queue.filter(isGQ).join() + '|' + known.map(i => i.id).join() + '|' + av.map(i => i.id + (L.owned[i.id] ? 'o' : assembling(i.id) ? 'a' + Math.floor((L.prog['b:' + i.id] || 0) / BT[i.id].days * 20) : (L.salvage >= i.cost ? 'y' : 'n')) + ((S.gprac || {})[i.id] || 0) + (S.gauto && S.gauto[i.id] ? '*' : '') + gearPrio(i)).join();
   if (key === gearKey) return; gearKey = key;
-  let h = '<div class="panel"><span class="h2">Fabricator</span><p class="note">Gear is built from salvage and lasts for this clone only. New designs appear as you explore. Salvage storage is limited; opening up more of the ship raises it.</p></div><div>';
+  let h = '<div class="panel"><span class="h2">Fabricator</span><p class="note">Gear is built from salvage (spare parts in Act II) and lasts for this clone only. New designs appear as you explore. Salvage storage is limited; opening up more of the ship raises it.</p></div><div>';
   if (!av.length) h += '<p class="note">Nothing to build yet. Climb out of the vat first.</p>';
   let lastZ = 0;
   av.slice().sort((a, b) => gearZone(a) - gearZone(b)).forEach(i => {
     const z = gearZone(i);
     if (z !== lastZ) { lastZ = z; h += `<div class="sub" style="margin-top:12px">${ZONES[z - 1].name}</div>`; }
     h += `<div class="item"><div><h3${gearReady(i) ? ' class="gready"' : ''}>${esc(i.name)}</h3><p>${esc(i.desc)}</p><p class="num">${gearPracticed(i) ? (S.gauto && S.gauto[i.id] ? 'Built automatically \u00b7 P' + gearPrio(i) : 'Automation available in the Auto tab') : 'Built in ' + ((S.gprac || {})[i.id] || 0) + '/' + AUTO_LIVES + ' lives'}</p></div>` +
-      (L.owned[i.id] ? '<span class="owned">Built</span>' : assembling(i.id) ? `<span class="owned">Assembling ${Math.floor((L.prog['b:' + i.id] || 0) / BT[i.id].days * 100)}%</span>` : `<button class="buy" data-buy="${i.id}" ${L.salvage >= i.cost ? '' : 'disabled'}>${fmt(i.cost)} salvage${i.cost > M.salCap ? '<br><small>needs storage</small>' : ''}</button>${gqBtn(i)}`) + '</div>';
+      (L.owned[i.id] ? '<span class="owned">Built</span>' : assembling(i.id) ? `<span class="owned">Assembling ${Math.floor((L.prog['b:' + i.id] || 0) / BT[i.id].days * 100)}%</span>` : `<button class="buy" data-buy="${i.id}" ${L.salvage >= i.cost ? '' : 'disabled'}>${fmt(i.cost)} ${salW(gearZone(i))}${i.cost > M.salCap ? '<br><small>needs storage</small>' : ''}</button>${gqBtn(i)}`) + '</div>';
   });
   if (known.length) {
     h += '<div class="sub" style="margin-top:12px">Known designs, not found yet in this life</div>';
-    known.forEach(i => { h += `<div class="item lockd"><div><h3>${esc(i.name)}</h3><p>${esc(i.desc)}</p><p class="num">Found by: ${esc(T[i.req].name)} \u00b7 ${fmt(i.cost)} salvage</p></div>${gqBtn(i)}</div>`; });
+    known.forEach(i => { h += `<div class="item lockd"><div><h3>${esc(i.name)}</h3><p>${esc(i.desc)}</p><p class="num">Found by: ${esc(T[i.req].name)} \u00b7 ${fmt(i.cost)} ${salW(gearZone(i))}</p></div>${gqBtn(i)}</div>`; });
   }
   const hidden = ITEMS.length - av.length;
   if (hidden > 0) h += `<p class="note" style="padding-top:10px">${hidden} more design${hidden > 1 ? 's' : ''} not yet found.</p>`;
@@ -3648,7 +3652,7 @@ function renderAuto(){
     if (gl.length) h += '<div class="sub asub">Gear</div>';
     gl.forEach(i => {
       const on = !!S.gauto[i.id];
-      h += `<div class="arow${on ? ' on' : ''}"><div class="an"><b>${esc(i.name)}</b><span>Gear \u00b7 ${fmt(i.cost)} salvage \u00b7 built when affordable, in ship order</span></div>
+      h += `<div class="arow${on ? ' on' : ''}"><div class="an"><b>${esc(i.name)}</b><span>Gear \u00b7 ${fmt(i.cost)} ${salW(gearZone(i))} \u00b7 built when affordable, in ship order</span></div>
         <button class="tog${on ? ' on' : ''}" data-gauto="${i.id}" aria-pressed="${on}" aria-label="Build ${esc(i.name)} automatically"></button>
       </div>`;
     });
@@ -3681,7 +3685,7 @@ const FAQ_ALL = [
   ['What is strain?', 'Strain multiplies the health drain. It grows faster and faster the longer a clone lives, which is what eventually kills every clone. Rests halve it; good food heals faster than strain can drain early on. The drain has a ceiling, but that ceiling doubles every 5 minutes of in-game time in a clone\u2019s life, so even a well-fed clone wears out in the end. Each section is also a little more dangerous than the one before (hunger and hazards), with a further step up once the drive is lit. Watch <b>Time left</b> at the top: it says how long the clone will last and what will kill it.'],
   ['What carries over when a clone dies?', '<b>Familiarity</b> is kept: every task stays as fast as your clones have made it (see the Speed tab). Every 10 seconds of in-game time a clone survives adds 0.8 to the base health of later clones, up to 500. <b>Archive records</b> found by finishing certain actions are permanent upgrades. Gear, rations, salvage and progress through the ship reset.'],
   ['What are sections?', 'The ship is split into five sections. A <b>red</b> action leads to the next one, and the way back is sealed for that clone, so finish what you need first (records, the rest, training, gear). Each new clone starts back in the Vat Bay.'],
-  ['What is gear?', 'Gear is built from salvage and lasts for one clone. Each section has designs to build. Building one pays its salvage up front, then the clone spends time <b>assembling</b> it (bigger designs take longer, from a moment for a toolkit to half a minute or so of in-game time for the largest); assembly comes before other work and gets faster with familiarity. The gear works once it is assembled. Salvage storage is limited; opening up more of the ship raises it.'],
+  ['What is gear?', 'Gear is built from salvage (called spare parts in Act II: the same store) and lasts for one clone. Each section has designs to build. Building one pays its salvage up front, then the clone spends time <b>assembling</b> it (bigger designs take longer, from a moment for a toolkit to half a minute or so of in-game time for the largest); assembly comes before other work and gets faster with familiarity. The gear works once it is assembled. Salvage storage is limited; opening up more of the ship raises it.'],
   ['What is familiarity?', 'There are no skills: each task gets faster on its own the more of it your clones have done. Familiarity counts work in completions, including attempts a clone died in the middle of, and is kept between clones. Speed rises smoothly from ×1 to ×10 once you have done enough of a task: in a first run, 90 lives’ worth of it (90 finishes of an action, 1800 batches of a job). Each level of the Act I reward <b>Deep echo</b> lowers that for Act I tasks by about 30%. Familiar tasks also hurt less (hazard damage up to ÷4), and a familiar food job lets its food be eaten more often. <b>Drills</b> spread familiarity to every task in their section. The Speed tab lists every task.'],
   ['How does automation work?', 'Every completion counts: finish an action 10 times (a multi-rep action 10 times its reps), a training session 40 times or a rest 10 times, work a job for 200 batches, or build a design in 10 lives, and its automation <b>switches on by itself</b>. For Act I tasks these counts shrink along with the familiarity threshold (Deep echo), never below one; tap <b>AUTO</b> (or its switch in the Auto tab) to turn it off, and it stays off. Automated tasks run by themselves <b>ahead of your queue</b>, in chain order (each after the tasks it needs). Automated tasks <b>link into chains</b> when one requires the other and both are at least ×2 familiar. When every action, crossing, job and rest of a section is automated and ×5 familiar, and all its gear designs are automated, the whole section becomes <b>one chain</b>: press <b>▶ Run section</b> (above the queue in the Tasks tab) and the clone works through everything, builds the gear, fills its stores and crosses. The run is pinned at the top of the queue and the queue\u2019s leftovers for its sections are cleared. Pressing it also turns on <b>Always run sections once ready</b> (Auto tab): from then on a run starts by itself whenever the section you are in is ready. Stop turns that off again. Ready sections next to each other link across their crossings into one run (<b>▶ Run 3 sections</b>), up to the end of the act; a run that dies starts again with the next clone. The option <b>Pause when a section run ends instead</b> keeps a run going through its crossings and pauses once it is over. A chain picks its next step itself each time: gear first, then kitchen upgrades, then the actions and drills in the order they depend on each other, then rests and storage-filling jobs, and the crossing last. When a chain forms or grows, it <b>queues itself</b>, including the chains of sections still ahead, and chain entries are kept in the order they will run: section by section, and within a section the chain that starts earliest first, with the crossing\u2019s chain last, and anything of it you had queued separately is dropped from the queue. If you remove a chain from the queue, it stays out for the rest of that clone\u2019s life. Work done as part of a chain (a queued chain or a section run) builds <b>chain flow</b>, which makes chained steps up to five times as fast; it is kept for good. An automated food job steps in when its store drops below the forage threshold and fills it up. An automated <b>salvage</b> job only gathers what gear needs: the next auto-built or queued design that is found and not built yet; it does not top the store up to full (except while filling up before a crossing). Automated <b>crossings</b> are the exception: they wait until your queue is done. A task you tap runs before everything. The <b>Auto</b> tab lists everything unlocked and has extra options: feeding when needed, filling storage before moving on, the strain level for automatic rests, the death screen and starting paused.'],
   ['What happens at a crossing with automation?', 'A queued or automated crossing stops just before it finishes and waits while the clone finishes automated actions and training, builds affordable automated gear, refills storage (if that option is on) and uses the section’s rest. Tap a crossing yourself to go at once.'],
@@ -3875,7 +3879,7 @@ document.addEventListener('click', e => {
       taskKey = ''; renderView(); return;
     }
     if (isGQ(d.q)) {
-      if (qAdd(d.q)) toast((qCount(d.q) > 1 ? 'Queued again (' + qCount(d.q) + '\u00d7): ' : 'Queued: ') + qName(d.q) + ' (works salvage until it can be built)');
+      if (qAdd(d.q)) toast((qCount(d.q) > 1 ? 'Queued again (' + qCount(d.q) + '\u00d7): ' : 'Queued: ') + qName(d.q) + ' (works ' + salW() + ' jobs until it can be built)');
       taskKey = ''; gearKey = ''; renderView(); return;
     }
     {
@@ -4016,7 +4020,7 @@ function showAway(a){
   h += `<tr><td>Section</td><td>${ZONES[(L.sec || 1) - 1].name}${(L.sec || 1) !== a.sec && b.gen === a.gen ? ' (new)' : ''}</td></tr>`;
   h += `<tr><td>Health</td><td>${Math.ceil(L.hp)} / ${M.maxHp}</td></tr>`;
   if (b.gen === a.gen) {
-    h += `<tr><td>Rations</td><td>${fmt(L.rations)} (${sign(L.rations - a.rations)})</td></tr><tr><td>Salvage</td><td>${fmt(L.salvage)} (${sign(L.salvage - a.salvage)})</td></tr>`;
+    h += `<tr><td>Rations</td><td>${fmt(L.rations)} (${sign(L.rations - a.rations)})</td></tr><tr><td>${salW() === 'parts' ? 'Parts' : 'Salvage'}</td><td>${fmt(L.salvage)} (${sign(L.salvage - a.salvage)})</td></tr>`;
     if (b.owned > a.owned) h += `<tr><td>Gear built</td><td>${b.owned - a.owned}</td></tr>`;
   }
 
