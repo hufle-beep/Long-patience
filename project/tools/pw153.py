@@ -1,0 +1,16 @@
+from playwright.sync_api import sync_playwright
+with sync_playwright() as p:
+    b=p.chromium.launch(); pg=b.new_page(viewport={'width':420,'height':900}); errs=[]; pg.on('pageerror', lambda e: errs.append(str(e)))
+    pg.goto('file:///home/claude/long-patience/index.html'); pg.wait_for_timeout(800); pg.click('text=Begin the work cycle'); pg.wait_for_timeout(800)
+    pg.evaluate("()=>{ S.life.hp=-1; die('Test death'); }"); pg.wait_for_timeout(500)
+    print('d1 exists', pg.evaluate("!!readSlot('d1')"), 'd1 dead', pg.evaluate("readSlot('d1').life.dead"))
+    pg.evaluate("()=>{decant(); save();}"); g1=pg.evaluate("readSlot(1).gen")
+    pg.evaluate("showMenu('saves')"); pg.wait_for_timeout(300)
+    print('slots shown', pg.locator('.slots > .slot').count(), 'death rows', pg.locator('.dslot').count())
+    pg.screenshot(path='/tmp/claude-0/sim/pw153a.png', full_page=True)
+    pg.click('[data-loadslot="d1"]'); pg.wait_for_timeout(500)
+    print('active', pg.evaluate("slot"), 'dead after load', pg.evaluate("S.life.dead"), 'slot1 gen unchanged', pg.evaluate("readSlot(1).gen")==g1)
+    pg.evaluate("()=>{decant(); S.gen+=0; save();}"); print('slot1 untouched', pg.evaluate("readSlot(1).gen")==g1, 'd1 gen', pg.evaluate("readSlot('d1').gen"))
+    pg.reload(); pg.wait_for_timeout(800); print('active after reload', pg.evaluate("slot"))
+    pg.evaluate("showMenu('saves')"); pg.wait_for_timeout(300); pg.screenshot(path='/tmp/claude-0/sim/pw153b.png', full_page=True)
+    print('errors', errs); b.close()

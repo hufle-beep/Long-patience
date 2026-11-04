@@ -1,0 +1,287 @@
+# Changelog: Selene: Tidelocked (formerly Long Patience)
+
+Every commit, newest first (from git history; Android build numbers are GitHub Actions run numbers). Generated before each push.
+
+- 2026-11-04 21:31 · `4b28cfd` · Cleanup: remove patch tasks, the old fault, boost/background-pause/NG+ leftovers and unused code; refresh comments and README
+- 2026-11-04 21:21 · `92183c1` · The Hearth Tree: organic reskin (Root-Kin of Earth, Selene, seedlings, sap cells, deadwood, grafts), new Act I order, Act II names, gravity and wards before the flip, brown and amber palette; old saves' logs refreshed
+- 2026-11-04 20:33 · `e0187fb` · Rename to Selene: Tidelocked; the ship is Selene (she/her); storage keys moved to selene.*
+- 2026-11-04 20:20 · `9ed0f4b` · Compact task cards: % to x10 / % to auto, effects revealed after first finish; gear on Mastery and Auto tabs
+- 2026-11-04 17:25 · `fd45b5e` · Republish the web version (previous Pages build was cancelled)
+- 2026-11-04 16:52 · `b111bf9` · Save names: name a slot on new game or save, rename, names travel with the save
+- 2026-11-04 16:44 · `32cf41b` · Run totals: total time played when each section was first reached (Act I and Act II)
+- 2026-11-04 15:06 · `ba5d044` · Overwrite warnings: a panel with choices and Cancel for every save that would be lost
+- 2026-11-04 15:02 · `9787dba` · Leave a death save: load the regular slot again (deletes that death save); clearer labels
+- 2026-11-04 14:50 · `d7d9a58` · Five save slots, each with a linked death save written at every death
+- 2026-11-04 11:41 · `10ebcad` · Create hufle2-2026-11-04-1241-clone10.txt
+- 2026-11-04 12:37 · `3466b25` · Act II danger +18% to offset stasis tuning
+- 2026-11-04 12:08 · `c2addf6` · Stasis tuning: watch records cut energy drain (−10% Act I, −50% total); remove away time
+- 2026-11-04 11:26 · `2431c92` · Tap a gear card to build it now, like a task
+- 2026-11-04 11:05 · `b0af893` · Android release: retry the upload and the build-number update on GitHub errors
+- 2026-11-04 11:03 · `a174d6d` · Act II gear wording says parts everywhere (Fabricator note, auto-repair)
+- 2026-11-04 11:01 · `962b6ce` · Gear cards show the projected build time, salvage gathering included
+- 2026-11-04 10:49 · `32a68f5` · Cleanup: remove orphaned systems and outdated text
+- 2026-11-04 10:38 · `a8ee485` · Android release: retry the APK swap and never leave the link without a file
+- 2026-11-04 10:35 · `467c8d8` · Vat Bay retune 1: drills a quarter as long, section 10% shorter, station 15
+- 2026-11-04 08:45 · `ced178a` · Create hufle2-2026-11-04-0945-clone5.txt
+- 2026-11-04 09:29 · `34e21c3` · Energy cap 500: +100 per Act I, Boarders, Long Watch and legacy
+- 2026-11-04 09:11 · `8ac3567` · The fault is gone: energy alone limits a clone
+- 2026-11-04 07:28 · `1de28ef` · Create hufle2-2026-11-04-0828-clone10.txt
+- 2026-11-04 07:58 · `192757d` · Vat Bay long enough that the first clone can't clear it
+- 2026-11-04 06:54 · `1d38553` · Create hufle2-2026-11-04-0754-clone1.txt
+- 2026-11-04 07:48 · `1b6846d` · Energy bar: +200 in Act I, +100 Boarders, +100 Long Watch; legacy to 1000
+- 2026-11-04 07:29 · `32e4dc9` · Death award framed as an efficiency patch from run and memory analysis
+- 2026-11-04 07:26 · `813c53a` · Energy bar fixed at 100; deaths make energy drain slower instead
+- 2026-11-04 07:17 · `ea16d70` · Strain becomes the fault; rests become patches
+- 2026-11-04 07:11 · `764babc` · Health becomes the Energy bar; max health becomes charge held
+- 2026-11-04 07:06 · `03090e0` · Food becomes energy: clones are biomechanical
+- 2026-11-04 06:30 · `f2e4cd5` · Energy pressure: stations open partway in, crossings cost food, stations run dry
+- 2026-11-04 06:07 · `da78682` · Jobs are no longer automated; crossings top stores up to what is needed
+- 2026-11-04 05:54 · `8ac2e91` · One food again: rations only, the long-watch foods are for the crew
+- 2026-11-04 05:47 · `96fb803` · Auto-forage is standard; the Survival subroutine becomes the Maintenance manual
+- 2026-11-04 05:37 · `7934770` · Stores, gear costs and repairs in steps of 5
+- 2026-11-04 05:29 · `01a82da` · Salvage and parts numbers divided by 10; continuous jobs show no rate
+- 2026-11-04 05:21 · `328d038` · Consistent clock colours: in-game blue, real amber, remaining red
+- 2026-11-04 05:19 · `dfa7f9e` · Act II says parts, parts jobs open from each section's start, no silent stalls
+- 2026-11-04 05:12 · `19d8cb2` · Ship days dropped: in-game and real time everywhere
+- 2026-11-04 05:04 · `286fe67` · Action lengths sized by what each job is, section totals kept
+- 2026-11-04 04:54 · `c87e7b0` · Story log brought in line with the current story; story pop-ups
+- 2026-11-04 04:46 · `f612062` · Chains pinned at the top of the queue, in section order
+- 2026-11-04 04:37 · `9b7653a` · Header: real-time countdown next to the clone's days left
+- 2026-11-04 04:34 · `179807d` · Centre the Pause button: speed box as wide as the two buttons on the left
+- 2026-11-04 04:33 · `f8ddbda` · Header buttons fill the row: settings, music, pause (wide), speed
+- 2026-11-04 04:20 · `922c752` · Saves carry the highest unlocked game speed
+- 2026-11-04 04:17 · `e680092` · Replace the stasis boost with a game-speed menu
+- 2026-11-04 04:08 · `0f02066` · Spare parts for the ship: wear across Act II, repaired with salvage
+- 2026-11-04 03:40 · `0fdb9bb` · Always run sections once ready
+- 2026-11-04 03:34 · `b9e5034` · Map places actions by their real depth, three per row; app update without a 404 gap
+- 2026-11-04 03:31 · `ef844cf` · Create hufle2-2026-11-04-0331-clone35.txt
+- 2026-11-04 03:23 · `813abce` · Section run bar always above the queue, full width
+- 2026-11-04 03:22 · `963958f` · Put the Run section button above the queue
+- 2026-11-04 03:16 · `48a79c0` · Legacy tasks in five parts, needed for crossings, with optional drills
+- 2026-11-04 02:43 · `60c8471` · Park Honours for Act III; retune Arrival for an 8 h Act II
+- 2026-11-04 02:27 · `7ba79df` · Act II grows to three parts: the long watch gains The Long Dark; new Arrival part (Turnover, The Tessaly System, Tessaly Orbit) ending at a safe orbit; colony and wake tasks held back for Act III. Legacy themes revealed at Act II sections 2, 4, 6, 8 (need the section's last action, x3 length, bonus purely from mastery at twice the familiarity, no drill credit). 15 Honours and a fifth reward, Deep rest. Act II ~8 h
+- 2026-11-04 01:51 · `8cddbd7` · Replace the Act II start save with a natural one: clone 31 as it was, Act II progress undone
+- 2026-11-04 01:45 · `a368431` · Add reverted save: clone 31 at the start of Act II, Act II progress undone
+- 2026-11-04 01:42 · `53fcac1` · Legacy tasks that can't be automated yet queue themselves each life, just before their section's crossing; removing one keeps it out for that life
+- 2026-11-04 00:39 · `c87209d` · Create hufle2-2026-11-04-0139-clone31.txt
+- 2026-11-04 01:34 · `d3d5932` · Overclock tops out at x2 game speed; Act II lengthened (Boarders x1.25, Long watch x1.4) to ~3 h / ~2 h real time with typical legacy progress
+- 2026-11-04 01:29 · `dbd9e1b` · Legacy rework: Act I reward points replaced by 20 legacy tasks (Echo, Dampening, Template, Overclock in every Act I section), unlocked by the first lit drive, optional for crossings; bonus once done in a life, 25-100% by mastery; Legacy tab shows progress
+- 2026-11-04 00:57 · `e046d24` · Difficulty curve: the drain cap doubles every 30 ship days of a clone's life; sections get 5% more dangerous each (hunger and hazards), with a step at Act II; balance retuned with a test bot that feeds like a player (Act I ~59 clones / 3.9 h, Boarders ~3.3 h, Long watch ~2.1 h)
+- 2026-11-04 00:37 · `58ef72a` · FAQ: Settings answer lists the clock and pause options
+- 2026-11-04 00:37 · `7922021` · Menu: Settings button without a note
+- 2026-11-04 00:37 · `03bb9f4` · Menu: 'Save Management' button without a note; FAQ explains what it holds
+- 2026-11-04 00:35 · `1c19a74` · Main menu: Continue, New game, Saves (slots, restart, save files) and Settings; slot actions stay in the Saves view
+- 2026-11-04 00:30 · `e9b3f25` · Tidy pass: clock and pause options moved to the settings menu; sections behind the clone fold up in the Auto and Mastery tabs; Restart moved to the main menu; save note moved to the FAQ; Speed tab renamed Mastery; Log tables fold up; Honours stay hidden until Act II is finished once; tab bar fits narrow phones
+- 2026-11-04 00:20 · `f35fd4f` · Archive: removed the settings-menu and save-file shortcuts (both are in the main menu)
+- 2026-11-04 00:19 · `c70a4ff` · Save stats (clones, longest life, base health, tasks at x10, time played, time away limit, drive ignited) moved from the Archive to the top of the Log
+- 2026-11-04 00:15 · `ac56599` · New Legacy tab (appears once the drive is lit) holds the Act I rewards and Act II Honours, with a dot when points are unspent; Settings FAQ points to the Auto tab
+- 2026-11-04 00:10 · `001448b` · Auto-eat, auto-forage and the forage threshold moved from the Archive to the Auto tab
+- 2026-11-04 00:05 · `370c663` · No Act II spoilers: win screen, Archive (only sections already reached) and FAQ no longer reveal what comes next
+- 2026-11-03 23:42 · `16a48dd` · Fix: auto-forage stayed on once every food store was full, so every meal restarted the food job for a moment; it now switches off when there is nothing left to fill
+- 2026-11-03 22:38 · `0ceedab` · Create hufle2-2026-11-03-2337-clone30.txt
+- 2026-11-03 23:36 · `b553fe4` · Shared saves are packed (gzip + base64, numbers rounded): about 7 KB instead of 20+ KB, so they no longer get cut off; loading accepts packed saves everywhere
+- 2026-11-03 23:32 · `042cda4` · Steadier food refills: stores topped up before a crossing only refill once they drop below 85%; short food runs keep the interrupted task on screen
+- 2026-11-03 22:31 · `f3da828` · Create hufle2-2026-11-03-2331-clone30.json
+- 2026-11-03 19:44 · `6e18e2a` · Test version: the clock runs twice as fast (8 ticks per second); balance unchanged in ship time, real time halved
+- 2026-11-03 18:36 · `8cd9e2d` · Act II is linear: the boarders first, then the long watch (no branch choice or merge); older saves follow the same route; long watch lengthened to ~4.5 h as the second part
+- 2026-11-03 18:32 · `2e9d0d7` · Honours rewards work in both acts (hazard damage, strain, job salvage, meal frequency)
+- 2026-11-03 18:27 · `319d85a` · Act I rewards in Act II at 10% strength
+- 2026-11-03 18:26 · `fe7b91b` · Act I rewards in Act II at 15% strength
+- 2026-11-03 18:22 · `e85e179` · Deep echo, Drain dampener and Template upgrade also work in Act II at 30% strength
+- 2026-11-03 16:30 · `8716379` · Act II rewards match Act I: 10 Honours from Act II milestones, 3 levels each at the old maximum strength, permanent picks; older saves keep up to 3 levels and get the rest back as unspent Honours
+- 2026-11-03 16:22 · `e268886` · No more restarting Act I: the story always moves on into Act II. Act I reward points come from lighting the drive (1), first reaching Act II sections (1 each) and finishing branches (2 each); spending is permanent, 3 levels per reward; Deep echo, Drain dampener and Template upgrade work in Act I, Overclocked line in both acts; Quartermaster's cache unlocks on the first lit drive; Act II lengthened ~10%
+- 2026-11-03 15:43 · `17d5735` · Yellow gear: only when it also fits in salvage storage
+- 2026-11-03 15:42 · `37c1641` · Gear that can be built in this life (found, not built yet) is shown in yellow
+- 2026-11-03 15:34 · `c2eb74f` · Auto-queued chains include the sections ahead and are kept in run order (section, then earliest start, crossing chain last)
+- 2026-11-03 15:28 · `d992a3e` · Chains queue themselves when they form or grow, replacing their separately queued parts; a chain removed from the queue stays out for that life
+- 2026-11-03 14:30 · `e080337` · Chains choose their next step dynamically (gear, kitchen upgrades, actions/drills by dependency, rests and fill jobs, crossing last) and absorb separately queued members into one chain entry; Act I +3% to stay at 8 h
+- 2026-11-03 14:06 · `74c8e8d` · Gear assembly: designs cost salvage up front, then take time to assemble (0.5 x cost^0.8 ticks, faster with familiarity); FAQ; balance checked
+- 2026-11-03 14:02 · `26e98c8` · Automated salvage jobs (and salvage steps in chains) only gather what queued or auto-built gear needs; no topping up to full except before a crossing
+- 2026-11-03 12:24 · `20d3c56` · Create hufle-2026-11-03-1324-clone2.json
+- 2026-11-03 13:21 · `c913ed9` · Work estimates show real time again (task and chain cards, current task, planned work), in red when longer than the clone has left at the current hunger and strain
+- 2026-11-03 13:15 · `dfba8f3` · Header tooltips: ship time only
+- 2026-11-03 13:15 · `a59d8d8` · Clocks show ship time only (real time kept for play time, the stasis boost and the Log); Log shows ship time in cyan and real time in amber; section table limited to Act I columns
+- 2026-11-03 11:45 · `e1aa391` · Auto tab: option to pause when a task finishes (actions, rests, drills once all sessions are done, jobs once their storage is full)
+- 2026-11-03 11:04 · `ea503be` · Food: every meal heals the same; kitchen upgrades, long-watch foods, gear and records shorten the meal timer instead; larger stores; rebalanced
+- 2026-11-03 10:48 · `651b499` · Long watch foods: fresh harvest, colony seed stock and cultured protein (new tank job in Tessaly Orbit), each with its own store and meal timer; rations stay the single food before that
+- 2026-11-03 10:45 · `5b116c3` · Food: one ration store (grows with depth); one kitchen-upgrade action per section raises how much meals heal for that life; passive food gear now speeds its food job; rebalanced
+- 2026-11-03 10:27 · `cbf473b` · Task redesign: actions split in two with more interdependencies, section finishers need every action of their section, task types removed (drills, gear and records work per section), seen tasks stay listed greyed out; save migration; rebalanced
+- 2026-11-03 07:08 · `c1ea09c` · Create hufle2-2026-11-03-0808-ngp1-clone13.json
+- 2026-11-03 03:15 · `2678238` · Rebalance for x5 flow: early sections barely lengthened (+5%), the extra time goes to the later sections of each act
+- 2026-11-03 03:06 · `b67ecfc` · Chain flow goes up to x5 (was x2); section lengths rebalanced: Act I x1.12, Boarders x1.17, Long watch x1.2
+- 2026-11-03 03:01 · `0ffad44` · Auto tab chain list shows the same steps as the chain cards (crossing gear like the shock baton included); chained gear hidden from the gear list
+- 2026-11-03 02:43 · `af5a939` · Multi-section runs: ready neighbouring sections link across their crossings into one run (stops at act ends, restarts with the next clone); option to pause when a run ends instead of at each crossing
+- 2026-11-03 02:36 · `74139ca` · Chains: gear unlocked by the previous section's crossing (shock baton, stims, crate, medkit, hardsuit, seals) joins the section's main chain as its first steps
+- 2026-11-03 01:04 · `1d7add9` · Create hufle-2026-11-03-0104-ngp1-clone2.json
+- 2026-11-03 01:01 · `fd84405` · Shared saves: share a slot to the repo's saves/ folder through GitHub's new-file page (no token) and load shared saves from it
+- 2026-11-03 00:40 · `e64b43e` · Fix drills: credit 0.25 -> 0.01 of a life's worth and same act only (drills let a run finish in ~10 clones and pre-mastered later jobs); rebalance Act I and Boarders lengths for play that uses drills
+- 2026-11-03 00:24 · `3f2b8d3` · Engram recorder: next clone starts the task its predecessor died on up to 25% done; rebalance sections 4-5
+- 2026-11-03 00:08 · `6c5a388` · Linked tasks merge into one chain card (union of types, combined time, chain-flow bonus); automated chained work builds flow; rebalanced (Act I ~8.2 h / 49 clones, Boarders ~7.2 h, long watch ~5.3 h)
+- 2026-11-02 23:56 · `c7699de` · Chain flow: chained steps (queued chains, section runs) get up to x2 speed, growing with chained work; kept through new game plus
+- 2026-11-02 23:51 · `ade0f3c` · Quartermaster's cache: permanent unlock at 20 Act I reward points; clones start with all automated gear (Act I and II)
+- 2026-11-02 23:33 · `0038884` · Planned-work estimate no longer blinks when the queue box is rebuilt
+- 2026-11-02 23:29 · `c1cb959` · HUD and queue: total planned work estimate (ship days and real time)
+- 2026-11-02 23:04 · `1115fe3` · Act II: branch choice at ignition (Boarders with merge into the long watch, or The long watch), own familiarity threshold, records and Honours kept through new game plus; ship wear; tuned (Boarders ~7 h, long watch ~5.4 h)
+- 2026-11-02 22:30 · `bb121e8` · Log: section unlock times (first reached) instead of finish times
+- 2026-11-02 22:26 · `662c6e6` · Automation requirements shrink with the familiarity threshold in new game plus (tasks and gear)
+- 2026-11-02 22:10 · `fa55b2f` · Settings are stored for the device, not per save: new games and other slots keep your switches
+- 2026-11-02 22:08 · `b337cc0` · Auto tab option: pause after each new section
+- 2026-11-02 21:53 · `3c85735` · Tasks: side tasks folded into the main line, drills tied to their places, Resolve renamed Endurance, type gaps filled, renames; rebalanced (bot: 48 clones, ~8.1 h)
+- 2026-11-02 21:35 · `c937a6a` · Automation switches on by itself when unlocked (tasks and gear); switching it off is remembered
+- 2026-11-02 21:29 · `6be5e11` · Queue: chained tasks are queued as one chain entry that folds open to show its steps
+- 2026-11-02 21:26 · `cd27cf2` · Queue holds 100 items; long queues scroll, dragging auto-scrolls
+- 2026-11-02 21:20 · `0a477f4` · Automation: chains instead of priorities; one-click section runs (gated: all parts automated, x5 familiar); gear moved into the Tasks tab and into chains
+- 2026-11-02 19:53 · `f502b63` · Remove skills: per-task familiarity (x10 at 90 lives' worth, x0.75 per finished run, Deep echo x0.8 per step); training becomes drills; rebalanced (bot: 50 clones, ~8 h)
+- 2026-11-02 19:35 · `f507c76` · Log: play time per run and total across new game plus
+- 2026-11-02 19:24 · `bf502a5` · Show the loaded version in the main menu
+- 2026-11-02 19:19 · `6d27be8` · Automation and mastery count completions directly; mastery rises smoothly to x10; rebalanced (bot: 50 clones, ~8 h)
+- 2026-11-02 19:10 · `949a269` · Mastery rungs split evenly (x3.25, x5.5, x7.75, x10); rebalanced (bot: 50 clones, ~8.1 h)
+- 2026-11-02 19:02 · `67e98b0` · Mastery up to 10x in the same 4 steps; rebalanced (bot: 51 clones, ~8.1 h)
+- 2026-11-02 18:51 · `60d335f` · Log: best clone ever (kept through new game plus) with its section finish times
+- 2026-11-02 18:49 · `72d7dd4` · Log: best finish time per section (any clone this run)
+- 2026-11-02 18:40 · `b21d2db` · New game plus keeps automation switches and priorities (not the queue); 5 queue presets
+- 2026-11-02 18:33 · `96202ae` · Meals: whole portions only, eaten when a full meal fits or health is at half; rebalanced (bot: 51 clones, ~7.6 h)
+- 2026-11-02 18:31 · `d1f0c13` · Header: elapsed time (green) next to remaining time (red)
+- 2026-11-02 18:27 · `9c17b36` · HUD: show ship days elapsed and real time spent on the clone; drop 'real' from time left
+- 2026-11-02 18:22 · `e72e01a` · Automation runs ahead of the queue (except crossings); automated jobs refill below the forage threshold
+- 2026-11-02 18:15 · `25a2549` · HUD: show only the individual food stores, no total
+- 2026-11-02 18:12 · `d1efa28` · Meals only use the food needed to reach full health; none at full health; rebalanced (bot: 50 clones, ~7.4 h)
+- 2026-11-02 18:00 · `73c4475` · New game plus: reward points with free respec at any time
+- 2026-11-02 17:56 · `d62d93b` · New game plus: Overclocked line, flat game speed up to x5 in 5 steps, free of banked time
+- 2026-11-02 17:21 · `cddfa49` · Wording
+- 2026-11-02 17:21 · `d7d9a9e` · New game plus: drain dampener (to /5) and template upgrade (+100 max health) in 5 steps each; second action slot removed
+- 2026-11-02 17:06 · `b3e071b` · Stasis boost: dropdown (Off, x2, x5, x10) that is not rebuilt by the countdown
+- 2026-11-02 17:02 · `c57a8c0` · Stasis boost speed selectable x2/x5/x10; banked time is only spent while the clock runs
+- 2026-11-02 16:48 · `8ba9764` · Tapping a task runs it immediately without queueing it; + adds to the end of the queue
+- 2026-11-02 16:44 · `24ebe46` · Queue: tapped tasks always go to the end
+- 2026-11-02 16:40 · `3bf255a` · Queue: visible one-click Clear queue button
+- 2026-11-02 16:38 · `b879538` · Queue: the same task can be queued several times; each extra copy covers one repetition
+- 2026-11-02 16:04 · `55fd9f7` · Food rework: a food per section with its own store, carried over; every food eaten on its own cooldown (shorter with job mastery); new food gear and records; strain rebalanced (bot: 50 clones, ~7.5 h)
+- 2026-11-02 15:49 · `a1ed329` · New game plus: second action slot is the 6th reward, after the five deep echo steps
+- 2026-11-02 15:41 · `c92d703` · Mastery up to 5x speed at 50 lives; later sections rebalanced (bot: 49 clones, ~7.5 h)
+- 2026-11-02 15:34 · `0898caf` · Restore the original real-time rate (20 s per ship day)
+- 2026-11-02 15:25 · `d31633c` · Mastery applies to jobs too (bot: 49 clones)
+- 2026-11-02 15:20 · `7029754` · Mastery: every 10 lives past automation cut a task's time 20% (to 2x speed); clock runs half as fast in real time; later sections rebalanced (~47 clones)
+- 2026-11-02 15:10 · `2b359e3` · Log: section finish times (day and real time) for previous clones
+- 2026-11-02 14:33 · `aa0794d` · Queue gear (works salvage, then builds); automated items are left out of the next clone's queue
+- 2026-11-02 14:31 · `a3278d9` · Held crossing stays in the queue so tasks can be dragged above it
+- 2026-11-02 14:17 · `8210d4f` · Cap the time-away limit (catch-up and boost) at 168 hours
+- 2026-11-02 14:15 · `525e8f0` · New game plus: deep echo in 5 steps of +20%, second slot available from the first run (6 rewards)
+- 2026-11-02 14:01 · `d706432` · New game plus: first run gives deep echo; second action slot from the second run on
+- 2026-11-02 13:58 · `5a17482` · Add hidden new game plus layer: deep echo (+50% skill growth) or a second action slot per run; time-away limit carries over
+- 2026-11-02 13:43 · `a82ccf2` · Pause in the background: hidden time is added to the +2x boost
+- 2026-11-02 13:39 · `c726f3f` · Away discard: boost gets exactly the hidden time, shows amount; time shown with seconds
+- 2026-11-02 13:32 · `73cd160` · Queue: drag and drop to reorder (mouse and touch)
+- 2026-11-02 12:09 · `8d0fe7e` · Away limit: 8 h base, +8 h per finished section (Stasis watch records, 48 h max)
+- 2026-11-02 12:07 · `9266ccc` · Add service records: 10 and 20 hours played extend time away to 48 and 72 hours
+- 2026-11-02 12:00 · `109d161` · Raise background catch-up and stasis boost caps to 24 hours
+- 2026-11-02 11:59 · `65771ce` · Discarding away progress adds the time away to the stasis boost
+- 2026-11-02 11:56 · `7c4b23a` · Away screen: keep or discard background progress; option to pause in the background
+- 2026-11-02 11:41 · `ddf332f` · Gear sits under the section where it becomes buildable
+- 2026-11-02 11:36 · `a260010` · Fix archive records listed under the wrong section
+- 2026-11-02 11:20 · `3143eca` · Section-end hold takes the crossing out of the queue until done
+- 2026-11-02 11:10 · `c4bf88a` · FAQ tab; shorter opening screen
+- 2026-11-02 11:02 · `9cae85f` · Catch-up screen shows loops run; background runs go into the log
+- 2026-11-02 11:00 · `175dc20` · Catch-up screen after running in the background
+- 2026-11-02 10:57 · `a2f60b0` · Auto tab: start new clones paused after the death screen
+- 2026-11-02 10:54 · `fe43c4b` · Fix: queued crossings also wait to refill storage
+- 2026-11-02 10:51 · `e963cf2` · Auto tab: start the game paused
+- 2026-11-02 10:49 · `37b5680` · Automated crossings also wait for automated gear
+- 2026-11-02 10:33 · `4b71fb2` · Death screen is a single on/off switch
+- 2026-11-02 10:28 · `f7d49a5` · Decanting automation: show summary, decant paused, or continuous loop
+- 2026-11-02 10:21 · `1f91438` · Keep running in a background tab
+- 2026-11-02 10:17 · `9a9674f` · Queue holds at most 20 items
+- 2026-11-02 10:12 · `148b3f2` · Queue presets sit beside the queue list
+- 2026-11-02 10:07 · `7db17f6` · Queue: vertical list with reordering, presets, carry-over, queue ahead
+- 2026-11-02 10:02 · `c71937a` · Jobs can be queued
+- 2026-11-02 06:42 · `6818079` · Fix automation priority: P1 always runs first across all task types
+- 2026-11-02 06:22 · `7eef862` · Auto tab: set the strain level for automated rests
+- 2026-11-02 06:17 · `ad1b435` · Forage threshold: exact percentage box above the slider
+- 2026-11-02 06:12 · `de2913f` · Forage threshold as a percentage of ration storage
+- 2026-11-02 06:04 · `d202b39` · Auto tab: Feed when needed
+- 2026-11-02 05:52 · `b6aa981` · Cold locker back to +5; save files get their own menu
+- 2026-11-02 04:23 · `68929de` · Steeper late strain, echo back to its faster pace
+- 2026-11-02 04:15 · `1158d89` · Held crossings finish remaining actions; food gear halved; meals heal more
+- 2026-11-02 03:28 · `b18c050` · Gear automation with practice and priority
+- 2026-11-02 02:31 · `f31caf7` · Automated crossings wait at the threshold for refills and the rest
+- 2026-11-02 01:19 · `ab02d87` · Passive food gear halved; meals heal 50% more
+- 2026-11-01 22:39 · `037f5af` · Food quality per section
+- 2026-11-01 22:08 · `fe06745` · Ring food: hydroponic beds after the pumps, vent fungus removed
+- 2026-11-01 22:05 · `576954e` · Hydroponics Ring: one food job
+- 2026-11-01 22:03 · `dfb74df` · Rests can halve strain below x1
+- 2026-11-01 21:59 · `ba99963` · Auto tab: fill storage before an automated crossing
+- 2026-11-01 21:52 · `93cea83` · Automated rests trigger at strain x2.5
+- 2026-11-01 21:50 · `f0c8b9a` · Automated rests trigger at strain x3
+- 2026-11-01 21:43 · `de8e1a2` · Echo is now a speed bonus from total XP gained
+- 2026-11-01 21:10 · `f86c0dd` · No lifespan limit; base health caps at 500; days lived in the header
+- 2026-11-01 20:52 · `9b19873` · Rewrite the story: a sleeping crew and disposable maintenance clones
+- 2026-11-01 20:40 · `2c914da` · No automatic starts for new clones; pause button is back
+- 2026-11-01 20:32 · `c02d798` · Halve ration amounts: base storage 5, half-size bonuses
+- 2026-11-01 20:23 · `5cfbdb5` · Log tab: recent clones and best run
+- 2026-11-01 20:19 · `06a7126` · 30-day maximum lifespan, reached only at the very end
+- 2026-11-01 20:14 · `c916946` · Remove the last-quarter ageing slowdown
+- 2026-11-01 20:11 · `ca5d95b` · Rests no longer slow strain's acceleration; better food deeper in the ship; batch-based job display
+- 2026-11-01 20:07 · `18a9773` · Accelerating strain; harder early lives, run still ~50 clones
+- 2026-11-01 20:00 · `886cb16` · Ease strain to +1 every ~14 days; run back to ~50 clones
+- 2026-11-01 19:59 · `1afb9a1` · Gear to build in every section from the start
+- 2026-11-01 19:54 · `b7d4478` · Remove the section strip from the Tasks tab
+- 2026-11-01 19:53 · `5cf495f` · Hardened genome: +0.25 max health per day survived
+- 2026-11-01 19:52 · `96b622b` · Hardened genome: +0.5 max health per day survived (was +1)
+- 2026-11-01 19:48 · `d7702d2` · Automated rests trigger at strain x2
+- 2026-11-01 19:45 · `89fa2d8` · Remove GitHub save sharing; saves are local only
+- 2026-11-01 19:40 · `8b5f428` · Save: clone 1, day 16.4 (auto)
+- 2026-11-01 19:39 · `12ff3d7` · Settings menu; Android app can download and install its own updates
+- 2026-11-01 19:34 · `b3eb928` · Remove pause and speed buttons; keep the stasis boost
+- 2026-11-01 19:27 · `8cd3cb2` · Decant cache: 2 rations, no salvage
+- 2026-11-01 19:10 · `e8bfac4` · Save: clone 1, day 14.3 (auto)
+- 2026-11-01 19:10 · `a73376f` · Keep K-7 on one line; header buttons wrap below on narrow screens
+- 2026-11-01 19:05 · `771fdf1` · Add Android app, built and released automatically; save file export/import
+- 2026-11-01 19:00 · `224ff9f` · Save: clone 1, day 0.0 (auto)
+- 2026-11-01 18:54 · `fd06ff7` · Add horizontal layout and a layout switch
+- 2026-11-01 18:51 · `da48a49` · Add Automation tab
+- 2026-11-01 18:49 · `f039c04` · Save: clone 3, day 13.0 (auto)
+- 2026-11-01 18:49 · `001a8a4` · Automation priority 1-5 per task
+- 2026-11-01 18:37 · `0de7452` · Save: clone 2, day 8.5 (auto)
+- 2026-11-01 18:27 · `df06e46` · Save: clone 1, day 0.0 (auto)
+- 2026-11-01 18:25 · `c411c90` · Skill training in every section, 4 sessions each per life
+- 2026-11-01 18:13 · `7630b52` · Save: clone 2, day 8.9 (auto)
+- 2026-11-01 18:03 · `2898103` · Save: clone 1, day 0.0 (auto)
+- 2026-11-01 18:00 · `1452e32` · One-way ship sections with food in each
+- 2026-11-01 17:49 · `9ff4535` · Save: clone 1, day 0.0 (auto)
+- 2026-11-01 17:47 · `abbbdaf` · Rests are once per life, one per ship section
+- 2026-11-01 17:46 · `104f882` · Save: clone 1, day 1.5 (auto)
+- 2026-11-01 17:42 · `a0d9b43` · Add live ship map tab; collapse locked previews
+- 2026-11-01 17:36 · `4827630` · Save: clone 1, day 4.8 (auto)
+- 2026-11-01 17:32 · `7dd1a25` · Hardened genome: max health carries over between lives
+- 2026-11-01 17:31 · `8726f01` · Rising strain limits each life; rest actions halve it; automation at 10 lives
+- 2026-11-01 17:26 · `da3da56` · Save: clone 1, day 13.3 (auto)
+- 2026-11-01 17:19 · `cd3b518` · Automation needs practice in 5 lives
+- 2026-11-01 17:16 · `86df6d8` · Save: clone 1, day 5.2 (auto)
+- 2026-11-01 17:14 · `aed72b2` · Add generated darkwave music, sound effects and sound settings
+- 2026-11-01 17:10 · `5784de1` · Slower ship clock: show time in days and hours, 4 rations a day
+- 2026-11-01 17:05 · `faac31b` · Automate practised tasks; rescale rations (cap 10) and salvage (cap 25)
+- 2026-11-01 17:02 · `e7dbf2e` · Health drains constantly; meals restore it with an 8-day cooldown
+- 2026-11-01 16:56 · `25f6a9d` · Save: clone 1, age 14.0 (auto)
+- 2026-11-01 16:56 · `c9581d6` · Save: clone 1, age 14.0 (auto)
+- 2026-11-01 16:55 · `d479828` · Shorter, realistic early actions; +10% per level; unstable early clones
+- 2026-11-01 16:45 · `731d224` · Jobs fill a progress bar and deliver in batches
+- 2026-11-01 16:43 · `95ef6b9` · Save: clone 1, age 14.5 (auto)
+- 2026-11-01 16:41 · `b3aad35` · Rescale skill levels 5:1 to cut number bloat
+- 2026-11-01 16:39 · `72b91fe` · Halve ration amounts, keep real-time pace
+- 2026-11-01 16:33 · `c611231` · Save: clone 1, age 14.5 (auto)
+- 2026-11-01 16:30 · `50505e1` · Lengthen the run to 30+ clones; halve salvage income
+- 2026-11-01 16:25 · `2058a06` · Make food four times slower
+- 2026-11-01 16:23 · `351a7c4` · Save: clone 1, age 15.3 (auto)
+- 2026-11-01 16:22 · `9b452de` · Stop jobs when storage is full; slow the clock
+- 2026-11-01 16:17 · `4da48cf` · Show in-game and real-time timers
+- 2026-11-01 16:14 · `4d9ea9c` · Add main menu with new game, continue and three save slots
+- 2026-11-01 16:11 · `e506aee` · Save: clone 14, age 16.6 (auto)
+- 2026-11-01 16:10 · `6141cc1` · Make the game slower and harder
+- 2026-11-01 16:03 · `2efc43d` · Cap rations and salvage storage
+- 2026-11-01 16:00 · `6dbb889` · Save: clone 14, age 14.0
+- 2026-11-01 15:59 · `cea1d73` · Stop the clock when nothing is running
+- 2026-11-01 15:56 · `a5f7e2f` · Add pause, slow the clock, cap health loss
+- 2026-11-01 15:52 · `319a15f` · Use the exact Pages URL in README
+- 2026-11-01 15:38 · `ed207e9` · Add GitHub cloud saves and save codes
+- 2026-11-01 15:36 · `397ea96` · Fix Pages link in README
+- 2026-11-01 15:36 · `05e2843` · Add Long Patience, a sci-fi clone-loop incremental game

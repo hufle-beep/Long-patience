@@ -1,0 +1,14 @@
+from playwright.sync_api import sync_playwright
+with sync_playwright() as p:
+    b=p.chromium.launch(); pg=b.new_page(viewport={'width':420,'height':900}); errs=[]; pg.on('pageerror', lambda e: errs.append(str(e)))
+    pg.goto('file:///home/claude/long-patience/index.html'); pg.wait_for_timeout(800); pg.click('text=Begin the work cycle'); pg.wait_for_timeout(600)
+    pg.evaluate("()=>{ S.storyQ=[]; hideModal(); const L=S.life; L.done.wake=1; L.done.vats=1; L.salvage=0; L.food.ration=4; syncFood(); setTab('gear'); gearKey=''; renderView(true); S.set.paused=false; }"); pg.wait_for_timeout(500)
+    pg.click('[data-gdo="locker"]'); pg.wait_for_timeout(200)
+    print('now', pg.evaluate("S.life.now"), 'bar', pg.evaluate("document.querySelector('#n-name').textContent"))
+    pg.wait_for_timeout(6000)
+    print('after', pg.evaluate("[S.life.now, !!S.life.owned.locker, assembling('locker'), Math.round(S.life.salvage*10)/10]"), pg.evaluate("document.querySelector('#n-name').textContent"))
+    pg.evaluate("()=>{ S.life.salvage=10; gearKey=''; renderView(true); }"); pg.wait_for_timeout(300)
+    pg.click('[data-gdo="rebreather"]'); pg.wait_for_timeout(300)
+    print('affordable tap', pg.evaluate("[S.life.now, assembling('rebreather'), !!S.life.owned.rebreather]"))
+    pg.screenshot(path='pw151.png', clip={'x':0,'y':420,'width':420,'height':420})
+    print('errors', errs); b.close()

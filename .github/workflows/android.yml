@@ -83,3 +83,20 @@ jobs:
           [ -n "$(ids LongPatience.apk)" ] || { echo "LongPatience.apk missing after swap"; exit 1; }
           for try in 1 2 3 4 5; do gh release edit android-latest --title "$TITLE" --notes "$NOTES" && break; echo "retrying the title update"; sleep 10; done
           [ "$(gh api "repos/$REPO/releases/tags/android-latest" --jq .name)" = "$TITLE" ] || { echo "title not updated"; exit 1; }
+
+      - name: Keep a backup of this build (the newest 5 are kept)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # A separate pre-release per build, so the last 5 builds stay downloadable as restore points.
+          # It never touches android-latest (the app's update check only reads that one).
+          TAG="android-build-${GITHUB_RUN_NUMBER}"
+          for try in 1 2 3; do
+            gh release create "$TAG" "$RUNNER_TEMP/LongPatience.apk" --prerelease --target "$GITHUB_SHA" \
+              --title "Selene: Tidelocked for Android (build ${GITHUB_RUN_NUMBER}) - backup" \
+              --notes "Backup copy of build ${GITHUB_RUN_NUMBER} (commit ${GITHUB_SHA::7}). Install over the current app to roll back; saves are kept." && break
+            echo "retrying the backup release"; sleep 10
+          done
+          # keep the newest 5 backups, remove older backup releases and their tags (git history itself is untouched)
+          gh api "repos/${GITHUB_REPOSITORY}/releases?per_page=100" --jq '.[].tag_name' | grep '^android-build-' \
+            | sort -t- -k3 -n -r | tail -n +6 | while read -r old; do gh release delete "$old" --yes --cleanup-tag || true; done
