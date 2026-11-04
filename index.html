@@ -463,7 +463,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
     <div class="meter"><span class="lbl" style="min-width:0;text-align:left">Health</span><div class="bar hp"><i id="b-hp"></i></div><span id="t-hp" class="num"></span></div>
     <div class="surv" id="surv"><span class="lbl">Outlook</span><em id="s-why"></em><span id="s-plan" class="num plan" title="Planned work: the tapped task and everything in the queue, at today&#39;s speeds"></span><span id="s-strain" class="num strain"></span></div>
     <div class="res">
-      <div><span class="lbl">Food</span><span id="t-foods" class="foods"></span><small id="t-ratt" class="rt num"></small><button id="eatb" class="eat num" data-eat>Eat</button></div>
+      <div><span class="lbl">Energy</span><span id="t-foods" class="foods"></span><small id="t-ratt" class="rt num"></small><button id="eatb" class="eat num" data-eat>Recharge</button></div>
       <div><span class="lbl" id="t-sall">Salvage</span><b id="t-sal" class="num"></b><small id="t-salr" class="num"></small><small id="t-salt" class="rt num"></small><small id="t-wear" class="rt num" hidden></small><button id="repb" class="eat rep num" data-repair hidden>Repair</button></div>
     </div>
     <div class="now" id="now"><div class="nf" id="n-fill"></div><span id="n-name"></span><span id="n-eta" class="num"></span></div>
@@ -502,7 +502,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
 
 <script id="logic">
 /* ===== Game data and rules (no DOM) ===== */
-const BUILD = '2026-11-04 · energy pressure';   // shown in the main menu, to tell which version is loaded
+const BUILD = '2026-11-04 · energy';   // shown in the main menu, to tell which version is loaded
 const DPS = 8;             // simulation ticks per real second at 1x (doubled for the test version: same balance, half the real time)
 // Time is simulated in ticks. 80 ticks make one ship day (18 minutes each), so a day lasts
 // 20 real seconds at 1x and a clone lives weeks, not years. Everything is shown in days and hours.
@@ -540,7 +540,7 @@ const MEAL_SEC = 0;
 // One food: rations. (The long watch's beds, seed stores and protein tanks are grown for the waking crew;
 // clones only eat the thinnings, culls and skim, as rations.)
 const FOODS = [
-  {id:'ration',  z:1,  name:'Rations',           q:1,   cap:5,  job:null},
+  {id:'ration',  z:1,  name:'Energy',           q:1,   cap:5,  job:null},
 ];
 const FD = {}; FOODS.forEach(f => FD[f.id] = f);
 const FOOD_OF = {}; for (let z = 1; z <= 14; z++) FOOD_OF[z] = 'ration';
@@ -655,7 +655,7 @@ const TASKS = [
   // Zone 1
   {id:'wake', z:1, kind:'act', name:'Climb out of the vat', days:2, req:[],
     log:'Fluid drains from the vat. A voice from the walls: \u201cMaintenance unit K-7, decanted. Work cycle begins.\u201d Stencilled on the glass: PROPERTY OF THE LONG PATIENCE.'},
-  {id:'algae', z:1, kind:'job', name:'Press vat algae', prod:{rations:0.035}, req:['vats']},
+  {id:'algae', z:1, kind:'job', name:'Tap the vat bay power bus', prod:{rations:0.035}, req:['vats']},
   {id:'scrap', z:1, kind:'job', name:'Strip wall panels', prod:{salvage:0.05}, req:['wake']},
   {id:'vats', z:1, kind:'act', name:'Check the clone vats', days:19, req:['wake'], split:'search'},
   {id:'search', z:1, kind:'act', name:'Search the vat bay', days:19, req:['wake'], reward:{salvage:2, rations:1}, perk:'decant',
@@ -689,7 +689,7 @@ const TASKS = [
   {id:'lg1sb1', z:1, kind:'act', legacy:'speed', lset:'lg1s', lroot:true, name:'Rig extra cooling fins', days:20, req:[]},
   {id:'lg1sb2', z:1, kind:'act', legacy:'speed', lset:'lg1s', name:'Stress-test the bay terminal', days:20, req:['lg1sb1']},
   {id:'lg1s', z:1, kind:'act', legacy:'speed', lset:'lg1s', lfin:true, name:'Overclock the bay terminal', days:40, req:['lg1sa2','lg1sb2']},   // legacy final: gives the bonus
-  {id:'heatpaste', z:1, kind:'act', meal:true, name:'Rig a heater for the algae paste', days:40, req:['vats']},   // kitchen upgrade: rations come more often
+  {id:'heatpaste', z:1, kind:'act', meal:true, name:'Rig a charging lead in the vat bay', days:40, req:['vats']},   // kitchen upgrade: rations come more often
   {id:'hatch', z:1, kind:'act', cross:true, name:'Force the pressure hatch', days:193, lifeEff:{salCap:5}, req:['terminal'], perk:'muscle',
     log:'The hatch gives with a scream of old hydraulics. Beyond it lies the hydroponics ring the crew will eat from when they wake. It is rotting.'},
   {id:'nests', z:2, kind:'act', name:'Track the crawlers to their nests', days:22, haz:0.1, req:['hatch'], split:'crawlers'},
@@ -704,7 +704,7 @@ const TASKS = [
   {id:'irrigation', z:2, kind:'act', name:'Restore the irrigation pumps', days:148, req:['valves','nests'], perk:'seedbank',
     log:'Water moves through the beds again. When the crew wakes, they will eat from them and never ask who fixed them.'},
   // No food in the ring until the pumps run again: arrive stocked, then race to the irrigation.
-  {id:'hydro', z:2, kind:'job', name:'Tend hydroponic beds', prod:{rations:0.08}, req:['irrigation']},
+  {id:'hydro', z:2, kind:'job', name:'Charge off the irrigation pumps', prod:{rations:0.08}, req:['irrigation']},
   {id:'scrub', z:2, kind:'rest', name:'Run a medbay blood scrub', days:40, req:['medbay']},
   {id:'medpath', z:2, kind:'act', name:'Clear the way to the medbay', days:136, haz:0.15, req:['mapring'], split:'medbay'},
   {id:'medbay', z:2, kind:'act', name:'Reach the abandoned medbay', days:95, haz:0.15, req:['medpath','crawlers'], reward:{heal:true}, perk:'medrec',
@@ -737,12 +737,12 @@ const TASKS = [
   {id:'lg2sb1', z:2, kind:'act', legacy:'speed', lset:'lg2s', lroot:true, name:'Fit faster relays', days:75, req:[]},
   {id:'lg2sb2', z:2, kind:'act', legacy:'speed', lset:'lg2s', name:'Balance the ring pressure', days:75, req:['lg2sb1']},
   {id:'lg2s', z:2, kind:'act', legacy:'speed', lset:'lg2s', lfin:true, name:'Rewire the pump governors', days:150, req:['lg2sa2','lg2sb2']},   // legacy final: gives the bonus
-  {id:'strains', z:2, kind:'act', meal:true, name:'Splice richer strains into the beds', days:150, req:['valves']},   // kitchen upgrade: rations come more often
+  {id:'strains', z:2, kind:'act', meal:true, name:'Rewire the pump station\u2019s charger', days:150, req:['valves']},   // kitchen upgrade: rations come more often
   {id:'lift', z:2, kind:'act', cross:true, name:'Repair the spine lift', days:803, lifeEff:{salCap:50}, req:['irrigation','medbay'], perk:'transit',
     log:'The spine lift climbs past the stasis decks. Through frosted glass, row after row of sleeping faces.'},
   // Zone 3
   {id:'shield', z:3, kind:'rest', name:'Sleep against the warm reactor shielding', days:30, req:['lift']},
-  {id:'lockers', z:3, kind:'job', name:'Crack sealed ration lockers', prod:{rations:0.09}, req:['droneyard']},
+  {id:'lockers', z:3, kind:'job', name:'Crack sealed power-cell lockers', prod:{rations:0.09}, req:['droneyard']},
   {id:'reactor', z:3, kind:'job', name:'Babysit the fusion bottle', prod:{salvage:0.05}, haz:0.08, req:['lift']},
   {id:'droneyard', z:3, kind:'act', name:'Corral the maintenance drones', days:351, req:['lift'], split:'drones'},
   {id:'drones', z:3, kind:'act', name:'Reprogram maintenance drones', days:562, req:['droneyard'], lifeEff:{salCap:25, pSal:0.025}, perk:'manifest',
@@ -778,13 +778,13 @@ const TASKS = [
   {id:'lg3sb1', z:3, kind:'act', legacy:'speed', lset:'lg3s', lroot:true, name:'Tune the clock crystal', days:175, req:[]},
   {id:'lg3sb2', z:3, kind:'act', legacy:'speed', lset:'lg3s', name:'Sync the spine to the new beat', days:175, req:['lg3sb1']},
   {id:'lg3s', z:3, kind:'act', legacy:'speed', lset:'lg3s', lfin:true, name:'Overclock the reactor clock', days:350, req:['lg3sa2','lg3sb2']},   // legacy final: gives the bonus
-  {id:'packer', z:3, kind:'act', meal:true, name:'Refit the field-ration packer', days:400, req:['droneyard']},   // kitchen upgrade: rations come more often
+  {id:'packer', z:3, kind:'act', meal:true, name:'Refit the spine\u2019s cell charger', days:400, req:['droneyard']},   // kitchen upgrade: rations come more often
   {id:'secdeck', z:3, kind:'act', cross:true, name:'Fight through the security deck', days:1942, haz:0.32, lifeEff:{salCap:75}, req:['armory','vent'],
     log:'The security drones were guarding the crew\u2019s command deck from its own maintenance staff. Not any more.'},
   // Zone 4
   {id:'quarters', z:4, kind:'rest', name:'Sleep in the captain\u2019s quarters', days:15, req:['secdeck']},
   {id:'charts', z:4, kind:'job', name:'Run star-chart calculations', prod:{salvage:0.0875}, req:['secdeck']},
-  {id:'galley', z:4, kind:'job', name:'Run the officers’ galley', prod:{rations:0.125}, req:['relays']},
+  {id:'galley', z:4, kind:'job', name:'Charge at the officers\u2019 docking ports', prod:{rations:0.125}, req:['relays']},
   {id:'relays', z:4, kind:'act', name:'Reset the bridge relays', days:1053, req:['secdeck'], split:'bridgepower'},
   {id:'bridgepower', z:4, kind:'act', name:'Restore bridge power', days:1685, lifeEff:{salCap:100}, req:['relays'], perk:'clock',
     log:'The bridge lights up. The chronometer says the ship is 61 years behind schedule. The crew slept through all of it.'},
@@ -819,13 +819,13 @@ const TASKS = [
   {id:'lg4sb1', z:4, kind:'act', legacy:'speed', lset:'lg4s', lroot:true, name:'Bring cold cores online', days:350, req:[]},
   {id:'lg4sb2', z:4, kind:'act', legacy:'speed', lset:'lg4s', name:'Spread WARDEN across them', days:350, req:['lg4sb1']},
   {id:'lg4s', z:4, kind:'act', legacy:'speed', lset:'lg4s', lfin:true, name:'Overclock WARDEN\u2019s cycle', days:700, req:['lg4sa2','lg4sb2']},   // legacy final: gives the bonus
-  {id:'ovens', z:4, kind:'act', meal:true, name:'Restart the officers\u2019 galley ovens', days:800, req:['relays']},   // kitchen upgrade: rations come more often
+  {id:'ovens', z:4, kind:'act', meal:true, name:'Restart the officers\u2019 docking chargers', days:800, req:['relays']},   // kitchen upgrade: rations come more often
   {id:'warden', z:4, kind:'act', cross:true, name:'Confront WARDEN for the drive codes', days:1701, req:['navcore','trace'], perk:'favor',
     log:'WARDEN speaks: \u201cYour function is maintenance. Your continuation is not required.\u201d You argue for the line anyway. WARDEN releases the drive codes, as an efficiency.'},
   // Zone 5
   {id:'pods', z:5, kind:'rest', name:'Cryo-nap in the drive crew pods', days:10, req:['warden']},
   {id:'crewlock', z:5, kind:'job', name:'Strip the drive crew lockers', prod:{salvage:0.1}, req:['warden']},
-  {id:'pantry', z:5, kind:'job', name:'Ration the drive crew pantry', prod:{rations:0.15}, req:['starfix']},
+  {id:'pantry', z:5, kind:'job', name:'Draw from the drive crew\u2019s cell bank', prod:{rations:0.15}, req:['starfix']},
   {id:'starfix', z:5, kind:'act', name:'Take star fixes from the drive shaft', days:2884, req:['warden'], split:'course'},
   {id:'course', z:5, kind:'act', name:'Plot a course to Tessaly', days:2884, req:['starfix'], perk:'promise',
     log:'Course set for Tessaly. The crew will wake in orbit, rested. Whatever is left of the K line will have to get them there.'},
@@ -857,7 +857,7 @@ const TASKS = [
   {id:'lg5sb1', z:5, kind:'act', legacy:'speed', lset:'lg5s', lroot:true, name:'Upgrade the firing relays', days:600, req:[]},
   {id:'lg5sb2', z:5, kind:'act', legacy:'speed', lset:'lg5s', name:'Dry-run the faster sequence', days:600, req:['lg5sb1']},
   {id:'lg5s', z:5, kind:'act', legacy:'speed', lset:'lg5s', lfin:true, name:'Overclock the drive sequencer', days:1200, req:['lg5sa2','lg5sb2']},   // legacy final: gives the bonus
-  {id:'pantryfix', z:5, kind:'act', meal:true, name:'Reseal the drive-crew pantry', days:1500, req:['starfix']},   // kitchen upgrade: rations come more often
+  {id:'pantryfix', z:5, kind:'act', meal:true, name:'Repair the drive crew\u2019s fast charger', days:1500, req:['starfix']},   // kitchen upgrade: rations come more often
   {id:'ignite', z:5, kind:'act', name:'Ignite the main drive', days:3461, req:['course','injectors'], win:true,
     log:'The stardrive lights. WARDEN begins the wake cycle for 3,112 sleepers and puts your vat on the recycling list. Then the proximity alarms start.'},
 
@@ -867,7 +867,7 @@ const TASKS = [
   {id:'seal6', z:6, kind:'act', name:'Seal the breached decks', days:297, haz:0.2, req:['braces'],
     log:'Alarms on every deck. Something has cut through the hull near the stasis bays. WARDEN wakes no one: “Maintenance unit, investigate.”'},
   {id:'bulkhead', z:6, kind:'rest', name:'Sleep behind a sealed bulkhead', days:30, req:['seal6']},
-  {id:'emlockers', z:6, kind:'job', name:'Crack the emergency lockers', prod:{rations:0.17}, req:['braces']},
+  {id:'emlockers', z:6, kind:'job', name:'Crack the emergency cell lockers', prod:{rations:0.17}, req:['braces']},
   {id:'sealdrill', z:6, kind:'train', name:'Pressure-seal drills', days:40, req:['seal6']},
   {id:'prints', z:6, kind:'act', name:'Follow the clawed prints', days:63, req:['seal6'], split:'track'},
   {id:'track', z:6, kind:'act', name:'Track the boarders', days:158, req:['prints'],
@@ -882,9 +882,9 @@ const TASKS = [
   {id:'rackdoor', z:6, kind:'act', name:'Unjam the armoury racks', days:237, req:['ambush'], split:'racks'},
   {id:'racks', z:6, kind:'act', name:'Reclaim the armoury racks', days:237, req:['rackdoor','prints'], perk:'armcodes'},
   {id:'stairfort', z:6, kind:'act', name:'Fortify the stairwell', days:570, haz:0.2, req:['racks','studyb'], split:'stair'},
-  {id:'mess', z:6, kind:'act', meal:true, name:'Rig a mess behind the bulkheads', days:200, req:['braces']},   // kitchen upgrade: rations come more often
+  {id:'mess', z:6, kind:'act', meal:true, name:'Rig a charger behind the bulkheads', days:200, req:['braces']},   // kitchen upgrade: rations come more often
   {id:'ws6', z:6, kind:'act', shop:true, name:'Rig a patch kit from the breach debris', days:200, req:['braces'],
-    log:'Breach debris makes decent hull patches. From now on the ship needs parts the way you need food.'},   // workshop: repairs come more often (costs spare parts)
+    log:'Breach debris makes decent hull patches. From now on the ship needs parts the way you need energy.'},   // workshop: repairs come more often (costs spare parts)
   {id:'stair', z:6, kind:'act', cross:true, to:7, name:'Hold the stasis-deck stairwell', days:890, haz:0.3, lifeEff:{salCap:100}, req:['racks','studyb'],
     log:'They came up the stairwell in a wave. The line held. Behind it, three thousand people slept through their own rescue.'},
   // Contested Decks
@@ -894,7 +894,7 @@ const TASKS = [
   {id:'aisle', z:7, kind:'rest', name:'Sleep in a cleared stasis aisle', days:20, req:['protect']},
   {id:'medfront', z:7, kind:'act', name:'Push to the medbay doors', days:330, haz:0.2, req:['protect'], split:'medb'},
   {id:'medb', z:7, kind:'act', name:'Retake the medbay', days:528, haz:0.2, req:['medfront'], perk:'medcache'},
-  {id:'synth', z:7, kind:'job', name:'Run the nutrient synthesiser', prod:{rations:0.19}, req:['medb']},
+  {id:'synth', z:7, kind:'job', name:'Run the medbay charging rack', prod:{rations:0.19}, req:['medb']},
   {id:'triage', z:7, kind:'train', name:'Triage drills in the medbay', days:40, req:['medb']},
   {id:'antenna', z:7, kind:'act', name:'Find the boarders\u2019 antenna', days:425, req:['watchpost'], split:'jam'},
   {id:'jam', z:7, kind:'act', name:'Jam the boarders’ signal', days:297, req:['antenna','protect']},
@@ -902,7 +902,7 @@ const TASKS = [
   {id:'traps', z:7, kind:'act', name:'Rig the decks with traps', days:604, req:['trapparts','medfront']},
   {id:'trapdrill', z:7, kind:'train', name:'Trap-laying drills', days:40, req:['traps']},
   {id:'shiptrace', z:7, kind:'act', name:'Listen through the hull', days:396, req:['traps','medb'], split:'traceship'},
-  {id:'synthfix', z:7, kind:'act', meal:true, name:'Tune the nutrient synthesiser', days:400, req:['watchpost']},   // kitchen upgrade: rations come more often
+  {id:'synthfix', z:7, kind:'act', meal:true, name:'Tune the medbay charging rack', days:400, req:['watchpost']},   // kitchen upgrade: rations come more often
   {id:'ws7', z:7, kind:'act', shop:true, name:'Strip a boarder cutter for tools', days:400, req:['watchpost']},   // workshop: repairs come more often (costs spare parts)
   {id:'traceship', z:7, kind:'act', cross:true, to:8, name:'Trace them to their ship', days:566, lifeEff:{salCap:100}, req:['traps','medb'], perk:'hivemap',
     log:'Their ship clings to the hull like a tick. A living thing, breathing through the docking seal.'},
@@ -921,7 +921,7 @@ const TASKS = [
   {id:'chargeset', z:8, kind:'act', name:'Carry the charge aboard', days:439, haz:0.25, req:['cuthive'], split:'charge'},
   {id:'charge', z:8, kind:'act', name:'Plant the drive charge', days:308, haz:0.3, req:['chargeset','mindtrail']},
   {id:'loosen', z:8, kind:'act', name:'Cut the docking clamps', days:937, req:['hivemind','charge'], split:'cutloose'},
-  {id:'hivegel', z:8, kind:'act', meal:true, name:'Render hive gel into something edible', days:500, req:['dockseal']},   // kitchen upgrade: rations come more often
+  {id:'hivegel', z:8, kind:'act', meal:true, name:'Wire the hive cells into a charger', days:500, req:['dockseal']},   // kitchen upgrade: rations come more often
   {id:'ws8', z:8, kind:'act', shop:true, name:'Bond hive resin into hull sealant', days:500, req:['dockseal']},   // workshop: repairs come more often (costs spare parts)
   {id:'cutloose', z:8, kind:'act', finale:'A', name:'Cut the hive loose', days:1465, req:['hivemind','charge'], perk:'hivecore',
     log:'The hive ship tumbles away into the dark. The Long Patience flies on, quieter, with one more line of disposable things behind it.'},
@@ -931,7 +931,7 @@ const TASKS = [
   {id:'patch', z:9, kind:'act', name:'Patch micrometeor holes', days:167, reps:3, req:['leaks'],
     log:'The voyage is long and the ship is old. Something always leaks, and every leak costs parts. WARDEN assigns you to keep it from mattering.'},
   {id:'blister', z:9, kind:'rest', name:'Sleep in the observation blister', days:30, req:[]},
-  {id:'beds', z:9, kind:'job', name:'Thin the regrown beds', prod:{rations:0.17}, req:['leaks']},
+  {id:'beds', z:9, kind:'job', name:'Tap the cruise reactor bus', prod:{rations:0.17}, req:['leaks']},
   {id:'trim', z:9, kind:'job', upkeep:true, name:'Trim the reactor', prod:{salvage:0.12}, req:[]},
   {id:'watchdrill', z:9, kind:'train', name:'Damage-control drills', days:40, req:['patch']},
   {id:'podscan', z:9, kind:'act', name:'Scan the stasis pods', days:205, req:['patch'], split:'recal'},
@@ -943,8 +943,7 @@ const TASKS = [
   {id:'loopmap', z:9, kind:'act', name:'Map the coolant loops', days:264, req:['recal'], split:'reroute'},
   {id:'reroute', z:9, kind:'act', name:'Reroute the coolant loops', days:603, req:['loopmap','logdump']},
   {id:'dustplot', z:9, kind:'act', name:'Plot a path through the dust belt', days:460, req:['reroute','audit'], split:'dust'},
-  {id:'graft', z:9, kind:'act', meal:true, name:'Graft the regrown beds', days:300, req:['leaks'],
-    log:'The beds grow again. The best of every crop is sealed away for the crew; you eat the thinnings.'},   // kitchen upgrade: rations come more often
+  {id:'graft', z:9, kind:'act', meal:true, name:'Retune the reactor bus chargers', days:300, req:['leaks']},   // kitchen upgrade: rations come more often
   {id:'ws9', z:9, kind:'act', shop:true, name:'Reopen the cruise machine shop', days:300, req:['leaks']},   // workshop: repairs come more often (costs spare parts)
   {id:'dust', z:9, kind:'act', cross:true, to:10, name:'Survive the dust belt', days:1151, haz:0.3, lifeEff:{salCap:100}, req:['reroute','audit']},
   // The Drift
@@ -952,7 +951,7 @@ const TASKS = [
   {id:'drift', z:10, kind:'act', name:'Correct the drift', days:651, req:['driftfix'], perk:'driftrec'},
   {id:'bunk', z:10, kind:'rest', name:'Sleep in the crew bunks', days:20, req:[]},
   {id:'rounds', z:10, kind:'job', upkeep:true, name:'Run the upkeep rounds', prod:{salvage:0.15}, req:[]},
-  {id:'stores', z:10, kind:'job', name:'Cull the spoiling seed stock', prod:{rations:0.19}, req:['drift']},
+  {id:'stores', z:10, kind:'job', name:'Draw from the drift-deck accumulators', prod:{rations:0.19}, req:['drift']},
   {id:'navdrill', z:10, kind:'train', name:'Burn-plotting drills', days:40, req:['drift']},
   {id:'podfind', z:10, kind:'act', name:'Find the failing pod', days:256, req:['drift'], split:'failpod'},
   {id:'failpod', z:10, kind:'act', name:'Replace a failing pod', days:586, req:['podfind']},
@@ -960,8 +959,7 @@ const TASKS = [
   {id:'talkw', z:10, kind:'act', name:'Talk WARDEN out of a shutdown', days:488, req:['wardencall','podfind'],
     log:'WARDEN wants to sleep too. “Maintenance of the K line exceeds projected cost.” You argue for the line again. It listens, this time.'},
   {id:'burnplot', z:10, kind:'act', name:'Plot the burn', days:611, req:['failpod','talkw'], split:'burn'},
-  {id:'sprout', z:10, kind:'act', meal:true, name:'Sprout the spoiling seed stock', days:400, req:['driftfix'],
-    log:'Good seed is kept for the colony, every grain counted. What will not keep, you sprout and eat.'},   // kitchen upgrade: rations come more often
+  {id:'sprout', z:10, kind:'act', meal:true, name:'Balance the drift-deck accumulators', days:400, req:['driftfix']},   // kitchen upgrade: rations come more often
   {id:'ws10', z:10, kind:'act', shop:true, name:'Calibrate the drift-deck fabricator', days:400, req:['driftfix']},   // workshop: repairs come more often (costs spare parts)
   {id:'burn', z:10, kind:'act', cross:true, to:11, name:'Burn for Tessaly', days:1526, lifeEff:{salCap:100}, req:['failpod','talkw']},
   // The Long Dark (third section of the long watch; its finale ends the long watch)
@@ -975,10 +973,10 @@ const TASKS = [
   {id:'creepfind', z:11, kind:'act', name:'Find the hull creep', days:345, req:['wardmem'], split:'creepbrace'},
   {id:'creepbrace', z:11, kind:'act', name:'Brace the creeping hull', days:789, haz:0.2, req:['creepfind']},
   {id:'turnplot', z:11, kind:'act', name:'Plot the turnover point', days:576, req:['vaultseal','creepbrace'], split:'turnpoint'},
-  {id:'darkmess', z:11, kind:'act', meal:true, name:'Stretch the rations with vat broth', days:400, req:['podalarm']},   // kitchen upgrade: rations come more often
+  {id:'darkmess', z:11, kind:'act', meal:true, name:'Stretch the reserve with trickle charging', days:400, req:['podalarm']},   // kitchen upgrade: rations come more often
   {id:'ws11', z:11, kind:'act', shop:true, name:'Teach the drones hull repair', days:400, req:['podalarm']},   // workshop: repairs come more often (costs spare parts)
   {id:'upkeep11', z:11, kind:'job', upkeep:true, name:'Keep the stasis decks running', prod:{salvage:0.18}, req:[]},
-  {id:'darkration', z:11, kind:'job', name:'Ration the colony stores', prod:{rations:0.18}, req:['podalarm']},
+  {id:'darkration', z:11, kind:'job', name:'Ration the stasis-deck reserve cells', prod:{rations:0.18}, req:['podalarm']},
   {id:'darknap', z:11, kind:'rest', name:'Sleep on the dark observation deck', days:15, req:[]},
   {id:'poddrill', z:11, kind:'train', name:'Pod-failure drills', days:40, req:['nursepods']},
   {id:'memdrill', z:11, kind:'train', name:'Memory-bank checks', days:40, req:['memmap']},
@@ -996,9 +994,9 @@ const TASKS = [
   {id:'routeplot', z:12, kind:'act', name:'Plot a route into the system', days:455, req:['shieldbow'], split:'approach'},
   {id:'approach', z:12, kind:'act', name:'Lay in the approach course', days:319, req:['routeplot','drivelive']},
   {id:'slowwatch', z:12, kind:'act', name:'Watch the speed fall', days:490, req:['approach'], split:'relslow'},
-  {id:'burnmess', z:12, kind:'act', meal:true, name:'Rig a galley that works under thrust', days:400, req:['burncalc']},   // kitchen upgrade
+  {id:'burnmess', z:12, kind:'act', meal:true, name:'Rig a charger that works under thrust', days:400, req:['burncalc']},   // kitchen upgrade
   {id:'ws12', z:12, kind:'act', shop:true, name:'Brace the frames for the braking burn', days:400, req:['burncalc']},   // workshop: repairs come more often (costs spare parts)
-  {id:'burnration', z:12, kind:'job', name:'Portion out the deep stores', prod:{rations:0.19}, req:['burncalc']},
+  {id:'burnration', z:12, kind:'job', name:'Bleed charge from the braking burn', prod:{rations:0.19}, req:['burncalc']},
   {id:'shieldpatch', z:12, kind:'job', upkeep:true, name:'Patch the dust shield', prod:{salvage:0.19}, req:[]},
   {id:'burnbunk', z:12, kind:'rest', name:'Sleep strapped in under thrust', days:15, req:[]},
   {id:'flipdrill', z:12, kind:'train', name:'Turnover drills', days:40, req:['flip']},
@@ -1020,9 +1018,9 @@ const TASKS = [
   {id:'assist', z:13, kind:'act', name:'Slingshot past the inner world', days:929, req:['innerscan'],
     log:'The inner world swings past close enough to see its craters. Its gravity bends the ship’s path toward Tessaly and takes a little more speed off.'},
   {id:'sighting', z:13, kind:'act', name:'Sight Tessaly', days:250, req:['assist'], split:'closein'},
-  {id:'sysmess', z:13, kind:'act', meal:true, name:'Grow algae under the scanner lights', days:400, req:['scanout']},   // kitchen upgrade
+  {id:'sysmess', z:13, kind:'act', meal:true, name:'Run a line from the scanner array', days:400, req:['scanout']},   // kitchen upgrade
   {id:'ws13', z:13, kind:'act', shop:true, name:'Refit the fabricator for orbital work', days:400, req:['scanout']},   // workshop: repairs come more often (costs spare parts)
-  {id:'sysration', z:13, kind:'job', name:'Thaw the last deep stores', prod:{rations:0.2}, req:['scanout']},
+  {id:'sysration', z:13, kind:'job', name:'Charge off the scanner array\u2019s backup cells', prod:{rations:0.2}, req:['scanout']},
   {id:'debris', z:13, kind:'job', name:'Catch drifting debris', prod:{salvage:0.2}, haz:0.1, req:[]},
   {id:'scannap', z:13, kind:'rest', name:'Sleep while the scanners run', days:15, req:[]},
   {id:'scandrill', z:13, kind:'train', name:'Scanner calibration drills', days:40, req:['giant']},
@@ -1036,10 +1034,9 @@ const TASKS = [
   {id:'debrisfind', z:14, kind:'act', name:'Find the orbital debris', days:308, req:['insert'], split:'sweep'},
   {id:'sweep', z:14, kind:'act', name:'Sweep the orbit clean', days:703, haz:0.2, req:['debrisfind']},
   {id:'trimplan', z:14, kind:'act', name:'Trim the orbit', days:549, req:['chartsurf','sweep'], split:'safeorbit'},
-  {id:'feast', z:14, kind:'act', meal:true, name:'Cook the first meal in orbit', days:400, req:['insert'],
-    log:'The protein tanks are growing the crew\u2019s first meals on Tessaly. You live on the skim, and cook it well anyway.'},   // kitchen upgrade
+  {id:'feast', z:14, kind:'act', meal:true, name:'Plug into the orbital array', days:400, req:['insert']},   // kitchen upgrade
   {id:'ws14', z:14, kind:'act', shop:true, name:'Set up an orbital repair dock', days:400, req:['insert']},   // workshop: repairs come more often (costs spare parts)
-  {id:'meatvats', z:14, kind:'job', name:'Skim the protein tanks', prod:{rations:0.16}, req:['insertplan']},
+  {id:'meatvats', z:14, kind:'job', name:'Charge from the orbital solar panels', prod:{rations:0.16}, req:['insertplan']},
   {id:'orbitkeep', z:14, kind:'job', upkeep:true, name:'Keep the stasis decks cold', prod:{salvage:0.2}, req:[]},
   {id:'orbitnap', z:14, kind:'rest', name:'Sleep under the planet’s glow', days:15, req:[]},
   {id:'landdrill', z:14, kind:'train', name:'Orbital survey drills', days:40, req:['orbitsurvey']},
@@ -1059,13 +1056,13 @@ TASKS.forEach(t => { if (isFinisher(t)) t.req = TASKS.filter(x => x.z === t.z &&
   TASKS.forEach(t => { if (!t.lroot) return; const last = TASKS.filter(x => x.z === t.z && x.kind === 'act' && !x.legacy && !isFinisher(x)).sort((a, b) => d(b) - d(a) || TASKS.indexOf(b) - TASKS.indexOf(a))[0]; if (last) t.req = [last.id]; }); }
 
 const PERKS = [
-  {id:'decant',   name:'Decant cache',          from:1, desc:'New clones wake with 3 rations.'},
+  {id:'decant',   name:'Decant cache',          from:1, desc:'New clones wake with 3 energy.'},
   {id:'survival', name:'Maintenance manual',    from:1, desc:'WARDEN\u2019s repair manuals: work in the Vat Bay and the Hydroponics Ring 25% faster.', eff:{zsp:{1:1.25, 2:1.25}}},   // (id kept for old saves; auto-forage is standard now)
   {id:'muscle',   name:'Muscle memory',         from:1, desc:'+15% familiarity from all work.', eff:{xp:1.15}},
   {id:'chitin',   name:'Chitin lore',           from:1, desc:'Hazard damage −10%.', eff:{haz:0.9}},
-  {id:'medrec',   name:'Medbay records',        from:2, desc:'Meals come 25% more often.', eff:{pace:1.25}},
-  {id:'seedbank', name:'Seed-bank index',       from:2, desc:'The ration store holds 10 more.', eff:{fcap:10}},
-  {id:'manifest', name:'Supply manifests',      from:3, desc:'Food jobs work 20% faster, and crossings cost half the food carried.', eff:{foodSpd:1.2, crossCost:0.5}},
+  {id:'medrec',   name:'Medbay records',        from:2, desc:'Recharges come 25% more often.', eff:{pace:1.25}},
+  {id:'seedbank', name:'Power-grid index',       from:2, desc:'Energy storage capacity +10.', eff:{fcap:10}},
+  {id:'manifest', name:'Supply manifests',      from:3, desc:'Charging stations work 20% faster, and crossings cost half the energy carried.', eff:{foodSpd:1.2, crossCost:0.5}},
   {id:'telomere', name:'Telomere patch',        from:2, desc:'+25 max health for every clone.', eff:{maxHp:25}},
   {id:'transit',  name:'Ring transit',          from:2, desc:'+10% speed on every task.', eff:{spd:1.1}},
   {id:'hardened', name:'Radiation hardening',   from:3, desc:'Hazard damage −20%.', eff:{haz:0.8}},
@@ -1078,10 +1075,10 @@ const PERKS = [
   {id:'scars',    act2:true, name:'Boarding scars',      desc:'+40 max health for every clone.', eff:{maxHp:40}},
   {id:'xeno',     act2:true, name:'Xenobiology',         desc:'Act II hazard damage \u221220%.', eff:{a2haz:0.8}},
   {id:'armcodes', act2:true, name:'Armoury codes',       desc:'Work in the three Boarders sections 25% faster.', eff:{zsp:{6:1.25, 7:1.25, 8:1.25}}},
-  {id:'medcache', act2:true, name:'Medbay cache',        desc:'Meals come 5% more often.', eff:{pace:1.05}},
+  {id:'medcache', act2:true, name:'Medbay cache',        desc:'Recharges come 5% more often.', eff:{pace:1.05}},
   {id:'hivemap',  act2:true, name:'Hive charts',         desc:'+10% familiarity from Act II work.', eff:{a2fam:1.1}},
   {id:'hivecore', act2:true, name:'Hive-mind fragment',  desc:'+20% familiarity from Act II work.', eff:{a2fam:1.2}},
-  {id:'podtel',   act2:true, name:'Pod telemetry',       desc:'Meals come 5% more often, and every food station holds 25% more.', eff:{pace:1.05, stationRes:1.25}},
+  {id:'podtel',   act2:true, name:'Pod telemetry',       desc:'Recharges come 5% more often, and every charging station holds 25% more.', eff:{pace:1.05, stationRes:1.25}},
   {id:'wardenlog',act2:true, name:'WARDEN\u2019s confession', desc:'+20% familiarity from Act II work.', eff:{a2fam:1.2}},
   {id:'driftrec', act2:true, name:'Drift log',           desc:'Strain grows 10% slower.', eff:{strainMul:0.9}},
   {id:'wardenmem', act2:true, name:'WARDEN\u2019s memory',  desc:'+15% familiarity from Act II work.', eff:{a2fam:1.15}},
@@ -1106,34 +1103,34 @@ const AWAY_CAP = 168 * 3600;   // the limit never goes past one week, however ma
 function awayMax(){ return Math.min(AWAY_CAP, AWAY_BASE + ((S.pr && S.pr.carry) || 0) + AWAY_STEP * WATCH.filter(p => S.perks[p.id]).length); }
 
 const ITEMS = [
-  {id:'locker',     name:'Cold locker',        cost:5,    req:'wake',       desc:'+5 ration storage', eff:{fcap:5}},
+  {id:'locker',     name:'Spare cell rack',        cost:5,    req:'wake',       desc:'+5 energy storage capacity', eff:{fcap:5}},
   {id:'rebreather', name:'Patched rebreather', cost:5,    req:'wake',       desc:'+20 max health', eff:{maxHp:20}},
   {id:'toolkit',    name:'Scrap toolkit',      cost:5,   req:'wake',       desc:'Work in the Vat Bay 25% faster', eff:{zsp:{GZ:1.25}}},
-  {id:'press',      name:'Algae press',        cost:5,   req:'search',     desc:'Algae pressing works twice as fast', eff:{fspd:{algae:2}}},
+  {id:'press',      name:'Bus tap adapter',        cost:5,   req:'search',     desc:'The vat bay power bus charges twice as fast', eff:{fspd:{algae:2}}},
   {id:'baton',      name:'Shock baton',        cost:5,   req:'hatch',      desc:'Work in the Hydroponics Ring 20% faster, hazard damage \u221225%', eff:{zsp:{GZ:1.2}, haz:0.75}},
   {id:'chitinarm',  name:'Chitin armour',      cost:5,   req:'crawlers',   desc:'+20 max health, hazard damage −30%', eff:{maxHp:20, haz:0.7}},
-  {id:'doser',      name:'Hydro auto-doser',   cost:10,   req:'irrigation', desc:'Hydroponic beds yield twice as fast', eff:{fspd:{hydro:2}}},
+  {id:'doser',      name:'Pump charger regulator',   cost:10,   req:'irrigation', desc:'The irrigation pump chargers work twice as fast', eff:{fspd:{hydro:2}}},
   {id:'lace',       name:'Neural lace',        cost:15,  req:'medbay',     desc:'+30% familiarity from all work', eff:{xp:1.3}},
   {id:'stims',      name:'Stim injector',      cost:25,  req:'lift',       desc:'All work 15% faster', eff:{spd:1.15}},
-  {id:'crate',      name:'Insulated crate',    cost:30,  req:'lift',       desc:'+20 ration storage', eff:{fcap:20}},
+  {id:'crate',      name:'Insulated cell case',    cost:30,  req:'lift',       desc:'+20 energy storage capacity', eff:{fcap:20}},
   {id:'rifle',      name:'Armoury rifle',      cost:40,  req:'armory',     desc:'Work in the Engineering Spine 50% faster, hazard damage \u221220%', eff:{zsp:{GZ:1.5}, haz:0.8}},
   {id:'cryo',       name:'Cryo-sleeve',        cost:70,  req:'vent',       desc:'Slows this clone\u2019s strain by 25%', eff:{strainMul:0.75}},
   {id:'visor',      name:'Nav visor',          cost:110, req:'bridgepower',desc:'Work on the Command Deck 30% faster', eff:{zsp:{GZ:1.3}}},
-  {id:'medkit',     name:'Command-deck medkit', cost:60,  req:'secdeck',    desc:'+25 max health, meals come 10% more often', eff:{maxHp:25, pace:1.1}},
-  {id:'warmer',     name:'Galley warmer',      cost:90,  req:'bridgepower',desc:'+10 ration storage, rations come 20% more often', eff:{fcap:10, fq:1.2}},
+  {id:'medkit',     name:'Command-deck medkit', cost:60,  req:'secdeck',    desc:'+25 max health, recharges come 10% more often', eff:{maxHp:25, pace:1.1}},
+  {id:'warmer',     name:'Docking charger booster',      cost:90,  req:'bridgepower',desc:'+10 energy storage capacity, recharges come 20% more often', eff:{fcap:10, fq:1.2}},
   {id:'exo',        name:'Exo-frame',          cost:175, req:'navcore',    desc:'Work on the Command Deck 30% faster, +40 max health', eff:{zsp:{GZ:1.3}, maxHp:40}},
   {id:'hardsuit',   name:'Drive-crew hardsuit', cost:120, req:'warden',     desc:'+30 max health, hazard damage \u221230%', eff:{maxHp:30, haz:0.7}},
-  {id:'seals',      name:'Vacuum pantry seals', cost:100, req:'warden',    desc:'+15 ration storage, pantry rationing works 50% faster', eff:{fcap:15, fspd:{pantry:1.5}}},
+  {id:'seals',      name:'Cell bank seals', cost:100, req:'warden',    desc:'+15 energy storage capacity, the drive crew\u2019s cell bank charges 50% faster', eff:{fcap:15, fspd:{pantry:1.5}}},
   {id:'sealkit',    name:'Hull-patch kit',     cost:90,  req:'seal6',      desc:'+40 max health, hazard damage \u221215%', eff:{maxHp:40, haz:0.85}},
   {id:'carbine',    name:'Boarding carbine',   cost:150, req:'racks',      desc:'Work in the Hull Breach 40% faster, hazard damage \u221220%', eff:{zsp:{GZ:1.4}, haz:0.8}},
   {id:'turret',     name:'Deployable turret',  cost:250, req:'traps',      desc:'Hazard damage \u221230%', eff:{haz:0.7}},
-  {id:'medpack',    name:'Field medpack',      cost:200, req:'medb',       desc:'+50 max health, meals come 10% more often', eff:{maxHp:50, pace:1.1}},
+  {id:'medpack',    name:'Field medpack',      cost:200, req:'medb',       desc:'+50 max health, recharges come 10% more often', eff:{maxHp:50, pace:1.1}},
   {id:'cutter',     name:'Plasma cutter',      cost:300, req:'umbilical',  desc:'Work in the Hive Ship 30% faster', eff:{zsp:{GZ:1.3}}},
   {id:'upkit',      name:'Upkeep toolkit',     cost:150, req:'patch',      desc:'Ship wear builds 30% slower, work in the Cruise 20% faster', eff:{wear:0.7, zsp:{GZ:1.2}}},
-  {id:'sprinkler',  name:'Bed sprinklers',     cost:180, req:'recal',      desc:'+10 ration storage, the regrown beds yield 50% faster', eff:{fcap:10, fspd:{beds:1.5}}},
+  {id:'sprinkler',  name:'Reactor bus splitter',     cost:180, req:'recal',      desc:'+10 energy storage capacity, the cruise reactor bus charges 50% faster', eff:{fcap:10, fspd:{beds:1.5}}},
   {id:'gyro',       name:'Gyro-trimmer',       cost:250, req:'drift',      desc:'Work in the Drift 40% faster', eff:{zsp:{GZ:1.4}}},
   {id:'podcoils',   name:'Pod heater coils',   cost:220, req:'nursepods',  desc:'Work in the Long Dark 30% faster', eff:{zsp:{GZ:1.3}}},
-  {id:'vaultseal2', name:'Vault seals',        cost:240, req:'vaultseal',  desc:'+20 ration storage', eff:{fcap:20}},
+  {id:'vaultseal2', name:'Reserve cell racks',        cost:240, req:'vaultseal',  desc:'+20 energy storage capacity', eff:{fcap:20}},
   {id:'gelcouch',   name:'Acceleration couch', cost:260, req:'flip',       desc:'+60 max health', eff:{maxHp:60}},
   {id:'dustvisor',  name:'Dust-shield controls', cost:260, req:'shieldrig', desc:'Work in Turnover 30% faster', eff:{zsp:{GZ:1.3}}},
   {id:'scanarray',  name:'Deep-scan array',    cost:280, req:'giant',      desc:'Work in the Tessaly System 30% faster', eff:{zsp:{GZ:1.3}}},
@@ -1796,7 +1793,7 @@ function step(dt){
   if (S.set.autoEat) readyFoods().forEach(f => { if (wantsMeal(f)) eat(f); });
   if (L.hp <= 0) {
     L.hp = 0;
-    die(!nextFood() ? 'Starved' : (wearMul() >= 2 ? 'Worn down with the ship' : h1 || h2 ? 'Killed while trying to ' + ht.name.charAt(0).toLowerCase() + ht.name.slice(1) : 'Collapsed from exhaustion'));
+    die(!nextFood() ? 'Ran out of energy' : (wearMul() >= 2 ? 'Worn down with the ship' : h1 || h2 ? 'Killed while trying to ' + ht.name.charAt(0).toLowerCase() + ht.name.slice(1) : 'Collapsed from exhaustion'));
     return;
   }
   L.day += dt;
@@ -2845,7 +2842,7 @@ function rewardBits(t){
   if (r.salvage) b.push('+' + r.salvage + ' ' + salW(t.z));
   if (r.rations) b.push('+' + r.rations + ' ' + FD[FOOD_OF[t.z]].name.toLowerCase());
   if (r.heal) b.push('full heal');
-  if (MEAL_UP[t.id]) b.push('a ration every ' + fmtDays(MEAL_CD / MEAL_UP[t.id]) + (mealTier() >= MEAL_UP[t.id] && isDone(t.id) ? '' : ' (now ' + fmtDays(mealCd('ration')) + ')'));
+  if (MEAL_UP[t.id]) b.push('a recharge every ' + fmtDays(MEAL_CD / MEAL_UP[t.id]) + (mealTier() >= MEAL_UP[t.id] && isDone(t.id) ? '' : ' (now ' + fmtDays(mealCd('ration')) + ')'));
   if (t.lifeEff && t.lifeEff.pSal) b.push('+' + fmt(perDay(t.lifeEff.pSal)) + ' ' + salW(t.z) + '/min');
   if (t.lifeEff && t.lifeEff.salCap) b.push('+' + fmt(t.lifeEff.salCap) + ' ' + salW(t.z) + ' storage');
 
@@ -3192,23 +3189,23 @@ function updateHud(){
   const re = storeEta(L.rations, M.ratCap, rr), se = storeEta(L.salvage, M.salCap, sr);
   // only a warning about running out altogether; the stores themselves are listed per food
   { const z = L.sec || 1, st = TASKS.find(t => t.z === z && t.kind === 'job' && t.prod && t.prod.rations), end = sectionEnd(z), nz = end && (end.to || end.z + 1);
-    const parts = [!nextFood() ? 'no food: starving' : re.txt === 'empty in' ? 'all food gone in ' + both(re.days) : ''];
-    if (st) parts.push(stationLeft(z) <= 0.01 ? 'food station drained' : 'station reserve ' + fmt(stationLeft(z)) + '/' + fmt(stationMax(z)) + (isDone(st.req[0] || st.id) || !st.req.length ? '' : ' \u00b7 opens after ' + T[st.req[0]].name));
-    else parts.push('no food station in this section');
-    if (nz && nz <= 14) parts.push('crossing costs ' + Math.round(100 * crossCost(nz)) + '% of food carried');
+    const parts = [!nextFood() ? 'no energy: running down' : re.txt === 'empty in' ? 'all energy gone in ' + both(re.days) : ''];
+    if (st) parts.push(stationLeft(z) <= 0.01 ? 'charging station drained' : 'station reserve ' + fmt(stationLeft(z)) + '/' + fmt(stationMax(z)) + (isDone(st.req[0] || st.id) || !st.req.length ? '' : ' \u00b7 opens after ' + T[st.req[0]].name));
+    else parts.push('no charging station in this section');
+    if (nz && nz <= 14) parts.push('crossing costs ' + Math.round(100 * crossCost(nz)) + '% of energy carried');
     $('#t-ratt').textContent = parts.filter(Boolean).join(' \u00b7 '); }
   $('#t-ratt').classList.toggle('neg', true);
   setH($('#t-salt'), se.txt === 'full' ? 'storage full' : se.txt === 'steady' ? '' : se.txt + ' ' + (se.txt === 'empty in' ? '<span class="neg">' + both(se.days) + '</span>' : bothH(se.days)));
   const fl = foodsInPlay().map(f => {   // what you carry, plus this section's food
 
     const v = L.food[f.id] || 0, cd = (L.mcd || {})[f.id] || 0;
-    return `<span class="${v >= M.fcap[f.id] - 0.01 ? 'full' : ''}" title="${f.name}: heals ${fmt(mealHp(f.id))}, one every ${fmtDays(mealCd(f.id))}"><em>${f.id}</em> ${fmt(v)}/${M.fcap[f.id]}${v >= FOOD_MIN && cd > 0 ? ' <i>' + fmtDays(cd) + '</i>' : ''}</span>`;
+    return `<span class="${v >= M.fcap[f.id] - 0.01 ? 'full' : ''}" title="${f.name}: heals ${fmt(mealHp(f.id))}, one every ${fmtDays(mealCd(f.id))}"><em>storage capacity</em> ${fmt(v)}/${M.fcap[f.id]}${v >= FOOD_MIN && cd > 0 ? ' <i>' + fmtDays(cd) + '</i>' : ''}</span>`;
   }).join('');
   const tf = $('#t-foods'); if (tf.innerHTML !== fl) tf.innerHTML = fl;
   const eb = $('#eatb'), ready = readyFoods()[0];
   eb.disabled = !canEat();
   const miss = M.maxHp - L.hp;
-  eb.textContent = L.dead ? 'Eat' : !nextFood() ? 'No food to eat' : miss < EAT_GAP ? 'Health full: no food used' : ready ? 'Eat ' + FD[ready].name.toLowerCase() + ' (+' + fmt(Math.min(mealHp(ready), miss)) + ' health)' : 'Next meal in ' + both(nextMealIn());
+  eb.textContent = L.dead ? 'Recharge' : !nextFood() ? 'No energy left' : miss < EAT_GAP ? 'Health full: no energy used' : ready ? 'Recharge (+' + fmt(Math.min(mealHp(ready), miss)) + ' health)' : 'Next recharge in ' + both(nextMealIn());
   $('#t-sal').innerHTML = fmt(L.salvage) + '<span class="cap">/' + Math.round(M.salCap) + '</span>';
   $('#t-sal').classList.toggle('full', L.salvage >= M.salCap - 0.01);
   const sa = $('#t-salr'); sa.textContent = sr > 0 ? '+' + fmt(perDay(sr)) + '/min' : ''; sa.className = 'num pos';
@@ -3241,7 +3238,7 @@ function updateHud(){
   else if (S.set.paused) { $('#n-name').textContent = 'Paused' + (cur ? ': ' + cur.name : ''); $('#n-eta').textContent = 'tap Resume'; }
   else if (!cur) { $('#n-name').textContent = 'Time stopped. Pick a task below.'; $('#n-eta').textContent = ''; $('#n-fill').style.width = '0'; }
   else {
-    $('#n-name').textContent = (L.viaChain ? '\u26d3 \u00d7' + flowMul().toFixed(2) + ' \u00b7 ' : '') + (blip ? '' : L.feeding ? 'Restocking food: ' : L.foraging ? 'Foraging: ' : '') + cur.name;
+    $('#n-name').textContent = (L.viaChain ? '\u26d3 \u00d7' + flowMul().toFixed(2) + ' \u00b7 ' : '') + (blip ? '' : L.feeding ? 'Recharging: ' : L.foraging ? 'Charging: ' : '') + cur.name;
     if (cur.kind !== 'job') {
       const sp = speedOf(cur) * (L.viaChain ? flowMul() : 1);
       $('#n-fill').style.width = ((L.prog[cur.id] || 0) / cur.days * 100).toFixed(1) + '%';
@@ -3342,7 +3339,7 @@ function soundPanel(){
     <div class="vol"><span class="lbl">Volume</span><input type="range" min="0" max="100" step="1" value="${Math.round(ASET[vk] * 100)}" data-avol="${vk}" aria-label="${label} volume"><b class="num" data-avv="${vk}">${Math.round(ASET[vk] * 100)}</b></div>`;
   return `<div class="panel set"><span class="h2">Sound</span>
     ${row('musicOn', 'musicVol', 'Music', 'Generated darkwave soundtrack. It grows uneasy when health runs low and muffles while a menu is open.')}
-    ${row('sfxOn', 'sfxVol', 'Sound effects', 'Buttons, finished actions, records, meals and deaths.')}
+    ${row('sfxOn', 'sfxVol', 'Sound effects', 'Buttons, finished actions, records, recharges and deaths.')}
   </div>`;
 }
 document.addEventListener('input', e => {
@@ -3622,10 +3619,10 @@ function partsSettingsHtml(){
 }
 function foodSettingsHtml(){
   let h = '';
-  h += `<div class="row"><p>Auto-eat<small>Eat a ration whenever the meal cooldown is over and health has room for it.</small></p><button class="tog${S.set.autoEat ? ' on' : ''}" data-set="autoEat" aria-label="Auto-eat" aria-pressed="${S.set.autoEat}"></button></div>`;
+  h += `<div class="row"><p>Auto-recharge<small>Recharge whenever the recharge cooldown is over and health has room for it.</small></p><button class="tog${S.set.autoEat ? ' on' : ''}" data-set="autoEat" aria-label="Auto-recharge" aria-pressed="${S.set.autoEat}"></button></div>`;
   {
-    h += `<div class="row"><p>Auto-forage<small>Switch to the best food job when your food runs below the threshold, and stay until its store reaches twice that.</small></p><button class="tog${S.set.autoFood ? ' on' : ''}" data-set="autoFood" aria-label="Auto-forage" aria-pressed="${S.set.autoFood}"></button></div>
-      <div><div class="row"><p>Forage threshold<small>Share of the store the best food job fills. When all the food you carry drops below it, food jobs step in; they stop at twice this level (or when the store is full).</small></p></div><div class="pctin"><input type="number" id="fd-n" inputmode="numeric" min="1" max="99" step="1" value="${S.set.foodPct || 40}" aria-label="Forage threshold percent"><span>%</span></div><input type="range" id="fd" min="1" max="99" step="1" value="${S.set.foodPct || 40}" aria-label="Forage threshold, percent of ration storage"></div>`;
+    h += `<div class="row"><p>Auto-charge<small>Switch to the best charging station when your energy runs below the threshold, and stay until it reaches twice that.</small></p><button class="tog${S.set.autoFood ? ' on' : ''}" data-set="autoFood" aria-label="Auto-charge" aria-pressed="${S.set.autoFood}"></button></div>
+      <div><div class="row"><p>Charge threshold<small>Share of your energy storage capacity. When the energy you carry drops below it, charging stations step in; they stop at twice this level (or when storage is full).</small></p></div><div class="pctin"><input type="number" id="fd-n" inputmode="numeric" min="1" max="99" step="1" value="${S.set.foodPct || 40}" aria-label="Charge threshold percent"><span>%</span></div><input type="range" id="fd" min="1" max="99" step="1" value="${S.set.foodPct || 40}" aria-label="Charge threshold, percent of energy storage capacity"></div>`;
   }
   return h;
 }
@@ -3653,7 +3650,7 @@ function renderAuto(){
   let h = `<div class="panel"><span class="h2">Automation</span><p class="note">Tasks finished often enough can run by themselves (${autoScale() < 1 ? 'this run needs ' + Math.round(autoScale() * 100) + '% of' : ''} 10 lives' worth: an action 10 times, a training session 40 times, a job ${AUTO_LIVES * JOB_UNIT} batches), and gear built in ${AUTO_LIVES} lives can be built automatically (in ship order; the clone saves up for the next one). Switch them on here. They run in chain order: each after the tasks it needs. Linked tasks form chains, and a fully chained section can be run with one click. Automated tasks run ahead of your queue; automated crossings wait until the queue is done. Rests fire on their own at strain ×${restAt()}, and also just before an automated crossing if the section\u2019s rest is still unused.</p>
     ${foodSettingsHtml()}${partsSettingsHtml()}
     <div class="fld"><label for="rest-at">Automated rests fire at strain \u00d7</label><div class="pctin"><input type="text" id="rest-at" inputmode="decimal" autocomplete="off" value="${restAt()}"><span>Rests also fire just before an automated crossing if still unused.</span></div></div>
-    <div class="row"><p>Feed when needed<small>Food jobs step in when food runs low, or when health is low and meals can still heal faster than strain drains it. They refill to what is needed, then the interrupted task carries on.</small></p><button class="tog${S.set.autoFeed ? ' on' : ''}" data-set="autoFeed" aria-label="Feed when needed" aria-pressed="${!!S.set.autoFeed}"></button></div>
+    <div class="row"><p>Charge when needed<small>Charging stations step in when energy runs low, or when health is low and recharges can still heal faster than strain drains it. They refill to what is needed, then the interrupted task carries on.</small></p><button class="tog${S.set.autoFeed ? ' on' : ''}" data-set="autoFeed" aria-label="Charge when needed" aria-pressed="${!!S.set.autoFeed}"></button></div>
 </div>`;
   if (!list.length && !glist.length) {
     h += `<p class="note">Nothing unlocked yet. Finish an action 10 times (a multi-rep action 10 times its reps), a training session 40 times, or work a job for ${AUTO_LIVES * JOB_UNIT} batches, and it will appear here. Gear counts once built in ${AUTO_LIVES} different lives.</p>`;
@@ -3710,24 +3707,24 @@ function renderAuto(){
 /* ----- FAQ ----- */
 const FAQ_ALL = [
   ['What is the goal?', 'Restore the ship so WARDEN can wake the sleeping crew: the food system in the Hydroponics Ring, the energy system in the Engineering Spine and the stardrive in the Main Drive. The game ends when you ignite the drive. One clone cannot do it all; it takes many lives (around 50 with very good play).'],
-  ['How do I start?', 'Tap a task to work on it right away. Climb out of the vat first, then press vat algae for food and strip wall panels for salvage. Time only moves while your clone is working: with nothing to do, the clock stops, so you can always read and plan.'],
-  ['What are jobs, actions, training and rests?', '<b>Jobs</b> repeat and make food or salvage in batches; they stop when that storage is full. <b>Actions</b> are one-off tasks that unlock things and move the story on. Each needs certain earlier actions, and a section\u2019s last action (its crossing) needs every other action of that section. Tasks you have met before stay listed, greyed out, until what they need is done; you can still queue them. <b>Drills</b> each add a little familiarity to every task in their section, up to 4 sessions per life. <b>Rests</b> halve strain; each section has one, usable once per life.'],
+  ['How do I start?', 'Tap a task to work on it right away. Climb out of the vat first, then tap the vat bay power bus for energy and strip wall panels for salvage. Time only moves while your clone is working: with nothing to do, the clock stops, so you can always read and plan.'],
+  ['What are jobs, actions, training and rests?', '<b>Jobs</b> repeat and make energy or salvage in batches; they stop when that storage is full. <b>Actions</b> are one-off tasks that unlock things and move the story on. Each needs certain earlier actions, and a section\u2019s last action (its crossing) needs every other action of that section. Tasks you have met before stay listed, greyed out, until what they need is done; you can still queue them. <b>Drills</b> each add a little familiarity to every task in their section, up to 4 sessions per life. <b>Rests</b> halve strain; each section has one, usable once per life.'],
   ['How does the queue work?', 'Tapping a task runs it right away, ahead of the queue (a job runs until its store is full); it is not added to the queue. <b>+</b> adds a task to the end of the queue; drag it or use the arrows to move it up. You can queue the same task several times at different places: tap + again for another copy. A task queued once runs until it is done; with several copies, each copy covers one repetition (one training session, one rep, or one fill of a store). The queue holds up to 100 items. Drag an item by the handle on its left to move it, or use the arrows; ✕ removes it. Queued jobs run until their storage is full. You can queue things you have seen before even if they are not available yet; they wait their turn. Gear can be queued too, with the <b>+</b> on its card (gear is listed in each section of the Tasks tab): the clone works the best salvage job until it can afford the design, then builds it. Five presets save and load whole queues, and <b>Keep queue between clones</b> gives each new clone the queue you planned, minus anything that is automated and switched on.'],
-  ['Food and health', 'Health drains all the time and meals put it back. <b>Every meal heals the same amount</b>; what changes is how often the clone can eat. All food goes into one <b>ration store</b>: every food job fills it, and the store grows as the clone gets deeper into the ship (5 in the Vat Bay, up to 90 in the Main Drive, in steps of 5), plus gear and records. At first a ration can be eaten every 5 seconds of in-game time. Each section has one <b>kitchen upgrade</b> action (heat the algae paste, splice richer strains, refit the ration packer, restart the galley ovens, reseal the pantry, and one in each Act II section) that shortens the wait between rations for the rest of that life, down to about 2 seconds; each clone has to fix them again. Meals are always whole portions, and the clone only eats when it needs to: when a whole meal fits under full health, or sooner once health is down to half. At full health no food is used. With no food left at all you starve. The Hydroponics Ring has no food job until you restore its irrigation pumps, so arrive stocked.'],
-  ['What is strain?', 'Strain multiplies the health drain. It grows faster and faster the longer a clone lives, which is what eventually kills every clone. Rests halve it; good food heals faster than strain can drain early on. The drain has a ceiling, but that ceiling doubles every 5 minutes of in-game time in a clone\u2019s life, so even a well-fed clone wears out in the end. Each section is also a little more dangerous than the one before (hunger and hazards), with a further step up once the drive is lit. Watch <b>Time left</b> at the top: it says how long the clone will last and what will kill it.'],
-  ['What carries over when a clone dies?', '<b>Familiarity</b> is kept: every task stays as fast as your clones have made it (see the Speed tab). Every 10 seconds of in-game time a clone survives adds 0.8 to the base health of later clones, up to 500. <b>Archive records</b> found by finishing certain actions are permanent upgrades. Gear, rations, salvage and progress through the ship reset.'],
+  ['Energy and health', 'Clones are biomechanical: as long as they have energy, the body is sustained. Health drains all the time and recharges put it back. <b>Every recharge heals the same amount</b>; what changes is how often the clone can recharge. Energy is carried up to the clone\u2019s <b>storage capacity</b>, which grows as the clone gets deeper into the ship (5 in the Vat Bay, up to 90 in the Main Drive, in steps of 5), plus gear and records. Each section has a <b>charging station</b> job, but it only opens partway into the section and holds a limited <b>reserve</b> per clone life; when it is drained, the clone has to cross or run down. Every crossing also costs a share of the energy carried, more the further into the ship you go, so a clone always arrives living on what it brought. At first a clone can recharge every 5 seconds of in-game time. Each section has one <b>charger upgrade</b> action that shortens the wait between recharges for the rest of that life, down to about 2 seconds, and adds half again to that section\u2019s station reserve; each clone has to fix them again. Recharges are always whole, and the clone only recharges when it needs to: when a whole recharge fits under full health, or sooner once health is down to half. At full health no energy is used. With no energy left at all, the clone runs down. The Hive Ship\u2019s only charging comes late, so arrive charged.'],
+  ['What is strain?', 'Strain multiplies the health drain. It grows faster and faster the longer a clone lives, which is what eventually kills every clone. Rests halve it; regular recharges heal faster than strain can drain early on. The drain has a ceiling, but that ceiling doubles every 5 minutes of in-game time in a clone\u2019s life, so even a well-charged clone wears out in the end. Each section is also a little more dangerous than the one before (energy use and hazards), with a further step up once the drive is lit. Watch <b>Time left</b> at the top: it says how long the clone will last and what will kill it.'],
+  ['What carries over when a clone dies?', '<b>Familiarity</b> is kept: every task stays as fast as your clones have made it (see the Speed tab). Every 10 seconds of in-game time a clone survives adds 0.8 to the base health of later clones, up to 500. <b>Archive records</b> found by finishing certain actions are permanent upgrades. Gear, energy, salvage and progress through the ship reset.'],
   ['What are sections?', 'The ship is split into five sections. A <b>red</b> action leads to the next one, and the way back is sealed for that clone, so finish what you need first (records, the rest, training, gear). Each new clone starts back in the Vat Bay.'],
   ['What is gear?', 'Gear is built from salvage (called spare parts in Act II: the same store) and lasts for one clone. Each section has designs to build. Building one pays its salvage up front, then the clone spends time <b>assembling</b> it (bigger designs take longer, from a moment for a toolkit to half a minute or so of in-game time for the largest); assembly comes before other work and gets faster with familiarity. The gear works once it is assembled. Salvage storage is limited; opening up more of the ship raises it.'],
-  ['What is familiarity?', 'There are no skills: each task gets faster on its own the more of it your clones have done. Familiarity counts work in completions, including attempts a clone died in the middle of, and is kept between clones. Speed rises smoothly from ×1 to ×10 once you have done enough of a task: in a first run, 90 lives’ worth of it (90 finishes of an action, 1800 batches of a job). Each level of the Act I reward <b>Deep echo</b> lowers that for Act I tasks by about 30%. Familiar tasks also hurt less (hazard damage up to ÷4), and a familiar food job lets its food be eaten more often. <b>Drills</b> spread familiarity to every task in their section. The Speed tab lists every task.'],
-  ['How does automation work?', 'Every completion counts: finish an action 10 times (a multi-rep action 10 times its reps), a training session 40 times or a rest 10 times, or build a design in 10 lives, and its automation <b>switches on by itself</b>. For Act I tasks these counts shrink along with the familiarity threshold (Deep echo), never below one; tap <b>AUTO</b> (or its switch in the Auto tab) to turn it off, and it stays off. Automated tasks run by themselves <b>ahead of your queue</b>, in chain order (each after the tasks it needs). Automated tasks <b>link into chains</b> when one requires the other and both are at least ×2 familiar. When every action, crossing and rest of a section is automated and ×5 familiar, and all its gear designs are automated, the whole section becomes <b>one chain</b>: press <b>▶ Run section</b> (above the queue in the Tasks tab) and the clone works through everything, builds the gear, fills its stores and crosses. The run is pinned at the top of the queue and the queue\u2019s leftovers for its sections are cleared. Pressing it also turns on <b>Always run sections once ready</b> (Auto tab): from then on a run starts by itself whenever the section you are in is ready. Stop turns that off again. Ready sections next to each other link across their crossings into one run (<b>▶ Run 3 sections</b>), up to the end of the act; a run that dies starts again with the next clone. The option <b>Pause when a section run ends instead</b> keeps a run going through its crossings and pauses once it is over. A chain picks its next step itself each time: gear first, then kitchen upgrades, then the actions and drills in the order they depend on each other, then rests and storage-filling jobs, and the crossing last. When a chain forms or grows, it <b>queues itself</b>, including the chains of sections still ahead, and chain entries are kept in the order they will run: section by section, and within a section the chain that starts earliest first, with the crossing\u2019s chain last, and anything of it you had queued separately is dropped from the queue. If you remove a chain from the queue, it stays out for the rest of that clone\u2019s life. Work done as part of a chain (a queued chain or a section run) builds <b>chain flow</b>, which makes chained steps up to five times as fast; it is kept for good. Jobs are never automated: auto-forage keeps the food up, queued and automated gear work the salvage jobs, and every crossing tops the stores up before the clone moves on. An automated <b>salvage</b> job only gathers what gear needs: the next auto-built or queued design that is found and not built yet; it does not top the store up to full (except while filling up before a crossing). Automated <b>crossings</b> are the exception: they wait until your queue is done. A task you tap runs before everything. The <b>Auto</b> tab lists everything unlocked and has extra options: feeding when needed, filling storage before moving on, the strain level for automatic rests, the death screen and starting paused.'],
+  ['What is familiarity?', 'There are no skills: each task gets faster on its own the more of it your clones have done. Familiarity counts work in completions, including attempts a clone died in the middle of, and is kept between clones. Speed rises smoothly from ×1 to ×10 once you have done enough of a task: in a first run, 90 lives’ worth of it (90 finishes of an action, 1800 batches of a job). Each level of the Act I reward <b>Deep echo</b> lowers that for Act I tasks by about 30%. Familiar tasks also hurt less (hazard damage up to ÷4), and a familiar charging station charges faster. <b>Drills</b> spread familiarity to every task in their section. The Speed tab lists every task.'],
+  ['How does automation work?', 'Every completion counts: finish an action 10 times (a multi-rep action 10 times its reps), a training session 40 times or a rest 10 times, or build a design in 10 lives, and its automation <b>switches on by itself</b>. For Act I tasks these counts shrink along with the familiarity threshold (Deep echo), never below one; tap <b>AUTO</b> (or its switch in the Auto tab) to turn it off, and it stays off. Automated tasks run by themselves <b>ahead of your queue</b>, in chain order (each after the tasks it needs). Automated tasks <b>link into chains</b> when one requires the other and both are at least ×2 familiar. When every action, crossing and rest of a section is automated and ×5 familiar, and all its gear designs are automated, the whole section becomes <b>one chain</b>: press <b>▶ Run section</b> (above the queue in the Tasks tab) and the clone works through everything, builds the gear, fills its stores and crosses. The run is pinned at the top of the queue and the queue\u2019s leftovers for its sections are cleared. Pressing it also turns on <b>Always run sections once ready</b> (Auto tab): from then on a run starts by itself whenever the section you are in is ready. Stop turns that off again. Ready sections next to each other link across their crossings into one run (<b>▶ Run 3 sections</b>), up to the end of the act; a run that dies starts again with the next clone. The option <b>Pause when a section run ends instead</b> keeps a run going through its crossings and pauses once it is over. A chain picks its next step itself each time: gear first, then charger upgrades, then the actions and drills in the order they depend on each other, then rests, and the crossing last. When a chain forms or grows, it <b>queues itself</b>, including the chains of sections still ahead, and chain entries are kept in the order they will run: section by section, and within a section the chain that starts earliest first, with the crossing\u2019s chain last, and anything of it you had queued separately is dropped from the queue. If you remove a chain from the queue, it stays out for the rest of that clone\u2019s life. Work done as part of a chain (a queued chain or a section run) builds <b>chain flow</b>, which makes chained steps up to five times as fast; it is kept for good. Jobs are never automated: auto-forage keeps the food up, queued and automated gear work the salvage jobs, and every crossing tops the stores up before the clone moves on. An automated <b>salvage</b> job only gathers what gear needs: the next auto-built or queued design that is found and not built yet; it does not top the store up to full (except while filling up before a crossing). Automated <b>crossings</b> are the exception: they wait until your queue is done. A task you tap runs before everything. The <b>Auto</b> tab lists everything unlocked and has extra options: feeding when needed, filling storage before moving on, the strain level for automatic rests, the death screen and starting paused.'],
   ['What happens at a crossing with automation?', 'A queued or automated crossing stops just before it finishes and waits while the clone finishes automated actions and training, builds affordable automated gear, refills storage (if that option is on) and uses the section’s rest. Tap a crossing yourself to go at once.'],
   ['Pause, background and speed', 'Progress is saved on this device only (this browser or the app); use <b>Save files</b> in the main menu (\u2630) to back it up or move it, and <b>Restart</b> next to the slot there to start this slot over. Pause with the button at the top or the space bar. The game keeps running in a background tab and catches up when you return, then shows what happened while you were away. At most 8 hours of background time is played out; each <b>Stasis watch</b> record adds 8 hours (you get one the first time you finish each Act I section). Time while the game is fully closed does not count. The <b>speed menu</b> (\u00bb) at the top appears once Act I has been cleared: \u00d72 then, and \u00d75 once Act II has been cleared. It is a flat speed-up of real time, kept on this device for every save.'],
   ['Save management', 'The game saves itself every few seconds on this device. <b>Save Management</b> in the \u2630 menu holds: the three <b>save slots</b> (load one, copy your current game into another as a save state with \u201cSave here\u201d, or delete one); <b>Restart</b>, next to the slot you are playing, which starts that slot over; and <b>Save files and transfer</b>: export a save file, import one, copy the save as text to move it between devices, or share it to the game\u2019s GitHub folder and load shared saves from there.'],
-  ['Settings', '<b>Settings</b> (the ⚙ button, or Settings in the ☰ menu) holds the clock and pause options (death screen, starting paused, pausing in the background, after a new section, when a section run ends or when a task finishes), sound (music and effects), layout (vertical or horizontal) and, in the Android app, app updates. Food and automation options (auto-eat, auto-forage, the forage threshold, rests, feeding, filling storage) are in the Auto tab.'],
+  ['Settings', '<b>Settings</b> (the ⚙ button, or Settings in the ☰ menu) holds the clock and pause options (death screen, starting paused, pausing in the background, after a new section, when a section run ends or when a task finishes), sound (music and effects), layout (vertical or horizontal) and, in the Android app, app updates. Energy and automation options (auto-recharge, auto-charge, the charge threshold, rests, charging when needed) are in the Auto tab.'],
 ];
 // Shown once the drive is first lit.
 const FAQ_NGP = ['Legacy tasks', 'There is no restarting: after the drive is lit, the story always moves forward. As Act II unfolds, <b>legacy tasks</b> open up in Act I, one theme at a time. Each theme adds a set of five parts to every Act I section, open once a clone has done that section\u2019s last regular action: two pairs of steps, then a <b>final</b> that needs both pairs. Revealed sets are <b>needed for the crossing</b> (and for lighting the drive). Finishing a final gives its bonus for the rest of that life, growing with the final\u2019s mastery (nothing untrained, full share at twice the usual familiarity). All five finals of a theme, done and mastered, give its full effect. Each set has an optional <b>drill</b> that trains only its five parts; section drills don\u2019t train them. Legacy parts are never queued for you: a toast and a dot on the Tasks tab say when they open up. Once automated they join chains and section runs like any other task. The <b>Legacy</b> tab shows what each revealed theme does and how far it has got. Lighting the drive the first time also unlocks the <b>Quartermaster\u2019s cache</b>: every clone starts with all of its automated gear already built, in both acts.'];
-const FAQ_WEAR = ['Ship wear and spare parts', 'In Act II the ship wears out as your clones work: a little in the Boarders, more over the Long Watch, most during Arrival. Every point of wear adds 8% to the health drain. <b>Salvage</b> doubles as <b>spare parts</b>: a <b>repair</b> takes off 1.5 wear for a fixed number of parts (more in later sections), then needs a cooldown, like a meal. <b>Auto-repair</b> does this for you; the <b>Repair</b> button under Parts does it by hand. Parts jobs are the forage for parts: <b>Auto-scavenge</b> works the best one when parts run low. Each Act II section has a <b>workshop</b> action that makes repairs come more often; it costs three repairs\u2019 worth of parts when work on it starts. Run out of parts and the wear keeps climbing until the clone is worn down with the ship.'];
+const FAQ_WEAR = ['Ship wear and spare parts', 'In Act II the ship wears out as your clones work: a little in the Boarders, more over the Long Watch, most during Arrival. Every point of wear adds 8% to the health drain. <b>Salvage</b> doubles as <b>spare parts</b>: a <b>repair</b> takes off 1.5 wear for a fixed number of parts (more in later sections), then needs a cooldown, like a recharge. <b>Auto-repair</b> does this for you; the <b>Repair</b> button under Parts does it by hand. Parts jobs are to parts what charging stations are to energy: <b>Auto-scavenge</b> works the best one when parts run low. Each Act II section has a <b>workshop</b> action that makes repairs come more often; it costs three repairs\u2019 worth of parts when work on it starts. Run out of parts and the wear keeps climbing until the clone is worn down with the ship.'];
 const FAQ_A2 = ['Act II', 'Once the main drive is lit, every clone that lights it carries on into <b>Act II</b>: nine more sections, one after another, each revealed when a clone first reaches it. Act II tasks have their own familiarity, which Echo legacy tasks reduce only at 10% strength: it starts at 90 lives\u2019 worth for \u00d710 and drops by a quarter at each of Act II\u2019s three big milestones. Act II familiarity, automation and records are kept for good.'];
 let faqDone = '';
 function renderFaq(){
@@ -3862,7 +3859,7 @@ document.addEventListener('click', e => {
     renderSpeed(); return;
   }
   if ('repair' in d) { const a = repair(); if (a) { sfx('toggle'); toast('Repaired ' + fmt(a) + ' wear.'); } return; }
-  if ('eat' in d) { const f = readyFoods()[0], h0 = L.hp; if (f && eat(f)) sfx('eat'), toast('Ate ' + FD[f].name.toLowerCase() + '. +' + fmt(L.hp - h0) + ' health'); return; }
+  if ('eat' in d) { const f = readyFoods()[0], h0 = L.hp; if (f && eat(f)) sfx('eat'), toast('Recharged. +' + fmt(L.hp - h0) + ' health'); return; }
   if ('exportjson' in d) { exportJson(); return; }
   if ('ghshare' in d) { shareToGitHub(); return; }
   if ('ghlist' in d) { ghRefresh(); return; }
@@ -4052,7 +4049,7 @@ function showAway(a){
   h += `<tr><td>Section</td><td>${ZONES[(L.sec || 1) - 1].name}${(L.sec || 1) !== a.sec && b.gen === a.gen ? ' (new)' : ''}</td></tr>`;
   h += `<tr><td>Health</td><td>${Math.ceil(L.hp)} / ${M.maxHp}</td></tr>`;
   if (b.gen === a.gen) {
-    h += `<tr><td>Rations</td><td>${fmt(L.rations)} (${sign(L.rations - a.rations)})</td></tr><tr><td>${salW() === 'parts' ? 'Parts' : 'Salvage'}</td><td>${fmt(L.salvage)} (${sign(L.salvage - a.salvage)})</td></tr>`;
+    h += `<tr><td>Energy</td><td>${fmt(L.rations)} (${sign(L.rations - a.rations)})</td></tr><tr><td>${salW() === 'parts' ? 'Parts' : 'Salvage'}</td><td>${fmt(L.salvage)} (${sign(L.salvage - a.salvage)})</td></tr>`;
     if (b.owned > a.owned) h += `<tr><td>Gear built</td><td>${b.owned - a.owned}</td></tr>`;
   }
 
