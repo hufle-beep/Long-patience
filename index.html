@@ -43,7 +43,10 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--amber);outline-
 .ident .hleft{color:var(--red)}
 .ident b{white-space:nowrap;font-family:var(--f-disp);font-size:22px;font-weight:700;letter-spacing:.04em;color:var(--amber);line-height:1}
 .ident span{font-family:var(--f-disp);font-size:14px;color:var(--dim);letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
-.spd{display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;margin-left:auto}
+.spd{display:grid;grid-template-columns:44px 44px 1fr;gap:6px;flex-basis:100%;width:100%;margin-left:0}
+.spd.has4{grid-template-columns:44px 44px 1fr 44px}
+.spd>*{min-width:0;height:36px;box-sizing:border-box}
+.spd button.flip,.spd button.mus{padding:0;text-align:center}
 .spd button{font-family:var(--f-mono);font-size:12px;padding:5px 9px;border:1px solid var(--line);border-radius:4px;color:var(--dim)}
 .spd button.on{color:var(--bg);background:var(--amber);border-color:var(--amber)}
 .spd button.mus{font-size:14px;padding:3px 9px;color:var(--faint);text-decoration:line-through}
@@ -56,9 +59,9 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--amber);outline-
 .now.paused{border-color:var(--cyan)}
 .spd button.boost{color:var(--cyan);border-color:var(--cyan-soft)}
 .spd button.boost.on{background:var(--cyan);color:var(--bg)}
-.spd .bsel{display:inline-flex;align-items:center;gap:6px;font-family:var(--f-mono);font-size:12px;padding:2px 4px 2px 9px;border:1px solid var(--cyan-soft);border-radius:4px;color:var(--cyan)}
+.spd .bsel{display:flex;align-items:stretch;font-family:var(--f-mono);font-size:13px;padding:0;border:1px solid var(--cyan-soft);border-radius:4px;color:var(--cyan)}
 .spd .bsel.on{background:var(--cyan);color:var(--bg)}
-.spd .bsel select{font:inherit;color:inherit;background:transparent;border:0;padding:3px 2px;cursor:pointer}
+.spd .bsel select{font:inherit;color:inherit;background:transparent;border:0;padding:0;width:100%;text-align:center;text-align-last:center;-webkit-appearance:none;appearance:none;cursor:pointer}
 .spd .bsel select option{color:var(--fg);background:var(--panel)}
 .meter{display:grid;grid-template-columns:54px 1fr auto;align-items:center;gap:8px}
 .bar{height:6px;background:var(--panel2);border-radius:3px;overflow:hidden}
@@ -497,7 +500,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
 
 <script id="logic">
 /* ===== Game data and rules (no DOM) ===== */
-const BUILD = '2026-11-04 · speeds kept in saves';   // shown in the main menu, to tell which version is loaded
+const BUILD = '2026-11-04 · header buttons';   // shown in the main menu, to tell which version is loaded
 const DPS = 8;             // simulation ticks per real second at 1x (doubled for the test version: same balance, half the real time)
 // Time is simulated in ticks. 80 ticks make one ship day (18 minutes each), so a day lasts
 // 20 real seconds at 1x and a clone lives weeks, not years. Everything is shown in days and hours.
@@ -3104,8 +3107,8 @@ function renderSpeed(){
   // Pause, plus the game-speed menu once a faster speed has been unlocked
   let h = `<button data-settings="hud" class="flip" aria-label="Settings" title="Settings">\u2699</button><button data-atog="musicOn" class="mus${ASET.musicOn ? ' on' : ''}" aria-label="Music ${ASET.musicOn ? 'on' : 'off'}">\u266a</button><button data-pause class="pause${S.set.paused ? ' on' : ''}" aria-label="${S.set.paused ? 'Resume' : 'Pause'}">${S.set.paused ? '\u25b6 Resume' : '\u275a\u275a Pause'}</button>`;
   const open = SPEEDS.filter(speedOpen), cur = gameSpeed();
-  if (open.length > 1) h += `<label class="bsel${cur > 1 ? ' on' : ''}" title="Game speed"><span aria-hidden="true">\u00bb</span><select id="spd-sel" aria-label="Game speed">${open.map(x => `<option value="${x}"${x === cur ? ' selected' : ''}>${x === 1 ? '\u00d71 Normal' : '\u00d7' + x}</option>`).join('')}</select></label>`;
-  if (h !== lastSpd) { lastSpd = h; $('#h-spd').innerHTML = h; }
+  if (open.length > 1) h += `<label class="bsel${cur > 1 ? ' on' : ''}" title="Game speed"><select id="spd-sel" aria-label="Game speed">${open.map(x => `<option value="${x}"${x === cur ? ' selected' : ''}>\u00d7${x}</option>`).join('')}</select></label>`;
+  if (h !== lastSpd) { lastSpd = h; const el = $('#h-spd'); el.innerHTML = h; el.classList.toggle('has4', open.length > 1); }
 }
 let lastHg = '', planT = 0, lastQEta = '';   // the queue box is rebuilt on changes: it starts from the last estimate, so nothing blinks
 function updateHud(){
