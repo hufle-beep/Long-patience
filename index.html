@@ -455,7 +455,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
 <header id="hud" class="gut">
   <div class="wrap">
     <div class="r1">
-      <div class="ident"><button class="menub" data-menu="open" aria-label="Main menu">☰</button><b>K-7</b><span id="h-gen">Clone 1</span><span class="htimes"><span id="h-day" class="num hday" title="Elapsed: ship days this clone has lived"></span><span id="h-left" class="num hleft" title="Remaining: ship days this clone has left"></span></span></div>
+      <div class="ident"><button class="menub" data-menu="open" aria-label="Main menu">☰</button><b>K-7</b><span id="h-gen">Clone 1</span><span class="htimes"><span id="h-day" class="num hday" title="Elapsed: ship days this clone has lived"></span><span id="h-left" class="num hleft" title="Remaining: ship days this clone has left, and the real time that takes at the current speed"></span></span></div>
       <div class="spd" id="h-spd"></div>
     </div>
     <div class="meter"><span class="lbl" style="min-width:0;text-align:left">Health</span><div class="bar hp"><i id="b-hp"></i></div><span id="t-hp" class="num"></span></div>
@@ -500,7 +500,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
 
 <script id="logic">
 /* ===== Game data and rules (no DOM) ===== */
-const BUILD = '2026-11-04 · pause centred';   // shown in the main menu, to tell which version is loaded
+const BUILD = '2026-11-04 · real-time countdown';   // shown in the main menu, to tell which version is loaded
 const DPS = 8;             // simulation ticks per real second at 1x (doubled for the test version: same balance, half the real time)
 // Time is simulated in ticks. 80 ticks make one ship day (18 minutes each), so a day lasts
 // 20 real seconds at 1x and a clone lives weeks, not years. Everything is shown in days and hours.
@@ -3125,7 +3125,7 @@ function updateHud(){
   const hl = $('#h-left');
   if (L.dead) { hl.textContent = '0 left'; $('#s-why').textContent = 'dead'; }
   else {
-    const lt = fmtDays(sv.t) + ' left';
+    const lt = fmtDays(sv.t) + ' left' + (isFinite(sv.t) ? ' \u00b7 ' + fmtReal(realSecs(sv.t)) : '');   // ship days and the real-time countdown
     if (hl.textContent !== lt) hl.textContent = lt;
     $('#s-why').textContent = (isFinite(sv.t) ? 'ends by ' + sv.why : 'nothing ends it soon') + (cur ? '' : ' (time left counts once working)');
     if (performance.now() - planT > 400) {   // planned work, refreshed a few times a second
