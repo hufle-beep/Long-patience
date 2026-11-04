@@ -502,7 +502,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
 
 <script id="logic">
 /* ===== Game data and rules (no DOM) ===== */
-const BUILD = '2026-11-04 · steps of 5';   // shown in the main menu, to tell which version is loaded
+const BUILD = '2026-11-04 · maintenance manual';   // shown in the main menu, to tell which version is loaded
 const DPS = 8;             // simulation ticks per real second at 1x (doubled for the test version: same balance, half the real time)
 // Time is simulated in ticks. 80 ticks make one ship day (18 minutes each), so a day lasts
 // 20 real seconds at 1x and a clone lives weeks, not years. Everything is shown in days and hours.
@@ -1035,7 +1035,7 @@ const TASKS = [
   {id:'safeorbit', z:14, kind:'act', finale:'C', name:'Establish a safe orbit over Tessaly', days:937, req:[], perk:'harbour',
     log:'The Long Patience settles into a stable orbit. Below, Tessaly turns: oceans, cloud, a long brown coast. Three thousand people are still asleep. They are home, nearly. WARDEN holds the wake cycle. Someone has to look at the ground first.'},
 ];
-const ZDAYS = {1:0.233, 2:0.792, 3:0.587, 4:0.518, 5:0.318, 6:0.691, 7:0.896, 8:0.896, 9:0.605, 10:0.813, 11:0.813, 12:0.772, 13:0.772, 14:0.772};   // no skill transfer: later sections are short, and speed comes from familiarity
+const ZDAYS = {1:0.291, 2:0.99, 3:0.587, 4:0.518, 5:0.318, 6:0.691, 7:0.896, 8:0.896, 9:0.605, 10:0.813, 11:0.813, 12:0.772, 13:0.772, 14:0.772};   // no skill transfer: later sections are short, and speed comes from familiarity
 const TRAIN_CAP = 4, TRAIN_XP = 1.5;
 const LEGACY_LEN = 0.6;   // legacy parts are needed for every crossing once revealed, so they are kept short
 const T = {}; TASKS.forEach(t => { T[t.id] = t; t.sk = []; t.reps = t.kind === 'train' ? TRAIN_CAP : (t.reps || 1); if (t.days) t.days = Math.round(t.days * ZDAYS[t.z] * (t.legacy && t.kind === 'act' ? LEGACY_LEN : 1)); });
@@ -1048,7 +1048,7 @@ TASKS.forEach(t => { if (isFinisher(t)) t.req = TASKS.filter(x => x.z === t.z &&
 
 const PERKS = [
   {id:'decant',   name:'Decant cache',          from:1, desc:'New clones wake with 1 ration.'},
-  {id:'survival', name:'Survival subroutine',   from:1, desc:'Unlocks auto-forage: your clone works the best food job whenever food runs low.'},
+  {id:'survival', name:'Maintenance manual',    from:1, desc:'WARDEN\u2019s repair manuals: work in the Vat Bay and the Hydroponics Ring 25% faster.', eff:{zsp:{1:1.25, 2:1.25}}},   // (id kept for old saves; auto-forage is standard now)
   {id:'muscle',   name:'Muscle memory',         from:1, desc:'+15% familiarity from all work.', eff:{xp:1.15}},
   {id:'chitin',   name:'Chitin lore',           from:1, desc:'Hazard damage −10%.', eff:{haz:0.9}},
   {id:'medrec',   name:'Medbay records',        from:2, desc:'Meals come 25% more often.', eff:{pace:1.25}},
@@ -1338,7 +1338,7 @@ function active(ex){
     else if (ok(t)) return t;
   }
 
-  if (S.perks.survival && S.set.autoFood) {
+  if (S.set.autoFood) {   // auto-forage: standard from the first clone
     const food = pickFood();
     if (food) {
       // Threshold: a share of the store the best food job fills; counts every meal you carry.
@@ -3599,7 +3599,7 @@ function partsSettingsHtml(){
 function foodSettingsHtml(){
   let h = '';
   h += `<div class="row"><p>Auto-eat<small>Eat a ration whenever the meal cooldown is over and health has room for it.</small></p><button class="tog${S.set.autoEat ? ' on' : ''}" data-set="autoEat" aria-label="Auto-eat" aria-pressed="${S.set.autoEat}"></button></div>`;
-  if (S.perks.survival) {
+  {
     h += `<div class="row"><p>Auto-forage<small>Switch to the best food job when your food runs below the threshold, and stay until its store reaches twice that.</small></p><button class="tog${S.set.autoFood ? ' on' : ''}" data-set="autoFood" aria-label="Auto-forage" aria-pressed="${S.set.autoFood}"></button></div>
       <div><div class="row"><p>Forage threshold<small>Share of the store the best food job fills. When all the food you carry drops below it, food jobs step in; they stop at twice this level (or when the store is full).</small></p></div><div class="pctin"><input type="number" id="fd-n" inputmode="numeric" min="1" max="99" step="1" value="${S.set.foodPct || 40}" aria-label="Forage threshold percent"><span>%</span></div><input type="range" id="fd" min="1" max="99" step="1" value="${S.set.foodPct || 40}" aria-label="Forage threshold, percent of ration storage"></div>`;
   }
