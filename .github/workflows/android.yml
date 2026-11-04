@@ -70,7 +70,7 @@ jobs:
           # Upload the new file under a temporary name first, so the download link never points at nothing,
           # then swap it in and only then announce the new build number (the app reads it from the title).
           cp "$RUNNER_TEMP/LongPatience.apk" "$RUNNER_TEMP/LongPatience-next.apk"
-          gh release upload android-latest "$RUNNER_TEMP/LongPatience-next.apk" --clobber
+          for try in 1 2 3 4 5; do gh release upload android-latest "$RUNNER_TEMP/LongPatience-next.apk" --clobber && break; echo "retrying the upload"; sleep 10; done
           REPO="${GITHUB_REPOSITORY}"
           ids() { gh api "repos/$REPO/releases/tags/android-latest" --jq ".assets[] | select(.name==\"$1\") | .id"; }
           # (retried: the API sometimes answers with an empty body; --silent stops gh from parsing it)
@@ -81,4 +81,5 @@ jobs:
             sleep 5
           done
           [ -n "$(ids LongPatience.apk)" ] || { echo "LongPatience.apk missing after swap"; exit 1; }
-          gh release edit android-latest --title "$TITLE" --notes "$NOTES"
+          for try in 1 2 3 4 5; do gh release edit android-latest --title "$TITLE" --notes "$NOTES" && break; echo "retrying the title update"; sleep 10; done
+          [ "$(gh api "repos/$REPO/releases/tags/android-latest" --jq .name)" = "$TITLE" ] || { echo "title not updated"; exit 1; }
