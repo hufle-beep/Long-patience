@@ -39,8 +39,8 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--amber);outline-
 .ident{display:flex;align-items:center;gap:6px 8px;flex:0 1 auto;flex-wrap:wrap;white-space:nowrap}
 .htimes{display:inline-flex;gap:10px;flex-wrap:wrap}
 .ident .htimes span{font-family:var(--f-mono);font-size:13px;letter-spacing:0;text-transform:none}
-.ident .hday{color:var(--green)}
-.ident .hday i{font-style:normal;color:var(--cyan)}
+.ident .hday{color:var(--cyan)}
+.ident .hday .tgm{color:var(--cyan)}.ident .hday .trl{color:var(--amber)}
 .ident .hleft{color:var(--red)}
 .ident b{white-space:nowrap;font-family:var(--f-disp);font-size:22px;font-weight:700;letter-spacing:.04em;color:var(--amber);line-height:1}
 .ident span{font-family:var(--f-disp);font-size:14px;color:var(--dim);letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
@@ -140,6 +140,7 @@ button.secfold{display:block;width:100%;text-align:left;background:none;border:0
 button.zhb{display:flex;width:100%;align-items:baseline;justify-content:space-between;gap:8px;background:none;border:0;padding:0;margin:0;color:inherit;font:inherit;text-align:left;cursor:pointer}
 button.zh.zhb{margin:14px 0 6px}
 .tgm{color:var(--cyan)}.te.over,#n-eta.over,#q-eta.over{color:var(--red)}.trl{color:var(--amber)}
+.over .tgm,.over .trl,.hleft .tgm,.hleft .trl{color:inherit}   /* over the clone's time, or remaining time: all red */
 .secrun{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:8px 10px;margin:4px 0 8px;border:1px solid var(--cyan-soft);border-radius:4px;font-size:12.5px;color:var(--fg)}
 .secrun.on{border-color:var(--cyan)}
 .secrun.dim{color:var(--dim)}
@@ -501,7 +502,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
 
 <script id="logic">
 /* ===== Game data and rules (no DOM) ===== */
-const BUILD = '2026-11-04 · parts in Act II';   // shown in the main menu, to tell which version is loaded
+const BUILD = '2026-11-04 · clock colours';   // shown in the main menu, to tell which version is loaded
 const DPS = 8;             // simulation ticks per real second at 1x (doubled for the test version: same balance, half the real time)
 // Time is simulated in ticks. 80 ticks make one ship day (18 minutes each), so a day lasts
 // 20 real seconds at 1x and a clone lives weeks, not years. Everything is shown in days and hours.
@@ -2354,6 +2355,10 @@ function fmtReal(sec){
 const both = t => isFinite(t) ? fmtDays(t) + ' \u00b7 ' + fmtReal(realSecs(t)) : '\u221e';
 // Work estimates (tasks, chains, the queue) also show the real time they take at the current speed
 const bothR = days => isFinite(days) ? fmtDays(days) + ' \u00b7 ' + fmtReal(realSecs(days)) : '\u221e';
+// The same as coloured HTML: in-game time blue, real time amber (remaining time is shown in red where it appears)
+const clkG = t => '<span class="tgm">' + fmtDays(t) + '</span>', clkR = sec => '<span class="trl">' + fmtReal(sec) + '</span>';
+const bothH = t => isFinite(t) ? clkG(t) + ' \u00b7 ' + clkR(realSecs(t)) : '\u221e';
+function setH(el, h){ if (el && el._h !== h) { el._h = h; el.innerHTML = h; } }
 // Ship time this clone has left at the current hunger and strain (from the HUD's survival forecast)
 let lastSvT = Infinity;
 const tooLong = days => isFinite(lastSvT) && days > lastSvT + 1e-6;
@@ -3072,7 +3077,7 @@ function updateTasks(){
     const w = chainWork(r.k), fm = flowMul();
     r.f.style.width = (w.tot ? (1 - w.left / w.tot) * 100 : 0).toFixed(1) + '%';
     let tk = 0; cSteps(r.k).forEach(x => { if (!cStepDone(r.k, x)) tk += isGQ(x) ? gearLeft(IT[x.slice(2)]) : taskLeft(T[x]); });
-    r.e.textContent = bothR(tk / fm); r.e.classList.toggle('over', tooLong(tk / fm)); r.e.title = tooLong(tk / fm) ? OVER_TIP : '';
+    setH(r.e, bothH(tk / fm)); r.e.classList.toggle('over', tooLong(tk / fm)); r.e.title = tooLong(tk / fm) ? OVER_TIP : '';
     r.fl.textContent = 'flow \u00d7' + fm.toFixed(2);
     r.el.classList.toggle('on', L.viaChain && cSteps(r.k).includes(L.cur));
   });
@@ -3084,7 +3089,7 @@ function updateTasks(){
       const p = (L.prog[t.id] || 0) / t.days;
       r.f.style.width = (p * 100).toFixed(1) + '%';
       const left = t.kind === 'rest' ? (t.days - (L.prog[t.id] || 0)) / sp : (t.days * (t.reps - (L.done[t.id] || 0)) - (L.prog[t.id] || 0)) / sp;
-      r.e.textContent = bothR(left); r.e.classList.toggle('over', tooLong(left)); r.e.title = tooLong(left) ? OVER_TIP : '';
+      setH(r.e, bothH(left)); r.e.classList.toggle('over', tooLong(left)); r.e.title = tooLong(left) ? OVER_TIP : '';
       if (r.rp) r.rp.textContent = (L.done[t.id] || 0) + '/' + t.reps;
     } else {
       jobBar(r.f, t, sp);
@@ -3135,7 +3140,7 @@ function updateHud(){
   const hg = 'Clone ' + S.gen + (S.pr && (S.pr.n || ngpLv('speed')) ? ' <span class="hng">' + [S.pr.n ? 'NG+' + S.pr.n : '', ngpLv('speed') ? '\u00d7' + ngpSpeed().toFixed(1) : ''].filter(Boolean).join(' \u00b7 ') + '</span>' : '');
   if (hg !== lastHg) { lastHg = hg; $('#h-gen').innerHTML = hg; }
   // time elapsed aboard (ship days)
-  const hd = fmtDays(L.day) + ' <i>' + fmtReal(L.real || 0) + '</i>'; const he = $('#h-day'); if (he.innerHTML !== hd) he.innerHTML = hd;   // elapsed: in-game, then real
+  setH($('#h-day'), clkG(L.day) + ' ' + clkR(L.real || 0));   // elapsed: in-game (blue), then real (amber)
   $('#b-hp').style.width = Math.max(0, L.hp / M.maxHp * 100) + '%';
   $('#t-hp').textContent = Math.ceil(L.hp) + ' / ' + M.maxHp;
   let cur = L.cur ? T[L.cur] : null; const cur2 = L.cur2 ? T[L.cur2] : null;
@@ -3150,11 +3155,11 @@ function updateHud(){
     if (performance.now() - planT > 400) {   // planned work, refreshed a few times a second
       planT = performance.now();
       const pt = plannedTicks(), pe = $('#s-plan'), qe = $('#q-eta');
-      lastQEta = pt > 0.5 ? '\u2248 ' + bothR(pt) : '';
-      if (qe && qe.textContent !== lastQEta) qe.textContent = lastQEta;
+      lastQEta = pt > 0.5 ? '\u2248 ' + bothH(pt) : '';
+      if (qe) setH(qe, lastQEta);
       if (qe) { qe.classList.toggle('over', tooLong(pt)); qe.title = tooLong(pt) ? OVER_TIP : ''; }
-      const txt = pt > 0.5 ? 'Planned work \u2248 ' + bothR(pt) + (isFinite(sv.t) && pt > sv.t ? ' (more than this clone has left)' : '') : (L.queue.length ? 'Planned work: waiting on locked items' : 'Queue empty');
-      if (pe.textContent !== txt) pe.textContent = txt;
+      const txt = pt > 0.5 ? 'Planned work \u2248 ' + bothH(pt) + (isFinite(sv.t) && pt > sv.t ? ' (more than this clone has left)' : '') : (L.queue.length ? 'Planned work: waiting on locked items' : 'Queue empty');
+      setH(pe, txt);
       pe.classList.toggle('over', isFinite(sv.t) && pt > sv.t);
     }
   }
@@ -3166,7 +3171,7 @@ function updateHud(){
   // only a warning about running out altogether; the stores themselves are listed per food
   $('#t-ratt').textContent = !nextFood() ? 'no food: starving' : re.txt === 'empty in' ? 'all food gone in ' + both(re.days) : '';
   $('#t-ratt').classList.toggle('neg', true);
-  $('#t-salt').textContent = se.txt === 'full' ? 'storage full' : se.txt === 'steady' ? '' : se.txt + ' ' + both(se.days);
+  setH($('#t-salt'), se.txt === 'full' ? 'storage full' : se.txt === 'steady' ? '' : se.txt + ' ' + (se.txt === 'empty in' ? '<span class="neg">' + both(se.days) + '</span>' : bothH(se.days)));
   const fl = foodsInPlay().map(f => {   // what you carry, plus this section's food
 
     const v = L.food[f.id] || 0, cd = (L.mcd || {})[f.id] || 0;
@@ -3214,10 +3219,10 @@ function updateHud(){
       const sp = speedOf(cur) * (L.viaChain ? flowMul() : 1);
       $('#n-fill').style.width = ((L.prog[cur.id] || 0) / cur.days * 100).toFixed(1) + '%';
       const nl = (cur.days - (L.prog[cur.id] || 0)) / sp, ne = $('#n-eta');
-      ne.textContent = bothR(nl) + (tooLong(nl) ? ' \u00b7 won\u2019t finish' : ''); ne.classList.toggle('over', tooLong(nl));
+      setH(ne, bothH(nl) + (tooLong(nl) ? ' \u00b7 won\u2019t finish' : '')); ne.classList.toggle('over', tooLong(nl));
     } else {
       const sp = speedOf(cur) * (L.viaChain ? flowMul() : 1); jobBar($('#n-fill'), cur, sp);
-      $('#n-eta').textContent = cur.prod ? (jobFast(sp) ? 'continuous' : 'next batch ' + both((1 - (L.cyc[cur.id] || 0)) * JOB_CYCLE / sp)) : 'training';
+      setH($('#n-eta'), cur.prod ? (jobFast(sp) ? 'continuous' : 'next batch ' + bothH((1 - (L.cyc[cur.id] || 0)) * JOB_CYCLE / sp)) : 'training');
     }
   }
   renderSpeed();
@@ -3724,7 +3729,7 @@ function showDeath(){
     .sort((x, y) => (y.b - y.a) - (x.b - x.a)).slice(0, 6);
   let rows = gains.map(x => `<tr><td>${esc(x.t.name)}</td><td><span class="up">\u00d7${fmt(masteryF(x.t))} (+${fmt(9 * (x.b - x.a))})</span></td></tr>`).join('');
   showModal(`<h2>Clone ${S.gen} terminated</h2>
-    <p>${esc(L.cause)}.</p><p class="d">Lived ${fmtDays(L.day)} in-game \u00b7 ${fmtReal(L.real || 0)} real \u00b7 ${L.order.length} actions completed</p>
+    <p>${esc(L.cause)}.</p><p class="d">Lived ${clkG(L.day)} in-game \u00b7 ${clkR(L.real || 0)} real \u00b7 ${L.order.length} actions completed</p>
     <p class="d">Hardened genome: <span class="up">+${fmt(L.vitGain || 0)} max health</span> for every future clone (base now ${Math.min(BASE_HP_MAX, 100 + Math.floor(S.vit || 0))}${100 + Math.floor(S.vit || 0) >= BASE_HP_MAX ? ', the maximum' : ''}).</p>
     <table class="dt">${rows}</table>
     ${S.perks.engram && S.engramT && T[S.engramT.id] ? '<p class="d">Engram recorder: the next clone starts \u201c' + T[S.engramT.id].name + '\u201d ' + Math.round(Math.min(S.engramT.p, ENGRAM_SHARE * T[S.engramT.id].days) / T[S.engramT.id].days * 100) + '% done.</p>' : ''}
