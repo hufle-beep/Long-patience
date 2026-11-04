@@ -58,8 +58,6 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--amber);outline-
 .spd button.pause{color:var(--fg)}
 .spd button.pause.on{background:var(--cyan);border-color:var(--cyan);color:var(--bg)}
 .now.paused{border-color:var(--cyan)}
-.spd button.boost{color:var(--cyan);border-color:var(--cyan-soft)}
-.spd button.boost.on{background:var(--cyan);color:var(--bg)}
 .spd .bsel{display:flex;align-items:stretch;font-family:var(--f-mono);font-size:13px;padding:0;border:1px solid var(--cyan-soft);border-radius:4px;color:var(--cyan)}
 .spd .bsel.on{background:var(--cyan);color:var(--bg)}
 .spd .bsel select{font:inherit;color:inherit;background:transparent;border:0;padding:0;width:100%;text-align:center;text-align-last:center;-webkit-appearance:none;appearance:none;cursor:pointer}
@@ -87,10 +85,8 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--amber);outline-
 .surv b{font-size:14px;font-weight:500}
 .surv span{color:var(--dim)}
 .surv em{font-style:normal;color:var(--dim)}
-.surv .strain{flex-basis:100%;color:var(--dim)}
 .surv .plan{flex-basis:100%;color:var(--cyan)}
 .surv .plan.over{color:var(--amber)}
-.surv .strain.hi{color:var(--red)}
 .task.rest .tm{border-style:dashed}
 .task.train .tm{border-style:dotted}
 .mn.train .mb{stroke-dasharray:1 3}
@@ -106,15 +102,10 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--amber);outline-
 .ngp{border-color:var(--cyan-soft)}
 .ngp .h2{color:var(--cyan)}
 .bld{margin:-6px 0 10px;font-size:11px;color:var(--faint)}
-.ngpick{display:grid;gap:8px;margin:10px 0}
-.ngpts{margin:10px 0 4px;font-size:13px}
-.ngpts b{color:var(--cyan);font-size:15px}
 .ngrow{display:flex;gap:6px;align-items:center;padding:6px 0;border-bottom:1px solid var(--line)}
 .ngrow>div{flex:1;min-width:0;font-size:13px}
 .ngrow small{display:block;color:var(--dim);font-size:11.5px}
 .ngrow .btn{width:36px;height:34px;padding:0;font-size:16px}
-.ngpick .btn{text-align:left}
-.ngpick .btn small{display:block;font-size:12px;color:var(--dim);font-weight:400;margin-top:2px}
 .hng{font-family:var(--f-mono);font-size:11px;color:var(--cyan);border:1px solid var(--cyan-soft);border-radius:3px;padding:1px 4px}
 .now{position:relative;overflow:hidden;border:1px solid var(--line);border-radius:4px;padding:7px 9px;display:flex;justify-content:space-between;gap:10px;align-items:center;min-height:34px}
 .now .nf{position:absolute;inset:0 auto 0 0;width:0;background:var(--amber-fill)}
@@ -198,10 +189,6 @@ button.zh.zhb{margin:14px 0 6px}
 .qps button:disabled{opacity:.35;cursor:default}
 .qkeep p{font-size:12px}
 .lockq{visibility:visible!important}
-.qchip{font-size:12px;padding:5px 8px;border-radius:4px;background:var(--panel2);border:1px solid var(--line);text-align:left}
-.qchip small{color:var(--dim);font-size:11px}
-.qchip i{font-style:normal;color:var(--faint);margin-left:6px}
-.qchip.blocked{opacity:.55}
 .qnote{font-size:12px;color:var(--dim)}
 .qnote b{color:var(--fg);font-weight:500}
 
@@ -221,7 +208,6 @@ button.zh.zhb{margin:14px 0 6px}
 .te{font-size:12px;color:var(--dim);white-space:nowrap}
 .tx{display:flex;flex-wrap:wrap;gap:5px 8px;margin-top:5px;align-items:center;font-size:12px;color:var(--dim)}
 .chip{font-family:var(--f-mono);font-size:10.5px;padding:1px 5px;border-radius:3px;border:1px solid currentColor;line-height:1.5}
-.c-eng{color:var(--amber)} .c-bio{color:var(--green)} .c-cbt{color:var(--red)} .c-hak{color:var(--violet)} .c-nav{color:var(--cyan)} .c-res{color:var(--sand)}
 .haz{color:var(--red)}
 .star{color:var(--amber)}
 .task.job .tm{background:var(--panel2)}
@@ -347,7 +333,6 @@ input[type=range]{width:100%;accent-color:var(--amber)}
 .slot span{font-size:12px;color:var(--dim)}
 .slot em{font-style:normal;font-size:12px;color:var(--amber)}
 .slot .btn{padding:6px 10px;font-size:12px}
-.lockbtn{font-size:12px;color:var(--faint);text-align:left;padding:4px 2px}
 .mapwrap{overflow-x:auto}
 .mapwrap svg{display:block;max-width:100%;height:auto}
 .mn{cursor:pointer}
@@ -364,10 +349,6 @@ input[type=range]{width:100%;accent-color:var(--amber)}
 .me{fill:none;stroke:var(--line);stroke-width:1.5}
 .me.lit{stroke:var(--amber);opacity:.7}
 .me.dash{stroke-dasharray:4 4}
-.secstrip{display:flex;flex-wrap:wrap;gap:4px 6px;align-items:center;font-family:var(--f-disp);text-transform:uppercase;letter-spacing:.06em;font-size:12px;color:var(--faint)}
-.secstrip span.past{color:var(--faint);text-decoration:line-through}
-.secstrip span.here{color:var(--amber)}
-.secstrip i{font-style:normal;color:var(--faint)}
 .task.cross .tm{border-color:var(--red)}
 .crossw{font-family:var(--f-disp);text-transform:uppercase;letter-spacing:.08em;font-size:11px;color:var(--red);margin-bottom:3px}
 .mn.passed{opacity:.25}
@@ -502,27 +483,16 @@ tr.pttot td{font-weight:600;color:var(--amber)}
 
 <script id="logic">
 /* ===== Game data and rules (no DOM) ===== */
-const BUILD = '2026-11-04 · vat bay retune 1';   // shown in the main menu, to tell which version is loaded
+const BUILD = '2026-11-04 · cleanup';   // shown in the main menu, to tell which version is loaded
 const DPS = 8;             // simulation ticks per real second at 1x (doubled for the test version: same balance, half the real time)
 // Time is simulated in ticks. 80 ticks make one ship day (18 minutes each), so a day lasts
 // 20 real seconds at 1x and a clone lives weeks, not years. Everything is shown in days and hours.
 const TPD = 80;
 const JOB_CYCLE = 8;       // in-game days of base work per job batch
 const MEAL_CD = 40;        // ticks between meals: one ration every 12 hours, 2 a day
-const EAT = 1 / MEAL_CD;   // average rations eaten per tick (used for estimates)
 const HUNGER = 0.15;       // base health lost per tick, always, while time runs
 // Strain: the body wears down. The hunger drain is multiplied by strain, which climbs
-// faster and faster as the clone ages: its growth rate starts at +1 per STRAIN_RAMP ticks and
-// rises by that much again every STRAIN_ACCEL ticks of wear. Rest actions halve strain but not wear, so the acceleration keeps building.
-const STRAIN_RAMP = 1250, STRAIN_ACCEL = 300;
-// Automated rests fire at this strain (player setting in the Auto tab, default 2.5)
-const restAt = () => (S && S.set && S.set.restAt) || 2.5;
-// Resolve slows strain: early clones feel it most.
-const STRAIN_RES = 0.002;
-// Late wear: after a couple of weeks the growth rate climbs much faster (squared term), which keeps
-// well-fed late clones to roughly a month.
-const STRAIN_LATE = 540;
-const strainRate = wear => 0 * (1 + wear / STRAIN_ACCEL + Math.pow(wear / STRAIN_LATE, 2)) / STRAIN_RAMP / (1 + STRAIN_RES * (S.life.lv.res || 0)) * (M ? M.strainMul : 1) * (M ? M.a2strain : 1);
+// (The fault is gone: energy drain no longer grows over a clone's life.)
 const MAX_DRAIN = 1.2;     // most health a young clone can lose per tick (the cap grows with age, see drainNow)
 // Difficulty: the drain cap doubles every CAP_DOUBLE ship days of a clone's life, so strain always wins in
 // the end (good feeding buys time, not immortality); and each section is a little more dangerous than the
@@ -537,7 +507,6 @@ const VIT_K = 0.6;
 const vitDiv = () => 1 + VIT_K * Math.min(BASE_HP_MAX - 100, (S && S.vit) || 0) / (BASE_HP_MAX - 100);
 // A meal restores the hunger of one cooldown plus the old resting regeneration.
 // Food deeper in the ship is better: each section past the first makes meals restore 12% more.
-const MEAL_SEC = 0;
 // Food: one ration store until the long watch. Every food job fills it. How much a ration heals
 // depends on the best kitchen this clone has fixed: each section has one upgrade action (see MEAL_UP),
 // done again every life. The store grows as the clone gets deeper into the ship (STORE_CAP), plus gear.
@@ -598,17 +567,7 @@ const foodsInPlay = () => FOODS.filter(f => f.z === 1 || isWatch(S.life.sec || 1
 const MEAL_MULT = 1.58;   // meals restore more than one meal-gap of hunger, to push back against strain
 function mealHp(f){ return (HUNGER + MEAL_REGEN) * MEAL_CD * MEAL_MULT; }   // the same for every meal
 const MEAL_REGEN = 0.05;
-const START_AGE = 14;
 
-const SKILLS = [
-  {id:'eng', name:'Engineering', ab:'ENG'},
-  {id:'bio', name:'Biotech',     ab:'BIO'},
-  {id:'cbt', name:'Combat',      ab:'CBT'},
-  {id:'hak', name:'Hacking',     ab:'HAK'},
-  {id:'nav', name:'Navigation',  ab:'NAV'},
-  {id:'res', name:'Endurance',   ab:'END'},
-];
-const SKN = {}; SKILLS.forEach(s => SKN[s.id] = s);
 
 // Sections. Act I runs 1-5 in a line; a run may then go into one Act II branch (see pathOf).
 const ZONES = [
@@ -1164,39 +1123,36 @@ const HOOK = {repaired(){}, legacy(){}, legacyAvail(){}, autoRun(){}, ngpEarn(){
 // Player preferences (switches, thresholds, boost speed) are stored once for the device, not per save:
 // a new game or another slot starts with the same settings.
 const PREF_KEY = 'long-patience.prefs.v1';
-const PREF_KEYS = ['speed','autoRun','autoRepair','autoScav','partsDays','autoFood','autoEat','foodPct','restAt','keepQueue','deathScreen','deathPause','startPaused','bgPause','pauseCross','pauseRunEnd','pauseDone','replay','fillCross','autoFeed','boostX'];
+const PREF_KEYS = ['speed','autoRun','autoRepair','autoScav','partsDays','autoFood','autoEat','foodPct','keepQueue','deathScreen','deathPause','startPaused','bgPause','pauseCross','pauseRunEnd','pauseDone','replay','fillCross','autoFeed','boostX'];
 function loadPrefs(){ try { const p = JSON.parse(localStorage.getItem(PREF_KEY) || '{}'); const o = {}; PREF_KEYS.forEach(k => { if (p[k] !== undefined) o[k] = p[k]; }); return o; } catch(e) { return {}; } }
 function savePrefs(){ try { if (!S || !S.set) return; const o = {}; PREF_KEYS.forEach(k => { if (S.set[k] !== undefined) o[k] = S.set[k]; }); localStorage.setItem(PREF_KEY, JSON.stringify(o)); } catch(e) {} }
 function newLife(s){
   const p = s.perks;
-  const L = {day:0, hp:100, rations:p.decant?3:0, food:{ration:p.decant?3:0}, salvage:0, lv:{}, xp:{}, echo0:{},
+  const L = {day:0, hp:100, rations:p.decant?3:0, food:{ration:p.decant?3:0}, salvage:0,
     done:{}, prog:{}, cyc:{}, bat:{}, visited:{1:1}, qdone:[], meal:0, strain:1, sec:1, job:null, queue:[], owned:{}, order:[], foraging:false, cur:null, dead:false, cause:''};
-  SKILLS.forEach(k => { L.lv[k.id] = 0; L.xp[k.id] = 0; L.echo0[k.id] = 0; });
   L.fam0 = Object.assign({}, s.fam || {});   // familiarity at the start of this life, for the death screen
   return L;
 }
 function defaultState(){
-  const s = {v:1, tv:3, qpresets:[[], [], [], [], []], gprac:{}, gauto:{}, gprio:{}, ev:2, xpTot:{}, rv:4, sv:2, pv:3, vv:3, gen:1, prio:{}, fam:{}, ever:{}, prac:{}, auto:{}, echo:{}, perks:{}, seen:{}, logged:{}, log:[], lastOrder:[], lastJob:null,
-    set:Object.assign({speed:1, autoFood:true, autoEat:true, foodDays:2, foodPct:40, restAt:2.5, keepQueue:true, autoRun:false, autoRepair:true, autoScav:true, partsDays:2, deathScreen:true, deathPause:true, startPaused:false, bgPause:false, pauseCross:false, pauseRunEnd:false, pauseDone:false, replay:true, fillCross:false, autoFeed:false, boost:false, boostX:2}, loadPrefs()),
+  const s = {v:1, tv:3, qpresets:[[], [], [], [], []], gprac:{}, gauto:{}, gprio:{}, ev:2, rv:4, sv:2, pv:3, vv:3, gen:1, prio:{}, fam:{}, ever:{}, prac:{}, auto:{}, echo:{}, perks:{}, seen:{}, logged:{}, log:[], lastOrder:[], lastJob:null,
+    set:Object.assign({speed:1, autoFood:true, autoEat:true, foodDays:2, foodPct:40, keepQueue:true, autoRun:false, autoRepair:true, autoScav:true, partsDays:2, deathScreen:true, deathPause:true, startPaused:false, bgPause:false, pauseCross:false, pauseRunEnd:false, pauseDone:false, replay:true, fillCross:false, autoFeed:false, boost:false, boostX:2}, loadPrefs()),
     stats:{bestAge:0, deaths:0, daysLived:0, played:0}, a2:{open:false, hon:0, lv:{}, perks:{}, fin:0}, branch:null, merge:null, a2run:{reached:{}, done:{}}, pr:{n:0, pts:0, growth:0, drain:0, hp:0, speed:0, carry:0, runs:[]}, won:false, winGen:0, bank:0, saved:Date.now(), intro:false};
-  SKILLS.forEach(k => s.echo[k.id] = 0);
   s.life = newLife(s);
   return s;
 }
 // Clones have no fixed lifespan: strain alone ends a life. Base health grows with the hardened
 // genome but stops at BASE_HP_MAX; archive records and gear add on top.
 const BASE_HP_MAX = 500;
-const NGP_GROWTH = 0.2, NGP_GROWTH_MAX = 5;   // deep echo: +20% skill growth per pick, 5 picks (+100%)
 // New game plus rewards: one step per run, five steps each.
 // Act I rewards: earned by moving forward (there is no restarting Act I). One point for lighting the
 // drive, one for each Act II section first reached and two for each Act II branch finished: 11 in all.
 // Each level costs one point and is permanent (no respec). Deep echo, Drain dampener and Template
 // upgrade work in Act I; Overclocked line speeds up the whole game.
 const NGP_MAX = 3;
-const A2_SHARE = 0.1;   // Deep echo, Drain dampener and Template upgrade work in Act II at 10% strength
+const A2_SHARE = 0.1;   // Echo and Dampening legacy work in Act II at 10% strength (storage optimization at full)
 // Act II rewards per level (3 levels reach the old 5-level maximum)
 const NGP = [
-  {id:'growth', name:'Deep echo',       max:NGP_MAX, now:k => 'familiarity needed ×' + Math.pow(FAM_ECHO, k).toFixed(2) + ' in Act I, ×' + (1 - (1 - Math.pow(FAM_ECHO, k)) * A2_SHARE).toFixed(2) + ' in Act II', step:'Tasks reach ×10 with about 30% less familiarity in Act I (10% of that in Act II)'},
+  {id:'growth', name:'Echo',       max:NGP_MAX, now:k => 'familiarity needed ×' + Math.pow(FAM_ECHO, k).toFixed(2) + ' in Act I, ×' + (1 - (1 - Math.pow(FAM_ECHO, k)) * A2_SHARE).toFixed(2) + ' in Act II', step:'Tasks reach ×10 with about 30% less familiarity in Act I (10% of that in Act II)'},
   {id:'drain',  name:'Drain dampener',  max:NGP_MAX, now:k => 'energy drain ÷' + drainAt(k).toFixed(1) + ' in Act I, ÷' + (1 + (drainAt(k) - 1) * A2_SHARE).toFixed(1) + ' in Act II', step:'Divides energy drain (Act I ÷2.3, ÷3.7, ÷5; Act II at 10% of that)'},
   {id:'hp',     name:'Storage optimization',max:NGP_MAX, now:k => '+' + hpAt(k) + ' max energy in both acts', step:'More max energy: storage optimization (+33, +67, +100, in both acts)'},
   {id:'speed',  name:'Overclocked line', max:NGP_MAX, now:k => 'game speed ×' + speedAt(k).toFixed(1), step:'The whole game runs faster, both acts, without using banked time (up to ×2)'},
@@ -1220,22 +1176,12 @@ const ngpPts = () => { const pr = S.pr || {}; return pr.pts != null ? pr.pts : (
 const ngpSpent = () => NGP.reduce((a, r) => a + ngpLv(r.id), 0);
 const ngpFree = () => Math.max(0, ngpPts() - ngpSpent());
 function ngpEarn(n, why){ S.pr = S.pr || {n:0, pts:0}; S.pr.pts = ngpPts() + n; HOOK.ngpEarn(n, why); }
-function ngpAdjust(id, d){
-  const r = NGP.find(x => x.id === id); if (!r || !S.pr) return false;
-  const k = ngpLv(id);
-  if (d <= 0) return false;   // spent points stay where they are
-  if (k >= r.max || ngpFree() < 1) return false;
-  S.pr[id] = k + d; M = mods();
-  if (S.life.hp > M.maxHp) S.life.hp = M.maxHp;
-  return true;
-}
 const drainDiv = () => S && S.life && isA2(S.life.sec || 1) ? 1 + (drainAt(ngpLv('drain')) - 1) * A2_SHARE : drainAt(ngpLv('drain'));   // Act I reward: drain dampener (Act II: 10%)
 const ngpSpeed = () => speedAt(ngpLv('speed'));    // Act I reward: overclock, flat game speed for the whole game, free
 function mods(){
   const L = S.life, P = S.perks;
-  const m = {sk:{}, xpSk:{}, zsp:{}, zxp:{}, spd:1, xp:1, haz:1, maxHp:100, /* the Energy bar starts at 100; only storage optimization (legacy), records and gear add cells */ pRat:0, pSal:0, crossCost:1, stationRes:1, strainMul:1, regen:0.05, ratCap:5, salCap:5, fcap:{}, pFood:{}, fq:{}, foodSpd:1, a2haz:1, a2strain:1, a2sal:1, a2food:1, a2fam:1, wear:1};
+  const m = {zsp:{}, zxp:{}, spd:1, xp:1, haz:1, maxHp:100, /* the Energy bar starts at 100; only storage optimization (legacy), records and gear add cells */ pRat:0, pSal:0, crossCost:1, stationRes:1, strainMul:1, regen:0.05, ratCap:5, salCap:5, fcap:{}, pFood:{}, fq:{}, foodSpd:1, a2haz:1, a2strain:1, a2sal:1, a2food:1, a2fam:1, wear:1};
   FOODS.forEach(f => { m.fcap[f.id] = f.cap; m.pFood[f.id] = 0; m.fq[f.id] = 1; }); m.fcap.ration = STORE_CAP[L.sec || 1] || 5; m.fspd = {};
-  SKILLS.forEach(k => { m.sk[k.id] = 1; m.xpSk[k.id] = 1; });
   const ap = e => {
     if (!e) return;
     if (e.zsp) for (const k in e.zsp) m.zsp[k] = (m.zsp[k] || 1) * e.zsp[k];   // work in section k faster
@@ -1262,12 +1208,6 @@ function mods(){
   m.pRat = FOODS.reduce((a, f) => a + m.pFood[f.id], 0);
   return m;
 }
-// Each level makes work 10% faster; levels come slowly.
-const xpNeed = l => 152.6 * Math.pow(1.61051, l);
-// Neural echo: every point of XP a skill has ever gained, in any clone, adds to a flat speed
-// multiplier for that skill: x(1 + sqrt(total XP / ECHO_XP)). Diminishing returns, never resets.
-const ECHO_XP = 5000;
-const echoSpeed = s => 1 + Math.sqrt(((S.xpTot && S.xpTot[s]) || 0) / ECHO_XP);
 const isDone = id => (S.life.done[id] || 0) >= T[id].reps;
 // Legacy themes are revealed one by one as Act II sections are first reached
 const LEGACY_REVEAL = {hp:7, drain:9, growth:11, speed:13};   // Act II sections 2, 4, 6 and 8
@@ -1276,13 +1216,12 @@ const reqMet = id => isDone(id) || !legacyOpen(T[id]);   // an unrevealed legacy
 const available = t => t.z === (S.life.sec || 1) && legacyOpen(t) && !(t.kind === 'job' && t.prod && t.prod.rations && stationLeft(t.z) <= 0.01) && t.req.every(reqMet) && (!t.parts || complete(t) || (S.life.paid || {})[t.id] || S.life.salvage >= t.parts);
 const complete = t => t.kind !== 'job' && isDone(t.id);
 const lifeDays = () => Infinity;   // no lifespan limit
-function skF(s){ return (1 + 0.1 * S.life.lv[s]) * echoSpeed(s) * M.sk[s]; }
 // (The old last-quarter ageing slowdown was removed; strain alone limits a life.)
 function frailty(){ return 1; }   // ageing slowdown removed
 // Speed (no skills): each task gets faster the more of it you have done. Familiarity counts work in
 // completions, including unfinished attempts, and is kept between clones (it resets with new game plus).
 // speed = 1 + 9 x min(1, familiarity / N), so N completions' worth of a task reaches x10. N starts at
-// FAM_N0 lives' worth of the task and shrinks with every finished run and with Deep echo.
+// FAM_N0 lives' worth of the task and shrinks with every finished run and with the Echo legacy.
 // The old skill names stay as task types, for gear and records that favour one kind of work.
 // No task types any more: gear and records speed up the work of a whole section
 function tagF(t){ return (M.zsp && M.zsp[t.z]) || 1; }
@@ -1291,7 +1230,7 @@ function speedOf(t){ return masteryF(t) * tagF(t) * M.spd * frailty() * (t.prod 
 // job batch adds one; a task's "unit" is one life's worth of it, and AUTO_LIVES units unlock it.
 const MASTER_MIN = 0.1;   // x10 at full familiarity
 const JOB_UNIT = 20;      // about what a life of steady work on a job delivers
-const FAM_N0 = 90, FAM_RUN = 0.75, FAM_ECHO = 0.69;   // threshold in units; x0.75 per finished run; x0.8 per Deep echo step
+const FAM_N0 = 90, FAM_RUN = 0.75, FAM_ECHO = 0.69;   // threshold in units; x0.75 per finished run; x0.8 per Echo legacy level
 function compUnit(t){ return t.kind === 'job' ? JOB_UNIT : t.kind === 'train' ? TRAIN_CAP : t.kind === 'rest' ? 1 : (t.reps || 1); }
 // The automation requirement shrinks with the familiarity threshold (new game plus runs, Deep echo):
 // 10 lives' worth in a first run, then the same share of the current threshold, never below 1.
@@ -1304,7 +1243,6 @@ const autoNeed = t => Math.max(1, Math.ceil(AUTO_LIVES * compUnit(t) * autoScale
 const gearNeed = it => Math.max(1, Math.ceil(AUTO_LIVES * (it && isA2(gearZone(it)) ? famN0A2() : famN0()) / FAM_N0));
 function famN0(){ const pr = S.pr || {}; return Math.max(1, FAM_N0 * Math.pow(FAM_RUN, pr.n || 0) * Math.pow(FAM_ECHO, ngpLv('growth'))); }
 const famNeed = t => famN0Of(t) * compUnit(t);
-const masterNeed = famNeed;
 function masteryFrac(t){ return Math.max(0, Math.min(1, ((S.fam || {})[t.id] || 0) / famNeed(t))); }
 function masteryFracOf(t, c){ return Math.max(0, Math.min(1, c / famNeed(t))); }
 function masteryF(t){ return 1 + (1 / MASTER_MIN - 1) * masteryFrac(t); }
@@ -1324,7 +1262,6 @@ function drillCredit(d){
 }
 // hazards hurt less the more familiar the task is (up to /4, like the old combat and resolve levels)
 function hazDmg(t){ return (t.haz || 0) * M.haz * M.a2haz / (1 + 3 * masteryFrac(t)); }
-function xpRate(t, s){ return 0; }   // skills are gone
 
 function pickFood(){
   let best = null, br = 0;
@@ -1366,7 +1303,6 @@ function active(ex){
   if (ok(feed)) return feed;
   const scav = scavJob();   // spare parts for the ship, like foraging
   if (ok(scav)) return scav;
-  if ((L.strain || 1) >= restAt()) { const r = TASKS.find(t => t.kind === 'rest' && isAuto(t) && available(t) && !complete(t) && ok(t)); if (r) return r; }
   // Gear paid for is assembled before anything else (after food and rests)
   if (L.assem && L.assem.length) { const bt = BT[L.assem[0]]; if (bt && ok(bt)) return bt; }
   const held = heldStep();
@@ -1378,7 +1314,7 @@ function active(ex){
     const z = L.sec || 1, g = sectionGate(z), end = sectionEnd(z);
     if (!g.ready || !end || complete(end)) endRun(L, !end || complete(end) ? 'done' : 'notready');
     else {
-      const step = pendingActs()[0] || pendingGearJob() || fillJob() || pendingRest();
+      const step = pendingActs()[0] || pendingGearJob() || fillJob();
       if (step) { if (ok(step)) { L.viaChain = true; return step; } }
       else if (available(end)) { L.crossNow = end.id; if (ok(end)) { L.viaChain = true; return end; } }
     }
@@ -1533,7 +1469,6 @@ function fillJob(){
   return null;
 }
 const CROSS_HOLD = 0.5;   // ticks short of completion where an automated crossing waits
-function pendingRest(){ return TASKS.find(t => t.kind === 'rest' && isAuto(t) && available(t) && !complete(t)) || null; }
 // Automated actions and training in this section that are not finished or maxed, by priority
 function pendingActs(){
   return TASKS.filter(t => (t.kind === 'train' || (t.kind === 'act' && !t.cross)) && isAuto(t) && available(t) && !complete(t))
@@ -1555,7 +1490,7 @@ function pendingGearJob(){
 }
 // A crossing (queued or automated) stops just short of finishing while there is still something to
 // do in this section. Tapping the crossing yourself ("do it now") skips the wait.
-function crossPending(t){ return S.life.crossNow !== t.id && (pendingActs().length || pendingGearJob() || (fillJob()) || pendingRest()); }
+function crossPending(t){ return S.life.crossNow !== t.id && (pendingActs().length || pendingGearJob() || fillJob()); }
 // Section-end hold: when a crossing reaches its threshold with work left, it stays in the queue
 // marked as held (L.held), and at its place in the queue the missing items run in priority order.
 // Anything you put above it in the queue runs first. Once nothing is left, it completes.
@@ -1587,12 +1522,11 @@ function holdList(){
     .sort((a, b) => ITEMS.indexOf(a) - ITEMS.indexOf(b))[0];
   if (g && pendingGearJob()) out.push('build ' + g.name);
   if (fillJob()) out.push('refill storage');
-  const r = pendingRest(); if (r) out.push(r.name);
   return out;
 }
 function holdTask(t){
   if (!crossHeld(t)) return null;
-  return pendingActs()[0] || pendingGearJob() || fillJob() || pendingRest() || null;
+  return pendingActs()[0] || pendingGearJob() || fillJob() || null;
 }
 function crossHeld(t){ return (S.life.prog[t.id] || 0) >= t.days - CROSS_HOLD - 1e-9 && !!crossPending(t); }
 // Gear automation: a design built in AUTO_LIVES different lives can be built automatically.
@@ -1652,13 +1586,6 @@ function jobFull(t){
   if (t.prod.salvage) return L.salvage >= M.salCap - 0.01;
   return false;
 }
-function gainXp(s, a){
-  const L = S.life; L.xp[s] += a;
-  if (!S.xpTot) S.xpTot = {};
-  S.xpTot[s] = (S.xpTot[s] || 0) + a;
-  let n = xpNeed(L.lv[s]);
-  while (L.xp[s] >= n) { L.xp[s] -= n; L.lv[s]++; n = xpNeed(L.lv[s]); }
-}
 function finish(t){
   const L = S.life;
   L.done[t.id] = (L.done[t.id] || 0) + 1;
@@ -1671,12 +1598,6 @@ function finish(t){
     if (complete(t)) qConsumeAll(t.id); else qConsumeRep(t.id);
     if (complete(t)) HOOK.taskDone(t);   // all sessions of this life done
     HOOK.change();
-    return;
-  }
-  if (t.kind === 'rest') {
-    L.strain = (L.strain || 1) / 2;   // may drop below 1
-    qConsumeAll(t.id);
-    HOOK.rested(t); HOOK.taskDone(t); HOOK.change();
     return;
   }
   const r = t.reward || {};
@@ -1756,7 +1677,6 @@ function die(cause){
   S.engramT = dt0 && dt0.kind !== 'job' && !complete(dt0) && (L.prog[dt0.id] || 0) > 0 ? {id:dt0.id, p:L.prog[dt0.id]} : null;   // for the Engram recorder
   L.dead = true; L.cause = cause; L.cur = null; L.cur2 = null;
   const age = L.day / TPD;
-  SKILLS.forEach(k => { if (L.lv[k.id] > S.echo[k.id]) S.echo[k.id] = L.lv[k.id]; });
   // Hardened genome: every full day a clone survives adds 0.8 max health to all later clones (base caps at 500).
   L.vitGain = Math.floor(L.day / TPD) * 0.8;
   S.vit = (S.vit || 0) + L.vitGain;
@@ -1786,7 +1706,6 @@ function step(dt){
   // Health drains all the time; hazards add to it. Meals put some back. (New game plus can damp it.)
   const h1 = t.haz ? hazDmg(t) : 0, h2 = 0, ht = t;
   L.wear = (L.wear || 0) + dt;
-  L.strain = (L.strain || 1) + dt * strainRate(L.wear);
   // Act II: the ship slowly wears out; wear adds to the drain until spare parts repair it
   if (wearsHere(L.sec)) L.shipWear = (L.shipWear || 0) + dt / TPD * wearRate(L.sec || 1);
   if (L.rcd) L.rcd = Math.max(0, L.rcd - dt);
@@ -2006,7 +1925,6 @@ function chainRunKey(ck){
 }
 // Queue entry helpers: which section an entry belongs to, and whether it crosses out of it
 function qEntryZone(q){ if (isCQ(q)) { const x = cSteps(q).find(y => !isGQ(y)); return x ? T[x].z : 99; } if (isGQ(q)) return IT[q.slice(2)] ? gearZone(IT[q.slice(2)]) : 99; return T[q] ? T[q].z : 99; }
-function qEntryCrosses(q){ return isCQ(q) ? cSteps(q).some(x => !isGQ(x) && isFinisher(T[x])) : !!(T[q] && isFinisher(T[q])); }
 // Legacy parts are never queued for you: a warning says when new ones open up in this life
 function legacyCheck(){
   const L = S.life; if (!S.won || L.dead) return; L.lgw = L.lgw || {};
@@ -2099,7 +2017,6 @@ function qConsumeAll(id){ const L = S.life; while (L.queue.includes(id)) qConsum
 function qConsumeRep(id){ if (S.life.now !== id && qCount(id) > 1) qConsume(id); }
 function qRemoveAt(i){ const L = S.life, id = L.queue[i]; if (id == null) return; L.queue.splice(i, 1); if (isCQ(id) || (T[id] && T[id].legacy)) (L.cdis = L.cdis || {})[id] = 1;   // a chain you removed stays out (this life)
   if (L.held === id && !L.queue.includes(id)) L.held = null; }
-function qRemove(id){ const L = S.life; if (L.held === id) L.held = null; L.queue = L.queue.filter(x => x !== id); }
 // Chains are pinned at the top of the queue, in run order (section by section); everything else follows in its own order
 function pinChains(){
   const L = S.life, cq = L.queue.filter(isCQ).sort((a, b) => chainRunKey(a) - chainRunKey(b)), rest = L.queue.filter(q => !isCQ(q));
@@ -2119,24 +2036,6 @@ function qMoveTo(i, to){
   to = Math.max(0, Math.min(L.queue.length - 1, to));
   if (to === i || isCQ(L.queue[i])) return;
   const [id] = L.queue.splice(i, 1); L.queue.splice(Math.max(to, qPinned()), 0, id);   // never above the pinned chains
-}
-// New game plus: everything resets except the rewards, settings, presets and the
-// time-away limit, which carries over and keeps adding up (+8 h per section finished, every run).
-function prestige(choice){
-  const o = S, pr = o.pr || {n:0, growth:0, drain:0, hp:0, carry:0, runs:[]};
-  const carry = Math.min(AWAY_CAP - AWAY_BASE, (pr.carry || 0) + AWAY_STEP * WATCH.filter(p => o.perks[p.id]).length);
-  const ns = defaultState();
-  ns.set = o.set; ns.set.paused = false;
-  ns.qpresets = o.qpresets; ns.intro = true; ns.flow = o.flow || 0; ns.bestAll = o.bestAll || null;
-  ns.a2 = o.a2 || ns.a2;   // Act II familiarity, practice, and records carry over; its sections are replayed
-  TASKS.forEach(t => { if (isA2(t.z)) { if ((o.fam || {})[t.id]) ns.fam[t.id] = o.fam[t.id]; if ((o.prac || {})[t.id]) ns.prac[t.id] = o.prac[t.id]; } });
-  ITEMS.forEach(i => { if (isA2(gearZone(i)) && (o.gprac || {})[i.id]) ns.gprac[i.id] = o.gprac[i.id]; });   // the best clone ever survives new game plus
-  // automation settings carry over: on/off switches and priorities for tasks and gear (the queue does not)
-  ns.auto = o.auto || {}; ns.prio = o.prio || {}; ns.gauto = o.gauto || {}; ns.gprio = o.gprio || {};
-  ns.stats.played = o.stats.played || 0;
-  ns.pr = {n:pr.n + 1, pts:(pr.pts != null ? pr.pts : pr.n || 0) + 1, growth:Math.min(5, (pr.growth || 0) + (choice === 'growth' ? 1 : 0)), drain:Math.min(5, (pr.drain || 0) + (choice === 'drain' ? 1 : 0)), hp:Math.min(5, (pr.hp || 0) + (choice === 'hp' ? 1 : 0)), speed:Math.min(5, (pr.speed || 0) + (choice === 'speed' ? 1 : 0)), carry,
-    runs:(pr.runs || []).concat([{clones:o.winGen || o.gen, played:Math.round(o.stats.played || 0), pick:choice}]), kit:!!pr.kit};
-  S = ns; checkKit(); starterKit(S.life); M = mods(); S.life.hp = M.maxHp;
 }
 // Quartermaster's cache: a permanent unlock once all 20 Act I reward points are earned. Every clone
 // starts with every design whose automation is on (Act I and Act II gear alike).
@@ -2348,7 +2247,6 @@ function fmt(n){
   return n.toFixed(a > 0 && a < 1 ? 2 : 1);
 }
 const perDay = r => r * DPS * 60;                  // per-tick rate -> per minute of in-game time
-const lifeShown = ticks => ticks / TPD;            // ticks -> days
 // In-game time: how long something takes at normal speed (x1, no Overclock), as a clock. Real time is
 // the same span at the current game speed (see realSecs). Ticks are the game's internal unit.
 function fmtDays(t){ return isFinite(t) ? fmtReal(t / DPS) : '\u221e'; }
@@ -2376,7 +2274,6 @@ function fmtReal(sec){
 // Durations show in-game time and the real time it takes at the current speed
 const both = t => isFinite(t) ? fmtDays(t) + ' \u00b7 ' + fmtReal(realSecs(t)) : '\u221e';
 // Work estimates (tasks, chains, the queue) also show the real time they take at the current speed
-const bothR = days => isFinite(days) ? fmtDays(days) + ' \u00b7 ' + fmtReal(realSecs(days)) : '\u221e';
 // The same as coloured HTML: in-game time blue, real time amber (remaining time is shown in red where it appears)
 const clkG = t => '<span class="tgm">' + fmtDays(t) + '</span>', clkR = sec => '<span class="trl">' + fmtReal(sec) + '</span>';
 const bothH = t => isFinite(t) ? clkG(t) + ' \u00b7 ' + clkR(realSecs(t)) : '\u221e';
@@ -2417,7 +2314,6 @@ function survival(){
   let hp = L.hp, strain = L.strain || 1, t = 0, why = '';
   const dt = 5, eatOn = S.set.autoEat;
   while (t < lifeLeft) {
-    strain += dt * strainRate((L.wear || 0) + t);
     hp -= drainNow(strain, haz, (L.wear || 0) + t, L.sec || 1) * dt;
     fs.forEach(f => {
       f.stock = Math.min(f.cap, f.stock + f.gain * dt); f.cd -= dt;
@@ -2609,12 +2505,6 @@ function mergeState(raw){
   s.stats = Object.assign(defaultState().stats, raw.stats || {});
   if (raw.stats && raw.stats.played == null) s.stats.played = (raw.hist || []).reduce((a, e) => a + (e.r || 0), 0) + ((raw.life && !raw.life.dead && raw.life.real) || 0);
   if (Array.isArray(s.log)) s.log.forEach(e => { const t = TASKS.find(x => x.name === e.t || (x.id === 'warden' && (e.t === 'Negotiate with WARDEN' || e.t === 'Demand the drive codes from WARDEN'))); if (t && t.log) { e.t = t.name; e.x = t.log; } });
-  if (!raw.ev) {   // v2 echo: estimate total XP from the old echo levels (capped), and rescale levels
-    s.xpTot = {};
-    SKILLS.forEach(k => { let tot = 0; for (let l = 0; l < (s.echo[k.id] || 0) && tot < 200000; l++) tot += xpNeed(l); s.xpTot[k.id] = Math.min(200000, tot);
-      if (s.life && s.life.echo0) s.life.echo0[k.id] = s.xpTot[k.id]; });
-  }
-  if (!s.xpTot) s.xpTot = {};
   // Task redesign (tv 2): actions were split in two. The new first halves start with what you had on
   // the task they came from (familiarity, practice, automation, seen), scaled to their own completion units.
   if (!raw.tv || raw.tv < 2) {
@@ -2687,18 +2577,9 @@ function mergeState(raw){
     const f = FOOD_OF[Math.min(5, s.life.sec || 1)];
     s.life.food[f] = Math.max(0, s.life.rations || 0);
   }
-  if (!raw.sv) {   // skill levels rescaled 5:1 in v2
-    SKILLS.forEach(k => {
-      s.echo[k.id] = Math.floor((s.echo[k.id] || 0) / 5);
-      if (s.life && s.life.lv) { s.life.lv[k.id] = Math.floor((s.life.lv[k.id] || 0) / 5); s.life.xp[k.id] = 0; }
-      if (s.life && s.life.echo0) s.life.echo0[k.id] = Math.floor((s.life.echo0[k.id] || 0) / 5);
-    });
-  }
   s.sv = 2;
-  SKILLS.forEach(k => { if (s.echo[k.id] == null) s.echo[k.id] = 0; });
   const L = s.life;
   ['done','prog','cyc','bat','owned','lv','xp','echo0','food','mcd'].forEach(k => { if (!L[k]) L[k] = {}; });
-  SKILLS.forEach(k => { if (L.lv[k.id] == null) L.lv[k.id] = 0; if (L.xp[k.id] == null) L.xp[k.id] = 0; });
   if (!Array.isArray(L.queue)) L.queue = [];
   L.queue = L.queue.filter(id => qItem(id));
   if (Array.isArray(L.qdone)) L.qdone = L.qdone.filter(id => qItem(id));
@@ -2807,7 +2688,6 @@ HOOK.runEnd = (from, to, why) => { taskKey = ''; autoKey = '';
   const msg = why === 'act' ? 'Run finished at the end of the act.' : why === 'done' || from !== to ? 'Run finished: ' + span + '.' + (last !== to ? ' Now in ' + zoneThe(to) + ', which isn\u2019t ready to run yet.' : '') : 'Run stopped: ' + zoneThe(to) + ' isn\u2019t ready to run yet.';
   if (S.set.pauseRunEnd) { S.set.paused = true; toast(msg + ' Paused; press Resume to carry on.', true); }
   else toast(msg); };
-HOOK.rested = t => { sfx('eat'); toast('Patched. Fault halved to \u00d7' + (S.life.strain || 1).toFixed(2) + '.'); };
 HOOK.perk = p => { sfx('perk'); toast('Archive record: ' + p.name, true); if (tab !== 'archive') newPerk = true; archKey = ''; };
 HOOK.change = () => { taskKey = ''; gearKey = ''; if (S && S.life) pinChains(); };
 HOOK.practiced = t => { sfx('perk'); taskKey = ''; autoKey = ''; toast('Automated: \u201c' + t.name + '\u201d' + (S.auto[t.id] ? ' now runs by itself (tap AUTO to switch it off).' : ' can run by itself (tap AUTO).'), true); };
@@ -3031,18 +2911,6 @@ function renderTasks(){
           </button></div>`;   // jobs: no queue or automation buttons (auto-forage, gear and crossings run them)
       });
     }
-    if (rests.length) {
-      h += '<div class="sub">Patches · once per life · halves the fault</div>';
-      rests.forEach(t => {
-        const qi = L.queue.indexOf(t.id);
-        h += `<div class="task act rest" data-id="${t.id}">
-          <button class="tm" data-do="${t.id}"><div class="tf"></div>
-            <div class="th"><span class="tn">${esc(t.name)}</span><span class="te num"></span></div>
-            <div class="tx">${chips(t)}<span>fault \u00f72</span><span class="num">${masteryTxt(t)}</span>${practiced(t) ? `<span>auto at fault \u00d7${restAt()}</span>` : `<span class="num">auto ${S.prac[t.id] || 0}/${autoNeed(t)}</span>`}</div>
-          </button>
-          <div class="side">${tqBtn(t)}${autoBtn(t)}</div></div>` + prioPick(t);
-      });
-    }
     if (trains.length) {
       h += `<div class="sub">Drills · up to ${TRAIN_CAP} sessions each per life · each session adds familiarity to every task in this section</div>`;
       trains.forEach(t => {
@@ -3262,7 +3130,7 @@ const secFold = {};
 const folded = (tabk, z) => zBefore(z, S.life.sec || 1) && !secFold[tabk + ':' + z];
 function renderSkills(){
   const L = S.life;
-  let h = `<div class="panel"><span class="h2">Familiarity</span><p class="note">Every task gets faster the more of it your clones have done, counting unfinished attempts too: speed = 1 + 9 \u00d7 (familiarity \u00f7 needed), up to \u00d710. Familiarity is kept between clones. This run needs ${fmt(famN0())} lives' worth of a task for \u00d710; every finished run (and each Deep echo step) lowers it. Drills add familiarity to every task in their section.</p><p class="note"><b>Chain flow \u00d7${flowMul().toFixed(2)}</b> (max \u00d7${1 + FLOW_MAX}): steps run as part of a chain (a queued chain or a one-click section run) work this much faster. It grows with every bit of chained work and is kept for good.</p></div>`;
+  let h = `<div class="panel"><span class="h2">Familiarity</span><p class="note">Every task gets faster the more of it your clones have done, counting unfinished attempts too: speed = 1 + 9 \u00d7 (familiarity \u00f7 needed), up to \u00d710. Familiarity is kept between clones. This run needs ${fmt(famN0())} lives' worth of a task for \u00d710; every finished run (and each Echo legacy level) lowers it. Drills add familiarity to every task in their section.</p><p class="note"><b>Chain flow \u00d7${flowMul().toFixed(2)}</b> (max \u00d7${1 + FLOW_MAX}): steps run as part of a chain (a queued chain or a one-click section run) work this much faster. It grows with every bit of chained work and is kept for good.</p></div>`;
   ZONES.forEach(z => {
     const ts = TASKS.filter(t => t.z === z.id && (S.ever[t.id] || (S.seen || {})[t.id]));   // only tasks you have seen
     if (!ts.length) return;
@@ -3373,19 +3241,6 @@ function ngpPanel(){
   if (pr.carry) h += `<tr><td>Time away carried over</td><td>${Math.min(pr.carry || 0, AWAY_CAP - AWAY_BASE) / 3600} h</td></tr>`;
   h += '</table>';
   return h + '</div>';
-}
-function showNgp(){
-  const done = NGP.every(r => ngpLv(r.id) >= r.max);
-  showModal(`<h2>New game plus</h2>
-    <p>WARDEN files the ship as delivered and opens a fresh line of maintenance clones for the return voyage. Nothing of this line remains: no echoes, no records, no practice.</p>
-    <p class="d">This run earns one reward point. Put it into a reward now (you can move points around later, any time):</p>
-    <div class="ngpick">
-      ${NGP.map(r => { const k = ngpLv(r.id), full = k >= r.max;
-        return `<button class="btn" data-ngpick="${r.id}" ${full ? 'disabled' : ''}>${r.name} ${Math.min(k + 1, r.max)}/${r.max}<small>${full ? 'Fully upgraded: ' + r.now(k) + '.' : r.step + '. After this: ' + r.now(k + 1) + '.'}</small></button>`; }).join('')}
-      <button class="btn" data-ngpick="none">Keep the point unspent<small>${done ? 'Every reward is maxed out.' : 'Spend it later from the Archive; points can be moved between rewards at any time.'}</small></button>
-    </div>
-    <p class="d">Your current progress in this slot is erased. Export a save first if you want a copy.</p>
-    <div class="btns"><button class="btn" data-close>Not yet</button></div>`);
 }
 function renderArchive(force){
   const key = Object.keys(S.perks).join() + JSON.stringify(S.a2 || {}) + (S.branch || '') + S.merge + '|' + S.gen + '|' + JSON.stringify(S.set) + '|' + S.won + '|' + Math.floor((S.stats.played || 0) / 60) + '|' + JSON.stringify(S.pr);
@@ -3648,9 +3503,9 @@ function renderAuto(){
   const L = S.life;
   const list = TASKS.filter(t => practiced(t) && t.kind !== 'job');   // jobs aren't automated
   const glist = ITEMS.filter(gearPracticed);
-  const key = JSON.stringify(secFold) + (S.life.sec || 1) + list.map(t => t.id + (S.auto[t.id] ? '*' : '') + (masteryF(t) >= SECTION_F ? 5 : masteryF(t) >= LINK_F ? 2 : 1)).join() + '|' + glist.map(i => i.id + (S.gauto[i.id] ? '*' : '')).join() + '|' + (S.life.chainRun ? 'R' : '') + '|' + L.sec + '|' + S.gen + '|' + !!S.set.fillCross + !!S.set.autoFeed + '|' + restAt() + '|' + (S.set.deathScreen !== false) + (S.set.deathPause !== false) + !!S.set.startPaused + !!S.set.bgPause + !!S.set.pauseCross + decantUnlocked() + (S.stats.deaths || 0);
+  const key = JSON.stringify(secFold) + (S.life.sec || 1) + list.map(t => t.id + (S.auto[t.id] ? '*' : '') + (masteryF(t) >= SECTION_F ? 5 : masteryF(t) >= LINK_F ? 2 : 1)).join() + '|' + glist.map(i => i.id + (S.gauto[i.id] ? '*' : '')).join() + '|' + (S.life.chainRun ? 'R' : '') + '|' + L.sec + '|' + S.gen + '|' + !!S.set.fillCross + !!S.set.autoFeed + '|' + (S.set.deathScreen !== false) + (S.set.deathPause !== false) + !!S.set.startPaused + !!S.set.bgPause + !!S.set.pauseCross + decantUnlocked() + (S.stats.deaths || 0);
   if (key === autoKey) return; autoKey = key;
-  let h = `<div class="panel"><span class="h2">Automation</span><p class="note">Tasks finished often enough can run by themselves (${autoScale() < 1 ? 'this run needs ' + Math.round(autoScale() * 100) + '% of' : ''} 10 lives' worth: an action 10 times, a training session 40 times), and gear built in ${AUTO_LIVES} lives can be built automatically (in ship order; the clone saves up for the next one). Switch them on here. They run in chain order: each after the tasks it needs. Linked tasks form chains, and a fully chained section can be run with one click. Automated tasks run ahead of your queue; automated crossings wait until the queue is done. Rests fire on their own at strain ×${restAt()}, and also just before an automated crossing if the section\u2019s rest is still unused.</p>
+  let h = `<div class="panel"><span class="h2">Automation</span><p class="note">Tasks finished often enough can run by themselves (${autoScale() < 1 ? 'this run needs ' + Math.round(autoScale() * 100) + '% of' : ''} 10 lives' worth: an action 10 times, a training session 40 times), and gear built in ${AUTO_LIVES} lives can be built automatically (in ship order; the clone saves up for the next one). Switch them on here. They run in chain order: each after the tasks it needs. Linked tasks form chains, and a fully chained section can be run with one click. Automated tasks run ahead of your queue; automated crossings wait until the queue is done.</p>
     ${foodSettingsHtml()}${partsSettingsHtml()}
     <div class="row"><p>Charge when needed<small>Charging stations step in when charge cells run low, or when energy is low and recharges can still restore it faster than it drains. They refill to what is needed, then the interrupted task carries on.</small></p><button class="tog${S.set.autoFeed ? ' on' : ''}" data-set="autoFeed" aria-label="Charge when needed" aria-pressed="${!!S.set.autoFeed}"></button></div>
 </div>`;
@@ -3677,7 +3532,6 @@ function renderAuto(){
       const on = !!S.auto[t.id], f = masteryF(t);
       h += `<div class="arow${on ? ' on' : ''}"><div class="an"><b>${esc(t.name)}</b><span>${KIND_LABEL[t.kind]}${t.cross ? ' · crossing' : ''} · ${chips(t)} · \u00d7${fmt(f)}${f >= SECTION_F ? '' : f >= LINK_F ? ' (links)' : ' (links at \u00d7' + LINK_F + ')'}</span></div>
         <button class="tog${on ? ' on' : ''}" data-auto="${t.id}" aria-pressed="${on}" aria-label="Automate ${esc(t.name)}"></button>
-        ${t.kind === 'rest' ? `<div class="aprio note">Runs at fault ×${restAt()}</div>` : ''}
       </div>`;
     }));
     if (gl.length) h += '<div class="sub asub">Gear</div>';
@@ -3691,18 +3545,6 @@ function renderAuto(){
   });
   $('#v-auto').innerHTML = h;
   bindFoodPct();
-  const ra = $('#rest-at');
-  if (ra) {
-    const setRA = commit => {
-      let v = parseFloat(String(ra.value).replace(',', '.'));
-      if (!isFinite(v)) { if (commit) ra.value = restAt(); return; }
-      v = Math.round(Math.max(1, Math.min(20, v)) * 10) / 10;
-      S.set.restAt = v; if (commit) { ra.value = v; autoKey = ''; taskKey = ''; }
-    };
-    ra.addEventListener('input', () => setRA(false));
-    ra.addEventListener('change', () => { setRA(true); renderAuto(); });
-    ra.addEventListener('keydown', e => { if (e.key === 'Enter') { setRA(true); ra.blur(); } });
-  }
 }
 
 
@@ -3713,11 +3555,11 @@ const FAQ_ALL = [
   ['What are jobs, actions and training?', '<b>Jobs</b> repeat and make charge cells or salvage in batches; they stop when that storage is full. <b>Actions</b> are one-off tasks that unlock things and move the story on. Each needs certain earlier actions, and a section\u2019s last action (its crossing) needs every other action of that section. Tasks you have met before stay listed, greyed out, until what they need is done; you can still queue them. <b>Drills</b> each add a little familiarity to every task in their section, up to 4 sessions per life.'],
   ['How does the queue work?', 'Tapping a task runs it right away, ahead of the queue (a job runs until its store is full); it is not added to the queue. <b>+</b> adds a task to the end of the queue; drag it or use the arrows to move it up. You can queue the same task several times at different places: tap + again for another copy. A task queued once runs until it is done; with several copies, each copy covers one repetition (one training session, one rep, or one fill of a store). The queue holds up to 100 items. Drag an item by the handle on its left to move it, or use the arrows; ✕ removes it. Queued jobs run until their storage is full. You can queue things you have seen before even if they are not available yet; they wait their turn. Gear can be queued too, with the <b>+</b> on its card (gear is listed in each section of the Tasks tab): the clone works the best salvage job until it can afford the design, then builds it. Five presets save and load whole queues, and <b>Keep queue between clones</b> gives each new clone the queue you planned, minus anything that is automated and switched on.'],
   ['Energy and charge cells', 'Clones are biomechanical: as long as they have energy, the body is sustained. The <b>Energy</b> bar drains all the time; each recharge uses one <b>charge cell</b> and puts energy back. <b>Every recharge restores the same amount</b>; what changes is how often the clone can recharge. Charge cells are carried up to the clone\u2019s <b>storage capacity</b>, which grows as the clone gets deeper into the ship (5 in the Vat Bay, up to 90 in the Main Drive, in steps of 5), plus gear and records. Each section has a <b>charging station</b> job, but it only opens partway into the section and holds a limited <b>reserve</b> per clone life; when it is drained, the clone has to cross or run down. Every crossing also costs a share of the cells carried, more the further into the ship you go, so a clone always arrives living on what it brought. At first a clone can recharge every 5 seconds of in-game time. Each section has one <b>charger upgrade</b> action that shortens the wait between recharges for the rest of that life, down to about 2 seconds, and adds half again to that section\u2019s station reserve; each clone has to fix them again. Recharges are always whole, and the clone only recharges when it needs to: when a whole recharge fits under full energy, or sooner once energy is down to half. At full energy no cell is used. With no cells left at all, the clone runs down. The Hive Ship\u2019s only charging comes late, so arrive charged.'],
-  ['What carries over when a clone dies?', '<b>Familiarity</b> is kept: every task stays as fast as your clones have made it (see the Speed tab). Every 10 seconds of in-game time a clone survives is analysed afterwards, run and memory alike, and becomes an <b>efficiency patch</b>: later clones drain their energy a little more slowly, up to \u00f71.6. <b>Archive records</b> found by finishing certain actions are permanent upgrades. Gear, charge cells, salvage and progress through the ship reset.'],
+  ['What carries over when a clone dies?', '<b>Familiarity</b> is kept: every task stays as fast as your clones have made it (see the Mastery tab). Every 10 seconds of in-game time a clone survives is analysed afterwards, run and memory alike, and becomes an <b>efficiency patch</b>: later clones drain their energy a little more slowly, up to \u00f71.6. <b>Archive records</b> found by finishing certain actions are permanent upgrades. Gear, charge cells, salvage and progress through the ship reset.'],
   ['What are sections?', 'The ship is split into five sections. A <b>red</b> action leads to the next one, and the way back is sealed for that clone, so finish what you need first (records, the rest, training, gear). Each new clone starts back in the Vat Bay.'],
   ['What is gear?', 'Gear is built from salvage (called spare parts in Act II: the same store) and lasts for one clone. Each section has designs to build. Building one pays its salvage up front, then the clone spends time <b>assembling</b> it (bigger designs take longer, from a moment for a toolkit to half a minute or so of in-game time for the largest); assembly comes before other work and gets faster with familiarity. The gear works once it is assembled. Salvage storage is limited; opening up more of the ship raises it.'],
-  ['What is familiarity?', 'There are no skills: each task gets faster on its own the more of it your clones have done. Familiarity counts work in completions, including attempts a clone died in the middle of, and is kept between clones. Speed rises smoothly from ×1 to ×10 once you have done enough of a task: in a first run, 90 lives’ worth of it (90 finishes of an action, 1800 batches of a job). Each level of the Act I reward <b>Deep echo</b> lowers that for Act I tasks by about 30%. Familiar tasks also hurt less (hazard damage up to ÷4), and a familiar charging station charges faster. <b>Drills</b> spread familiarity to every task in their section. The Speed tab lists every task.'],
-  ['How does automation work?', 'Every completion counts: finish an action 10 times (a multi-rep action 10 times its reps), or a training session 40 times, or build a design in 10 lives, and its automation <b>switches on by itself</b>. For Act I tasks these counts shrink along with the familiarity threshold (Deep echo), never below one; tap <b>AUTO</b> (or its switch in the Auto tab) to turn it off, and it stays off. Automated tasks run by themselves <b>ahead of your queue</b>, in chain order (each after the tasks it needs). Automated tasks <b>link into chains</b> when one requires the other and both are at least ×2 familiar. When every action and crossing of a section is automated and ×5 familiar, and all its gear designs are automated, the whole section becomes <b>one chain</b>: press <b>▶ Run section</b> (above the queue in the Tasks tab) and the clone works through everything, builds the gear, fills its stores and crosses. The run is pinned at the top of the queue and the queue\u2019s leftovers for its sections are cleared. Pressing it also turns on <b>Always run sections once ready</b> (Auto tab): from then on a run starts by itself whenever the section you are in is ready. Stop turns that off again. Ready sections next to each other link across their crossings into one run (<b>▶ Run 3 sections</b>), up to the end of the act; a run that dies starts again with the next clone. The option <b>Pause when a section run ends instead</b> keeps a run going through its crossings and pauses once it is over. A chain picks its next step itself each time: gear first, then charger upgrades, then the actions and drills in the order they depend on each other, and the crossing last. When a chain forms or grows, it <b>queues itself</b>, including the chains of sections still ahead, and chain entries are kept in the order they will run: section by section, and within a section the chain that starts earliest first, with the crossing\u2019s chain last, and anything of it you had queued separately is dropped from the queue. If you remove a chain from the queue, it stays out for the rest of that clone\u2019s life. Work done as part of a chain (a queued chain or a section run) builds <b>chain flow</b>, which makes chained steps up to five times as fast; it is kept for good. Jobs are never automated: auto-forage keeps the food up, queued and automated gear work the salvage jobs, and every crossing tops the stores up before the clone moves on. An automated <b>salvage</b> job only gathers what gear needs: the next auto-built or queued design that is found and not built yet; it does not top the store up to full (except while filling up before a crossing). Automated <b>crossings</b> are the exception: they wait until your queue is done. A task you tap runs before everything. The <b>Auto</b> tab lists everything unlocked and has extra options: feeding when needed, filling storage before moving on, the death screen and starting paused.'],
+  ['What is familiarity?', 'There are no skills: each task gets faster on its own the more of it your clones have done. Familiarity counts work in completions, including attempts a clone died in the middle of, and is kept between clones. Speed rises smoothly from ×1 to ×10 once you have done enough of a task: in a first run, 90 lives’ worth of it (90 finishes of an action, 1800 batches of a job). Each level of the <b>Echo</b> legacy theme lowers that for Act I tasks. Familiar tasks also hurt less (hazard damage up to ÷4), and a familiar charging station charges faster. <b>Drills</b> spread familiarity to every task in their section. The Mastery tab lists every task.'],
+  ['How does automation work?', 'Every completion counts: finish an action 10 times (a multi-rep action 10 times its reps), or a training session 40 times, or build a design in 10 lives, and its automation <b>switches on by itself</b>. For Act I tasks these counts shrink along with the familiarity threshold (Echo legacy), never below one; tap <b>AUTO</b> (or its switch in the Auto tab) to turn it off, and it stays off. Automated tasks run by themselves <b>ahead of your queue</b>, in chain order (each after the tasks it needs). Automated tasks <b>link into chains</b> when one requires the other and both are at least ×2 familiar. When every action and crossing of a section is automated and ×5 familiar, and all its gear designs are automated, the whole section becomes <b>one chain</b>: press <b>▶ Run section</b> (above the queue in the Tasks tab) and the clone works through everything, builds the gear, fills its stores and crosses. The run is pinned at the top of the queue and the queue\u2019s leftovers for its sections are cleared. Pressing it also turns on <b>Always run sections once ready</b> (Auto tab): from then on a run starts by itself whenever the section you are in is ready. Stop turns that off again. Ready sections next to each other link across their crossings into one run (<b>▶ Run 3 sections</b>), up to the end of the act; a run that dies starts again with the next clone. The option <b>Pause when a section run ends instead</b> keeps a run going through its crossings and pauses once it is over. A chain picks its next step itself each time: gear first, then charger upgrades, then the actions and drills in the order they depend on each other, and the crossing last. When a chain forms or grows, it <b>queues itself</b>, including the chains of sections still ahead, and chain entries are kept in the order they will run: section by section, and within a section the chain that starts earliest first, with the crossing\u2019s chain last, and anything of it you had queued separately is dropped from the queue. If you remove a chain from the queue, it stays out for the rest of that clone\u2019s life. Work done as part of a chain (a queued chain or a section run) builds <b>chain flow</b>, which makes chained steps up to five times as fast; it is kept for good. Jobs are never automated: auto-forage keeps the food up, queued and automated gear work the salvage jobs, and every crossing tops the stores up before the clone moves on. An automated <b>salvage</b> job only gathers what gear needs: the next auto-built or queued design that is found and not built yet; it does not top the store up to full (except while filling up before a crossing). Automated <b>crossings</b> are the exception: they wait until your queue is done. A task you tap runs before everything. The <b>Auto</b> tab lists everything unlocked and has extra options: charging when needed, the death screen and starting paused.'],
   ['What happens at a crossing with automation?', 'A queued or automated crossing stops just before it finishes and waits while the clone finishes automated actions and training, builds affordable automated gear, refills storage (if that option is on) and uses the section’s rest. Tap a crossing yourself to go at once.'],
   ['Pause, background and speed', 'Progress is saved on this device only (this browser or the app); use <b>Save files</b> in the main menu (\u2630) to back it up or move it, and <b>Restart</b> next to the slot there to start this slot over. Pause with the button at the top or the space bar. The game keeps running in a background tab and catches up when you return, then shows what happened while you were away. At most 8 hours of background time is played out; each <b>Stasis watch</b> record adds 8 hours (you get one the first time you finish each Act I section). Time while the game is fully closed does not count. The <b>speed menu</b> (\u00bb) at the top appears once Act I has been cleared: \u00d72 then, and \u00d75 once Act II has been cleared. It is a flat speed-up of real time, kept on this device for every save.'],
   ['Save management', 'The game saves itself every few seconds on this device. <b>Save Management</b> in the \u2630 menu holds: the three <b>save slots</b> (load one, copy your current game into another as a save state with \u201cSave here\u201d, or delete one); <b>Restart</b>, next to the slot you are playing, which starts that slot over; and <b>Save files and transfer</b>: export a save file, import one, copy the save as text to move it between devices, or share it to the game\u2019s GitHub folder and load shared saves from there.'],
@@ -3767,14 +3609,6 @@ function showWin(){
     <p>WARDEN begins the wake cycle, then stops. Proximity alarms. Something is closing on the ship.</p>
     <p class="d"><b>Act II</b> begins. The ship isn\u2019t done with K-7 yet: every clone that lights the drive carries on into whatever comes next. Going further will open up <b>legacy tasks</b> in Act I (see the Legacy tab), and the <b>Quartermaster\u2019s cache</b> is unlocked: from now on clones start with their automated gear.</p>
     <button class="btn pri" data-close>Continue</button>`);
-}
-// Pick this run's Act II branch; a clone standing at the lit drive goes straight in
-function chooseBranch(b){
-  if (S.branch) return;
-  S.branch = b; S.merge = b === 'B' ? null : S.merge;
-  const L = S.life;
-  if (!L.dead && L.sec === 5 && complete(T.ignite)) enterZone(b === 'A' ? 6 : 9, 5);
-  toast('Act II: ' + (b === 'A' ? 'Boarders' : 'The long watch') + '. Every clone that lights the drive carries on into it.', true);
 }
 
 /* ----- input ----- */
@@ -3879,19 +3713,6 @@ document.addEventListener('click', e => {
     return;
   }
   if ('ngp' in d) return;   // restarting Act I was removed
-  if (d.act2) { chooseBranch('A'); hideModal(); paused = false; taskKey = ''; archKey = ''; renderView(); return; }
-  if (d.merge != null) { S.merge = true; hideModal(); paused = false;
-    if (S.merge && S.life.sec === 8 && !S.life.dead && complete(T.cutloose)) enterZone(9, 8);
-    toast(S.merge ? 'The run continues into the long watch.' : 'The run ends with the boarders. You can still merge from the Archive.'); taskKey = ''; archKey = ''; renderView(); return; }
-  if (d.ngpadj) { if (ngpAdjust(d.ngpadj, +d.dd)) { sfx('toggle'); archKey = ''; legKey = ''; save(); renderView(true); } return; }
-  if (d.ngpick) {
-    const pr0 = S.pr || {};
-    const rw = NGP.find(r => r.id === d.ngpick), allDone = NGP.every(r => ngpLv(r.id) >= r.max);
-    if (!S.won || (rw ? ngpLv(rw.id) >= rw.max : d.ngpick !== 'none')) return;
-    prestige(d.ngpick); resetViews(); hideModal(); paused = false; save(); setTab('tasks');
-    toast('New game plus ' + S.pr.n + ' begins. ' + (rw ? rw.name + ' ' + ngpLv(rw.id) + '/' + rw.max + ': ' + rw.now(ngpLv(rw.id)) + '.' : 'Point kept unspent; spend it in the Archive.'), true);
-    return;
-  }
   if (L.dead && !d.confirm) return;
   if (d.do) {
     if (isCQ(d.do)) { L.now = d.do; L.foraging = false; L.feeding = false; toast('Running the chain: ' + cSteps(d.do).length + ' steps'); taskKey = ''; renderView(); return; }
@@ -3957,7 +3778,6 @@ document.addEventListener('click', e => {
     }
     clearTimeout(confirmT[k]); confirmT[k] = null;
     if (k === 'importfile') { b.textContent = 'Import save file'; $('#import-file').click(); return; }
-    if (k === 'ngpadd') { b.textContent = '+'; if (ngpAdjust(d.ngr, 1)) { const r = NGP.find(x => x.id === d.ngr); sfx('perk'); toast(r.name + ' ' + ngpLv(r.id) + '/' + r.max + ': ' + r.now(ngpLv(r.id)) + '.'); archKey = ''; legKey = ''; save(); renderView(true); } return; }
     if (k === 'ghload') { b.textContent = 'Load'; ghLoad(+d.gi); return; }
     if (k === 'import') {
       b.textContent = 'Load pasted text';
@@ -4033,7 +3853,7 @@ setInterval(() => { if (document.hidden && S && !S.set.bgPause) tick(performance
 let awaySnap = null;
 function snapshot(){
   return {t:Date.now(), gen:S.gen, days:(S.stats.daysLived || 0) + S.life.day, rations:S.life.rations, salvage:S.life.salvage,
-    xp:Object.assign({}, S.xpTot || {}), deaths:S.stats.deaths || 0, log:S.log.length, perks:Object.keys(S.perks).length,
+    deaths:S.stats.deaths || 0, log:S.log.length, perks:Object.keys(S.perks).length,
     sec:S.life.sec, hp:S.life.hp, owned:Object.keys(S.life.owned).length, hist:(S.hist || []).length};
 }
 function showAway(a){
@@ -4041,7 +3861,6 @@ function showAway(a){
   const days = (b.days - a.days) / TPD, secs = (b.t - a.t) / 1000;
   if (days < 0.05 && b.gen === a.gen) return false;
   const sign = v => (v >= 0 ? '+' : '\u2212') + fmt(Math.abs(v));
-  const xpRows = SKILLS.map(k => ({k, g:(b.xp[k.id] || 0) - (a.xp[k.id] || 0)})).filter(r => r.g > 0.5);
   const newLogs = S.log.slice(a.log).map(e => e.t);
   const newPerks = Object.keys(S.perks).length - a.perks;
   let h = `<h2>While you were away</h2><p class="d">${fmtSecs(secs)} in the background \u00b7 ${fmtDays(days * TPD)} in-game aboard</p><table class="dt">`;
