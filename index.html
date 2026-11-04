@@ -490,7 +490,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
 
 <script id="logic">
 /* ===== Game data and rules (no DOM) ===== */
-const BUILD = '2026-11-04 · overclock x2';   // shown in the main menu, to tell which version is loaded
+const BUILD = '2026-11-04 · legacy auto-queue';   // shown in the main menu, to tell which version is loaded
 const DPS = 8;             // simulation ticks per real second at 1x (doubled for the test version: same balance, half the real time)
 // Time is simulated in ticks. 80 ticks make one ship day (18 minutes each), so a day lasts
 // 20 real seconds at 1x and a clone lives weeks, not years. Everything is shown in days and hours.
@@ -1716,8 +1716,24 @@ function chainRunKey(ck){
   const z = ts.length ? ts[0].z : 99;
   return zRank(z) * 1e7 + (ts.some(isFinisher) ? 1e6 : 0) + Math.min(...ts.map(chainOrd));
 }
+// Legacy tasks that can't be automated yet queue themselves each life (just before their section's
+// crossing), so clones learn them; once automated, chains and section runs take over. One you remove
+// from the queue stays out for that life.
+function qEntryZone(q){ if (isCQ(q)) { const x = cSteps(q).find(y => !isGQ(y)); return x ? T[x].z : 99; } if (isGQ(q)) return IT[q.slice(2)] ? gearZone(IT[q.slice(2)]) : 99; return T[q] ? T[q].z : 99; }
+function qEntryCrosses(q){ return isCQ(q) ? cSteps(q).some(x => !isGQ(x) && isFinisher(T[x])) : !!(T[q] && isFinisher(T[q])); }
+function queueLegacy(){
+  const L = S.life; if (!S.won) return false; let changed = false;
+  TASKS.forEach(t => {
+    if (!t.legacy || isAuto(t) || (L.done || {})[t.id] || L.queue.includes(t.id) || (L.cdis || {})[t.id] || zBefore(t.z, L.sec || 1) || L.queue.length >= QMAX) return;
+    if (L.queue.some(q => isCQ(q) && cSteps(q).includes(t.id))) return;
+    let at = L.queue.findIndex(q => zAfter(qEntryZone(q), t.z) || (qEntryZone(q) === t.z && qEntryCrosses(q)));
+    if (at < 0) at = L.queue.length;
+    L.queue.splice(at, 0, t.id); changed = true;
+  });
+  return changed;
+}
 function absorbChains(){
-  const L = S.life; let changed = false;
+  const L = S.life; let changed = queueLegacy();
   const p = pathOf(), from = Math.max(0, p.indexOf(L.sec || 1));
   p.slice(from).forEach(z => chainsOf(z).forEach(c => {
     const ck = chainKeyFor(c[0]); if (!ck) return;
@@ -1794,7 +1810,7 @@ function qConsume(id){ const L = S.life, i = L.queue.indexOf(id); if (i < 0) ret
 function qConsumeAll(id){ const L = S.life; while (L.queue.includes(id)) qConsume(id); }
 // one repetition finished: with more copies queued, the first copy is used up
 function qConsumeRep(id){ if (S.life.now !== id && qCount(id) > 1) qConsume(id); }
-function qRemoveAt(i){ const L = S.life, id = L.queue[i]; if (id == null) return; L.queue.splice(i, 1); if (isCQ(id)) (L.cdis = L.cdis || {})[id] = 1;   // a chain you removed stays out (this life)
+function qRemoveAt(i){ const L = S.life, id = L.queue[i]; if (id == null) return; L.queue.splice(i, 1); if (isCQ(id) || (T[id] && T[id].legacy)) (L.cdis = L.cdis || {})[id] = 1;   // a chain you removed stays out (this life)
   if (L.held === id && !L.queue.includes(id)) L.held = null; }
 function qRemove(id){ const L = S.life; if (L.held === id) L.held = null; L.queue = L.queue.filter(x => x !== id); }
 function qMove(i, dir){
@@ -3607,7 +3623,7 @@ document.addEventListener('click', e => {
   if (d.copen) { cOpen[d.copen] = !cOpen[d.copen]; taskKey = ''; renderView(); return; }
   if (d.qopen) { qOpen[d.qopen] = !qOpen[d.qopen]; taskKey = ''; renderView(); return; }
   if ('stopnow' in d) { L.now = null; taskKey = ''; renderView(); return; }
-  if ('clearq' in d) { L.queue.filter(isCQ).forEach(q => { (L.cdis = L.cdis || {})[q] = 1; }); L.queue = []; L.qdone = []; if (L.held) L.held = null; toast('Queue cleared'); taskKey = ''; renderView(); return; }
+  if ('clearq' in d) { L.queue.filter(q => isCQ(q) || (T[q] && T[q].legacy)).forEach(q => { (L.cdis = L.cdis || {})[q] = 1; }); L.queue = []; L.qdone = []; if (L.held) L.held = null; toast('Queue cleared'); taskKey = ''; renderView(); return; }
   if (d.buy) {
     if (buyItem(d.buy, false)) renderView();
     return;
