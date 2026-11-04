@@ -92,6 +92,9 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--amber);outline-
 .mn.train .mb{stroke-dasharray:1 3}
 .surv.warn b,.surv.warn em{color:var(--red)}
 .tx .tt{color:var(--dim)}
+.gtm{flex:1;min-width:0;text-align:left;background:none;border:0;padding:0;color:inherit;font:inherit;cursor:pointer}
+.gtm:disabled{cursor:default}
+.gcost{font-size:12px;color:var(--dim);white-space:nowrap;align-self:center}
 .eat.rep{border-color:var(--cyan);color:var(--cyan)}
 .eat{flex-basis:100%;margin-top:4px;font-size:12px;padding:5px 8px;border:1px solid var(--green);color:var(--green);border-radius:4px;text-align:center}
 .eat:disabled{border-color:var(--line);color:var(--faint);cursor:default}
@@ -483,7 +486,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
 
 <script id="logic">
 /* ===== Game data and rules (no DOM) ===== */
-const BUILD = '2026-11-04 · parts wording';   // shown in the main menu, to tell which version is loaded
+const BUILD = '2026-11-04 · tap gear to build';   // shown in the main menu, to tell which version is loaded
 const DPS = 8;             // simulation ticks per real second at 1x (doubled for the test version: same balance, half the real time)
 // Time is simulated in ticks. 80 ticks make one ship day (18 minutes each), so a day lasts
 // 20 real seconds at 1x and a clone lives weeks, not years. Everything is shown in days and hours.
@@ -1282,7 +1285,13 @@ function active(ex){
     if (next) { if (ok(next)) { L.viaChain = true; return next; } }
     else if (cSteps(L.now).every(x => cStepDone(L.now, x))) { if (L.cjd) Object.keys(L.cjd).forEach(k => { if (k.startsWith(L.now + '#')) delete L.cjd[k]; }); L.now = null; HOOK.change(); }
   }
-  if (L.now && !isCQ(L.now)) {
+  if (L.now && isGQ(L.now)) {   // a gear card you tapped: gather salvage until it can be paid, then it assembles
+    const it = IT[L.now.slice(2)];
+    if (!it || L.owned[it.id] || assembling(it.id) || !isDone(it.req) || it.cost > M.salCap) { L.now = null; HOOK.change(); }
+    else if (L.salvage >= it.cost) { buyItem(it.id, false); L.now = null; HOOK.change(); }
+    else { const j = bestSalvageJob(ok); if (j) return j; }
+  }
+  if (L.now && !isCQ(L.now) && !isGQ(L.now)) {
     const t = T[L.now];
     const over = !t || !available(t) || (t.kind === 'job' ? jobFull(t) : complete(t));
     if (over) { if (t && t.kind === 'job' && available(t)) HOOK.stopped(t); L.now = null; HOOK.change(); }
@@ -3026,6 +3035,8 @@ function renderSpeed(){
   if (h !== lastSpd) { lastSpd = h; $('#h-spd').innerHTML = h; }
 }
 let lastHg = '', planT = 0, lastQEta = '';   // the queue box is rebuilt on changes: it starts from the last estimate, so nothing blinks
+// A gear card can be tapped (like a task) when the design is found, fits the storage and isn't built yet
+const gearTap = i => { const L = S.life; return !L.dead && !L.owned[i.id] && !assembling(i.id) && isDone(i.req) && i.cost <= M.salCap; };
 // Projected build time on gear cards: gathering the missing salvage (best salvage job here) plus assembly
 let getaT = 0;
 function updateGearEta(){
@@ -3126,7 +3137,7 @@ function updateHud(){
   else if (S.set.paused) { $('#n-name').textContent = 'Paused' + (cur ? ': ' + cur.name : ''); $('#n-eta').textContent = 'tap Resume'; }
   else if (!cur) { $('#n-name').textContent = 'Time stopped. Pick a task below.'; $('#n-eta').textContent = ''; $('#n-fill').style.width = '0'; }
   else {
-    $('#n-name').textContent = (L.viaChain ? '\u26d3 \u00d7' + flowMul().toFixed(2) + ' \u00b7 ' : '') + (blip ? '' : L.feeding ? 'Recharging: ' : L.foraging ? 'Charging: ' : '') + cur.name;
+    $('#n-name').textContent = (L.viaChain ? '\u26d3 \u00d7' + flowMul().toFixed(2) + ' \u00b7 ' : '') + (blip ? '' : L.feeding ? 'Recharging: ' : L.foraging ? 'Charging: ' : '') + (L.now && isGQ(L.now) && IT[L.now.slice(2)] && cur.prod && cur.prod.salvage ? 'Gathering ' + salW() + ' for: ' + IT[L.now.slice(2)].name : cur.name);
     if (cur.kind !== 'job') {
       const sp = speedOf(cur) * (L.viaChain ? flowMul() : 1);
       $('#n-fill').style.width = ((L.prog[cur.id] || 0) / cur.days * 100).toFixed(1) + '%';
@@ -3175,8 +3186,8 @@ const gearReady = i => { const L = S.life; return isDone(i.req) && !L.owned[i.id
 function gearRow(i){
   const L = S.life, pr = gearPracticed(i), on = !!(S.gauto && S.gauto[i.id]);
   const st = pr ? (on ? 'built automatically when affordable' : 'can be automated') : 'built in ' + ((S.gprac || {})[i.id] || 0) + '/' + gearNeed(i) + ' lives';
-  return `<div class="item gitem"><div><h3${gearReady(i) ? ' class="gready"' : ''}>${esc(i.name)}</h3><p>${esc(i.desc)}</p><p class="num">${st}</p><p class="num geta" data-g="${i.id}"></p></div>` +
-    (L.owned[i.id] ? '<span class="owned">Built</span>' : assembling(i.id) ? `<span class="owned">Assembling ${Math.floor((L.prog['b:' + i.id] || 0) / BT[i.id].days * 100)}%</span>` : `<button class="buy" data-buy="${i.id}" ${L.salvage >= i.cost ? '' : 'disabled'}>${fmt(i.cost)} ${salW(gearZone(i))}${i.cost > M.salCap ? '<br><small>needs storage</small>' : ''}</button>${gqBtn(i)}`) +
+  return `<div class="item gitem"><button class="gtm" data-gdo="${i.id}" ${gearTap(i) ? '' : 'disabled'}><h3${gearReady(i) ? ' class="gready"' : ''}>${esc(i.name)}</h3><p>${esc(i.desc)}</p><p class="num">${st}</p><p class="num geta" data-g="${i.id}"></p></button>` +
+    (L.owned[i.id] ? '<span class="owned">Built</span>' : assembling(i.id) ? `<span class="owned">Assembling ${Math.floor((L.prog['b:' + i.id] || 0) / BT[i.id].days * 100)}%</span>` : `<span class="gcost num">${fmt(i.cost)} ${salW(gearZone(i))}${i.cost > M.salCap ? '<br><small>needs storage</small>' : ''}</span>${gqBtn(i)}`) +
     (pr ? `<button class="ta${on ? ' on' : ''}" data-gauto="${i.id}" aria-pressed="${on}" aria-label="Build ${esc(i.name)} automatically">AUTO</button>` : '') + '</div>';
 }
 function renderGear(){
@@ -3191,8 +3202,8 @@ function renderGear(){
   av.slice().sort((a, b) => gearZone(a) - gearZone(b)).forEach(i => {
     const z = gearZone(i);
     if (z !== lastZ) { lastZ = z; h += `<div class="sub" style="margin-top:12px">${ZONES[z - 1].name}</div>`; }
-    h += `<div class="item"><div><h3${gearReady(i) ? ' class="gready"' : ''}>${esc(i.name)}</h3><p>${esc(i.desc)}</p><p class="num geta" data-g="${i.id}"></p><p class="num">${gearPracticed(i) ? (S.gauto && S.gauto[i.id] ? 'Built automatically \u00b7 P' + gearPrio(i) : 'Automation available in the Auto tab') : 'Built in ' + ((S.gprac || {})[i.id] || 0) + '/' + AUTO_LIVES + ' lives'}</p></div>` +
-      (L.owned[i.id] ? '<span class="owned">Built</span>' : assembling(i.id) ? `<span class="owned">Assembling ${Math.floor((L.prog['b:' + i.id] || 0) / BT[i.id].days * 100)}%</span>` : `<button class="buy" data-buy="${i.id}" ${L.salvage >= i.cost ? '' : 'disabled'}>${fmt(i.cost)} ${salW(gearZone(i))}${i.cost > M.salCap ? '<br><small>needs storage</small>' : ''}</button>${gqBtn(i)}`) + '</div>';
+    h += `<div class="item"><button class="gtm" data-gdo="${i.id}" ${gearTap(i) ? '' : 'disabled'}><h3${gearReady(i) ? ' class="gready"' : ''}>${esc(i.name)}</h3><p>${esc(i.desc)}</p><p class="num geta" data-g="${i.id}"></p><p class="num">${gearPracticed(i) ? (S.gauto && S.gauto[i.id] ? 'Built automatically \u00b7 P' + gearPrio(i) : 'Automation available in the Auto tab') : 'Built in ' + ((S.gprac || {})[i.id] || 0) + '/' + AUTO_LIVES + ' lives'}</p></button>` +
+      (L.owned[i.id] ? '<span class="owned">Built</span>' : assembling(i.id) ? `<span class="owned">Assembling ${Math.floor((L.prog['b:' + i.id] || 0) / BT[i.id].days * 100)}%</span>` : `<span class="gcost num">${fmt(i.cost)} ${salW(gearZone(i))}${i.cost > M.salCap ? '<br><small>needs storage</small>' : ''}</span>${gqBtn(i)}`) + '</div>';
   });
   if (known.length) {
     h += '<div class="sub" style="margin-top:12px">Known designs, not found yet in this life</div>';
@@ -3570,7 +3581,7 @@ const FAQ_ALL = [
   ['What is the goal?', 'Restore the ship so WARDEN can wake the sleeping crew: the food system in the Hydroponics Ring, the energy system in the Engineering Spine and the stardrive in the Main Drive. The game ends when you ignite the drive. One clone cannot do it all; it takes many lives (around 50 with very good play).'],
   ['How do I start?', 'Tap a task to work on it right away. Climb out of the vat first, then tap the vat bay power bus for charge cells and strip wall panels for salvage. Time only moves while your clone is working: with nothing to do, the clock stops, so you can always read and plan.'],
   ['What are jobs, actions and training?', '<b>Jobs</b> repeat and make charge cells or salvage in batches; they stop when that storage is full. <b>Actions</b> are one-off tasks that unlock things and move the story on. Each needs certain earlier actions, and a section\u2019s last action (its crossing) needs every other action of that section. Tasks you have met before stay listed, greyed out, until what they need is done; you can still queue them. <b>Drills</b> each add a little familiarity to every task in their section, up to 4 sessions per life.'],
-  ['How does the queue work?', 'Tapping a task runs it right away, ahead of the queue (a job runs until its store is full); it is not added to the queue. <b>+</b> adds a task to the end of the queue; drag it or use the arrows to move it up. You can queue the same task several times at different places: tap + again for another copy. A task queued once runs until it is done; with several copies, each copy covers one repetition (one training session, one rep, or one fill of a store). The queue holds up to 100 items. Drag an item by the handle on its left to move it, or use the arrows; ✕ removes it. Queued jobs run until their storage is full. You can queue things you have seen before even if they are not available yet; they wait their turn. Gear can be queued too, with the <b>+</b> on its card (gear is listed in each section of the Tasks tab): the clone works the best salvage job until it can afford the design, then builds it. Five presets save and load whole queues, and <b>Keep queue between clones</b> gives each new clone the queue you planned, minus anything that is automated and switched on.'],
+  ['How does the queue work?', 'Tapping a task runs it right away, ahead of the queue (a job runs until its store is full); it is not added to the queue. Tapping a gear card works the same way: it is built right away, after gathering the salvage (parts in Act II) it still needs. <b>+</b> adds a task to the end of the queue; drag it or use the arrows to move it up. You can queue the same task several times at different places: tap + again for another copy. A task queued once runs until it is done; with several copies, each copy covers one repetition (one training session, one rep, or one fill of a store). The queue holds up to 100 items. Drag an item by the handle on its left to move it, or use the arrows; ✕ removes it. Queued jobs run until their storage is full. You can queue things you have seen before even if they are not available yet; they wait their turn. Gear can be queued too, with the <b>+</b> on its card (gear is listed in each section of the Tasks tab): the clone works the best salvage job until it can afford the design, then builds it. Five presets save and load whole queues, and <b>Keep queue between clones</b> gives each new clone the queue you planned, minus anything that is automated and switched on.'],
   ['Energy and charge cells', 'Clones are biomechanical: as long as they have energy, the body is sustained. The <b>Energy</b> bar drains all the time; each recharge uses one <b>charge cell</b> and puts energy back. <b>Every recharge restores the same amount</b>; what changes is how often the clone can recharge. Charge cells are carried up to the clone\u2019s <b>storage capacity</b>, which grows as the clone gets deeper into the ship (5 in the Vat Bay, up to 90 in the Main Drive, in steps of 5), plus gear and records. Each section has a <b>charging station</b> job, but it only opens partway into the section and holds a limited <b>reserve</b> per clone life; when it is drained, the clone has to cross or run down. Every crossing also costs a share of the cells carried, more the further into the ship you go, so a clone always arrives living on what it brought. At first a clone can recharge every 5 seconds of in-game time. Each section has one <b>charger upgrade</b> action that shortens the wait between recharges for the rest of that life, down to about 2 seconds, and adds half again to that section\u2019s station reserve; each clone has to fix them again. Recharges are always whole, and the clone only recharges when it needs to: when a whole recharge fits under full energy, or sooner once energy is down to half. At full energy no cell is used. With no cells left at all, the clone runs down. The Hive Ship\u2019s only charging comes late, so arrive charged.'],
   ['What carries over when a clone dies?', '<b>Familiarity</b> is kept: every task stays as fast as your clones have made it (see the Mastery tab). Every 10 seconds of in-game time a clone survives is analysed afterwards, run and memory alike, and becomes an <b>efficiency patch</b>: later clones drain their energy a little more slowly, up to \u00f71.6. <b>Archive records</b> found by finishing certain actions are permanent upgrades. Gear, charge cells, salvage and progress through the ship reset.'],
   ['What are sections?', 'The ship is split into five sections. A <b>red</b> action leads to the next one, and the way back is sealed for that clone, so finish what you need first (records, the rest, training, gear). Each new clone starts back in the Vat Bay.'],
@@ -3731,6 +3742,13 @@ document.addEventListener('click', e => {
   }
   if ('ngp' in d) return;   // restarting Act I was removed
   if (L.dead && !d.confirm) return;
+  if (d.gdo) {   // tapping a gear card: build it now, gathering salvage first if needed (not queued)
+    const it = IT[d.gdo]; if (!it || !gearTap(it)) return;
+    L.foraging = false; L.feeding = false;
+    if (L.salvage >= it.cost) { buyItem(it.id, false); L.now = null; }
+    else { L.now = 'g:' + it.id; toast('Gathering ' + salW(gearZone(it)) + ' for: ' + it.name); }
+    taskKey = ''; gearKey = ''; renderView(); return;
+  }
   if (d.do) {
     if (isCQ(d.do)) { L.now = d.do; L.foraging = false; L.feeding = false; toast('Running the chain: ' + cSteps(d.do).length + ' steps'); taskKey = ''; renderView(); return; }
     const t = T[d.do];
