@@ -25,7 +25,7 @@ for(let life=0;life<250&&!won;life++){
     if(!bj) bj=pickFood();
     L.job=bj?bj.id:null;
     ITEMS.forEach(i=>{if(typeof BT==="object"){buyItem(i.id,false);}else if(isDone(i.req)&&!L.owned[i.id]&&L.salvage>=i.cost){L.salvage-=i.cost;L.owned[i.id]=true;M=mods();}});
-    const z=Math.max(...TASKS.filter(t=>available(t)).map(t=>t.z)); if(!first[z])first[z]=S.gen;
+    const z=L.sec||1; if(!first[z])first[z]=S.gen; /* section reached (by id; the route is pathOf()) */
     const d0=L.day; advance(20); if(L.day===d0&&!L.dead){ if(!L.queue.length&&!L.job){L.job='algae'} advance(20); if(L.day===d0) die('stuck'); }
   }
   HIST.push(S.gen+":"+fmtG(L.day)+"/"+Math.min(500,100+Math.floor(S.vit||0))+(L.cause&&L.cause.startsWith("Telo")?"T":L.cause?"x":"W")); if(false) console.log(1,L.cause||'WON','done',L.order.length,SKILLS.map(k=>k.ab+L.lv[k.id]).join(' '));

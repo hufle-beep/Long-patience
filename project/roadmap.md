@@ -1,6 +1,6 @@
 # Roadmap: Selene: Tidelocked
 
-Last updated: 2026-11-04. Update in every push.
+Last updated: 2026-11-05. Update in every push.
 
 ## Order of work (owner, 2026-11-04)
 1. **Section-by-section playtesting and tuning** (now). Section 1 frozen; next the Taproot Galleries, then sections 3-14 one by one: the owner plays and uploads a save after each crossing, Claude proposes options for that section's knobs only, the owner freezes it.
@@ -10,8 +10,8 @@ Last updated: 2026-11-04. Update in every push.
 5. **Then either Act III, or publishing** on Google Play, itch.io and galaxy.click (see "Later" below).
 
 ## Next up
-- **Meteor shower redesign (approved 2026-11-04, see design.md):** Stage 1 new Act I section The Shattered Bark (after the Taproot Galleries) + fifth legacy theme Hardened grain; Stage 2 Act II reordered (long watch with Turnover first, Boarders + new The Mending with Rekindle the Hearthfire, then Arrival); Stage 3 480-year voyage clock and texts. Confirm each stage's exact changes before building.
-- Section 2 (Taproot Galleries) retune: waiting for the owner's playtest save.
+- **Meteor shower redesign (approved 2026-11-04, see design.md):** Stage 1 **built 2026-11-05** (The Shattered Bark, ward-lock, Hardened grain hidden). Next: Stage 2 Act II reordered (long watch with Turnover first, Boarders + new The Mending with Rekindle the Hearthfire, then Arrival); Stage 3 480-year voyage clock and texts. Confirm each stage's exact changes before building.
+- Section 2 (Taproot Galleries) retune: waiting for the owner's playtest save. The Shattered Bark (untuned: lean bot 21 seedlings, completionist 14) comes next in the retune order.
 
 ## Decided
 - **No iOS app** (owner, 2026-11-04): share the web link instead; iPhones play it in Safari. Don't propose a home-screen web app or a TestFlight build again unless the owner asks.
@@ -42,4 +42,5 @@ Last updated: 2026-11-04. Update in every push.
 See design.md: colony content held back from Act II, the Act II legacy themes from the old Honours, and four open questions.
 
 ## Done recently (see changelog.md for all)
+- 2026-11-05: meteor shower Stage 1: The Shattered Bark, the ward-lock, Hardened grain (hidden), six legacy finals per theme, route-based section order.
 - 2026-11-04: Hearth Tree reskin and lore (Root-Kin, Selene she/her, seedlings, sap cells, deadwood, grafts); new Act I order; Act II names; gravity and wards before the flip; Amber resin palette; intro rewrite; code cleanup; five save slots with names, death saves and overwrite panels; run totals; compact task cards; stasis watch ladder; Section 1 frozen.

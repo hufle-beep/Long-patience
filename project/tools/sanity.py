@@ -2,7 +2,7 @@ import base64,gzip,json,re
 from playwright.sync_api import sync_playwright
 URL='file:///home/claude/long-patience/index.html'
 up=gzip.decompress(base64.b64decode(open('/home/claude/long-patience/saves/hufle2-2026-11-04-1241-clone10.txt').read()[5:].strip())).decode()
-snaps={'taproot(old keys)':up,'contested':open('snap7.json').read(),'turnover':open('snap12.json').read()}
+snaps={'taproot(old keys)':up,'canopy(old build, ward-lock)':open('snap4old.json').read(),'contested':open('snap7.json').read(),'turnover':open('snap12.json').read()}
 BAD=re.compile(r"\b(undefined|NaN|null|[Cc]lones?|[Ss]alvage|[Dd]ecant\w*|Vat Bay|Hydroponics|Engineering Spine|Command Deck|Main Drive|reactor|stardrive|the The|pod bay|power bus|wall panels|main drive|drive is lit|lights it|section.s rest|[Dd]rive ignited|[Ll]it the main drive|drive is lit|drive is first lit)\b")
 errs=[]; problems=[]
 with sync_playwright() as p:
@@ -12,7 +12,7 @@ with sync_playwright() as p:
     print('data:', pg.evaluate("""()=>{ const names=TASKS.filter(t=>t.kind!=='build').map(t=>t.z+':'+t.name); const dup=names.filter((n,i)=>names.indexOf(n)!==i);
       const empty=TASKS.filter(t=>!t.name).length + ITEMS.filter(i=>!i.name||!i.desc).length + PERKS.filter(p=>!p.name||!p.desc).length;
       const gd=ITEMS.map(i=>i.name).filter((n,i,a)=>a.indexOf(n)!==i);
-      return {tasks:TASKS.length, items:ITEMS.length, perks:PERKS.length, dupTasks:dup, dupGear:gd, empty}; }"""))
+      const did=a=>a.map(x=>x.id).filter((x,i,arr)=>arr.indexOf(x)!==i); return {tasks:TASKS.length, items:ITEMS.length, perks:PERKS.length, dupTasks:dup, dupGear:gd, dupIds:did(TASKS).concat(did(ITEMS), did(PERKS)), empty}; }"""))
     for name,raw in [('fresh',None)]+list(snaps.items()):
         ctx=b.new_context(viewport={'width':420,'height':900}); pg=ctx.new_page(); pg.on('pageerror', lambda e,n=name: errs.append(n+': '+str(e)))
         if raw:
@@ -21,9 +21,11 @@ with sync_playwright() as p:
         pg.goto(URL); pg.wait_for_timeout(1000)
         if name=='fresh': pg.click('text=Begin the work cycle')
         pg.evaluate("()=>{ hideModal(); S.intro=true; logTables=true; S.set.deathScreen=false; S.set.deathPause=false; S.set.paused=false; paused=false; setSpeed && setSpeed(5); }") if False else pg.evaluate("()=>{ hideModal(); S.intro=true; logTables=true; S.set.deathScreen=false; S.set.paused=false; paused=false; }")
+        if 'ward-lock' in name:   # a seedling from before the Shattered Bark, already past the Taproot: sealed out of the kindling; tables moved to six Act I columns
+            print('ward-lock:', pg.evaluate("()=>({sec:S.life.sec, sealed:!reqMet('wardlift') && T.ignite.req.includes('wardlift'), finCols:(S.hist||[]).every(e=>!e.fin||e.fin.length===6), bestSec:(S.bestSec||[]).length, best:S.best&&S.best.sec, hullv:S.hullv})"))
         g0=pg.evaluate('S.gen'); d0=pg.evaluate('S.stats.daysLived+S.life.day')
         # fast-forward the real game loop a lot (advance in-page), with deaths and decants
-        pg.evaluate("()=>{ for(let i=0;i<4000;i++){ if(S.life.dead){ decant(); } if(!S.life.queue.length){ S.life.queue=TASKS.filter(t=>t.kind=='act'&&available(t)&&!complete(t)).map(t=>t.id); } if(!S.life.job){ const f=pickFood(); S.life.job=f?f.id:null; } advance(5); } save(); }")
+        pg.evaluate("()=>{ for(let i=0;i<4000;i++){ if(S.life.dead){ decant(); } if(!S.life.queue.length || !S.life.cur){ const a=TASKS.filter(t=>t.kind=='act'&&available(t)&&!complete(t)).map(t=>t.id); if(a.length) S.life.queue=a.concat(S.life.queue.filter(q=>!a.includes(q))); }   /* a kept queue may hold only later sections' work */ if(!S.life.job){ const f=pickFood(); S.life.job=f?f.id:null; } advance(5); } save(); }")
         pg.wait_for_timeout(1500)  # let the UI tick with the real loop
         print(f'{name}: gen {g0}->{pg.evaluate("S.gen")}, sec {pg.evaluate("S.life.sec")}, ticks +{round(pg.evaluate("S.stats.daysLived+S.life.day")-d0)}')
         for t in ['tasks','map','auto','skills','archive','legacy','log','faq']:

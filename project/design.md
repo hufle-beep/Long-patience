@@ -1,6 +1,6 @@
 # Selene: Tidelocked: Act II design (updated 2026-11-04, names as of build "the Hearth Tree")
 
-## APPROVED, NOT BUILT YET: meteor shower redesign (owner, 2026-11-04 23:37)
+## APPROVED: meteor shower redesign (owner, 2026-11-04 23:37). Stage 1 BUILT 2026-11-05 (build "the Shattered Bark"); Stages 2 and 3 not built yet
 Build in three stages, each tested and pushed on its own (HARD RULE: confirm the exact changes of each stage before building).
 
 **Lore**
@@ -15,7 +15,10 @@ Build in three stages, each tested and pushed on its own (HARD RULE: confirm the
 - Fix the Heartwood log "61 years behind schedule" to fit this, for example "120 years out; the shower knocked her off her current".
 - Add a voyage clock: each section header shows the year and the share of the way. The Act screens and a new FAQ entry "Selene's voyage" give the timeline.
 
-**Stage 1: new Act I section, position P1 (right after power)**
+**Stage 1: new Act I section, position P1 (right after power): BUILT** (owner's picks 2026-11-05: danger 1.075 and crossing 9.5% slotted in, nothing else moved; Resin pressure suit +10 energy and Tessaly's promise 20 -> 10; old-save seedlings past the Taproot stay sealed out of the kindling; Hardened grain built but hidden until The Mending, id 16)
+- As built: section id 15; actions scars, breachmap, resinseal, bracebough, greatgraft (needs bracebough and breachmap), sapcoax, barkcharger (charger upgrade 1.70), crossing wardlift (800, +15 deadwood carry, to the Heartwood); drills barkseal and graftdrill; jobs sapheal (cells 0.085) and barkstrip (deadwood 0.04); gear mendkit (20) and resinsuit (30); records hullog (hazard -10%) and watch15 (Stasis watch III, 1.5%). Regular work 3,150 units, length factor 1.0, cell storage 25, station reserve 10. Kindle the Hearth Tree also needs wardlift in the same life.
+- Act I Stasis watch ladder 1 / 1.5 / 1.5 / 2 / 2 / 2 %; display numerals renumbered in route order (ids kept).
+- Legacy level = share of a theme's six finals (was five). Shattered Bark set ids lgb*; Hardened grain set ids lg1w*, lg2w*, lgbw*, lg3w*, lg4w*, lg5w* (theme key `wear`, effect x(1 - 0.4 x level/3) on Act II wear).
 - New order: Seedling Vaults -> Taproot Galleries -> **The Shattered Bark** (subtitle "Hull · the meteor wounds") -> The Heartwood -> Canopy Gardens -> Ember Crown.
 - Content:
   - **2x2 interlocking steps before the crossing:** Map the meteor breaches -> Seal the smaller breaches with resin; Brace the split boughs -> Graft living bark over the great wound. Both pairs feed the crossing "Lift the ward-lock on the Hearth Tree's fire".
@@ -51,10 +54,10 @@ Notes:
 - No FTL: ships ride the ambient magic that saturates the universe at relativistic speed, inside magical ward-shields and with artificial gravity, and can turn on any axis without shear or friction. Halfway there Selene flips and brakes (Turnover: restore gravity, raise the wards, plot, then flip).
 - **Seedlings** (were clones): disposable drones of WARDEN and the Hearth Tree, grown for a specific task with limited autonomy. Regrown as a new version once their program and body can be improved; what one learned seeps back through the roots.
 - Terms: energy (unchanged), sap cells (were charge cells), deadwood (was salvage), grafts (Act II spare parts), sprout (was decant), return to the roots (was recycle).
-- Act I order: Seedling Vaults (clone stock) -> Taproot Galleries (power) -> The Heartwood (navigation, WARDEN's mind) -> Canopy Gardens (food) -> Ember Crown (propulsion; Kindle the Hearth Tree ends Act I).
+- Act I order: Seedling Vaults (clone stock) -> Taproot Galleries (power) -> The Shattered Bark (hull, the meteor wounds) -> The Heartwood (navigation, WARDEN's mind) -> Canopy Gardens (food) -> Ember Crown (propulsion; Kindle the Hearth Tree ends Act I).
 
 ## Flow
-- Act I = 5 sections. Kindling the Hearth Tree ends Act I; there is no restarting. Every seedling that kindles it carries on into Act II.
+- Act I = 6 sections (Seedling Vaults, Taproot Galleries, The Shattered Bark, The Heartwood, Canopy Gardens, Ember Crown). Kindling the Hearth Tree ends Act I; there is no restarting. Every seedling that kindles it carries on into Act II.
 - Act II is linear, three parts, nine sections:
   1. The boarders: Bark Breach, Contested Boughs, The Hive Ship (finale: Cut the hive loose).
   2. The long watch: The Long Current, The Drift, The Long Dark (finale: Reach the turnover point).
@@ -62,7 +65,7 @@ Notes:
 - Pacing: see playtest-notes.md (current: Act I 4.50 h, Act II 7.45 h in-game, lean bot).
 
 ## Difficulty
-- Danger ramp (drain and hazards): x1.0 in the Seedling Vaults, +5% per Act I section; Act II x2.12 (Bark Breach) up to x2.60 (Tessaly Orbit) after the +18% retune.
+- Danger ramp (drain and hazards): x1.0 in the Seedling Vaults, +5% per Act I section (the Shattered Bark slotted in at x1.075); Act II x2.12 (Bark Breach) up to x2.60 (Tessaly Orbit) after the +18% retune.
 - Stasis watch records cut drain: -10% across Act I, -50% in total.
 
 ## Ship wear and grafts (all of Act II)
@@ -73,7 +76,7 @@ Notes:
 - Running out of grafts lets wear climb; a death with drain x2 or more from wear reads "Worn down with the ship".
 
 ## Legacy tasks (replace the old Act I reward points)
-- Four themes, each with a set in every Act I section: Echo (Act I familiarity), Dampening (drain), Storage optimization (max energy), Overclock (game speed).
+- Five themes, each with a set in every Act I section: Echo (Act I familiarity), Dampening (drain), Storage optimization (max energy), Overclock (game speed), Hardened grain (Act II wear, revealed at The Mending from Stage 2).
 - Themes are revealed as Act II sections are first reached.
 - Each set = five actions: two pairs (A1 -> A2, B1 -> B2), then a final that needs A2 and B2. Only the final gives the bonus. A1, B1 need the section's last regular action. LEGACY_LEN 0.6.
 - Mandatory: once a theme is revealed, its finals are required for the section's crossing (and for kindling the Hearth Tree). Unrevealed themes don't block.

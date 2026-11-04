@@ -4,7 +4,7 @@ let html=fs.readFileSync(process.env.F||'/home/claude/long-patience/index.html',
 let logic=html.match(/<script id="logic">([\s\S]*?)<\/script>/)[1];
 const BR=process.argv[2]||'A';
 eval(logic+`
-globalThis.C2={}; { const _d=die; die=function(c){ const z=S.life.sec||1; const k=(z>=6?"A2 ":"A1 ")+(String(c).startsWith("Ran out")?"starved":String(c).startsWith("Drained")?"drain":"other"); C2[k]=(C2[k]||0)+1; return _d.apply(this,arguments); }; }
+globalThis.C2={}; { const _d=die; die=function(c){ const z=S.life.sec||1; const k=(isA2(z)?"A2 ":"A1 ")+(String(c).startsWith("Ran out")?"starved":String(c).startsWith("Drained")?"drain":"other"); C2[k]=(C2[k]||0)+1; return _d.apply(this,arguments); }; }
 S=defaultState(); M=mods(); S.life.hp=M.maxHp; S.perks.survival=true; S.set.autoFeed=true; S.set.foodPct=55; S.set.autoFood=true; S.set.autoEat=true;
 let won=false, winGen=0, winDays=0, done=false; HOOK.win=()=>{won=true};
 const first={}; const lives=[];
@@ -22,8 +22,8 @@ for(let life=0;life<400&&!done;life++){
     ITEMS.forEach(i=>{if(typeof BT==="object"){buyItem(i.id,false);}else if(isDone(i.req)&&!L.owned[i.id]&&L.salvage>=i.cost){L.salvage-=i.cost;L.owned[i.id]=true;M=mods();}});
     if(won&&!S.branch){ S.branch=BR==='B'?'B':'A'; if(BR==='AB') S.merge=true; winGen=S.gen; winDays=(S.stats.daysLived+L.day)/TPD; if(L.sec===5&&complete(T.ignite)) enterZone(S.branch==='A'?6:9,5); }
     const z=L.sec; if(!first[z])first[z]=S.gen;
-    if(!globalThis.T9&&L.sec===9){globalThis.T9=(S.stats.daysLived+L.day)/TPD;} if(!globalThis.T6&&L.sec===6){globalThis.T6=(S.stats.daysLived+L.day)/TPD;} const d0=L.day; const spd=ngpSpeed(); advance(20); const dd=L.day-d0; globalThis.RT=(globalThis.RT||0)+dd/(DPS*spd); if(L.sec>=6&&!globalThis.R6)globalThis.R6=globalThis.RT; if(L.sec>=9&&!globalThis.R9)globalThis.R9=globalThis.RT; if(L.sec>=12&&!globalThis.R12)globalThis.R12=globalThis.RT; globalThis.LV=[ngpLv('growth'),ngpLv('drain'),ngpLv('hp'),ngpLv('speed')].map(x=>x.toFixed(2)).join('/'); if(L.day===d0&&!L.dead){ if(!L.queue.length&&!L.job){L.job=pickFood()?pickFood().id:'algae'} advance(20); if(L.day===d0) die('stuck'); }
-    if(process.env.STOPZ&&L.sec>=+process.env.STOPZ&&(L.day-(L.secAt&&L.secAt[L.sec]?L.secAt[L.sec].d:0))>(+process.env.STOPT||400)){fs.writeFileSync(process.env.OUT,JSON.stringify(S));done=true;break;} if(BR==='A'&&S.a2run.done.A) done=true; if(BR!=='A'&&S.a2run.done.C) done=true;
+    if(!globalThis.T9&&L.sec===9){globalThis.T9=(S.stats.daysLived+L.day)/TPD;} if(!globalThis.T6&&L.sec===6){globalThis.T6=(S.stats.daysLived+L.day)/TPD;} const d0=L.day; const spd=ngpSpeed(); advance(20); const dd=L.day-d0; globalThis.RT=(globalThis.RT||0)+dd/(DPS*spd); if(isA2(L.sec)&&!globalThis.R6)globalThis.R6=globalThis.RT; if(isA2(L.sec)&&L.sec>=9&&!globalThis.R9)globalThis.R9=globalThis.RT; if(isA2(L.sec)&&L.sec>=12&&!globalThis.R12)globalThis.R12=globalThis.RT; globalThis.LV=[ngpLv('growth'),ngpLv('drain'),ngpLv('hp'),ngpLv('speed')].map(x=>x.toFixed(2)).join('/'); if(L.day===d0&&!L.dead){ if(!L.queue.length&&!L.job){L.job=pickFood()?pickFood().id:'algae'} advance(20); if(L.day===d0) die('stuck'); }
+    const RT_=(typeof ROUTE!=='undefined'?ROUTE:[1,2,3,4,5,6,7,8,9,10,11,12,13,14]); if(process.env.STOPZ&&RT_.indexOf(L.sec)>=RT_.indexOf(+process.env.STOPZ)&&(L.day-(L.secAt&&L.secAt[L.sec]?L.secAt[L.sec].d:0))>(+process.env.STOPT||400)){fs.writeFileSync(process.env.OUT,JSON.stringify(S));done=true;break;} if(BR==='A'&&S.a2run.done.A) done=true; if(BR!=='A'&&S.a2run.done.C) done=true;
   }
   lives.push(S.gen+':'+Math.round(L.day/DPS)+'s/z'+L.sec+(L.cause==='stuck'?'S':''));
   {const L=S.life; (globalThis.LIVES=globalThis.LIVES||[]).push([S.gen,Math.round(L.day/DPS)+'s',L.sec,(L.cause||'').slice(0,22),Math.round(M.maxHp),(L.strain||1).toFixed(1)]);}

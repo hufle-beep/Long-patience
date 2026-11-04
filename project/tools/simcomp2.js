@@ -27,10 +27,10 @@ for(let life=0;life<250&&!won;life++){
     if(!bj) bj=pickFood();
     L.job=bj?bj.id:null;
     ITEMS.forEach(i=>{if(typeof BT==="object"){buyItem(i.id,false);}else if(isDone(i.req)&&!L.owned[i.id]&&L.salvage>=i.cost){L.salvage-=i.cost;L.owned[i.id]=true;M=mods();}});
-    const z=Math.max(...TASKS.filter(t=>available(t)).map(t=>t.z)); if(!first[z])first[z]=S.gen;
+    const z=L.sec||1; if(!first[z])first[z]=S.gen; /* section reached (by id; the route is pathOf()) */
     const d0=L.day; advance(20); if(L.day===d0&&!L.dead){ if(!L.queue.length&&!L.job){L.job='algae'} advance(20); if(L.day===d0) die('stuck'); }
   }
-  TR.push('CLONE '+S.gen+' ('+(L.cause||'crossed')+' at '+fmtG(L.day)+' in-game, sec '+L.sec+', cells '+(L.food.ration||0).toFixed(1)+', fam hatch '+((S.fam||{}).hatch||0).toFixed(1)+') :: '+cur.join(' > ')); cur=[]; if(S.gen>=60||L.sec>1){ console.log(TR.join(' ##### ')); process.exit(0); }
+  TR.push('CLONE '+S.gen+' ('+(L.cause||'crossed')+' at '+fmtG(L.day)+' in-game, sec '+L.sec+', cells '+(L.food.ration||0).toFixed(1)+', fam hatch '+((S.fam||{}).hatch||0).toFixed(1)+') :: '+cur.join(' > ')); cur=[]; if(S.gen>=(+process.env.MAXG||60)||pathOf().indexOf(L.sec)>=pathOf().indexOf(+process.env.UPTO||2)){ /* UPTO=<section id>: stop once a seedling reaches it (default 2: the Seedling Vaults count) */ console.log(TR.join(' ##### ')); process.exit(0); }
   HIST.push(S.gen+":"+fmtG(L.day)+"/"+Math.min(500,100+Math.floor(S.vit||0))+(L.cause&&L.cause.startsWith("Telo")?"T":L.cause?"x":"W")); if(false) console.log(1,L.cause||'WON','done',L.order.length,SKILLS.map(k=>k.ab+L.lv[k.id]).join(' '));
   if(won)break; decant();
 }

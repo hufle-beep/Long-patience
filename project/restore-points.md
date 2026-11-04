@@ -8,7 +8,8 @@ The **Restore points** workflow (`.github/workflows/restore-points.yml`) runs on
 What the recent commits are (newest first):
 | Commit | What it is |
 |---|---|
-| (next) | Archive hides unrecovered records; Longest life in in-game time; last drive wording; meteor redesign written down |
+| (next) | Meteor shower Stage 1: The Shattered Bark, ward-lock, Hardened grain (hidden); route-based section order |
+| `01d6b4a` | Archive hides unrecovered records; Longest life in in-game time; last drive wording; meteor redesign written down |
 | `2dd542f` | Fix: the death screen's Sprout button works again; page locked behind pop-ups |
 | `443fcae` | FAQ unfolds with progress (kept on the device); Reset in Settings; export/restore all saves |
 | `8c63e56` | Test speed switch: x1/x2/x5 open from the start (test version only) |

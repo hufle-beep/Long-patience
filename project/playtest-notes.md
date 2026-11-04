@@ -50,6 +50,7 @@ Seedlings = seedlings that first reached the next section minus those that first
 |---|---|---|---|---|---|---|---|---|
 | 1 | Seedling Vaults | 2.212 (drills base 25) | 1.00 | 5 | 15 | - | completionist 10, lean 4-5; **user 9** | **FROZEN 2026-11-04** |
 | 2 | Taproot Galleries | 1.158 | 1.05 | 20 | 10 | 8% | 23 | next to retune |
+| 15 | **The Shattered Bark** (new, after the Taproot) | 1.0 | 1.075 | 25 | 10 | 9.5% | lean 21, completionist 14 | new, untuned |
 | 3 | The Heartwood | 0.686 | 1.10 | 35 | 15 | 11% | 21 | |
 | 4 | Canopy Gardens | 0.606 | 1.15 | 60 | 30 | 14% | 10 | |
 | 5 | Ember Crown | 0.372 | 1.20 | 90 | 30 | 17% | 7 | |
@@ -64,13 +65,14 @@ Seedlings = seedlings that first reached the next section minus those that first
 | 14 | Tessaly Orbit | 0.756 | 2.60 | 35 | 10 | 44% | 3 | |
 
 Lean bot totals:
+- Build "the Shattered Bark" (2026-11-05, current): Act I **5.70 h, 79 seedlings** (Seedling Vaults 4, Taproot 23, Shattered Bark 21, Heartwood 16, Canopy 8, Ember Crown 6); Act II 7.72 h (Boarders 3.49, Long Watch 2.46, Arrival 1.78), 53 deaths. Completionist: Seedling Vaults 10 (unchanged), Taproot 16, Shattered Bark 14. With Hardened grain forced on (revealed at Contested Boughs, test only): level 2.47, wear x0.67, Act II 8.20 h (its sets add Act I work).
 - Build "cleanup": Act I 4.71 h in-game, 66 seedlings; Act II 7.84 h, 62 seedlings.
 - Build "stasis tuning": Act I 4.50 h, 63 seedlings; Act II 7.00 h (Boarders 3.12, Long Watch 2.01, Arrival 1.87), 44 deaths.
-- Build "Act II danger +18%" and "the Hearth Tree" (current): Act I 4.50 h; Act II 7.45 h (Boarders 3.38, Long Watch 2.22, Arrival 1.85), 55 deaths. Trial levels: +5% 7.22 h / 48, +12% 7.29 h / 52, +24% 7.61 h / 59, +30% 7.74 h / 62.
+- Build "Act II danger +18%" and "the Hearth Tree": Act I 4.50 h; Act II 7.45 h (Boarders 3.38, Long Watch 2.22, Arrival 1.85), 55 deaths. Trial levels: +5% 7.22 h / 48, +12% 7.29 h / 52, +24% 7.61 h / 59, +30% 7.74 h / 62.
 
-Global: DRAIN_X 3.2, RESERVE_K 0.15 (Act II x0.5), energy bar 100 base, +100 Act I, +100 Boarders, +100 Long Watch, +100 legacy (cap 500). No fault, no patches. No away time: the game stops when hidden.
+Global: DRAIN_X 3.2, RESERVE_K 0.15 (Act II x0.5), energy bar 100 base, +100 Act I (Resin pressure suit +10, Tessaly's promise now +10), +100 Boarders, +100 Long Watch, +100 legacy (cap 500). No fault, no patches. No away time: the game stops when hidden.
 
-**Stasis watch ladder** (records Stasis watch I-XIV, one per section, each makes energy drain slower): 1, 1.5, 2, 2.5, 3 % (Act I, total -10%) | 3, 3.5, 4, 4, 4.5, 4.5, 5, 5.5, 6 % (Act II) = **-50% total**. Replaced the old +8 h of time away.
+**Stasis watch ladder** (records Stasis watch I-XV, one per section in route order, each makes energy drain slower): 1, 1.5, 1.5 (Shattered Bark), 2, 2, 2 % (Act I, total -10%; was 1, 1.5, 2, 2.5, 3 before the Shattered Bark) | 3, 3.5, 4, 4, 4.5, 4.5, 5, 5.5, 6 % (Act II) = **-50% total**. Replaced the old +8 h of time away.
 
 ### Seedling Vaults tuning log
 - Build "energy cap 500": completionist needed **29 seedlings** (each drill session about 30 s in-game after the 6.5x stretch); lean bot 10.

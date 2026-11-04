@@ -505,7 +505,7 @@ const MAX_DRAIN = 1.2;     // most health a young seedling can lose per tick (th
 // the end (good feeding buys time, not immortality); and each section is a little more dangerous than the
 // one before (hunger and hazards x DANGER), with a step up at the start of Act II.
 const CAP_DOUBLE = 30;
-const DANGER = {1:1.0, 2:1.05, 3:1.1, 4:1.15, 5:1.2, 6:2.12, 7:2.18, 8:2.24, 9:2.3, 10:2.36, 11:2.42, 12:2.48, 13:2.54, 14:2.6};
+const DANGER = {1:1.0, 2:1.05, 15:1.075, 3:1.1, 4:1.15, 5:1.2, 6:2.12, 7:2.18, 8:2.24, 9:2.3, 10:2.36, 11:2.42, 12:2.48, 13:2.54, 14:2.6};
 const danger = z => DANGER[z] || 1;
 function drainNow(haz, wear, z){ const k = danger(z); return Math.min((HUNGER + (haz || 0)) * k, MAX_DRAIN * k) * DRAIN_X * (1 - Math.min(0.9, (M && M.stasis) || 0)) / drainDiv() / vitDiv(); }   // stasis tuning (watch records) cuts the drain
 const DRAIN_X = 3.2;   // overall energy drain (with the fault gone, energy alone limits a seedling)
@@ -523,21 +523,23 @@ const FOODS = [
   {id:'ration',  z:1,  name:'Sap cells',           q:1,   cap:5,  job:null},
 ];
 const FD = {}; FOODS.forEach(f => FD[f.id] = f);
-const FOOD_OF = {}; for (let z = 1; z <= 14; z++) FOOD_OF[z] = 'ration';
+const FOOD_OF = {}; for (let z = 1; z <= 15; z++) FOOD_OF[z] = 'ration';
 // Energy pressure: each crossing costs a share of the cells carried (Supply manifests halve it), and each
 // section's charging station holds a limited reserve per seedling life (its charger upgrade adds half again).
-const crossCost = z => Math.min(0.45, 0.08 + 0.03 * Math.max(0, z - 2)) * ((M && M.crossCost) || 1);
+// Share of the cells carried that a crossing into section z costs (by section id: the Shattered Bark, id 15, sits after the Taproot Galleries)
+const CROSS_COST = {1:0.08, 2:0.08, 15:0.095, 3:0.11, 4:0.14, 5:0.17, 6:0.2, 7:0.23, 8:0.26, 9:0.29, 10:0.32, 11:0.35, 12:0.38, 13:0.41, 14:0.44};
+const crossCost = z => Math.min(0.45, CROSS_COST[z] || 0.08) * ((M && M.crossCost) || 1);
 const RESERVE_K = 0.15;   // share of an untrained seedling's recharges for the whole section that its station holds
 const SEC_TICKS = {};
 function stationMax(z){
   if (SEC_TICKS[z] == null) SEC_TICKS[z] = TASKS.filter(t => t.z === z && t.kind === 'act' && !t.legacy).reduce((a, t) => a + t.days * (t.reps || 1), 0);
   const up = TASKS.find(t => t.z === z && t.meal);
-  return Math.max(z === 1 ? 15 : 10, 5 * Math.round(RESERVE_K * (z >= 6 ? 0.5 : 1) * SEC_TICKS[z] / MEAL_CD / 5)) * (up && isDone(up.id) ? 1.5 : 1) * ((M && M.stationRes) || 1);
+  return Math.max(z === 1 ? 15 : 10, 5 * Math.round(RESERVE_K * (isA2(z) ? 0.5 : 1) * SEC_TICKS[z] / MEAL_CD / 5)) * (up && isDone(up.id) ? 1.5 : 1) * ((M && M.stationRes) || 1);
 }
 const stationLeft = z => Math.max(0, stationMax(z) - ((S.life.used || {})[z] || 0));
-const STORE_CAP = {1:5, 2:20, 3:35, 4:60, 5:90, 6:25, 7:25, 8:30, 9:25, 10:25, 11:30, 12:30, 13:30, 14:35}   // store sizes and increases come in steps of 5;
+const STORE_CAP = {1:5, 2:20, 15:25, 3:35, 4:60, 5:90, 6:25, 7:25, 8:30, 9:25, 10:25, 11:30, 12:30, 13:30, 14:35}   // store sizes and increases come in steps of 5;
 // The section upgrade actions and the ration strength each one brings (kept for the rest of the life)
-const MEAL_UP = {heatpaste:1.27, strains:1.54, packer:1.85, ovens:2.17, pantryfix:2.48, mess:2.55, synthfix:2.62, hivegel:2.7, graft:2.8, sprout:3.07, darkmess:3.2, burnmess:3.34, sysmess:3.45, feast:3.55};
+const MEAL_UP = {heatpaste:1.27, strains:1.54, barkcharger:1.7, packer:1.85, ovens:2.17, pantryfix:2.48, mess:2.55, synthfix:2.62, hivegel:2.7, graft:2.8, sprout:3.07, darkmess:3.2, burnmess:3.34, sysmess:3.45, feast:3.55};
 const REPAIR_UP = {ws6:1.15, ws7:1.3, ws8:1.45, ws9:1.6, ws10:1.75, ws11:1.9, ws12:2.05, ws13:2.2, ws14:2.35};
 function repairTier(){ const L = S && S.life; let q = 1; if (L) for (const id in REPAIR_UP) if (L.done && L.done[id]) q = Math.max(q, REPAIR_UP[id]); return q; }
 function mealTier(){ const L = S && S.life; let q = 1; if (L) for (const id in MEAL_UP) if (L.done && L.done[id]) q = Math.max(q, MEAL_UP[id]); return q; }
@@ -580,6 +582,7 @@ const MEAL_REGEN = 0.05;
 const ZONES = [
   {id:1, name:'Seedling Vaults',            sub:'Root deck · seedling stock',          tier:1},
   {id:2, name:'Taproot Galleries',   sub:'Power · the sap flow',                   tier:1.6},
+  {id:15, name:'The Shattered Bark',  sub:'Hull · the meteor wounds',                 tier:2},   // new id: ids 1-14 never change (saves keep progress by them)
   {id:3, name:'The Heartwood',  sub:'Navigation and WARDEN\u2019s mind',                 tier:2.4},
   {id:4, name:'Canopy Gardens',       sub:'Food · the hydroponic crown',  tier:3.4},
   {id:5, name:'Ember Crown',         sub:'Propulsion · the Hearth Tree\u2019s fire',                     tier:4.6},
@@ -595,13 +598,17 @@ const ZONES = [
   {id:14, name:'Tessaly Orbit',     sub:'Act II \u00b7 Arrival',         tier:5, act:2, br:'C'},
 ];
 const ZT = {}; ZONES.forEach(z => ZT[z.id] = z.tier);
-const ZN = id => ZONES[id - 1];
+const ZBY = {}; ZONES.forEach(z => ZBY[z.id] = z);
+const ZN = id => ZBY[id];
 const zoneThe = z => /^The /.test(ZN(z).name) ? 'the ' + ZN(z).name.slice(4) : 'the ' + ZN(z).name;   // 'the Seedling Vaults', 'The Long Current'
 const ACT2 = 6;   // first Act II section id
-const isA2 = z => z >= ACT2;
+const isA2 = z => !!(ZBY[z] && ZBY[z].act === 2);
 // The route through the ship: Act I, then Act II in order (the boarders, then the long watch)
+const ACT1 = [1, 2, 15, 3, 4, 5];   // Act I in route order (by section id)
+const ROUTE = ACT1.concat([6, 7, 8, 9, 10, 11, 12, 13, 14]);
+const nextZone = z => ROUTE[ROUTE.indexOf(z) + 1];   // the section a crossing out of z leads into
 function pathOf(){
-  const p = [1, 2, 3, 4, 5];
+  const p = ACT1.slice();
   if (S && (S.won || S.branch)) p.push(6, 7, 8, 9, 10, 11, 12, 13, 14);   // Act II is linear: the boarders, the long watch, the arrival
   return p;
 }
@@ -632,7 +639,7 @@ const TASKS = [
     log:'Forty-one pods. Most hold spare seedlings, half-grown, waiting for you to fail. The rest are split and dry.'},
   {id:'cables', z:1, kind:'act', name:'Graft sap to the vault’s thinking-knot', days:45, req:['search'], split:'terminal'},
   {id:'terminal', z:1, kind:'act', name:'Wake the thinking-knot', days:65, req:['cables','vats'], perk:'survival',
-    log:'WARDEN LOG: Commissioned by the World Government of the Root-Kin of Earth. Crew of 3,112 in stasis, vitals nominal. Degraded systems: sap flow, mind core, gardens, Hearthfire. Maintenance seedling line K authorised. Seedlings are consumable. Root echo retained for efficiency.'},
+    log:'WARDEN LOG: Commissioned by the World Government of the Root-Kin of Earth. Crew of 3,112 in stasis, vitals nominal. Degraded systems: sap flow, mind core, gardens, Hearthfire. Hull breached by a meteor shower. Hearthfire sealed under ward-lock until the hull is mended. Maintenance seedling line K authorised. Seedlings are consumable. Root echo retained for efficiency.'},
   {id:'hydraul', z:1, kind:'act', name:'Bleed the iris valve’s sap pressure', days:121, req:['terminal'], split:'hatch'},
   {id:'lg1ex', z:1, kind:'train', legacy:'growth', lset:'lg1e', lroot:true, name:'Rehearse the engram replays', days:40, req:[]},   // optional legacy drill
   {id:'lg1ea1', z:1, kind:'act', legacy:'growth', lset:'lg1e', lroot:true, name:'Recover a cracked engram cartridge', days:20, req:[]},
@@ -658,6 +665,12 @@ const TASKS = [
   {id:'lg1sb1', z:1, kind:'act', legacy:'speed', lset:'lg1s', lroot:true, name:'Grow extra cooling leaves', days:20, req:[]},
   {id:'lg1sb2', z:1, kind:'act', legacy:'speed', lset:'lg1s', name:'Stress-test the thinking-knot', days:20, req:['lg1sb1']},
   {id:'lg1s', z:1, kind:'act', legacy:'speed', lset:'lg1s', lfin:true, name:'Overclock the thinking-knot', days:40, req:['lg1sa2','lg1sb2']},   // legacy final: gives the bonus
+  {id:'lg1wx', z:1, kind:'train', legacy:'wear', lset:'lg1w', lroot:true, name:'Practise grain-reading on pod husks', days:40, req:[]},   // optional legacy drill
+  {id:'lg1wa1', z:1, kind:'act', legacy:'wear', lset:'lg1w', lroot:true, name:'Gather spent pod husks', days:20, req:[]},
+  {id:'lg1wa2', z:1, kind:'act', legacy:'wear', lset:'lg1w', name:'Read how their grain split', days:20, req:['lg1wa1']},
+  {id:'lg1wb1', z:1, kind:'act', legacy:'wear', lset:'lg1w', lroot:true, name:'Pull the vault\u2019s growth records', days:20, req:[]},
+  {id:'lg1wb2', z:1, kind:'act', legacy:'wear', lset:'lg1w', name:'Find the strongest grain pattern', days:20, req:['lg1wb1']},
+  {id:'lg1w', z:1, kind:'act', legacy:'wear', lset:'lg1w', lfin:true, name:'Seed tougher grain into the vault stock', days:40, req:['lg1wa2','lg1wb2']},   // legacy final: gives the bonus
   {id:'heatpaste', z:1, kind:'act', meal:true, name:'Root a charging tendril in the vault', days:40, req:['vats']},   // charger upgrade: recharges come more often
   {id:'hatch', z:1, kind:'act', cross:true, name:'Force the root-lock iris', days:193, lifeEff:{salCap:5}, req:['terminal'], perk:'muscle',
     log:'The root-lock iris gives with a groan of old sap. Beyond it lie the taproot galleries that carry Selene\u2019s power. They are rotting.'},
@@ -705,16 +718,69 @@ const TASKS = [
   {id:'lg2sb1', z:2, kind:'act', legacy:'speed', lset:'lg2s', lroot:true, name:'Graft faster valves', days:75, req:[]},
   {id:'lg2sb2', z:2, kind:'act', legacy:'speed', lset:'lg2s', name:'Balance the gallery sap pressure', days:75, req:['lg2sb1']},
   {id:'lg2s', z:2, kind:'act', legacy:'speed', lset:'lg2s', lfin:true, name:'Re-root the sap-pump governors', days:150, req:['lg2sa2','lg2sb2']},   // legacy final: gives the bonus
+  {id:'lg2wx', z:2, kind:'train', legacy:'wear', lset:'lg2w', lroot:true, name:'Rehearse root-binding knots', days:40, req:[]},   // optional legacy drill
+  {id:'lg2wa1', z:2, kind:'act', legacy:'wear', lset:'lg2w', lroot:true, name:'Find roots that survived the borers', days:75, req:[]},
+  {id:'lg2wa2', z:2, kind:'act', legacy:'wear', lset:'lg2w', name:'Test their fibre under load', days:75, req:['lg2wa1']},
+  {id:'lg2wb1', z:2, kind:'act', legacy:'wear', lset:'lg2w', lroot:true, name:'Grow a binding resin', days:75, req:[]},
+  {id:'lg2wb2', z:2, kind:'act', legacy:'wear', lset:'lg2w', name:'Bind a weak root with it', days:75, req:['lg2wb1']},
+  {id:'lg2w', z:2, kind:'act', legacy:'wear', lset:'lg2w', lfin:true, name:'Harden the taproot\u2019s grain', days:150, req:['lg2wa2','lg2wb2']},   // legacy final: gives the bonus
   {id:'strains', z:2, kind:'act', meal:true, name:'Re-root the sap pump\u2019s charger', days:150, req:['valves']},   // charger upgrade: recharges come more often
-  {id:'lift', z:2, kind:'act', cross:true, name:'Regrow the climbing vine-lift', days:803, lifeEff:{salCap:50}, req:['irrigation','medbay'], perk:'transit',
-    log:'The vine-lift climbs past the stasis groves. Through frosted resin, row after row of sleeping faces.'},
+  {id:'lift', z:2, kind:'act', cross:true, to:15, name:'Regrow the climbing vine-lift', days:803, lifeEff:{salCap:50}, req:['irrigation','medbay'], perk:'transit',
+    log:'The vine-lift climbs past the stasis groves. Through frosted resin, row after row of sleeping faces. Above them the outer bark is torn open.'},
+  // The Shattered Bark (section id 15, after the Taproot Galleries): the meteor shower's wounds in the outer hull
+  {id:'barkseal', z:15, kind:'train', name:'Pressure-seal drills on the outer bark', days:40, req:['breachmap']},
+  {id:'graftdrill', z:15, kind:'train', name:'Grafting drills on dead boughs', days:40, req:['bracebough']},
+  {id:'barkstrip', z:15, kind:'job', name:'Strip the shattered bark', prod:{salvage:0.04}, haz:0.05, req:['lift']},
+  {id:'scars', z:15, kind:'act', name:'Survey the scars', days:150, req:['lift'],
+    log:'Cold light through the bark. A meteor shower tore into Selene a quarter of the way to Tessaly, and her wounds still weep sap into the dark.'},
+  {id:'breachmap', z:15, kind:'act', name:'Map the meteor breaches', days:260, haz:0.12, req:['scars']},
+  {id:'resinseal', z:15, kind:'act', name:'Seal the smaller breaches with resin', days:480, haz:0.18, req:['breachmap'], perk:'hullog',
+    log:'Resin hardens over the last pinhole. The whistle of escaping air stops; you hadn\u2019t noticed it until now.'},
+  {id:'bracebough', z:15, kind:'act', name:'Brace the split boughs', days:300, haz:0.12, req:['scars']},
+  {id:'greatgraft', z:15, kind:'act', name:'Graft living bark over the great wound', days:760, haz:0.22, req:['bracebough','breachmap'],
+    log:'The new bark takes. Selene will carry the scar all the way to Tessaly.'},
+  {id:'sapcoax', z:15, kind:'act', name:'Coax sap back into the scarred wood', days:240, req:['resinseal']},
+  {id:'sapheal', z:15, kind:'job', name:'Charge off the healing sap', prod:{rations:0.085}, req:['sapcoax']},
+  {id:'barkcharger', z:15, kind:'act', meal:true, name:'Root a charger in the healing bark', days:160, req:['sapcoax']},   // charger upgrade: recharges come more often
+  {id:'lgbex', z:15, kind:'train', legacy:'growth', lset:'lgbe', lroot:true, name:'Rehearse the breach-crew engrams', days:40, req:[]},   // optional legacy drill
+  {id:'lgbea1', z:15, kind:'act', legacy:'growth', lset:'lgbe', lroot:true, name:'Find the seedlings lost to the vacuum', days:100, req:[]},
+  {id:'lgbea2', z:15, kind:'act', legacy:'growth', lset:'lgbe', name:'Recover their root echoes', days:100, req:['lgbea1']},
+  {id:'lgbeb1', z:15, kind:'act', legacy:'growth', lset:'lgbe', lroot:true, name:'Read the scorch patterns', days:100, req:[]},
+  {id:'lgbeb2', z:15, kind:'act', legacy:'growth', lset:'lgbe', name:'Match each wound to a lost seedling', days:100, req:['lgbeb1']},
+  {id:'lgbe', z:15, kind:'act', legacy:'growth', lset:'lgbe', lfin:true, name:'Learn from the seedlings lost in the breaches', days:200, req:['lgbea2','lgbeb2']},   // legacy final: gives the bonus
+  {id:'lgbdx', z:15, kind:'train', legacy:'drain', lset:'lgbd', lroot:true, name:'Practise slow work in thin air', days:40, req:[]},   // optional legacy drill
+  {id:'lgbda1', z:15, kind:'act', legacy:'drain', lset:'lgbd', lroot:true, name:'Find where sap bleeds into the dark', days:100, req:[]},
+  {id:'lgbda2', z:15, kind:'act', legacy:'drain', lset:'lgbd', name:'Pinch off the bleeding veins', days:100, req:['lgbda1']},
+  {id:'lgbdb1', z:15, kind:'act', legacy:'drain', lset:'lgbd', lroot:true, name:'Trace the warmth leaking through the wounds', days:100, req:[]},
+  {id:'lgbdb2', z:15, kind:'act', legacy:'drain', lset:'lgbd', name:'Pack the cracks with moss', days:100, req:['lgbdb1']},
+  {id:'lgbd', z:15, kind:'act', legacy:'drain', lset:'lgbd', lfin:true, name:'Stop the hull\u2019s slow bleed', days:200, req:['lgbda2','lgbdb2']},   // legacy final: gives the bonus
+  {id:'lgbhx', z:15, kind:'train', legacy:'hp', lset:'lgbh', lroot:true, name:'Rehearse vacuum exposure', days:40, req:[]},   // optional legacy drill
+  {id:'lgbha1', z:15, kind:'act', legacy:'hp', lset:'lgbh', lroot:true, name:'Sample bark that survived the vacuum', days:100, req:[]},
+  {id:'lgbha2', z:15, kind:'act', legacy:'hp', lset:'lgbh', name:'Isolate its sealing genes', days:100, req:['lgbha1']},
+  {id:'lgbhb1', z:15, kind:'act', legacy:'hp', lset:'lgbh', lroot:true, name:'Grow a pressure-hard test cell', days:100, req:[]},
+  {id:'lgbhb2', z:15, kind:'act', legacy:'hp', lset:'lgbh', name:'Prove it holds a charge in vacuum', days:100, req:['lgbhb1']},
+  {id:'lgbh', z:15, kind:'act', legacy:'hp', lset:'lgbh', lfin:true, name:'Fold vacuum-hardiness into the template', days:200, req:['lgbha2','lgbhb2']},   // legacy final: gives the bonus
+  {id:'lgbsx', z:15, kind:'train', legacy:'speed', lset:'lgbs', lroot:true, name:'Drill fast resin mixing', days:40, req:[]},   // optional legacy drill
+  {id:'lgbsa1', z:15, kind:'act', legacy:'speed', lset:'lgbs', lroot:true, name:'Find the hull\u2019s reflex knots', days:100, req:[]},
+  {id:'lgbsa2', z:15, kind:'act', legacy:'speed', lset:'lgbs', name:'Wake them from shock', days:100, req:['lgbsa1']},
+  {id:'lgbsb1', z:15, kind:'act', legacy:'speed', lset:'lgbs', lroot:true, name:'Grow quick-set resin glands', days:100, req:[]},
+  {id:'lgbsb2', z:15, kind:'act', legacy:'speed', lset:'lgbs', name:'Test them on a small breach', days:100, req:['lgbsb1']},
+  {id:'lgbs', z:15, kind:'act', legacy:'speed', lset:'lgbs', lfin:true, name:'Quicken the hull\u2019s healing reflex', days:200, req:['lgbsa2','lgbsb2']},   // legacy final: gives the bonus
+  {id:'lgbwx', z:15, kind:'train', legacy:'wear', lset:'lgbw', lroot:true, name:'Practise strike-testing bark', days:40, req:[]},   // optional legacy drill
+  {id:'lgbwa1', z:15, kind:'act', legacy:'wear', lset:'lgbw', lroot:true, name:'Collect meteor-struck bark', days:100, req:[]},
+  {id:'lgbwa2', z:15, kind:'act', legacy:'wear', lset:'lgbw', name:'Study how the grain held', days:100, req:['lgbwa1']},
+  {id:'lgbwb1', z:15, kind:'act', legacy:'wear', lset:'lgbw', lroot:true, name:'Find the boughs that bent without breaking', days:100, req:[]},
+  {id:'lgbwb2', z:15, kind:'act', legacy:'wear', lset:'lgbw', name:'Take cuttings from them', days:100, req:['lgbwb1']},
+  {id:'lgbw', z:15, kind:'act', legacy:'wear', lset:'lgbw', lfin:true, name:'Grow strike-hardened grain', days:200, req:['lgbwa2','lgbwb2']},   // legacy final: gives the bonus
+  {id:'wardlift', z:15, kind:'act', cross:true, to:3, name:'Lift the ward-lock on the Hearth Tree\u2019s fire', days:800, lifeEff:{salCap:15}, req:[],
+    log:'The hull holds. WARDEN lifts the ward-lock: the Hearth Tree\u2019s fire may burn again, once someone reaches the crown.'},
   // Zone 3
   {id:'lockers', z:3, kind:'job', name:'Crack sealed resin lockers', prod:{rations:0.09}, req:['droneyard']},
-  {id:'reactor', z:3, kind:'job', name:'Draw charge from the heartwood rings', prod:{salvage:0.05}, haz:0.08, req:['lift']},
-  {id:'droneyard', z:3, kind:'act', name:'Corral the tender drones', days:351, req:['lift'], split:'drones'},
+  {id:'reactor', z:3, kind:'job', name:'Draw charge from the heartwood rings', prod:{salvage:0.05}, haz:0.08, req:['wardlift']},
+  {id:'droneyard', z:3, kind:'act', name:'Corral the tender drones', days:351, req:['wardlift'], split:'drones'},
   {id:'drones', z:3, kind:'act', name:'Reprogram the tender drones', days:562, req:['droneyard'], lifeEff:{salCap:25, pSal:0.025}, perk:'manifest',
     log:'The tender drones stop circling and start working. Like you, they were never asked.'},
-  {id:'coolmap', z:3, kind:'act', name:'Read the growth rings for star-charts', days:481, haz:0.2, req:['lift'], split:'vent'},
+  {id:'coolmap', z:3, kind:'act', name:'Read the growth rings for star-charts', days:481, haz:0.2, req:['wardlift'], split:'vent'},
   {id:'vent', z:3, kind:'act', name:'Clear the clogged memory xylem', days:769, haz:0.25, req:['coolmap','droneyard'], perk:'hardened',
     log:'The memory xylem clears and the heartwood remembers. Its chronometer rings say Selene is 61 years behind schedule. The crew slept through all of it.'},
   {id:'armdoor', z:3, kind:'act', name:'Cut into the thornwood armoury', days:425, haz:0.18, req:['drones'], split:'armory'},
@@ -745,6 +811,12 @@ const TASKS = [
   {id:'lg3sb1', z:3, kind:'act', legacy:'speed', lset:'lg3s', lroot:true, name:'Tune the clock seed', days:175, req:[]},
   {id:'lg3sb2', z:3, kind:'act', legacy:'speed', lset:'lg3s', name:'Sync the heartwood to the new beat', days:175, req:['lg3sb1']},
   {id:'lg3s', z:3, kind:'act', legacy:'speed', lset:'lg3s', lfin:true, name:'Overclock the heartwood clock', days:350, req:['lg3sa2','lg3sb2']},   // legacy final: gives the bonus
+  {id:'lg3wx', z:3, kind:'train', legacy:'wear', lset:'lg3w', lroot:true, name:'Study the old ring scars', days:40, req:[]},   // optional legacy drill
+  {id:'lg3wa1', z:3, kind:'act', legacy:'wear', lset:'lg3w', lroot:true, name:'Read the rings for old injuries', days:175, req:[]},
+  {id:'lg3wa2', z:3, kind:'act', legacy:'wear', lset:'lg3w', name:'Chart how the heartwood healed', days:175, req:['lg3wa1']},
+  {id:'lg3wb1', z:3, kind:'act', legacy:'wear', lset:'lg3w', lroot:true, name:'Find WARDEN\u2019s healing records', days:175, req:[]},
+  {id:'lg3wb2', z:3, kind:'act', legacy:'wear', lset:'lg3w', name:'Teach WARDEN the faster mending', days:175, req:['lg3wb1']},
+  {id:'lg3w', z:3, kind:'act', legacy:'wear', lset:'lg3w', lfin:true, name:'Teach the heartwood to heal tougher', days:350, req:['lg3wa2','lg3wb2']},   // legacy final: gives the bonus
   {id:'packer', z:3, kind:'act', meal:true, name:'Refit the heartwood\u2019s cell charger', days:400, req:['droneyard']},   // charger upgrade: recharges come more often
   {id:'secdeck', z:3, kind:'act', cross:true, name:'Fight through the guard ring', days:1942, haz:0.32, lifeEff:{salCap:75}, req:['armory','vent'],
     log:'Past the guard ring, the star-charts grown into the heartwood still show Tessaly, the colony world, within reach. Selene drifted while the Hearth Tree slept.'},
@@ -785,6 +857,12 @@ const TASKS = [
   {id:'lg4sb1', z:4, kind:'act', legacy:'speed', lset:'lg4s', lroot:true, name:'Wake dormant root-knots', days:350, req:[]},
   {id:'lg4sb2', z:4, kind:'act', legacy:'speed', lset:'lg4s', name:'Spread WARDEN across them', days:350, req:['lg4sb1']},
   {id:'lg4s', z:4, kind:'act', legacy:'speed', lset:'lg4s', lfin:true, name:'Overclock WARDEN\u2019s cycle', days:700, req:['lg4sa2','lg4sb2']},   // legacy final: gives the bonus
+  {id:'lg4wx', z:4, kind:'train', legacy:'wear', lset:'lg4w', lroot:true, name:'Drill canopy weave patterns', days:40, req:[]},   // optional legacy drill
+  {id:'lg4wa1', z:4, kind:'act', legacy:'wear', lset:'lg4w', lroot:true, name:'Find the gardens\u2019 storm-bent stems', days:350, req:[]},
+  {id:'lg4wa2', z:4, kind:'act', legacy:'wear', lset:'lg4w', name:'Breed the toughest strain', days:350, req:['lg4wa1']},
+  {id:'lg4wb1', z:4, kind:'act', legacy:'wear', lset:'lg4w', lroot:true, name:'Weave a fibre trellis', days:350, req:[]},
+  {id:'lg4wb2', z:4, kind:'act', legacy:'wear', lset:'lg4w', name:'Train the strain along it', days:350, req:['lg4wb1']},
+  {id:'lg4w', z:4, kind:'act', legacy:'wear', lset:'lg4w', lfin:true, name:'Grow storm-proof fibre for the crown', days:700, req:['lg4wa2','lg4wb2']},   // legacy final: gives the bonus
   {id:'ovens', z:4, kind:'act', meal:true, name:'Restart the gardeners\u2019 docking chargers', days:800, req:['relays']},   // charger upgrade: recharges come more often
   {id:'warden', z:4, kind:'act', cross:true, name:'Confront WARDEN for the kindling codes', days:1701, req:['navcore','trace'], perk:'favor',
     log:'WARDEN speaks: \u201cYour function is maintenance. Your continuation is not required.\u201d You argue for the line anyway. WARDEN releases the kindling codes, as an efficiency.'},
@@ -822,6 +900,12 @@ const TASKS = [
   {id:'lg5sb1', z:5, kind:'act', legacy:'speed', lset:'lg5s', lroot:true, name:'Regrow the kindling nerves', days:600, req:[]},
   {id:'lg5sb2', z:5, kind:'act', legacy:'speed', lset:'lg5s', name:'Dry-run the faster sequence', days:600, req:['lg5sb1']},
   {id:'lg5s', z:5, kind:'act', legacy:'speed', lset:'lg5s', lfin:true, name:'Overclock the Hearth sequencer', days:1200, req:['lg5sa2','lg5sb2']},   // legacy final: gives the bonus
+  {id:'lg5wx', z:5, kind:'train', legacy:'wear', lset:'lg5w', lroot:true, name:'Rehearse heat-tempering', days:40, req:[]},   // optional legacy drill
+  {id:'lg5wa1', z:5, kind:'act', legacy:'wear', lset:'lg5w', lroot:true, name:'Find scorched boughs that held', days:600, req:[]},
+  {id:'lg5wa2', z:5, kind:'act', legacy:'wear', lset:'lg5w', name:'Map their tempered grain', days:600, req:['lg5wa1']},
+  {id:'lg5wb1', z:5, kind:'act', legacy:'wear', lset:'lg5w', lroot:true, name:'Bank a slow ember', days:600, req:[]},
+  {id:'lg5wb2', z:5, kind:'act', legacy:'wear', lset:'lg5w', name:'Temper a test bough over it', days:600, req:['lg5wb1']},
+  {id:'lg5w', z:5, kind:'act', legacy:'wear', lset:'lg5w', lfin:true, name:'Temper the crown\u2019s grain against the burn', days:1200, req:['lg5wa2','lg5wb2']},   // legacy final: gives the bonus
   {id:'pantryfix', z:5, kind:'act', meal:true, name:'Repair the crown crew\u2019s fast charger', days:1500, req:['starfix']},   // charger upgrade: recharges come more often
   {id:'ignite', z:5, kind:'act', name:'Kindle the Hearth Tree', days:3461, req:['course','injectors'], win:true,
     log:'The Hearth Tree kindles. Selene catches the ambient current and begins the long climb toward the speed of light. WARDEN begins the wake cycle for 3,112 sleepers and puts your pod on the compost list. Then the proximity alarms start.'},
@@ -1000,13 +1084,14 @@ const TASKS = [
   {id:'safeorbit', z:14, kind:'act', finale:'C', name:'Establish a safe orbit over Tessaly', days:937, req:[], perk:'harbour',
     log:'Selene settles into a stable orbit. Below, Tessaly turns: oceans, cloud, a long brown coast. Three thousand people are still asleep. They are home, nearly. WARDEN holds the wake cycle. Someone has to look at the ground first.'},
 ];
-const ZDAYS = {1:2.212, 2:1.158, 3:0.686, 4:0.606, 5:0.372, 6:0.677, 7:0.877, 8:0.877, 9:0.593, 10:0.796, 11:0.796, 12:0.756, 13:0.756, 14:0.756};   // no skill transfer: later sections are short, and speed comes from familiarity
+const ZDAYS = {1:2.212, 2:1.158, 15:1.0, 3:0.686, 4:0.606, 5:0.372, 6:0.677, 7:0.877, 8:0.877, 9:0.593, 10:0.796, 11:0.796, 12:0.756, 13:0.756, 14:0.756};   // no skill transfer: later sections are short, and speed comes from familiarity
 const TRAIN_CAP = 4, TRAIN_XP = 1.5;
 const LEGACY_LEN = 0.6;   // legacy parts are needed for every crossing once revealed, so they are kept short
 const T = {}; TASKS.forEach(t => { T[t.id] = t; t.sk = []; t.reps = t.kind === 'train' ? TRAIN_CAP : (t.reps || 1); if (t.days) t.days = Math.round(t.days * ZDAYS[t.z] * (t.legacy && t.kind === 'act' ? LEGACY_LEN : 1)); });
 // A section's finisher (its crossing, the ignition or an Act II finale) needs every other action of the section.
 const isFinisher = t => !!(t.cross || t.win || t.finale);
 TASKS.forEach(t => { if (isFinisher(t)) t.req = TASKS.filter(x => x.z === t.z && x.kind === 'act' && x !== t && !isFinisher(x) && (!x.legacy || x.lfin)).map(x => x.id); });   // legacy finals count once their theme is revealed (reqMet)
+T.ignite.req.push('wardlift');   // WARDEN's ward-lock: no kindling until this seedling has mended the hull
 // Legacy tasks need the deepest regular action of their section (the last step before the crossing)
 { const dep = {}; const d = t => dep[t.id] != null ? dep[t.id] : (dep[t.id] = t.req.length ? 1 + Math.max(...t.req.map(r => d(T[r]))) : 0);
   TASKS.forEach(t => { if (!t.lroot) return; const last = TASKS.filter(x => x.z === t.z && x.kind === 'act' && !x.legacy && !isFinisher(x)).sort((a, b) => d(b) - d(a) || TASKS.indexOf(b) - TASKS.indexOf(a))[0]; if (last) t.req = [last.id]; }); }
@@ -1021,11 +1106,12 @@ const PERKS = [
   {id:'manifest', name:'Supply manifests',      from:3, desc:'Charging stations work 20% faster, and crossings cost half the cells carried.', eff:{foodSpd:1.2, crossCost:0.5}},
   {id:'telomere', name:'Charge-hold patch',        from:2, desc:'+15 energy (additional cells) for every seedling.', eff:{maxHp:15}},
   {id:'transit',  name:'Vine-lift transit',          from:2, desc:'+10% speed on every task.', eff:{spd:1.1}},
+  {id:'hullog',   name:'Hull integrity log',    from:15, desc:'Hazard damage \u221210%.', eff:{haz:0.9}},
   {id:'hardened', name:'Radiation hardening',   from:3, desc:'Hazard damage −20%.', eff:{haz:0.8}},
   {id:'engram',   name:'Engram recorder',       from:3, desc:'Each new seedling remembers the task its predecessor died working on: that task starts up to 25% done.'},
   {id:'clock',    name:'Heartwood chronometer',    from:4, desc:'All work 10% faster.', eff:{spd:1.1}},
   {id:'starmem',  name:'Star memory',           from:4, desc:'+50% familiarity in the Canopy Gardens and in the Ember Crown.', eff:{zxp:{4:1.5, 5:1.5}}},
-  {id:'promise',  name:'Tessaly\u2019s promise',    from:5, desc:'With the course set, WARDEN upgrades the seedling template: +20 energy (additional cells) for every seedling.', eff:{maxHp:20}},
+  {id:'promise',  name:'Tessaly\u2019s promise',    from:5, desc:'With the course set, WARDEN upgrades the seedling template: +10 energy (additional cells) for every seedling.', eff:{maxHp:10}},
   {id:'favor',    name:'WARDEN’s favour',  from:4, desc:'+25% familiarity from all work.', eff:{xp:1.25}},
   // Act II records: permanent, they survive legacy levels
   {id:'scars',    act2:true, name:'Boarding scars',      desc:'+40 energy (additional cells) for every seedling.', eff:{maxHp:40}},
@@ -1044,18 +1130,19 @@ const PERKS = [
   // Watch records: one for finishing each section (its crossing, or kindling the Hearth Tree). Each adds 8 h of time away.
   {id:'watch1', name:'Stasis watch I', secEnd:'hatch', desc:'Stasis tuning: energy drains 1% slower.', eff:{stasis:0.01}},
   {id:'watch2', name:'Stasis watch II', secEnd:'lift', desc:'Stasis tuning: energy drains 1.5% slower.', eff:{stasis:0.015}},
-  {id:'watch3', name:'Stasis watch III', secEnd:'secdeck', desc:'Stasis tuning: energy drains 2% slower.', eff:{stasis:0.02}},
-  {id:'watch4', name:'Stasis watch IV', secEnd:'warden', desc:'Stasis tuning: energy drains 2.5% slower.', eff:{stasis:0.025}},
-  {id:'watch5', name:'Stasis watch V', secEnd:'ignite', desc:'Stasis tuning: energy drains 3% slower.', eff:{stasis:0.03}},
-  {id:'watch6', name:'Stasis watch VI', secEnd:'stair', desc:'Stasis tuning: energy drains 3% slower.', eff:{stasis:0.03}},
-  {id:'watch7', name:'Stasis watch VII', secEnd:'traceship', desc:'Stasis tuning: energy drains 3.5% slower.', eff:{stasis:0.035}},
-  {id:'watch8', name:'Stasis watch VIII', secEnd:'cutloose', desc:'Stasis tuning: energy drains 4% slower.', eff:{stasis:0.04}},
-  {id:'watch9', name:'Stasis watch IX', secEnd:'dust', desc:'Stasis tuning: energy drains 4% slower.', eff:{stasis:0.04}},
-  {id:'watch10', name:'Stasis watch X', secEnd:'burn', desc:'Stasis tuning: energy drains 4.5% slower.', eff:{stasis:0.045}},
-  {id:'watch11', name:'Stasis watch XI', secEnd:'turnpoint', desc:'Stasis tuning: energy drains 4.5% slower.', eff:{stasis:0.045}},
-  {id:'watch12', name:'Stasis watch XII', secEnd:'relslow', desc:'Stasis tuning: energy drains 5% slower.', eff:{stasis:0.05}},
-  {id:'watch13', name:'Stasis watch XIII', secEnd:'closein', desc:'Stasis tuning: energy drains 5.5% slower.', eff:{stasis:0.055}},
-  {id:'watch14', name:'Stasis watch XIV', secEnd:'safeorbit', desc:'Stasis tuning: energy drains 6% slower.', eff:{stasis:0.06}},
+  {id:'watch15', name:'Stasis watch III', secEnd:'wardlift', desc:'Stasis tuning: energy drains 1.5% slower.', eff:{stasis:0.015}},
+  {id:'watch3', name:'Stasis watch IV', secEnd:'secdeck', desc:'Stasis tuning: energy drains 2% slower.', eff:{stasis:0.02}},
+  {id:'watch4', name:'Stasis watch V', secEnd:'warden', desc:'Stasis tuning: energy drains 2% slower.', eff:{stasis:0.02}},
+  {id:'watch5', name:'Stasis watch VI', secEnd:'ignite', desc:'Stasis tuning: energy drains 2% slower.', eff:{stasis:0.02}},
+  {id:'watch6', name:'Stasis watch VII', secEnd:'stair', desc:'Stasis tuning: energy drains 3% slower.', eff:{stasis:0.03}},
+  {id:'watch7', name:'Stasis watch VIII', secEnd:'traceship', desc:'Stasis tuning: energy drains 3.5% slower.', eff:{stasis:0.035}},
+  {id:'watch8', name:'Stasis watch IX', secEnd:'cutloose', desc:'Stasis tuning: energy drains 4% slower.', eff:{stasis:0.04}},
+  {id:'watch9', name:'Stasis watch X', secEnd:'dust', desc:'Stasis tuning: energy drains 4% slower.', eff:{stasis:0.04}},
+  {id:'watch10', name:'Stasis watch XI', secEnd:'burn', desc:'Stasis tuning: energy drains 4.5% slower.', eff:{stasis:0.045}},
+  {id:'watch11', name:'Stasis watch XII', secEnd:'turnpoint', desc:'Stasis tuning: energy drains 4.5% slower.', eff:{stasis:0.045}},
+  {id:'watch12', name:'Stasis watch XIII', secEnd:'relslow', desc:'Stasis tuning: energy drains 5% slower.', eff:{stasis:0.05}},
+  {id:'watch13', name:'Stasis watch XIV', secEnd:'closein', desc:'Stasis tuning: energy drains 5.5% slower.', eff:{stasis:0.055}},
+  {id:'watch14', name:'Stasis watch XV', secEnd:'safeorbit', desc:'Stasis tuning: energy drains 6% slower.', eff:{stasis:0.06}},
 ];
 const PK = {}; PERKS.forEach(p => PK[p.id] = p);
 const hasPerk = p => !!(p.act2 ? ((S.a2 || {}).perks || {})[p.id] : (S.perks || {})[p.id]);
@@ -1074,6 +1161,8 @@ const ITEMS = [
   {id:'lace',       name:'Mycelial lace',        cost:15,  req:'medbay',     desc:'+30% familiarity from all work', eff:{xp:1.3}},
   {id:'stims',      name:'Sap stim injector',      cost:25,  req:'lift',       desc:'All work 15% faster', eff:{spd:1.15}},
   {id:'crate',      name:'Lacquered cell case',    cost:30,  req:'lift',       desc:'+20 cell storage capacity', eff:{fcap:20}},
+  {id:'mendkit',    name:'Bark-mender\u2019s kit', cost:20,  req:'scars',      desc:'Work in the Shattered Bark 25% faster', eff:{zsp:{GZ:1.25}}},
+  {id:'resinsuit',  name:'Resin pressure suit',    cost:30,  req:'resinseal',  desc:'+10 energy (additional cells), hazard damage \u221220%', eff:{maxHp:10, haz:0.8}},
   {id:'rifle',      name:'Thornwood rifle',      cost:40,  req:'armory',     desc:'Work in the Heartwood 50% faster, hazard damage \u221220%', eff:{zsp:{GZ:1.5}, haz:0.8}},
   {id:'cryo',       name:'Resin cryo-sleeve',        cost:70,  req:'vent',       desc:'Recharges come 15% more often, +10 energy (additional cells)', eff:{pace:1.15, maxHp:10}},
   {id:'visor',      name:'Pollen visor',          cost:110, req:'bridgepower',desc:'Work in the Canopy Gardens 30% faster', eff:{zsp:{GZ:1.3}}},
@@ -1108,7 +1197,7 @@ const BUILD_K = 0.5, BUILD_P = 0.8;
 const BT = {};   // item id -> its assembly task
 const assembling = id => !!(S && S.life && S.life.assem && S.life.assem.includes(id));
 // A design's section: where it becomes buildable. Designs unlocked by a crossing belong to the section it leads into.
-const gearZone = i => T[i.req].cross ? T[i.req].z + 1 : T[i.req].z;
+const gearZone = i => T[i.req].cross ? (T[i.req].to || nextZone(T[i.req].z)) : T[i.req].z;
 ITEMS.forEach(i => { if (i.eff && i.eff.zsp && i.eff.zsp.GZ) i.eff.zsp = {[gearZone(i)]: i.eff.zsp.GZ}; });
 ITEMS.forEach(i => { const t = {id:'b:' + i.id, gear:i.id, z:gearZone(i), kind:'build', name:'Assemble: ' + i.name, days:Math.max(2, Math.round(BUILD_K * Math.pow(i.cost * 10, BUILD_P))), reps:1, req:[], sk:[]};
   T[t.id] = t; BT[i.id] = t; });   // section gear: speeds up its own section
@@ -1152,11 +1241,13 @@ const NGP = [
   {id:'growth', name:'Echo',       max:NGP_MAX, now:k => 'familiarity needed ×' + Math.pow(FAM_ECHO, k).toFixed(2) + ' in Act I, ×' + (1 - (1 - Math.pow(FAM_ECHO, k)) * A2_SHARE).toFixed(2) + ' in Act II', step:'Tasks reach ×10 with about 30% less familiarity in Act I (10% of that in Act II)'},
   {id:'drain',  name:'Drain dampener',  max:NGP_MAX, now:k => 'energy drain ÷' + drainAt(k).toFixed(1) + ' in Act I, ÷' + (1 + (drainAt(k) - 1) * A2_SHARE).toFixed(1) + ' in Act II', step:'Divides energy drain (Act I ÷2.3, ÷3.7, ÷5; Act II at 10% of that)'},
   {id:'hp',     name:'Storage optimization',max:NGP_MAX, now:k => '+' + hpAt(k) + ' max energy in both acts', step:'More max energy: storage optimization (+33, +67, +100, in both acts)'},
+  {id:'wear',   name:'Hardened grain',  max:NGP_MAX, now:k => 'ship wear \u00d7' + wearAt(k).toFixed(2) + ' in Act II', step:'Act II ship wear builds slower (up to \u221240%)'},
   {id:'speed',  name:'Overclocked line', max:NGP_MAX, now:k => 'game speed ×' + speedAt(k).toFixed(1), step:'The whole game runs faster, both acts, without using banked time (up to ×2)'},
 ];
 // Overclock tops out at x2 game speed
+const wearAt = k => 1 - 0.4 * k / NGP_MAX;   // Hardened grain: Act II ship wear x0.6 at full
 const drainAt = k => 1 + 4 / NGP_MAX * k, speedAt = k => 1 + 1 / NGP_MAX * k, hpAt = k => Math.round(100 / NGP_MAX * k);
-// Legacy level of a theme (0..3, fractional): each of its five tasks, once done in this life, adds a
+// Legacy level of a theme (0..3, fractional): each of its finals (one per Act I section), once done in this life, adds a
 // fifth, at 25% of its share untrained and 100% at full mastery (judged on the base threshold).
 const LEGACY_T = {}; TASKS.forEach(t => { if (t.lfin) (LEGACY_T[t.legacy] = LEGACY_T[t.legacy] || []).push(t); });
 // Story for each legacy theme, logged the first time it is revealed
@@ -1164,11 +1255,12 @@ const LEGACY_LOG = {
   hp:['Notes for the seedling vaults', 'Boarder chitin shrugs off what kills you. You copy what you can into notes for the next seedling sprouting in the vaults.'],
   drain:['Waste back home', 'Out here Selene runs on almost nothing. The old boughs waste sap, water and air. Somebody back home should fix that.'],
   growth:['Echoes of the dead', 'WARDEN\u2019s memory holds every K seedling. Played back right, a dead seedling\u2019s engram teaches faster than any drill.'],
+  wear:['Grain that holds', 'Boarders\u2019 blades and long years wear Selene down. Tougher grain, grown into her back in the Hearth Tree, would hold.'],
   speed:['Hours saved', 'The system is close enough to plan for. Every hour saved back on the old boughs is an hour closer to orbit.'],
 };
 const LEGACY_FAM = 2;   // legacy bonuses need twice the usual familiarity
 const legacyShare = t => Math.min(1, ((S.fam || {})[t.id] || 0) / (LEGACY_FAM * FAM_N0 * compUnit(t)));
-const ngpLv = id => { const L = S && S.life; if (!L || !LEGACY_T[id]) return 0; let v = 0; LEGACY_T[id].forEach(t => { if (L.done && L.done[t.id]) v += legacyShare(t) / 5; }); return NGP_MAX * v; };
+const ngpLv = id => { const L = S && S.life; if (!L || !LEGACY_T[id]) return 0; let v = 0; LEGACY_T[id].forEach(t => { if (L.done && L.done[t.id]) v += legacyShare(t) / LEGACY_T[id].length; }); return NGP_MAX * v; };   // one final per Act I section (six)
 const ngpPts = () => { const pr = S.pr || {}; return pr.pts != null ? pr.pts : (pr.n || 0); };
 const ngpSpent = () => NGP.reduce((a, r) => a + ngpLv(r.id), 0);
 function ngpEarn(n, why){ S.pr = S.pr || {n:0, pts:0}; S.pr.pts = ngpPts() + n; HOOK.ngpEarn(n, why); }
@@ -1206,7 +1298,7 @@ function mods(){
 }
 const isDone = id => (S.life.done[id] || 0) >= T[id].reps;
 // Legacy themes are revealed one by one as Act II sections are first reached
-const LEGACY_REVEAL = {hp:7, drain:9, growth:11, speed:13};   // Act II sections 2, 4, 6 and 8
+const LEGACY_REVEAL = {hp:7, drain:9, growth:11, speed:13, wear:16};   // Act II sections 2, 4, 6 and 8; Hardened grain on first reaching The Mending (id 16, comes in Stage 2: hidden until then)
 const legacyOpen = t => !t.legacy || !!(S.won && S.a2run && S.a2run.reached && S.a2run.reached[LEGACY_REVEAL[t.legacy]]);
 const reqMet = id => isDone(id) || !legacyOpen(T[id]);   // an unrevealed legacy final doesn't hold up its crossing
 const available = t => t.z === (S.life.sec || 1) && legacyOpen(t) && !(t.kind === 'job' && t.prod && t.prod.rations && stationLeft(t.z) <= 0.01) && t.req.every(reqMet) && (!t.parts || complete(t) || (S.life.paid || {})[t.id] || S.life.salvage >= t.parts);
@@ -1613,7 +1705,7 @@ function finish(t){
   M = mods();
   clampRes();
   if (r.heal) L.hp = M.maxHp;
-  if (t.cross && complete(t)) enterZone(t.to || t.z + 1, t.z);
+  if (t.cross && complete(t)) enterZone(t.to || nextZone(t.z), t.z);
   if (complete(t) && t.log && !S.logged[t.id]) { S.logged[t.id] = 1; HOOK.log(t.name, t.log); }
   HOOK.done(t);
   if (complete(t) && t.perk && !hasPerk(PK[t.perk])) { if (PK[t.perk].act2) S.a2.perks[t.perk] = true; else S.perks[t.perk] = true; M = mods(); HOOK.perk(PK[t.perk]); }
@@ -1630,7 +1722,7 @@ function finish(t){
 // Rank: furthest section reached (6 = Hearth Tree kindled), then the fastest real time to get there.
 // Best finish of each section across all seedlings in this run: the fewest day units (10 s in-game each) (ties: less real time)
 function bestFin(g, fin){
-  if (!S.bestSec) S.bestSec = [null, null, null, null, null];
+  if (!S.bestSec) S.bestSec = ACT1.map(() => null);
   (fin || []).forEach((f, i) => { if (!f) return; const b = S.bestSec[i];
     if (!b || f[0] < b.d - 1e-9 || (Math.abs(f[0] - b.d) < 1e-9 && f[1] < b.r)) S.bestSec[i] = {g, d:f[0], r:f[1]}; });
 }
@@ -1652,7 +1744,7 @@ function runTotal(k){
 function rebuildTotals(s){
   const h = (s.hist || []).slice().sort((a, b) => a.g - b.g); s.firstAt = {};
   if (!h.length || h[0].g !== 1 || h.some((e, i) => e.g !== i + 1)) return;
-  const keys = [2, 3, 4, 5, 'lit']; let cd = 0, cr = 0;
+  const keys = ACT1.slice(1).concat(['lit']); let cd = 0, cr = 0;
   const add = (fin, cd, cr) => keys.forEach((k, i) => { const f = fin && fin[i]; if (f && !s.firstAt[k]) s.firstAt[k] = {d:cd + f[0] * TPD, r:cr + f[1]}; });
   h.forEach(e => { add(e.fin, cd, cr); cd += e.d || 0; cr += e.r || 0; });
   const L = s.life;
@@ -1682,6 +1774,8 @@ function enterZone(z, from){
   }
   M = mods(); HOOK.crossed(z); autoRunCheck();
 }
+// Act I position (1-6) of a section on the route; Act II sections count as the last Act I one
+const act1No = z => { const i = ACT1.indexOf(z); return i < 0 ? ACT1.length : i + 1; };
 // How far a seedling got: sections entered, plus one for kindling the Hearth Tree
 function progOf(L){ return Object.keys(L.visited || {1:1}).length + (L.wonAt ? 1 : 0); }
 // An Act II part finished: a lower Act II threshold (first time each run)
@@ -1694,7 +1788,7 @@ function finishBranch(t){
 function recordBest(L){
   const pr = progOf(L), z = L.sec || 1, at = (isA2(z) ? L.secAt && L.secAt[z] : L.wonAt) || (L.secAt && L.secAt[z]) || {d:0, r:0};
   const b = S.best, bp = b ? (b.prog || b.sec) : 0;
-  if (!b || pr > bp || (pr === bp && at.r < b.r)) S.best = {g:S.gen, prog:pr, z, lit:!!L.wonAt, sec:Math.min(6, pr), d:at.d, r:at.r};
+  if (!b || pr > bp || (pr === bp && at.r < b.r)) S.best = {g:S.gen, prog:pr, z, lit:!!L.wonAt, sec:Math.min(ACT1.length + 1, pr), d:at.d, r:at.r};
 }
 function die(cause){
   const L = S.life, dt0 = L.cur && T[L.cur];
@@ -1707,8 +1801,8 @@ function die(cause){
   S.stats.deaths++; S.stats.daysLived += L.day;
   if (!S.hist) S.hist = [];
   // when each section was finished: arriving in the next one, or kindling the Hearth Tree for the last
-  const fin = [1, 2, 3, 4, 5].map(z => { const a = z < 5 ? (L.secAt || {})[z + 1] : L.wonAt; return a ? [+(a.d / TPD).toFixed(2), Math.round(a.r)] : null; });
-  S.hist.push({g:S.gen, sec:L.wonAt ? 6 : Math.min(5, L.sec || 1), z:L.sec || 1, lit:!!L.wonAt, prog:progOf(L), d:L.day, r:L.real || 0, cause, fin});
+  const fin = ACT1.map((z, i) => { const a = i < ACT1.length - 1 ? (L.secAt || {})[ACT1[i + 1]] : L.wonAt; return a ? [+(a.d / TPD).toFixed(2), Math.round(a.r)] : null; });
+  S.hist.push({g:S.gen, sec:L.wonAt ? ACT1.length + 1 : act1No(L.sec || 1), z:L.sec || 1, lit:!!L.wonAt, prog:progOf(L), d:L.day, r:L.real || 0, cause, fin});
   bestFin(S.gen, fin);
   bestClone(S.gen, fin);
   if (S.hist.length > 50) S.hist.shift();
@@ -1761,7 +1855,7 @@ const SHIP_WEAR = 0.08;   // extra drain per point of wear
 const REPAIR_AMT = 1.5, REPAIR_CD = TPD, PARTS_PER_WEAR = 40;   // a repair: 1.5 wear, at most one a day before workshops
 const wearsHere = z => isA2(z || S.life.sec || 1);
 const wearMul = () => wearsHere() ? 1 + SHIP_WEAR * (S.life.shipWear || 0) : 1;
-const wearRate = z => (WEAR_RATE[z] || 0) * ((M && M.wear) || 1);
+const wearRate = z => (WEAR_RATE[z] || 0) * ((M && M.wear) || 1) * wearAt(ngpLv('wear'));   // Hardened grain legacy slows it
 const PART_RATE = {}; TASKS.forEach(t => { if (t.kind === 'job' && t.prod && t.prod.salvage) PART_RATE[t.z] = Math.max(PART_RATE[t.z] || 0, t.prod.salvage); });
 const partRate = z => { for (let k = z; k >= 1; k--) if (PART_RATE[k]) return PART_RATE[k]; return 1; };
 const r5 = n => Math.max(5, 5 * Math.round(n / 5));   // costs and stores come in steps of 5
@@ -2576,6 +2670,12 @@ function mergeState(raw){
   }
   if (!raw.fam) { s.fam = {}; TASKS.forEach(t => { if ((s.prac || {})[t.id]) s.fam[t.id] = s.prac[t.id]; }); }   // v6: familiarity from past completions
   s.ev = 2;
+  if (!s.hullv) {   // the Shattered Bark (Act I position 3) was added: older seedling tables have five Act I columns
+    s.hullv = 1; const ins = a => { if (Array.isArray(a) && a.length === 5) a.splice(1, 0, null); };   // entry i is the time the next section was reached: a new empty 'reached the Shattered Bark' after 'reached the Taproot'
+    (s.hist || []).forEach(e => { ins(e.fin); if (e.sec >= 3) e.sec++; });
+    ins(s.bestSec); if (s.bestAll) ins(s.bestAll.fin);
+    if (s.best) { if (s.best.sec >= 3) s.best.sec++; if ((s.best.prog || 0) >= 3) s.best.prog++; }
+  }
   if (!s.bestSec && Array.isArray(s.hist)) { const keep = S; S = s; s.hist.forEach(e => bestFin(e.g, e.fin)); S = keep; }
   if (!s.bestAll && Array.isArray(s.hist)) { const keep = S; S = s; s.hist.forEach(e => bestClone(e.g, e.fin)); S = keep; }
   if (!s.firstAt) rebuildTotals(s);
@@ -2597,12 +2697,12 @@ function mergeState(raw){
   { const ok = q => typeof q === 'string' && (isCQ(q) ? cSteps(q).length > 0 : isGQ(q) ? !!IT[q.slice(2)] : !!T[q]);
     if (s.life) { ['queue', 'qdone'].forEach(k => { if (Array.isArray(s.life[k])) s.life[k] = s.life[k].filter(ok); });
       ['now', 'cur', 'held', 'autoJob'].forEach(k => { if (s.life[k] && !ok(s.life[k])) s.life[k] = null; });
-      if (s.life.sec > 14) s.life.sec = 14; }
+      if (!ZN(s.life.sec)) s.life.sec = Math.min(14, s.life.sec); }
     if (Array.isArray(s.qpresets)) s.qpresets = s.qpresets.map(p => Array.isArray(p) ? p.filter(ok) : []); }
   if (s.won || s.branch) { s.branch = 'A'; s.merge = true; }   // Act II is linear now: the boarders, then the long watch
   if (s.a2 && s.a2.lv) for (const k in s.a2.lv) s.a2.lv[k] = Math.min(NGP_MAX, s.a2.lv[k] || 0);   // old Honours data (parked for Act III) is kept but unused
   if (s.pr && (s.won || ((s.pr.pts != null ? s.pr.pts : s.pr.n) || 0) >= KIT_PTS)) s.pr.kit = true;   // Quartermaster's cache: any save that has lit the drive
-  if (s.life && !s.life.visited) { s.life.visited = {}; for (let z = 1; z <= Math.min(5, s.life.sec || 1); z++) s.life.visited[z] = 1; }
+  if (s.life && !s.life.visited) { s.life.visited = {}; ACT1.slice(0, act1No(s.life.sec || 1)).forEach(z => { if (z !== 15 || s.life.sec === 15) s.life.visited[z] = 1; }); }
   if (!s.autoDef) { s.autoDef = 1; const P = s.prac || {}; s.auto = s.auto || {};
     TASKS.forEach(t => { const u = t.kind === 'job' ? JOB_UNIT : t.kind === 'train' ? TRAIN_CAP : (t.reps || 1); if ((P[t.id] || 0) >= AUTO_LIVES * u && s.auto[t.id] == null) s.auto[t.id] = true; });
     ITEMS.forEach(i => { if ((s.gprac[i.id] || 0) >= AUTO_LIVES && s.gauto[i.id] == null) s.gauto[i.id] = true; }); }
@@ -2736,7 +2836,7 @@ HOOK.done = t => sfx('complete');
 HOOK.qfull = () => { sfx('error'); toast('The queue is full (' + QMAX + ' items). Remove something first.'); };
 HOOK.ngpEarn = (n, why) => { archKey = ''; toast('Act I reward point' + (n > 1 ? 's +' + n : ' +1') + ' for ' + why + '. Spend ' + (n > 1 ? 'them' : 'it') + ' in the Legacy tab.', true); };
 HOOK.legacy = k => { legKey = ''; taskKey = ''; toast('New legacy tasks: ' + LEG_NAME[k] + ', five parts in every Act I section, needed for its crossing (see the Legacy tab).', true); };
-HOOK.autoRun = sp => { taskKey = ''; autoKey = ''; toast('Section run started by itself: ' + sp.map(z => ZONES[z - 1].name).join(' \u2192 ') + '.'); };
+HOOK.autoRun = sp => { taskKey = ''; autoKey = ''; toast('Section run started by itself: ' + sp.map(z => ZN(z).name).join(' \u2192 ') + '.'); };
 HOOK.legacyAvail = ts => { taskKey = ''; legKey = ''; sfx('perk');
   const fin = ts.filter(t => t.lfin), parts = ts.filter(t => !t.lfin), where = zoneThe(ts[0].z);
   fin.forEach(t => toast('Legacy final ready in ' + where + ': ' + t.name + '.', true));
@@ -2856,13 +2956,13 @@ function chainRow(id, i){
 // The running section run, pinned at the top of the queue
 function runRow(){
   const L = S.life; if (!L.chainRun) return '';
-  const sp = runSpan(L.sec || 1), names = (sp.length ? sp : [L.sec || 1]).map(x => ZONES[x - 1].name).join(' \u2192 ');
+  const sp = runSpan(L.sec || 1), names = (sp.length ? sp : [L.sec || 1]).map(x => ZN(x).name).join(' \u2192 ');
   return `<li class="qrow srow"><span class="qn">\u25b6</span><span class="qt"><b>Section run</b> \u00b7 ${esc(names)} <small>pinned: works through ${sp.length > 1 ? 'these sections' : 'the section'} and crosses</small></span><span class="qb"><button class="btn" data-secstop aria-label="Stop the section run">\u2715</button></span></li>`;
 }
 // The one-click section chain: a Run button once the section is fully chained, else its progress
 function secRunHtml(z){
   const g = sectionGate(z), L = S.life;
-  const sp = runSpan(z), names = sp.map(x => ZONES[x - 1].name).join(' \u2192 ');
+  const sp = runSpan(z), names = sp.map(x => ZN(x).name).join(' \u2192 ');
   const endNote = sp.length && ACT_ENDS.includes(sp[sp.length - 1]) ? ' It stops at the end of the act.' : '';
   if (L.chainRun && (L.sec || 1) === z) return `<div class="secrun on"><span>${sp.length > 1 ? 'Running ' + sp.length + ' sections as one chain: ' + names + '\u2026' : 'Running the whole section as one chain\u2026'} <small>Always on: sections run by themselves once ready.</small></span><button class="btn" data-secstop>Stop</button></div>`;
   if (sp.length > 1) return `<div class="secrun"><span>Sections linked: ${names}. Every task is automated and \u00d7${SECTION_F} familiar, so the run carries on across ${sp.length - 1 === 1 ? 'the crossing' : 'the crossings'}.${endNote}</span><button class="btn pri" data-secrun>\u25b6 Run ${sp.length} sections</button></div>`;
@@ -3009,7 +3109,7 @@ function renderTasks(){
       acts.forEach(t => {
         const qi = L.queue.indexOf(t.id);
         h += `<div class="task act${t.cross ? ' cross' : ''}" data-id="${t.id}">
-          <button class="tm" data-do="${t.id}"><div class="tf"></div>${t.cross ? `<div class="crossw">Leads to ${esc(zoneThe(t.to || t.z + 1))} \u00b7 no way back</div>` : ''}
+          <button class="tm" data-do="${t.id}"><div class="tf"></div>${t.cross ? `<div class="crossw">Leads to ${esc(zoneThe(t.to || nextZone(t.z)))} \u00b7 no way back</div>` : ''}
             <div class="th"><span class="tn">${esc(t.name)}</span><span class="te num"></span></div>
             <div class="tx">${chips(t)}${t.reps > 1 ? `<span class="num rp"></span>` : ''}${t.haz ? '<span class="haz">▲ hazard</span>' : ''}<span class="num pp">${progHtml(t, autoFrac(t))}</span>${effectHtml(t)}</div>
           </button>
@@ -3028,9 +3128,10 @@ function renderTasks(){
     // Tasks met in an earlier life stay listed, greyed out until everything they need is done (they can be queued)
     if (lk.length) h += '<div class="sub">Not yet available \u00b7 needs other tasks first</div>';
     lk.slice().sort((x, y) => chainOrd(x) - chainOrd(y)).forEach(t => {
-      const need = t.req.filter(r => !reqMet(r)).map(r => S.seen[r] || T[r].legacy ? T[r].name : 'something unseen');
+      const sealed = t.req.includes('wardlift') && !reqMet('wardlift');   // the kindling, under WARDEN's ward-lock
+      const need = t.req.filter(r => !reqMet(r) && r !== 'wardlift').map(r => S.seen[r] || T[r].legacy ? T[r].name : 'something unseen');
       h += `<div class="task lock" data-lock="${t.id}"><div class="tm"><div class="th"><span class="tn">${esc(t.name)}</span></div>
-        <div class="tx">${chips(t)}<span>Needs: ${esc(need.join(', '))}</span></div></div>${qBtn(t.id, ' lockq')}</div>`;
+        <div class="tx">${chips(t)}<span>${sealed ? 'Sealed by WARDEN\u2019s ward-lock. Mend the hull in the Shattered Bark first.' + (need.length ? ' ' : '') : ''}${need.length ? 'Needs: ' + esc(need.join(', ')) : ''}</span></div></div>${qBtn(t.id, ' lockq')}</div>`;
     });
     h += '</section>';
   });
@@ -3157,11 +3258,11 @@ function updateHud(){
   surv.classList.toggle('warn', !L.dead && sv.why !== 'nothing soon');
   const re = storeEta(L.rations, M.ratCap, rr), se = storeEta(L.salvage, M.salCap, sr);
   // only a warning about running out altogether; the stores themselves are listed per food
-  { const z = L.sec || 1, st = TASKS.find(t => t.z === z && t.kind === 'job' && t.prod && t.prod.rations), end = sectionEnd(z), nz = end && (end.to || end.z + 1);
+  { const z = L.sec || 1, st = TASKS.find(t => t.z === z && t.kind === 'job' && t.prod && t.prod.rations), end = sectionEnd(z), nz = end && (end.to || nextZone(end.z));
     const parts = [!nextFood() ? 'no sap cells: running down' : re.txt === 'empty in' ? 'all cells gone in ' + both(re.days) : ''];
     if (st) parts.push(stationLeft(z) <= 0.01 ? 'charging station drained' : 'station reserve ' + fmt(stationLeft(z)) + '/' + fmt(stationMax(z)) + (isDone(st.req[0] || st.id) || !st.req.length ? '' : ' \u00b7 opens after ' + T[st.req[0]].name));
     else parts.push('no charging station in this section');
-    if (nz && nz <= 14) parts.push('crossing costs ' + Math.round(100 * crossCost(nz)) + '% of cells carried');
+    if (nz && ZN(nz)) parts.push('crossing costs ' + Math.round(100 * crossCost(nz)) + '% of cells carried');
     $('#t-ratt').textContent = parts.filter(Boolean).join(' \u00b7 '); }
   $('#t-ratt').classList.toggle('neg', true);
   setH($('#t-salt'), se.txt === 'full' ? 'storage full' : se.txt === 'steady' ? '' : se.txt + ' ' + (se.txt === 'empty in' ? '<span class="neg">' + both(se.days) + '</span>' : bothH(se.days)));
@@ -3279,7 +3380,7 @@ function renderGear(){
   let lastZ = 0;
   av.slice().sort((a, b) => gearZone(a) - gearZone(b)).forEach(i => {
     const z = gearZone(i);
-    if (z !== lastZ) { lastZ = z; h += `<div class="sub" style="margin-top:12px">${ZONES[z - 1].name}</div>`; }
+    if (z !== lastZ) { lastZ = z; h += `<div class="sub" style="margin-top:12px">${ZN(z).name}</div>`; }
     h += `<div class="item"><button class="gtm" data-gdo="${i.id}" ${gearTap(i) ? '' : 'disabled'}><h3${gearReady(i) ? ' class="gready"' : ''}>${esc(i.name)}</h3><p>${esc(i.desc)}</p><p class="num geta" data-g="${i.id}"></p><p class="num">${gearPracticed(i) ? (S.gauto && S.gauto[i.id] ? 'Built automatically \u00b7 P' + gearPrio(i) : 'Automation available in the Auto tab') : 'Built in ' + ((S.gprac || {})[i.id] || 0) + '/' + AUTO_LIVES + ' lives'}</p></button>` +
       (L.owned[i.id] ? '<span class="owned">Built</span>' : assembling(i.id) ? `<span class="owned">Assembling ${Math.floor((L.prog['b:' + i.id] || 0) / BT[i.id].days * 100)}%</span>` : `<span class="gcost num">${fmt(i.cost)} ${salW(gearZone(i))}${i.cost > M.salCap ? '<br><small>needs storage</small>' : ''}</span>${gqBtn(i)}`) + '</div>';
   });
@@ -3333,15 +3434,15 @@ document.addEventListener('change', e => {
   audioStart(); sfx('toggle'); save(); renderSpeed(); e.target.blur();
 });
 // Legacy tasks: what each theme gives this seedling, and how far it can go
-const LEG_NAME = {growth:'Echo', drain:'Dampening', hp:'Storage optimization', speed:'Overclock'};
+const LEG_NAME = {growth:'Echo', drain:'Dampening', hp:'Storage optimization', speed:'Overclock', wear:'Hardened grain'};
 function ngpPanel(){
   const pr = S.pr || {n:0}, L = S.life;
   let h = '<div class="panel ngp"><span class="h2">Legacy tasks</span>';
-  h += '<p class="note">Legacy tasks open up one theme at a time as Act II unfolds. Each theme adds five parts to every Act I section, once a seedling has done that section\u2019s last regular action: two pairs of steps, then a final that needs both pairs. Once revealed they are <b>needed for the crossing</b>. Finishing the final gives its bonus for the rest of that life, growing with the final\u2019s mastery (nothing untrained, all of its share when fully mastered: finals take twice the usual familiarity). All five finals of a theme, done and mastered, give its full effect. Each set has an optional drill that trains its five parts. Legacy parts are never queued for you: a warning says when they open up. Echo and Dampening work fully in Act I and at 10% in Act II; Storage optimization works fully in both acts; Overclock speeds up the whole game.</p>';
+  h += '<p class="note">Legacy tasks open up one theme at a time as Act II unfolds. Each theme adds five parts to every Act I section, once a seedling has done that section\u2019s last regular action: two pairs of steps, then a final that needs both pairs. Once revealed they are <b>needed for the crossing</b>. Finishing the final gives its bonus for the rest of that life, growing with the final\u2019s mastery (nothing untrained, all of its share when fully mastered: finals take twice the usual familiarity). All six finals of a theme (one per Act I section), done and mastered, give its full effect. Each set has an optional drill that trains its five parts. Legacy parts are never queued for you: a warning says when they open up. Echo and Dampening work fully in Act I and at 10% in Act II; Storage optimization works fully in both acts; Overclock speeds up the whole game.</p>';
   NGP.forEach(r => { const ts = LEGACY_T[r.id] || [], done = ts.filter(t => L.done && L.done[t.id]).length, k = ngpLv(r.id), pd = TASKS.filter(t => t.legacy === r.id && t.kind === 'act' && !t.lfin && L.done && L.done[t.id]).length;
     if (!legacyOpen(ts[0])) { h += '<div class="ngrow"><div><b>???</b> <span class="num">not revealed yet</span><small>Revealed further into Act II.</small></div></div>'; return; }
     const tr = Math.round(100 * ts.reduce((a, t) => a + (legacyShare(t) - 0.25) / 0.75, 0) / Math.max(1, ts.length));
-    h += `<div class="ngrow"><div><b>${LEG_NAME[r.id]}</b> <span class="num">${done}/5 finals · ${pd}/20 parts this life · ${tr}% trained</span><small>${k ? 'now: ' + r.now(k) : 'nothing yet this life'} · at full: ${r.now(NGP_MAX)}</small></div></div>`; });
+    h += `<div class="ngrow"><div><b>${LEG_NAME[r.id]}</b> <span class="num">${done}/${ts.length} finals · ${pd}/${4 * ts.length} parts this life · ${tr}% trained</span><small>${k ? 'now: ' + r.now(k) : 'nothing yet this life'} · at full: ${r.now(NGP_MAX)}</small></div></div>`; });
   h += '<table class="dt">';
   h += `<tr><td>Quartermaster’s cache</td><td>${pr.kit ? 'unlocked: seedlings start with all their automated gear, in both acts' : 'unlocks when the Hearth Tree is first kindled'}</td></tr>`;
   h += '</table>';
@@ -3388,7 +3489,7 @@ function statsGrid(){
 function renderLog(){
   const key = Math.floor((S.stats.played || 0) / 60) + '|' + [S.stats.bestDays, Math.floor(S.vit || 0), TASKS.filter(t => masteryFrac(t) >= 1).length, S.winGen].join() + '|' + S.log.length + '|' + (S.log.length ? S.log[S.log.length-1].t : '') + '|' + (S.hist ? S.hist.length : 0) + '|' + JSON.stringify(S.bestSec || 0) + JSON.stringify(S.bestAll || 0) + '|' + histAll + logTables + '|' + S.gen + '|' + JSON.stringify(S.best || {});
   if (key === logKey) return; logKey = key;
-  const secName = n => n >= 6 ? 'Hearth kindled' : ZONES[n - 1].name;
+  const secName = n => n > ACT1.length ? 'Hearth kindled' : ZN(ACT1[n - 1]).name;
   const histName = e => e.z && isA2(e.z) ? ZN(e.z).name : secName(e.sec);
   const realT = r => '<span class="trl">' + fmtReal(r) + '</span>';   // real time: amber
   const gameT = d => '<span class="tgm">' + d + '</span>';   // in-game time
@@ -3410,9 +3511,9 @@ function renderLog(){
   const totRow = keys => keys.some(k => FA[k]) ? `<tr class="ftbest fttot"><td>Run total<small>played to get there</small></td>${keys.map(k => { const f = FA[k]; return `<td>${f ? gameT(fmtDays(f.d)) + '<small>' + realT(f.r) + '</small>' : '\u2014'}</td>`; }).join('')}</tr>` : '';
   if (hist.length) {
     // columns: when each section was first reached (unlocked) in a seedling's life, and when the Hearth Tree was kindled
-    const short = ['Taproot', 'Heartwood', 'Canopy', 'Crown', 'Lit'], longN = ['Reached the Taproot Galleries', 'Reached the Heartwood', 'Reached the Canopy Gardens', 'Reached the Ember Crown', 'Kindled the Hearth Tree'];
+    const short = ['Taproot', 'Hull', 'Heartwood', 'Canopy', 'Crown', 'Lit'], longN = ['Reached the Taproot Galleries', 'Reached the Shattered Bark', 'Reached the Heartwood', 'Reached the Canopy Gardens', 'Reached the Ember Crown', 'Kindled the Hearth Tree'];
     h += '<span class="lbl" style="display:block;margin-top:12px">Section unlock times</span><p class="note"><span class="tgm">In-game</span> and <span class="trl">real time</span> when each seedling first reached a section, and when the Hearth Tree was kindled. <b>Run total</b> is the total time played in this run, all seedlings together, when a section was first reached. <b>Best seedling</b> is your best single seedling ever (most sections, then least in-game time). <b>Best</b> keeps the earliest unlock of each section from any seedling in this run, with the seedling number.</p>';
-    h += `<div class="rtab"><table class="dt ft"><thead><tr><th>Seedling</th>${short.map((n, i) => `<th title="${longN[i]}">${n}</th>`).join('')}</tr></thead><tbody>${totRow([2, 3, 4, 5, 'lit'])}${S.bestAll ? `<tr class="ftbest ftall"><td>Best seedling<small>#${S.bestAll.g}</small></td>${ZONES.slice(0, 5).map((z, i) => { const f = S.bestAll.fin[i]; return `<td>${f ? gameT(fmtDays(f[0] * TPD)) + '<small>' + realT(f[1]) + '</small>' : '\u2014'}</td>`; }).join('')}</tr>` : ''}${S.bestSec && S.bestSec.some(Boolean) ? `<tr class="ftbest"><td>Best</td>${ZONES.slice(0, 5).map((z, i) => { const b = S.bestSec[i]; return `<td>${b ? gameT(fmtDays(b.d * TPD)) + '<small>' + realT(b.r) + '</small><small>seedling ' + b.g + '</small>' : '\u2014'}</td>`; }).join('')}</tr>` : ''}${hist.map(e => `<tr><td>${e.g}</td>${ZONES.slice(0, 5).map((z, i) => { const f = e.fin && e.fin[i]; return `<td>${f ? gameT(fmtDays(f[0] * TPD)) + '<small>' + realT(f[1]) + '</small>' : '\u2014'}</td>`; }).join('')}</tr>`).join('')}</tbody></table></div>`;  }
+    h += `<div class="rtab"><table class="dt ft"><thead><tr><th>Seedling</th>${short.map((n, i) => `<th title="${longN[i]}">${n}</th>`).join('')}</tr></thead><tbody>${totRow(ACT1.slice(1).concat(['lit']))}${S.bestAll ? `<tr class="ftbest ftall"><td>Best seedling<small>#${S.bestAll.g}</small></td>${ACT1.map((z, i) => { const f = S.bestAll.fin[i]; return `<td>${f ? gameT(fmtDays(f[0] * TPD)) + '<small>' + realT(f[1]) + '</small>' : '\u2014'}</td>`; }).join('')}</tr>` : ''}${S.bestSec && S.bestSec.some(Boolean) ? `<tr class="ftbest"><td>Best</td>${ACT1.map((z, i) => { const b = S.bestSec[i]; return `<td>${b ? gameT(fmtDays(b.d * TPD)) + '<small>' + realT(b.r) + '</small><small>seedling ' + b.g + '</small>' : '\u2014'}</td>`; }).join('')}</tr>` : ''}${hist.map(e => `<tr><td>${e.g}</td>${ACT1.map((z, i) => { const f = e.fin && e.fin[i]; return `<td>${f ? gameT(fmtDays(f[0] * TPD)) + '<small>' + realT(f[1]) + '</small>' : '\u2014'}</td>`; }).join('')}</tr>`).join('')}</tbody></table></div>`;  }
   if ([6,7,8,9,10,11,12,13,14].some(z => FA[z])) {
     const a2 = [6,7,8,9,10,11,12,13,14], a2s = ['Breach', 'Boughs', 'Hive', 'Current', 'Drift', 'Dark', 'Turn', 'Tessaly', 'Orbit'];
     h += '<span class="lbl" style="display:block;margin-top:12px">Act II run totals</span><p class="note">Total time played in this run, all seedlings together, when each Act II section was first reached.</p>';
@@ -3420,7 +3521,7 @@ function renderLog(){
   }
   }
   const b = S.best;
-  h += b ? `<p class="best"><span class="lbl">Best run</span> Seedling ${b.g} ${b.z && isA2(b.z) ? 'reached ' + ZN(b.z).name : b.sec >= 6 ? 'kindled the Hearth Tree' : 'reached ' + zoneThe(b.sec)} after ${gameT(fmtDays(b.d) + ' in-game')} \u00b7 ${realT(b.r)} <span class="trl">real</span></p>` : '';
+  h += b ? `<p class="best"><span class="lbl">Best run</span> Seedling ${b.g} ${b.z && isA2(b.z) ? 'reached ' + ZN(b.z).name : b.sec > ACT1.length ? 'kindled the Hearth Tree' : 'reached ' + zoneThe(ACT1[b.sec - 1])} after ${gameT(fmtDays(b.d) + ' in-game')} \u00b7 ${realT(b.r)} <span class="trl">real</span></p>` : '';
   h += '</div>';
   h += '<div class="panel"><span class="h2">Ship log</span><p class="note">What your seedlings have learned about Selene, her sleeping crew and WARDEN.</p></div><div>';
   if (!S.log.length) h += '<p class="note">Nothing yet.</p>';
@@ -3665,13 +3766,13 @@ function renderAuto(){
 /* ----- FAQ ----- */
 const FAQ_ALL = [
   ['Selene and the Root-Kin', 'The Root-Kin of Earth grow their technology: tools, cities, vehicles and ships come from specialised trees, hardened with magic. It is a highly advanced techno-magical civilisation, and everything in it is organic. There are no nation states left, but the local cultures are kept alive. One World Government has ruled for thousands of years: a democracy with slight meritocratic elements. <b>Selene</b> is one of their colony ships: a long, swept hull of living wood with crescent wings, grown around the <b>Hearth Tree</b>, which is her drive, her mind (WARDEN) and her garden at once. Root-Kin ships ride the ambient magic that saturates the universe, close to the speed of light, inside magical ward-shields and under artificial gravity, and can turn on any axis without strain. That is why, halfway there, Selene has to <b>flip</b> and brake for the rest of the voyage. Seedlings like K-7 are disposable drones of WARDEN and the Hearth Tree, grown for a single task and given just enough autonomy to carry it out.'],
-  ['What is the goal?', 'Restore Selene so WARDEN can wake the sleeping crew. All of Act I happens inside the Hearth Tree, her drive, mind and garden at once: the sap flow that powers her in the Taproot Galleries, WARDEN\u2019s mind and the star-charts in the Heartwood, the food gardens in the Canopy Gardens, and the Hearthfire in the Ember Crown. Act I ends when you kindle the Hearth Tree. One seedling cannot do it all; it takes many lives (around 50 with very good play).'],
+  ['What is the goal?', 'Restore Selene so WARDEN can wake the sleeping crew. All of Act I happens inside the Hearth Tree, her drive, mind and garden at once: the sap flow that powers her in the Taproot Galleries, the meteor wounds in her hull in the Shattered Bark, WARDEN\u2019s mind and the star-charts in the Heartwood, the food gardens in the Canopy Gardens, and the Hearthfire in the Ember Crown. Act I ends when you kindle the Hearth Tree. One seedling cannot do it all; it takes many lives (around 50 with very good play).'],
   ['How do I start?', 'Tap a task to work on it right away. Climb out of the seed pod first, then tap the vault\u2019s sap line for sap cells and strip dead bark panels for deadwood. Time only moves while your seedling is working: with nothing to do, the clock stops, so you can always read and plan.'],
   ['What are jobs, actions and training?', '<b>Jobs</b> repeat and make sap cells or deadwood in batches; they stop when that storage is full. <b>Actions</b> are one-off tasks that unlock things and move the story on. Each needs certain earlier actions, and a section\u2019s last action (its crossing) needs every other action of that section. Tasks you have met before stay listed, greyed out, until what they need is done; you can still queue them. <b>Drills</b> each add a little familiarity to every task in their section, up to 4 sessions per life.'],
   ['How does the queue work?', 'Tapping a task runs it right away, ahead of the queue (a job runs until its store is full); it is not added to the queue. Tapping a gear card works the same way: it is built right away, after gathering the deadwood (grafts in Act II) it still needs. <b>+</b> adds a task to the end of the queue; drag it or use the arrows to move it up. You can queue the same task several times at different places: tap + again for another copy. A task queued once runs until it is done; with several copies, each copy covers one repetition (one training session, one rep, or one fill of a store). The queue holds up to 100 items. Drag an item by the handle on its left to move it, or use the arrows; ✕ removes it. Queued jobs run until their storage is full. You can queue things you have seen before even if they are not available yet; they wait their turn. Gear can be queued too, with the <b>+</b> on its card (gear is listed in each section of the Tasks tab): the seedling works the best deadwood job until it can afford the design, then builds it. Five presets save and load whole queues, and <b>Keep queue between seedlings</b> gives each new seedling the queue you planned, minus anything that is automated and switched on.'],
   ['Energy and sap cells', 'Seedlings are biomechanical: as long as they have energy, the body is sustained. The <b>Energy</b> bar drains all the time; each recharge uses one <b>sap cell</b> and puts energy back. <b>Every recharge restores the same amount</b>; what changes is how often the seedling can recharge. Sap cells are carried up to the seedling\u2019s <b>storage capacity</b>, which grows as the seedling gets deeper into the ship (5 in the Seedling Vaults, up to 90 in the Ember Crown, in steps of 5), plus gear and records. Each section has a <b>charging station</b> job, but it only opens partway into the section and holds a limited <b>reserve</b> per seedling life; when it is drained, the seedling has to cross or run down. Every crossing also costs a share of the cells carried, more the further into the ship you go, so a seedling always arrives living on what it brought. At first a seedling can recharge every 5 seconds of in-game time. Each section has one <b>charger upgrade</b> action that shortens the wait between recharges for the rest of that life, down to about 2 seconds, and adds half again to that section\u2019s station reserve; each seedling has to fix them again. Recharges are always whole, and the seedling only recharges when it needs to: when a whole recharge fits under full energy, or sooner once energy is down to half. At full energy no cell is used. With no cells left at all, the seedling runs down. The Hive Ship\u2019s only charging comes late, so arrive charged.'],
   ['What carries over when a seedling dies?', '<b>Familiarity</b> is kept: every task stays as fast as your seedlings have made it (see the Mastery tab). Every 10 seconds of in-game time a seedling survives is analysed afterwards, run and memory alike, and becomes an <b>efficiency patch</b>: later seedlings drain their energy a little more slowly, up to \u00f71.6. <b>Archive records</b> found by finishing certain actions are permanent upgrades. Gear, sap cells, deadwood and progress through the ship reset.'],
-  ['What are sections?', 'The ship is split into five sections. A <b>red</b> action leads to the next one, and the way back is sealed for that seedling, so finish what you need first (records, training, gear). Each new seedling starts back in the Seedling Vaults.'],
+  ['What are sections?', 'Act I is split into six sections. A <b>red</b> action leads to the next one, and the way back is sealed for that seedling, so finish what you need first (records, training, gear). Each new seedling starts back in the Seedling Vaults.'],
   ['What is gear?', 'Gear is built from deadwood (called grafts in Act II: the same store) and lasts for one seedling. Each section has designs to build. Building one pays its deadwood up front, then the seedling spends time <b>assembling</b> it (bigger designs take longer, from a moment for a toolkit to half a minute or so of in-game time for the largest); assembly comes before other work and gets faster with familiarity. The gear works once it is assembled. Deadwood storage is limited; opening up more of the ship raises it.'],
   ['What is familiarity?', 'There are no skills: each task gets faster on its own the more of it your seedlings have done. Familiarity counts work in completions, including attempts a seedling died in the middle of, and is kept between seedlings. Speed rises smoothly from ×1 to ×10 once you have done enough of a task: in a first run, 90 lives’ worth of it (90 finishes of an action, 1800 batches of a job). Each level of the <b>Echo</b> legacy theme lowers that for Act I tasks. Familiar tasks also hurt less (hazard damage up to ÷4), and a familiar charging station charges faster. <b>Drills</b> spread familiarity to every task in their section. The Mastery tab lists every task.'],
   ['How does automation work?', 'Every completion counts: finish an action 10 times (a multi-rep action 10 times its reps), or a training session 40 times, or build a design in 10 lives, and its automation <b>switches on by itself</b>. For Act I tasks these counts shrink along with the familiarity threshold (Echo legacy), never below one; tap <b>AUTO</b> (or its switch in the Auto tab) to turn it off, and it stays off. Automated tasks run by themselves <b>ahead of your queue</b>, in chain order (each after the tasks it needs). Automated tasks <b>link into chains</b> when one requires the other and both are at least ×2 familiar. When every action and crossing of a section is automated and ×5 familiar, and all its gear designs are automated, the whole section becomes <b>one chain</b>: press <b>▶ Run section</b> (above the queue in the Tasks tab) and the seedling works through everything, builds the gear, fills its stores and crosses. The run is pinned at the top of the queue and the queue\u2019s leftovers for its sections are cleared. Pressing it also turns on <b>Always run sections once ready</b> (Auto tab): from then on a run starts by itself whenever the section you are in is ready. Stop turns that off again. Ready sections next to each other link across their crossings into one run (<b>▶ Run 3 sections</b>), up to the end of the act; a run that dies starts again with the next seedling. The option <b>Pause when a section run ends instead</b> keeps a run going through its crossings and pauses once it is over. A chain picks its next step itself each time: gear first, then charger upgrades, then the actions and drills in the order they depend on each other, and the crossing last. When a chain forms or grows, it <b>queues itself</b>, including the chains of sections still ahead, and chain entries are kept in the order they will run: section by section, and within a section the chain that starts earliest first, with the crossing\u2019s chain last, and anything of it you had queued separately is dropped from the queue. If you remove a chain from the queue, it stays out for the rest of that seedling\u2019s life. Work done as part of a chain (a queued chain or a section run) builds <b>chain flow</b>, which makes chained steps up to five times as fast; it is kept for good. Jobs are never automated: auto-forage keeps the charge up, queued and automated gear work the deadwood jobs, and every crossing tops the stores up before the seedling moves on. An automated <b>deadwood</b> job only gathers what gear needs: the next auto-built or queued design that is found and not built yet; it does not top the store up to full (except while filling up before a crossing). Automated <b>crossings</b> are the exception: they wait until your queue is done. A task you tap runs before everything. The <b>Auto</b> tab lists everything unlocked and has extra options: charging when needed, the death screen and starting paused.'],
@@ -3681,7 +3782,7 @@ const FAQ_ALL = [
   ['Settings', '<b>Settings</b> (the ⚙ button, or Settings in the ☰ menu) holds the clock and pause options (death screen, starting paused, after a new section, when a section run ends or when a task finishes), sound (music and effects), layout (vertical or horizontal) and, in the Android app, app updates. Energy and automation options (auto-recharge, auto-charge, the charge threshold, charging when needed) are in the Auto tab.'],
 ];
 // Shown once the drive is first lit.
-const FAQ_NGP = ['Legacy tasks', 'There is no restarting: after the Hearth Tree is kindled, the story always moves forward. As Act II unfolds, <b>legacy tasks</b> open up in Act I, one theme at a time. Each theme adds a set of five parts to every Act I section, open once a seedling has done that section\u2019s last regular action: two pairs of steps, then a <b>final</b> that needs both pairs. Revealed sets are <b>needed for the crossing</b> (and for kindling the Hearth Tree). Finishing a final gives its bonus for the rest of that life, growing with the final\u2019s mastery (nothing untrained, full share at twice the usual familiarity). All five finals of a theme, done and mastered, give its full effect. Each set has an optional <b>drill</b> that trains only its five parts; section drills don\u2019t train them. Legacy parts are never queued for you: a toast and a dot on the Tasks tab say when they open up. Once automated they join chains and section runs like any other task. The <b>Legacy</b> tab shows what each revealed theme does and how far it has got. Kindling the Hearth Tree the first time also unlocks the <b>Quartermaster\u2019s cache</b>: every seedling starts with all of its automated gear already built, in both acts.'];
+const FAQ_NGP = ['Legacy tasks', 'There is no restarting: after the Hearth Tree is kindled, the story always moves forward. As Act II unfolds, <b>legacy tasks</b> open up in Act I, one theme at a time. Each theme adds a set of five parts to every Act I section, open once a seedling has done that section\u2019s last regular action: two pairs of steps, then a <b>final</b> that needs both pairs. Revealed sets are <b>needed for the crossing</b> (and for kindling the Hearth Tree). Finishing a final gives its bonus for the rest of that life, growing with the final\u2019s mastery (nothing untrained, full share at twice the usual familiarity). All six finals of a theme (one per Act I section), done and mastered, give its full effect. Each set has an optional <b>drill</b> that trains only its five parts; section drills don\u2019t train them. Legacy parts are never queued for you: a toast and a dot on the Tasks tab say when they open up. Once automated they join chains and section runs like any other task. The <b>Legacy</b> tab shows what each revealed theme does and how far it has got. Kindling the Hearth Tree the first time also unlocks the <b>Quartermaster\u2019s cache</b>: every seedling starts with all of its automated gear already built, in both acts.'];
 const FAQ_WEAR = ['Ship wear and grafts', 'In Act II Selene wears out as your seedlings work: a little in the Boarders, more over the Long Watch, most during Arrival. Every point of wear adds 8% to the energy drain. <b>Deadwood</b> doubles as <b>grafts</b>: a <b>repair</b> takes off 1.5 wear for a fixed number of grafts (more in later sections), then needs a cooldown, like a recharge. <b>Auto-repair</b> does this for you; the <b>Repair</b> button under Grafts does it by hand. Graft jobs are to grafts what charging stations are to energy: <b>Auto-scavenge</b> works the best one when grafts run low. Each Act II section has a <b>workshop</b> action that makes repairs come more often; it costs three repairs\u2019 worth of grafts when work on it starts. Run out of grafts and the wear keeps climbing until the seedling is worn down with her.'];
 const FAQ_A2 = ['Act II', 'Once the Hearth Tree is kindled, every seedling that kindles it carries on into <b>Act II</b>: nine more sections, one after another, each revealed when a seedling first reaches it. Act II tasks have their own familiarity, which Echo legacy tasks reduce only at 10% strength: it starts at 90 lives\u2019 worth for \u00d710 and drops by a quarter at each of Act II\u2019s three big milestones. Act II familiarity, automation and records are kept for good.'];
 let faqDone = '';
@@ -3955,7 +4056,7 @@ document.addEventListener('click', e => {
     toast('Loaded preset ' + (+d.qload + 1)); taskKey = ''; renderView(); return;
   }
   if ('secrun' in d) { const sp = startRun(); S.set.autoRun = true; savePrefs(); save();
-    if (sp) toast((sp.length > 1 ? 'Running ' + sp.length + ' sections as one chain: ' + sp.map(z => ZONES[z - 1].name).join(' \u2192 ') : 'Running the ' + ZONES[(L.sec || 1) - 1].name + ' as one chain') + '. Sections now run by themselves once ready.');
+    if (sp) toast((sp.length > 1 ? 'Running ' + sp.length + ' sections as one chain: ' + sp.map(z => ZN(z).name).join(' \u2192 ') : 'Running the ' + ZN(L.sec || 1).name + ' as one chain') + '. Sections now run by themselves once ready.');
     taskKey = ''; autoKey = ''; renderView(); return; }
   if ('secstop' in d) { L.chainRun = false; L.runFrom = null; S.set.autoRun = false; savePrefs(); save(); toast('Section run stopped. Sections no longer run by themselves (turn it back on with Run section or in the Auto tab).'); taskKey = ''; autoKey = ''; renderView(); return; }
   if (d.secfold) { secFold[d.secfold] = !secFold[d.secfold]; autoKey = ''; renderView(true); return; }
