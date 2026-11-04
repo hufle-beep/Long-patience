@@ -488,7 +488,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
 
 <script id="logic">
 /* ===== Game data and rules (no DOM) ===== */
-const BUILD = '2026-11-04 · five slots and death saves';   // shown in the main menu, to tell which version is loaded
+const BUILD = '2026-11-04 · leave a death save';   // shown in the main menu, to tell which version is loaded
 const DPS = 8;             // simulation ticks per real second at 1x (doubled for the test version: same balance, half the real time)
 // Time is simulated in ticks. 80 ticks make one ship day (18 minutes each), so a day lasts
 // 20 real seconds at 1x and a clone lives weeks, not years. Everything is shown in days and hours.
@@ -2651,8 +2651,9 @@ function showMenu(view){
     for (let i = 1; i <= SLOTS; i++) {
       const r = readSlot(i), act = i === slot;
       h += `<div class="slot${act ? ' act' : ''}"><b>Slot ${i}${act ? ' \u00b7 playing' : ''}</b><span>${esc(slotInfo(r))}</span><div class="btns">`;
-      if (!act && r) h += `<button class="btn" data-loadslot="${i}">Load</button>`;
-      if (!act && cur2) h += `<button class="btn" data-saveto="${i}">${r ? 'Save over' : 'Save here'}</button>`;
+      const fromD = slot === 'd' + i;   // playing this slot's own death save
+      if (!act && r) h += fromD ? `<button class="btn" data-loadslot="${i}" data-leaved="1">Load slot ${i} (leave the death save)</button>` : `<button class="btn" data-loadslot="${i}">Load</button>`;
+      if (!act && cur2) h += `<button class="btn" data-saveto="${i}">${fromD ? 'Copy this death save into slot ' + i : r ? 'Save over' : 'Save here'}</button>`;
       if (!act && r) h += `<button class="btn warn" data-delslot="${i}">Delete</button>`;
       if (act) h += '<span class="ghst">Saves automatically every few seconds.</span><button class="btn warn" data-confirm="reset">Restart</button>';
       h += '</div>';
@@ -2660,7 +2661,7 @@ function showMenu(view){
       if (dr || dact) {
         h += `<div class="slot dslot${dact ? ' act' : ''}"><b>\u21b3 Death save \u00b7 linked to slot ${i}${dact ? ' \u00b7 playing' : ''}</b><span>${esc(slotInfo(dr))}</span><div class="btns">`;
         if (!dact && dr) h += `<button class="btn" data-loadslot="${dk}">Load</button><button class="btn warn" data-delslot="${dk}">Delete</button>`;
-        if (dact) h += `<span class="ghst">Playing from the last death of slot ${i}. Slot ${i} itself is untouched; the next death replaces this save.</span>`;
+        if (dact) h += `<span class="ghst">Playing from the last death of slot ${i}. Too far gone? Load slot ${i} above to go back (this death save is then deleted).</span>`;
         h += '</div></div>';
       }
       h += '</div>';
@@ -3615,7 +3616,7 @@ const FAQ_ALL = [
   ['How does automation work?', 'Every completion counts: finish an action 10 times (a multi-rep action 10 times its reps), or a training session 40 times, or build a design in 10 lives, and its automation <b>switches on by itself</b>. For Act I tasks these counts shrink along with the familiarity threshold (Echo legacy), never below one; tap <b>AUTO</b> (or its switch in the Auto tab) to turn it off, and it stays off. Automated tasks run by themselves <b>ahead of your queue</b>, in chain order (each after the tasks it needs). Automated tasks <b>link into chains</b> when one requires the other and both are at least ×2 familiar. When every action and crossing of a section is automated and ×5 familiar, and all its gear designs are automated, the whole section becomes <b>one chain</b>: press <b>▶ Run section</b> (above the queue in the Tasks tab) and the clone works through everything, builds the gear, fills its stores and crosses. The run is pinned at the top of the queue and the queue\u2019s leftovers for its sections are cleared. Pressing it also turns on <b>Always run sections once ready</b> (Auto tab): from then on a run starts by itself whenever the section you are in is ready. Stop turns that off again. Ready sections next to each other link across their crossings into one run (<b>▶ Run 3 sections</b>), up to the end of the act; a run that dies starts again with the next clone. The option <b>Pause when a section run ends instead</b> keeps a run going through its crossings and pauses once it is over. A chain picks its next step itself each time: gear first, then charger upgrades, then the actions and drills in the order they depend on each other, and the crossing last. When a chain forms or grows, it <b>queues itself</b>, including the chains of sections still ahead, and chain entries are kept in the order they will run: section by section, and within a section the chain that starts earliest first, with the crossing\u2019s chain last, and anything of it you had queued separately is dropped from the queue. If you remove a chain from the queue, it stays out for the rest of that clone\u2019s life. Work done as part of a chain (a queued chain or a section run) builds <b>chain flow</b>, which makes chained steps up to five times as fast; it is kept for good. Jobs are never automated: auto-forage keeps the food up, queued and automated gear work the salvage jobs, and every crossing tops the stores up before the clone moves on. An automated <b>salvage</b> job only gathers what gear needs: the next auto-built or queued design that is found and not built yet; it does not top the store up to full (except while filling up before a crossing). Automated <b>crossings</b> are the exception: they wait until your queue is done. A task you tap runs before everything. The <b>Auto</b> tab lists everything unlocked and has extra options: charging when needed, the death screen and starting paused.'],
   ['What happens at a crossing with automation?', 'A queued or automated crossing stops just before it finishes and waits while the clone finishes automated actions and training, builds affordable automated gear, refills storage (if that option is on) and uses the section’s rest. Tap a crossing yourself to go at once.'],
   ['Pause, saving and speed', 'Progress is saved on this device only (this browser or the app); use <b>Save files</b> in the main menu (\u2630) to back it up or move it, and <b>Restart</b> next to the slot there to start this slot over. Pause with the button at the top or the space bar. The game only runs while it is on screen: in another app, a background tab or closed, the clock stops and carries on where it left off. Each <b>Stasis watch</b> record (one for leaving each section the first time) tunes the clones\u2019 stasis: energy drains a little slower, more with each one, up to \u221250% in all. The <b>speed menu</b> (\u00bb) at the top appears once Act I has been cleared: \u00d72 then, and \u00d75 once Act II has been cleared. It is a flat speed-up of real time, kept on this device for every save.'],
-  ['Save management', 'The game saves itself every few seconds on this device. <b>Save Management</b> in the \u2630 menu holds: the five <b>save slots</b> (load one, copy your current game into another as a save state with \u201cSave here\u201d, or delete one); under each used slot, its <b>death save</b>, written automatically at every death in that slot (load it to go back to that death; playing it never changes the regular slot, and deleting or starting over a slot removes its death save too); <b>Restart</b>, next to the slot you are playing, which starts that slot over; and <b>Save files and transfer</b>: export a save file, import one, copy the save as text to move it between devices, or share it to the game\u2019s GitHub folder and load shared saves from there.'],
+  ['Save management', 'The game saves itself every few seconds on this device. <b>Save Management</b> in the \u2630 menu holds: the five <b>save slots</b> (load one, copy your current game into another as a save state with \u201cSave here\u201d, or delete one); under each used slot, its <b>death save</b>, written automatically at every death in that slot (load it to go back to that death; playing it never changes the regular slot. If it is too far gone, load the regular slot again from there, which deletes that death save. Deleting or starting over a slot removes its death save too); <b>Restart</b>, next to the slot you are playing, which starts that slot over; and <b>Save files and transfer</b>: export a save file, import one, copy the save as text to move it between devices, or share it to the game\u2019s GitHub folder and load shared saves from there.'],
   ['Settings', '<b>Settings</b> (the ⚙ button, or Settings in the ☰ menu) holds the clock and pause options (death screen, starting paused, pausing in the background, after a new section, when a section run ends or when a task finishes), sound (music and effects), layout (vertical or horizontal) and, in the Android app, app updates. Energy and automation options (auto-recharge, auto-charge, the charge threshold, rests, charging when needed) are in the Auto tab.'],
 ];
 // Shown once the drive is first lit.
@@ -3713,8 +3714,11 @@ document.addEventListener('click', e => {
   }
   if (d.loadslot) {
     const i = /^d[1-5]$/.test(d.loadslot) ? d.loadslot : +d.loadslot, r = readSlot(i); if (!r) return;
+    const leave = d.leaved === '1' && slot === 'd' + i;
+    if (leave && !twoStep(b, 'leave' + i, 'Tap again: the death save is deleted')) return;
     save(); slot = i; S = mergeState(r); M = mods(); resetViews(); save();
-    toast('Loaded ' + slotLabel(i));
+    if (leave) try { localStorage.removeItem(slotKey('d' + i)); } catch(e) {}
+    toast(leave ? 'Back in slot ' + i + '; its death save was deleted' : 'Loaded ' + slotLabel(i));
     return startGame();
   }
   if (d.saveto) {
