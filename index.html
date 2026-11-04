@@ -502,7 +502,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
 
 <script id="logic">
 /* ===== Game data and rules (no DOM) ===== */
-const BUILD = '2026-11-04 · energy cap 1000';   // shown in the main menu, to tell which version is loaded
+const BUILD = '2026-11-04 · longer vat bay';   // shown in the main menu, to tell which version is loaded
 const DPS = 8;             // simulation ticks per real second at 1x (doubled for the test version: same balance, half the real time)
 // Time is simulated in ticks. 80 ticks make one ship day (18 minutes each), so a day lasts
 // 20 real seconds at 1x and a clone lives weeks, not years. Everything is shown in days and hours.
@@ -1047,7 +1047,7 @@ const TASKS = [
   {id:'safeorbit', z:14, kind:'act', finale:'C', name:'Establish a safe orbit over Tessaly', days:937, req:[], perk:'harbour',
     log:'The Long Patience settles into a stable orbit. Below, Tessaly turns: oceans, cloud, a long brown coast. Three thousand people are still asleep. They are home, nearly. WARDEN holds the wake cycle. Someone has to look at the ground first.'},
 ];
-const ZDAYS = {1:0.291, 2:0.99, 3:0.587, 4:0.518, 5:0.318, 6:0.719, 7:0.932, 8:0.932, 9:0.629, 10:0.846, 11:0.846, 12:0.803, 13:0.803, 14:0.803};   // no skill transfer: later sections are short, and speed comes from familiarity
+const ZDAYS = {1:1.891, 2:0.891, 3:0.528, 4:0.466, 5:0.286, 6:0.719, 7:0.932, 8:0.932, 9:0.629, 10:0.846, 11:0.846, 12:0.803, 13:0.803, 14:0.803};   // no skill transfer: later sections are short, and speed comes from familiarity
 const TRAIN_CAP = 4, TRAIN_XP = 1.5;
 const LEGACY_LEN = 0.6;   // legacy parts are needed for every crossing once revealed, so they are kept short
 const T = {}; TASKS.forEach(t => { T[t.id] = t; t.sk = []; t.reps = t.kind === 'train' ? TRAIN_CAP : (t.reps || 1); if (t.days) t.days = Math.round(t.days * ZDAYS[t.z] * (t.legacy && t.kind === 'act' ? LEGACY_LEN : 1)); });
