@@ -486,7 +486,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
 
 <script id="logic">
 /* ===== Game data and rules (no DOM) ===== */
-const BUILD = '2026-11-04 · stasis tuning';   // shown in the main menu, to tell which version is loaded
+const BUILD = '2026-11-04 · Act II danger +18%';   // shown in the main menu, to tell which version is loaded
 const DPS = 8;             // simulation ticks per real second at 1x (doubled for the test version: same balance, half the real time)
 // Time is simulated in ticks. 80 ticks make one ship day (18 minutes each), so a day lasts
 // 20 real seconds at 1x and a clone lives weeks, not years. Everything is shown in days and hours.
@@ -501,7 +501,7 @@ const MAX_DRAIN = 1.2;     // most health a young clone can lose per tick (the c
 // the end (good feeding buys time, not immortality); and each section is a little more dangerous than the
 // one before (hunger and hazards x DANGER), with a step up at the start of Act II.
 const CAP_DOUBLE = 30;
-const DANGER = {1:1.0, 2:1.05, 3:1.1, 4:1.15, 5:1.2, 6:1.8, 7:1.85, 8:1.9, 9:1.95, 10:2.0, 11:2.05, 12:2.1, 13:2.15, 14:2.2};
+const DANGER = {1:1.0, 2:1.05, 3:1.1, 4:1.15, 5:1.2, 6:2.12, 7:2.18, 8:2.24, 9:2.3, 10:2.36, 11:2.42, 12:2.48, 13:2.54, 14:2.6};
 const danger = z => DANGER[z] || 1;
 function drainNow(strain, haz, wear, z){ const k = danger(z); return Math.min((HUNGER * strain + (haz || 0)) * k, MAX_DRAIN * k) * DRAIN_X * (1 - Math.min(0.9, (M && M.stasis) || 0)) / drainDiv() / vitDiv(); }   // stasis tuning (watch records) cuts the drain
 const DRAIN_X = 3.2;   // overall energy drain (with the fault gone, energy alone limits a clone)
