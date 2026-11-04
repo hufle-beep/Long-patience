@@ -21,6 +21,7 @@ Play: https://hufle-beep.github.io/Long-patience/ · Android APK: release `andro
   - uploads it to the `android-latest` release as LongPatience-next.apk, then swaps it in (retries);
   - updates the release title "Selene: Tidelocked for Android (build N)" (the app reads N from the title);
   - keeps a backup copy as release `android-build-N` and deletes backup releases beyond the newest 5.
+- `.github/workflows/restore-points.yml`: on every push, keeps `restore/<date>-<commit>` tags on the newest 5 commits (tags can't be created from Claude's workspace).
 - GitHub Pages serves the repo root (the "pages build and deployment" workflow runs on every push).
 - `saves/`: playtest saves uploaded by the owner (format `LPZ1:` + base64 gzip JSON).
 - `project/`: these docs and `tools/`.
@@ -112,7 +113,8 @@ node -e "const fs=require('fs');const h=fs.readFileSync('index.html','utf8');[..
 - Network allowlist:
   - **Works:** GitHub (git, `gh api` REST) and PyPI.
   - **Blocked:** Google, Maven, Gradle (so the APK can't be built locally), npm DNS, Google Fonts, itch.io and the GitHub GraphQL API.
-  - **Through this workspace's GitHub access:** the Pages builds API is blocked, and workflow dispatch is blocked too.
+  - **Through this workspace's GitHub access:** the Pages builds API, workflow dispatch, creating tags (git push of tags and the refs API) and cancelling queued runs are all blocked.
+  - **Pages deploys can fail with "in progress deployment"** after an outage. The next push (or an empty commit, with the owner's OK) republishes.
 - Use `gh api repos/hufle-beep/Long-patience/...` (REST), not `gh run list`/`gh release view` (GraphQL).
 - Foreground `sleep N; cmd` is blocked: use bounded `until`/`for` loops.
 - `git push` prints "This repository moved" (case-insensitive name): harmless.

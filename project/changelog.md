@@ -2,6 +2,9 @@
 
 Every commit, newest first (from git history; Android build numbers are GitHub Actions run numbers). Generated before each push.
 
+- (next) · Restore-point workflow (newest 5 commits tagged); docs updated; republishes the web version
+- 2026-11-04 21:42 · `b12d331` · Restore points: record the project-docs commit
+- 2026-11-04 21:42 · `05e5518` · Project docs and tools in the repo (working agreement, handover, roadmap, notes, design, changelog, restore points); keep the newest 5 Android builds as backup releases
 - 2026-11-04 21:31 · `4b28cfd` · Cleanup: remove patch tasks, the old fault, boost/background-pause/NG+ leftovers and unused code; refresh comments and README
 - 2026-11-04 21:21 · `92183c1` · The Hearth Tree: organic reskin (Root-Kin of Earth, Selene, seedlings, sap cells, deadwood, grafts), new Act I order, Act II names, gravity and wards before the flip, brown and amber palette; old saves' logs refreshed
 - 2026-11-04 20:33 · `e0187fb` · Rename to Selene: Tidelocked; the ship is Selene (she/her); storage keys moved to selene.*
