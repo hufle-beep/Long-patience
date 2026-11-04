@@ -497,7 +497,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
 
 <script id="logic">
 /* ===== Game data and rules (no DOM) ===== */
-const BUILD = '2026-11-04 · game speed menu';   // shown in the main menu, to tell which version is loaded
+const BUILD = '2026-11-04 · speeds kept in saves';   // shown in the main menu, to tell which version is loaded
 const DPS = 8;             // simulation ticks per real second at 1x (doubled for the test version: same balance, half the real time)
 // Time is simulated in ticks. 80 ticks make one ship day (18 minutes each), so a day lasts
 // 20 real seconds at 1x and a clone lives weeks, not years. Everything is shown in days and hours.
@@ -2320,10 +2320,12 @@ function fmtDays(t){
 // x5 once Act II has; both the choice and the unlocks are kept on this device for every save.
 const SPEEDS = [1, 2, 5], SPD_KEY = 'long-patience.speeds.v1';
 let spdUnl = 1; try { spdUnl = +(localStorage.getItem(SPD_KEY) || 1) || 1; } catch(e) {}
-function speedOpen(x){ return x === 1 || (x === 2 && (spdUnl >= 2 || !!S.won)) || (x === 5 && (spdUnl >= 5 || a2Done())); }
+const spdHave = () => Math.max(spdUnl, (S && S.spdUnl) || 1);   // the device's unlocks or the save's, whichever is higher
+function speedOpen(x){ return x === 1 || (x === 2 && (spdHave() >= 2 || !!S.won)) || (x === 5 && (spdHave() >= 5 || a2Done())); }
 function gameSpeed(){ const x = +(S.set.speed || 1); return SPEEDS.includes(x) && speedOpen(x) ? x : 1; }
 function unlockSpeeds(quiet){
   const top = SPEEDS.filter(speedOpen).pop();
+  if (S && top > (S.spdUnl || 1)) S.spdUnl = top;   // every save carries the highest speed unlocked, so a wiped device gets it back
   if (top > spdUnl) { spdUnl = top; try { localStorage.setItem(SPD_KEY, String(top)); } catch(e) {} lastSpd = ''; renderSpeed(); if (!quiet) toast('Game speed \u00d7' + top + ' unlocked: pick it from the speed menu at the top.', true); }
 }
 function realSecs(days){ return days / (DPS * gameSpeed() * ngpSpeed()); }
