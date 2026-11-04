@@ -43,8 +43,8 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--amber);outline-
 .ident .hleft{color:var(--red)}
 .ident b{white-space:nowrap;font-family:var(--f-disp);font-size:22px;font-weight:700;letter-spacing:.04em;color:var(--amber);line-height:1}
 .ident span{font-family:var(--f-disp);font-size:14px;color:var(--dim);letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
-.spd{display:grid;grid-template-columns:44px 44px 1fr;gap:6px;flex-basis:100%;width:100%;margin-left:0}
-.spd.has4{grid-template-columns:44px 44px 1fr 44px}
+.spd{display:grid;grid-template-columns:44px 44px 1fr 94px;gap:6px;flex-basis:100%;width:100%;margin-left:0}   /* the speed box is as wide as the two buttons on the left, so Pause sits in the middle */
+.spd .bsel.off{border-color:var(--line);color:var(--faint)}
 .spd>*{min-width:0;height:36px;box-sizing:border-box}
 .spd button.flip,.spd button.mus{padding:0;text-align:center}
 .spd button{font-family:var(--f-mono);font-size:12px;padding:5px 9px;border:1px solid var(--line);border-radius:4px;color:var(--dim)}
@@ -500,7 +500,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
 
 <script id="logic">
 /* ===== Game data and rules (no DOM) ===== */
-const BUILD = '2026-11-04 · header buttons';   // shown in the main menu, to tell which version is loaded
+const BUILD = '2026-11-04 · pause centred';   // shown in the main menu, to tell which version is loaded
 const DPS = 8;             // simulation ticks per real second at 1x (doubled for the test version: same balance, half the real time)
 // Time is simulated in ticks. 80 ticks make one ship day (18 minutes each), so a day lasts
 // 20 real seconds at 1x and a clone lives weeks, not years. Everything is shown in days and hours.
@@ -3107,8 +3107,8 @@ function renderSpeed(){
   // Pause, plus the game-speed menu once a faster speed has been unlocked
   let h = `<button data-settings="hud" class="flip" aria-label="Settings" title="Settings">\u2699</button><button data-atog="musicOn" class="mus${ASET.musicOn ? ' on' : ''}" aria-label="Music ${ASET.musicOn ? 'on' : 'off'}">\u266a</button><button data-pause class="pause${S.set.paused ? ' on' : ''}" aria-label="${S.set.paused ? 'Resume' : 'Pause'}">${S.set.paused ? '\u25b6 Resume' : '\u275a\u275a Pause'}</button>`;
   const open = SPEEDS.filter(speedOpen), cur = gameSpeed();
-  if (open.length > 1) h += `<label class="bsel${cur > 1 ? ' on' : ''}" title="Game speed"><select id="spd-sel" aria-label="Game speed">${open.map(x => `<option value="${x}"${x === cur ? ' selected' : ''}>\u00d7${x}</option>`).join('')}</select></label>`;
-  if (h !== lastSpd) { lastSpd = h; const el = $('#h-spd'); el.innerHTML = h; el.classList.toggle('has4', open.length > 1); }
+  h += `<label class="bsel${cur > 1 ? ' on' : ''}${open.length > 1 ? '' : ' off'}" title="${open.length > 1 ? 'Game speed' : 'Game speed: faster speeds unlock later'}"><select id="spd-sel" aria-label="Game speed" ${open.length > 1 ? '' : 'disabled'}>${open.map(x => `<option value="${x}"${x === cur ? ' selected' : ''}>\u00d7${x}${x === 1 ? ' Normal' : ''}</option>`).join('')}</select></label>`;
+  if (h !== lastSpd) { lastSpd = h; $('#h-spd').innerHTML = h; }
 }
 let lastHg = '', planT = 0, lastQEta = '';   // the queue box is rebuilt on changes: it starts from the last estimate, so nothing blinks
 function updateHud(){
