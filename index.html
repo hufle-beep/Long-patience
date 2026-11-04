@@ -502,7 +502,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
 
 <script id="logic">
 /* ===== Game data and rules (no DOM) ===== */
-const BUILD = '2026-11-04 · energy cap 500';   // shown in the main menu, to tell which version is loaded
+const BUILD = '2026-11-04 · vat bay retune 1';   // shown in the main menu, to tell which version is loaded
 const DPS = 8;             // simulation ticks per real second at 1x (doubled for the test version: same balance, half the real time)
 // Time is simulated in ticks. 80 ticks make one ship day (18 minutes each), so a day lasts
 // 20 real seconds at 1x and a clone lives weeks, not years. Everything is shown in days and hours.
@@ -556,7 +556,7 @@ const SEC_TICKS = {};
 function stationMax(z){
   if (SEC_TICKS[z] == null) SEC_TICKS[z] = TASKS.filter(t => t.z === z && t.kind === 'act' && !t.legacy).reduce((a, t) => a + t.days * (t.reps || 1), 0);
   const up = TASKS.find(t => t.z === z && t.meal);
-  return Math.max(10, 5 * Math.round(RESERVE_K * (z >= 6 ? 0.5 : 1) * SEC_TICKS[z] / MEAL_CD / 5)) * (up && isDone(up.id) ? 1.5 : 1) * ((M && M.stationRes) || 1);
+  return Math.max(z === 1 ? 15 : 10, 5 * Math.round(RESERVE_K * (z >= 6 ? 0.5 : 1) * SEC_TICKS[z] / MEAL_CD / 5)) * (up && isDone(up.id) ? 1.5 : 1) * ((M && M.stationRes) || 1);
 }
 const stationLeft = z => Math.max(0, stationMax(z) - ((S.life.used || {})[z] || 0));
 const STORE_CAP = {1:5, 2:20, 3:35, 4:60, 5:90, 6:25, 7:25, 8:30, 9:25, 10:25, 11:30, 12:30, 13:30, 14:35}   // store sizes and increases come in steps of 5;
@@ -646,8 +646,8 @@ const zAfter = (a, b) => zRank(a) > zRank(b);
 const TASKS = [
   // Drills: up to TRAIN_CAP sessions per life each; each adds a little familiarity to every task of its section. Two per section.
   // Section finishers (crossings, the ignition, Act II finales) need every other action of their section (added below).
-  {id:'drill',   z:1, kind:'train', name:'Pressure drills in the airlock',    days:100, req:['vats']},
-  {id:'rewire',  z:1, kind:'train', name:'Rewire the bay consoles',           days:100, req:['cables']},
+  {id:'drill',   z:1, kind:'train', name:'Pressure drills in the airlock',    days:25, req:['vats']},
+  {id:'rewire',  z:1, kind:'train', name:'Rewire the bay consoles',           days:25, req:['cables']},
   {id:'genes',   z:2, kind:'train', name:'Study the seed-bank genetics',      days:40,  req:['valves']},
   {id:'reckon',  z:2, kind:'train', name:'Patrol the ring corridors',         days:40,  req:['survey']},
   {id:'faults',  z:3, kind:'train', name:'Run reactor fault drills',          days:40,  req:['coolmap']},
@@ -1048,7 +1048,7 @@ const TASKS = [
   {id:'safeorbit', z:14, kind:'act', finale:'C', name:'Establish a safe orbit over Tessaly', days:937, req:[], perk:'harbour',
     log:'The Long Patience settles into a stable orbit. Below, Tessaly turns: oceans, cloud, a long brown coast. Three thousand people are still asleep. They are home, nearly. WARDEN holds the wake cycle. Someone has to look at the ground first.'},
 ];
-const ZDAYS = {1:2.458, 2:1.158, 3:0.686, 4:0.606, 5:0.372, 6:0.677, 7:0.877, 8:0.877, 9:0.593, 10:0.796, 11:0.796, 12:0.756, 13:0.756, 14:0.756};   // no skill transfer: later sections are short, and speed comes from familiarity
+const ZDAYS = {1:2.212, 2:1.158, 3:0.686, 4:0.606, 5:0.372, 6:0.677, 7:0.877, 8:0.877, 9:0.593, 10:0.796, 11:0.796, 12:0.756, 13:0.756, 14:0.756};   // no skill transfer: later sections are short, and speed comes from familiarity
 const TRAIN_CAP = 4, TRAIN_XP = 1.5;
 const LEGACY_LEN = 0.6;   // legacy parts are needed for every crossing once revealed, so they are kept short
 for (let i = TASKS.length - 1; i >= 0; i--) if (TASKS[i].kind === 'rest') TASKS.splice(i, 1);   // the fault is gone, and with it the patches
