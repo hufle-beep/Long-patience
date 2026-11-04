@@ -489,7 +489,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
 
 <script id="logic">
 /* ===== Game data and rules (no DOM) ===== */
-const BUILD = '2026-11-04 · overwrite warnings';   // shown in the main menu, to tell which version is loaded
+const BUILD = '2026-11-04 · run totals';   // shown in the main menu, to tell which version is loaded
 const DPS = 8;             // simulation ticks per real second at 1x (doubled for the test version: same balance, half the real time)
 // Time is simulated in ticks. 80 ticks make one ship day (18 minutes each), so a day lasts
 // 20 real seconds at 1x and a clone lives weeks, not years. Everything is shown in days and hours.
@@ -1630,7 +1630,7 @@ function finish(t){
   HOOK.done(t);
   if (complete(t) && t.perk && !hasPerk(PK[t.perk])) { if (PK[t.perk].act2) S.a2.perks[t.perk] = true; else S.perks[t.perk] = true; M = mods(); HOOK.perk(PK[t.perk]); }
   WATCH.forEach(p => { if (p.secEnd === t.id && complete(t) && !S.perks[p.id]) { S.perks[p.id] = true; HOOK.perk(p); } });
-  if (t.win) { L.wonAt = {d:L.day, r:L.real || 0}; recordBest(L); }
+  if (t.win) { L.wonAt = {d:L.day, r:L.real || 0}; recordBest(L); runTotal('lit'); }
   if (t.win && !S.won) { S.won = true; S.winGen = S.gen; S.a2.open = true; S.branch = 'A'; S.merge = true; if (!L.dead) enterZone(6, 5); if (S.pr && !S.pr.kit) { S.pr.kit = true; HOOK.kit(); } HOOK.win(); }
   else if (t.win && !L.dead) enterZone(6, 5);   // on into Act II: the boarders first
   if (t.finale && complete(t)) finishBranch(t);
@@ -1655,6 +1655,24 @@ function bestClone(g, fin){
   if (!b || n > bn || (n === bn && (last[0] < bl[0] - 1e-9 || (Math.abs(last[0] - bl[0]) < 1e-9 && last[1] < bl[1]))))
     S.bestAll = {g, ng:(S.pr && S.pr.n) || 0, fin:fin.slice()};
 }
+// Run totals: total in-game ticks and real seconds played in this run when any clone first reached a section ('lit': the drive)
+function runTotal(k){
+  if (!S.firstAt) S.firstAt = {};
+  if (!S.firstAt[k]) S.firstAt[k] = {d:(S.stats.daysLived || 0) + S.life.day, r:S.stats.played || 0};
+}
+// Older saves: rebuild the Act I run totals from the clone history when it is complete (it keeps the last 50 clones)
+function rebuildTotals(s){
+  const h = (s.hist || []).slice().sort((a, b) => a.g - b.g); s.firstAt = {};
+  if (!h.length || h[0].g !== 1 || h.some((e, i) => e.g !== i + 1)) return;
+  const keys = [2, 3, 4, 5, 'lit']; let cd = 0, cr = 0;
+  const add = (fin, cd, cr) => keys.forEach((k, i) => { const f = fin && fin[i]; if (f && !s.firstAt[k]) s.firstAt[k] = {d:cd + f[0] * TPD, r:cr + f[1]}; });
+  h.forEach(e => { add(e.fin, cd, cr); cd += e.d || 0; cr += e.r || 0; });
+  const L = s.life;
+  if (L && !L.dead && h[h.length - 1].g === s.gen - 1) {
+    keys.forEach(k => { const a = k === 'lit' ? L.wonAt : (L.secAt || {})[k]; if (a && !s.firstAt[k]) s.firstAt[k] = {d:cd + a.d, r:cr + (a.r || 0)}; });
+    for (let z = 6; z <= 14; z++) { const a = (L.secAt || {})[z]; if (a && !s.firstAt[z]) s.firstAt[z] = {d:cd + a.d, r:cr + (a.r || 0)}; }
+  }
+}
 // Move the clone into section z (a crossing, or Act II after the drive / the boarders' finale)
 function enterZone(z, from){
   const L = S.life;
@@ -1663,6 +1681,7 @@ function enterZone(z, from){
     if (lost > 0) { L.food.ration -= lost; syncFood(); L.crossLost = lost; }
   }
   L.sec = z; if (!L.secAt) L.secAt = {}; if (!L.secAt[z]) L.secAt[z] = {d:L.day, r:L.real || 0};
+  runTotal(z);
   (L.visited = L.visited || {})[z] = 1;
   const stay = id => isCQ(id) ? cSteps(id).some(x => isGQ(x) ? !zBefore(gearZone(IT[x.slice(2)]), z) : !zBefore(T[x].z, z)) : isGQ(id) ? (qItem(id) && (isDone(qItem(id).req) || !zBefore(gearZone(qItem(id)), z))) : !zBefore(T[id].z, z);
   L.qdone.push(...L.queue.filter(id => !stay(id))); L.queue = L.queue.filter(stay);
@@ -2558,6 +2577,7 @@ function mergeState(raw){
   s.ev = 2;
   if (!s.bestSec && Array.isArray(s.hist)) { const keep = S; S = s; s.hist.forEach(e => bestFin(e.g, e.fin)); S = keep; }
   if (!s.bestAll && Array.isArray(s.hist)) { const keep = S; S = s; s.hist.forEach(e => bestClone(e.g, e.fin)); S = keep; }
+  if (!s.firstAt) rebuildTotals(s);
   if (!Array.isArray(s.qpresets)) s.qpresets = [];
   while (s.qpresets.length < QPRESETS) s.qpresets.push([]);
   if (s.life && !Array.isArray(s.life.qdone)) { const q = s.life.queue || []; s.life.qdone = (s.life.qplan || []).filter(id => !q.includes(id)); delete s.life.qplan; }
@@ -3371,11 +3391,17 @@ function renderLog(){
   if (allH.length > 5) h += `<button class="btn histm" data-histall>${histAll ? 'Show last 5' : 'Show all ' + allH.length}</button>`;
   if (!hist.length) h += '<p class="note">No clone has died yet. Each clone\u2019s furthest section and time will appear here.</p>';
   else h += `<div class="rtab"><table class="dt"><thead><tr><th>Clone</th><th>Furthest</th><th><span class="tgm">In-game</span></th><th><span class="trl">Real</span></th></tr></thead><tbody>${hist.map(e => `<tr title="${esc(e.cause)}"><td>${e.g}</td><td>${histName(e)}</td><td>${gameT(fmtDays(e.d))}</td><td>${realT(e.r)}</td></tr>`).join('')}</tbody></table></div>`;
+  const FA = S.firstAt || {};
+  const totRow = keys => keys.some(k => FA[k]) ? `<tr class="ftbest fttot"><td>Run total<small>played to get there</small></td>${keys.map(k => { const f = FA[k]; return `<td>${f ? gameT(fmtDays(f.d)) + '<small>' + realT(f.r) + '</small>' : '\u2014'}</td>`; }).join('')}</tr>` : '';
   if (hist.length) {
     // columns: when each section was first reached (unlocked) in a clone's life, and when the drive was lit
     const short = ['Ring', 'Spine', 'Deck', 'Drive', 'Lit'], longN = ['Reached the Hydroponics Ring', 'Reached the Engineering Spine', 'Reached the Command Deck', 'Reached the Main Drive', 'Lit the main drive'];
-    h += '<span class="lbl" style="display:block;margin-top:12px">Section unlock times</span><p class="note"><span class="tgm">In-game</span> and <span class="trl">real time</span> when each clone first reached a section, and when the drive was lit. <b>Best clone</b> is your best single clone ever (most sections, then least in-game time), kept through new game plus. <b>Best</b> keeps the earliest unlock of each section from any clone in this run, with the clone number.</p>';
-    h += `<div class="rtab"><table class="dt ft"><thead><tr><th>Clone</th>${short.map((n, i) => `<th title="${longN[i]}">${n}</th>`).join('')}</tr></thead><tbody>${S.bestAll ? `<tr class="ftbest ftall"><td>Best clone<small>#${S.bestAll.g}${S.bestAll.ng ? ' NG+' + S.bestAll.ng : ''}</small></td>${ZONES.slice(0, 5).map((z, i) => { const f = S.bestAll.fin[i]; return `<td>${f ? gameT(fmtDays(f[0] * TPD)) + '<small>' + realT(f[1]) + '</small>' : '\u2014'}</td>`; }).join('')}</tr>` : ''}${S.bestSec && S.bestSec.some(Boolean) ? `<tr class="ftbest"><td>Best</td>${ZONES.slice(0, 5).map((z, i) => { const b = S.bestSec[i]; return `<td>${b ? gameT(fmtDays(b.d * TPD)) + '<small>' + realT(b.r) + '</small><small>clone ' + b.g + '</small>' : '\u2014'}</td>`; }).join('')}</tr>` : ''}${hist.map(e => `<tr><td>${e.g}</td>${ZONES.slice(0, 5).map((z, i) => { const f = e.fin && e.fin[i]; return `<td>${f ? gameT(fmtDays(f[0] * TPD)) + '<small>' + realT(f[1]) + '</small>' : '\u2014'}</td>`; }).join('')}</tr>`).join('')}</tbody></table></div>`;
+    h += '<span class="lbl" style="display:block;margin-top:12px">Section unlock times</span><p class="note"><span class="tgm">In-game</span> and <span class="trl">real time</span> when each clone first reached a section, and when the drive was lit. <b>Run total</b> is the total time played in this run, all clones together, when a section was first reached. <b>Best clone</b> is your best single clone ever (most sections, then least in-game time), kept through new game plus. <b>Best</b> keeps the earliest unlock of each section from any clone in this run, with the clone number.</p>';
+    h += `<div class="rtab"><table class="dt ft"><thead><tr><th>Clone</th>${short.map((n, i) => `<th title="${longN[i]}">${n}</th>`).join('')}</tr></thead><tbody>${totRow([2, 3, 4, 5, 'lit'])}${S.bestAll ? `<tr class="ftbest ftall"><td>Best clone<small>#${S.bestAll.g}${S.bestAll.ng ? ' NG+' + S.bestAll.ng : ''}</small></td>${ZONES.slice(0, 5).map((z, i) => { const f = S.bestAll.fin[i]; return `<td>${f ? gameT(fmtDays(f[0] * TPD)) + '<small>' + realT(f[1]) + '</small>' : '\u2014'}</td>`; }).join('')}</tr>` : ''}${S.bestSec && S.bestSec.some(Boolean) ? `<tr class="ftbest"><td>Best</td>${ZONES.slice(0, 5).map((z, i) => { const b = S.bestSec[i]; return `<td>${b ? gameT(fmtDays(b.d * TPD)) + '<small>' + realT(b.r) + '</small><small>clone ' + b.g + '</small>' : '\u2014'}</td>`; }).join('')}</tr>` : ''}${hist.map(e => `<tr><td>${e.g}</td>${ZONES.slice(0, 5).map((z, i) => { const f = e.fin && e.fin[i]; return `<td>${f ? gameT(fmtDays(f[0] * TPD)) + '<small>' + realT(f[1]) + '</small>' : '\u2014'}</td>`; }).join('')}</tr>`).join('')}</tbody></table></div>`;  }
+  if ([6,7,8,9,10,11,12,13,14].some(z => FA[z])) {
+    const a2 = [6,7,8,9,10,11,12,13,14], a2s = ['Breach', 'Decks', 'Hive', 'Cruise', 'Drift', 'Dark', 'Turn', 'Tessaly', 'Orbit'];
+    h += '<span class="lbl" style="display:block;margin-top:12px">Act II run totals</span><p class="note">Total time played in this run, all clones together, when each Act II section was first reached.</p>';
+    h += `<div class="rtab"><table class="dt ft"><thead><tr><th></th>${a2.map((z, i) => `<th title="Reached ${esc(ZN(z).name)}">${a2s[i]}</th>`).join('')}</tr></thead><tbody>${totRow(a2)}</tbody></table></div>`;
   }
   }
   const b = S.best;
