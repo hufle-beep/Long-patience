@@ -138,6 +138,8 @@ button.zh.zhb{margin:14px 0 6px}
 .secrun.on{border-color:var(--cyan)}
 .secrun.dim{color:var(--dim)}
 .secrun .btn{padding:6px 12px;font-size:12.5px;white-space:nowrap}
+.secrun.top{margin:0 0 10px;padding:10px 12px;border-width:2px;border-color:var(--cyan);font-size:13.5px}
+.secrun.top .btn{padding:9px 18px;font-size:14px}
 .gitem .ta{margin-left:6px}
 .chain{display:flex;flex-wrap:wrap;gap:4px 6px;align-items:center;font-size:12px;padding:6px 0;border-bottom:1px solid var(--line)}
 .chain .cqadd{margin-left:auto;padding:3px 8px;font-size:11.5px}
@@ -490,7 +492,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
 
 <script id="logic">
 /* ===== Game data and rules (no DOM) ===== */
-const BUILD = '2026-11-04 · legacy in five parts';   // shown in the main menu, to tell which version is loaded
+const BUILD = '2026-11-04 · run button on top';   // shown in the main menu, to tell which version is loaded
 const DPS = 8;             // simulation ticks per real second at 1x (doubled for the test version: same balance, half the real time)
 // Time is simulated in ticks. 80 ticks make one ship day (18 minutes each), so a day lasts
 // 20 real seconds at 1x and a clone lives weeks, not years. Everything is shown in days and hours.
@@ -2833,7 +2835,8 @@ function renderTasks(){
   if (key === taskKey) return;
   taskKey = key;
 
-  let h = '<div class="qp"><div class="qh"><span class="lbl">Queue <span class="num qcount">' + L.queue.length + '/' + QMAX + '</span> <span class="num qeta" id="q-eta">' + lastQEta + '</span></span><span class="qhb">' + (L.queue.length || (L.qdone || []).length ? '<button class="qclear" data-clearq aria-label="Clear the whole queue">\u2715 Clear queue</button>' : '') + '</span></div>';
+  const sr = secRunHtml(L.sec || 1), srTop = sr && !/secrun dim/.test(sr);   // a ready or running section run goes above the queue
+  let h = (srTop ? sr.replace('class="secrun', 'class="secrun top') : '') + '<div class="qp"><div class="qh"><span class="lbl">Queue <span class="num qcount">' + L.queue.length + '/' + QMAX + '</span> <span class="num qeta" id="q-eta">' + lastQEta + '</span></span><span class="qhb">' + (L.queue.length || (L.qdone || []).length ? '<button class="qclear" data-clearq aria-label="Clear the whole queue">\u2715 Clear queue</button>' : '') + '</span></div>';
   if (L.held) {
     const left = holdList();
     h += `<div class="hold"><div><b>${esc(T[L.held].name)}</b> is on hold until this section is wrapped up. Still to do: ${esc(left.join(', ') || 'nothing')}. Drag tasks above it in the queue to run them first.</div><button class="btn" data-skiphold>Skip the rest and cross now</button></div>`;
@@ -2874,7 +2877,7 @@ function renderTasks(){
     const cleared = TASKS.filter(t => t.z === z.id && complete(t)).length;
     if (!zchains.length && !jobs.length && !acts.length && !rests.length && !trains.length && !lk.length && !cleared) return;
     h += `<section class="zone"><header class="zh"><h2>${z.name}</h2><span>${z.sub}</span>${cleared ? `<em>${cleared} done</em>` : ''}</header>`;
-    if (z.id === (L.sec || 1)) h += secRunHtml(z.id);
+    if (z.id === (L.sec || 1) && !srTop) h += sr;   // progress only; the button itself sits above the queue
     if (zchains.length) {
       h += '<div class="sub">Chains \u00b7 linked tasks work as one, faster with chain flow</div>';
       zchains.forEach(k => { h += chainCard(k); });
