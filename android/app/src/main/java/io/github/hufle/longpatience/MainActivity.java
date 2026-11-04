@@ -218,7 +218,7 @@ public class MainActivity extends Activity {
     private void install(File apk) {
         if (Build.VERSION.SDK_INT >= 26 && !getPackageManager().canRequestPackageInstalls()) {
             pendingInstall = apk;
-            post("permission", "Allow Long Patience to install apps, then return here. The install will continue.");
+            post("permission", "Allow Selene: Tidelocked to install apps, then return here. The install will continue.");
             try {
                 startActivityForResult(new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
                         Uri.parse("package:" + getPackageName())), REQ_INSTALL_PERM);

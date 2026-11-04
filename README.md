@@ -1,8 +1,8 @@
-# Long Patience
+# Selene: Tidelocked
 
 A sci-fi clone-loop incremental game in the vein of Increlution and Incremortal.
 
-You are K-7, a disposable maintenance clone aboard the colony ship *Long Patience*. Its crew sleeps in stasis; WARDEN, the ship's overseer, decants clones to keep the ship alive. Repair the food system, the energy system and the stardrive so the crew can be woken. Each body lasts days, and what it learns echoes into the next one.
+You are K-7, a disposable maintenance clone aboard the colony ship *Selene*, named for the Greek goddess of the Moon. Her crew sleeps in stasis; WARDEN, the ship's overseer, decants clones to keep the ship alive. Repair the food system, the energy system and the stardrive so the crew can be woken. Each body lasts days, and what it learns echoes into the next one.
 
 ## Play
 

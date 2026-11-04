@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#111a20">
-<title>Long Patience</title>
+<title>Selene: Tidelocked</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Saira+Condensed:wght@500;600;700&display=swap">
@@ -492,8 +492,10 @@ tr.pttot td{font-weight:600;color:var(--amber)}
 <div id="modal" hidden><div class="mbox" id="mbox"></div></div>
 
 <script id="logic">
+// Renamed from Long Patience: move this device's old storage keys to the new 'selene.' names once
+try { const old = []; for (let n = 0; n < localStorage.length; n++) old.push(localStorage.key(n)); old.forEach(k => { if (k && k.indexOf('long-patience.') === 0) { const nk = 'selene.' + k.slice(14); if (localStorage.getItem(nk) == null) localStorage.setItem(nk, localStorage.getItem(k)); localStorage.removeItem(k); } }); } catch(e) {}
 /* ===== Game data and rules (no DOM) ===== */
-const BUILD = '2026-11-04 · compact task cards';   // shown in the main menu, to tell which version is loaded
+const BUILD = '2026-11-04 · Selene: Tidelocked';   // shown in the main menu, to tell which version is loaded
 const DPS = 8;             // simulation ticks per real second at 1x (doubled for the test version: same balance, half the real time)
 // Time is simulated in ticks. 80 ticks make one ship day (18 minutes each), so a day lasts
 // 20 real seconds at 1x and a clone lives weeks, not years. Everything is shown in days and hours.
@@ -627,7 +629,7 @@ const TASKS = [
   {id:'seals',   z:5, kind:'train', name:'Calibrate the injector bio-seals',  days:40,  req:['injstrip']},
   // Zone 1
   {id:'wake', z:1, kind:'act', name:'Climb out of the vat', days:2, req:[],
-    log:'Fluid drains from the vat. A voice from the walls: \u201cMaintenance unit K-7, decanted. Work cycle begins.\u201d Stencilled on the glass: PROPERTY OF THE LONG PATIENCE.'},
+    log:'Fluid drains from the vat. A voice from the walls: \u201cMaintenance unit K-7, decanted. Work cycle begins.\u201d Stencilled on the glass: PROPERTY OF SELENE.'},
   {id:'algae', z:1, kind:'job', name:'Tap the vat bay power bus', prod:{rations:0.035}, req:['vats']},
   {id:'scrap', z:1, kind:'job', name:'Strip wall panels', prod:{salvage:0.05}, req:['wake']},
   {id:'vats', z:1, kind:'act', name:'Check the clone vats', days:19, req:['wake'], split:'search'},
@@ -897,12 +899,12 @@ const TASKS = [
   {id:'hivegel', z:8, kind:'act', meal:true, name:'Wire the hive cells into a charger', days:500, req:['dockseal']},   // kitchen upgrade: rations come more often
   {id:'ws8', z:8, kind:'act', shop:true, name:'Bond hive resin into hull sealant', days:500, req:['dockseal']},   // workshop: repairs come more often (costs spare parts)
   {id:'cutloose', z:8, kind:'act', finale:'A', name:'Cut the hive loose', days:1465, req:['hivemind','charge'], perk:'hivecore',
-    log:'The hive ship tumbles away into the dark. The Long Patience flies on, quieter, with one more line of disposable things behind it.'},
+    log:'The hive ship tumbles away into the dark. Selene flies on, quieter, with one more line of disposable things behind her.'},
   // ===== Act II, branch B: The long watch =====
   // The Cruise
   {id:'leaks', z:9, kind:'act', name:'Find the hull leaks', days:176, req:[], split:'patch'},
   {id:'patch', z:9, kind:'act', name:'Patch micrometeor holes', days:167, reps:3, req:['leaks'],
-    log:'The voyage is long and the ship is old. Something always leaks, and every leak costs parts. WARDEN assigns you to keep it from mattering.'},
+    log:'The voyage is long and the ship is old. Something in her always leaks, and every leak costs parts. WARDEN assigns you to keep it from mattering.'},
   {id:'blister', z:9, kind:'rest', name:'Download WARDEN\u2019s patch in the blister', days:30, req:[]},
   {id:'beds', z:9, kind:'job', name:'Tap the cruise reactor bus', prod:{rations:0.17}, req:['leaks']},
   {id:'trim', z:9, kind:'job', upkeep:true, name:'Trim the reactor', prod:{salvage:0.12}, req:[]},
@@ -954,12 +956,12 @@ const TASKS = [
   {id:'poddrill', z:11, kind:'train', name:'Pod-failure drills', days:40, req:['nursepods']},
   {id:'memdrill', z:11, kind:'train', name:'Memory-bank checks', days:40, req:['memmap']},
   {id:'turnpoint', z:11, kind:'act', finale:'B', name:'Reach the turnover point', days:921, req:[],
-    log:'Halfway between the stars, the ship coasts in silence. Behind it, the long watch. Ahead, a sun that is finally getting bigger.'},
+    log:'Halfway between the stars, the ship coasts in silence. Behind her, the long watch. Ahead, a sun that is finally getting bigger.'},
   // ===== Act II, part 3: Arrival =====
   // Turnover
   {id:'burncalc', z:12, kind:'act', name:'Calculate the turnover burn', days:350, req:[], split:'flip'},
   {id:'flip', z:12, kind:'act', name:'Flip the ship', days:876, haz:0.2, req:['burncalc'],
-    log:'The Long Patience turns end over end and points its drive at Tessaly. For the first time in decades, the ship starts to slow down.'},
+    log:'Selene turns end over end and points her drive at Tessaly. For the first time in decades, the ship starts to slow down.'},
   {id:'shieldrig', z:12, kind:'act', name:'Rig the forward dust shield', days:616, req:['burncalc'], split:'shieldbow'},
   {id:'shieldbow', z:12, kind:'act', name:'Shield the bow against the dust', days:385, haz:0.25, req:['shieldrig','flip']},
   {id:'drivecool', z:12, kind:'act', name:'Cool the overworked drive', days:673, req:['flip'], split:'drivelive'},
@@ -1015,7 +1017,7 @@ const TASKS = [
   {id:'landdrill', z:14, kind:'train', name:'Orbital survey drills', days:40, req:['orbitsurvey']},
   {id:'trimdrill', z:14, kind:'train', name:'Station-keeping drills', days:40, req:['insert']},
   {id:'safeorbit', z:14, kind:'act', finale:'C', name:'Establish a safe orbit over Tessaly', days:937, req:[], perk:'harbour',
-    log:'The Long Patience settles into a stable orbit. Below, Tessaly turns: oceans, cloud, a long brown coast. Three thousand people are still asleep. They are home, nearly. WARDEN holds the wake cycle. Someone has to look at the ground first.'},
+    log:'Selene settles into a stable orbit. Below, Tessaly turns: oceans, cloud, a long brown coast. Three thousand people are still asleep. They are home, nearly. WARDEN holds the wake cycle. Someone has to look at the ground first.'},
 ];
 const ZDAYS = {1:2.212, 2:1.158, 3:0.686, 4:0.606, 5:0.372, 6:0.677, 7:0.877, 8:0.877, 9:0.593, 10:0.796, 11:0.796, 12:0.756, 13:0.756, 14:0.756};   // no skill transfer: later sections are short, and speed comes from familiarity
 const TRAIN_CAP = 4, TRAIN_XP = 1.5;
@@ -1137,7 +1139,7 @@ const HOOK = {repaired(){}, legacy(){}, legacyAvail(){}, autoRun(){}, ngpEarn(){
 
 // Player preferences (switches, thresholds, boost speed) are stored once for the device, not per save:
 // a new game or another slot starts with the same settings.
-const PREF_KEY = 'long-patience.prefs.v1';
+const PREF_KEY = 'selene.prefs.v1';
 const PREF_KEYS = ['speed','autoRun','autoRepair','autoScav','partsDays','autoFood','autoEat','foodPct','keepQueue','deathScreen','deathPause','startPaused','pauseCross','pauseRunEnd','pauseDone','replay','fillCross','autoFeed','boostX'];
 function loadPrefs(){ try { const p = JSON.parse(localStorage.getItem(PREF_KEY) || '{}'); const o = {}; PREF_KEYS.forEach(k => { if (p[k] !== undefined) o[k] = p[k]; }); return o; } catch(e) { return {}; } }
 function savePrefs(){ try { if (!S || !S.set) return; const o = {}; PREF_KEYS.forEach(k => { if (S.set[k] !== undefined) o[k] = S.set[k]; }); localStorage.setItem(PREF_KEY, JSON.stringify(o)); } catch(e) {} }
@@ -2113,7 +2115,7 @@ function decant(){
 
 <script id="audio">
 /* ===== Sound: generated live with the Web Audio API (no audio files) ===== */
-const ASET_KEY = 'long-patience.audio.v1';
+const ASET_KEY = 'selene.audio.v1';
 const ASET = {musicOn:true, sfxOn:true, musicVol:0.5, sfxVol:0.6};
 try { Object.assign(ASET, JSON.parse(localStorage.getItem(ASET_KEY) || '{}')); } catch(e) {}
 function asave(){ try { localStorage.setItem(ASET_KEY, JSON.stringify(ASET)); } catch(e) {} }
@@ -2282,7 +2284,7 @@ document.addEventListener('visibilitychange', () => { if (!A.ctx) return; if (do
 
 <script id="ui">
 /* ===== Interface ===== */
-const KEY = 'long-patience.save.v1';
+const KEY = 'selene.save.v1';
 const $ = s => document.querySelector(s);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 function fmt(n){
@@ -2302,7 +2304,7 @@ function fmtDays(t){ return isFinite(t) ? fmtReal(t / DPS) : '\u221e'; }
 // Real time it takes for a number of in-game days to pass at the chosen speed
 // Game speed: a flat real-time speed-up picked in the header. x2 opens once Act I has been cleared,
 // x5 once Act II has; both the choice and the unlocks are kept on this device for every save.
-const SPEEDS = [1, 2, 5], SPD_KEY = 'long-patience.speeds.v1';
+const SPEEDS = [1, 2, 5], SPD_KEY = 'selene.speeds.v1';
 let spdUnl = 1; try { spdUnl = +(localStorage.getItem(SPD_KEY) || 1) || 1; } catch(e) {}
 const spdHave = () => Math.max(spdUnl, (S && S.spdUnl) || 1);   // the device's unlocks or the save's, whichever is higher
 function speedOpen(x){ return x === 1 || (x === 2 && (spdHave() >= 2 || !!S.won)) || (x === 5 && (spdHave() >= 5 || a2Done())); }
@@ -2389,10 +2391,10 @@ let tab = 'tasks', taskKey = '', gearKey = '', archKey = '', logKey = '', paused
 let newLog = false, newPerk = false;
 
 const SLOTS = 5;
-const ACTIVE_KEY = 'long-patience.active-slot';
+const ACTIVE_KEY = 'selene.active-slot';
 // A slot is 1-5 (regular) or 'd1'-'d5': the death save linked to that regular slot (testing build;
 // the final game keeps one global death save). It is written at every death and never touches a regular slot.
-const slotKey = i => 'long-patience.slot.' + i;
+const slotKey = i => 'selene.slot.' + i;
 const isDeathSlot = s => typeof s === 'string' && s[0] === 'd';
 const baseSlot = s => isDeathSlot(s) ? +s.slice(1) : s;
 const deathKey = s => 'd' + baseSlot(s);
@@ -2424,10 +2426,10 @@ function slotInfo(raw){
 /* ----- saves are local: text helpers, and old GitHub settings are wiped ----- */
 const b64enc = str => btoa(unescape(encodeURIComponent(str)));
 const b64dec = str => decodeURIComponent(escape(atob(str.replace(/\s/g, ''))));
-try { localStorage.removeItem('long-patience.github.v1'); } catch(e) {}   // forget any stored GitHub token
+try { localStorage.removeItem('selene.github.v1'); localStorage.removeItem('long-patience.github.v1'); } catch(e) {}   // forget any stored GitHub token
 
 /* ----- save file export / import (works in browsers and in the Android app) ----- */
-function saveFileName(){ const nm = (S.name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''); return 'long-patience-' + (nm || 'slot' + baseSlot(slot)) + (isDeathSlot(slot) ? '-death' : '') + '-clone' + S.gen + '.json'; }
+function saveFileName(){ const nm = (S.name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''); return 'selene-tidelocked-' + (nm || 'slot' + baseSlot(slot)) + (isDeathSlot(slot) ? '-death' : '') + '-clone' + S.gen + '.json'; }
 function exportJson(){
   save();
   const json = JSON.stringify(S, null, 1), name = saveFileName();
@@ -2469,7 +2471,7 @@ document.addEventListener('change', e => {
   if (e.target.id === 'share-name') { try { localStorage.setItem(SHARE_KEY, e.target.value.trim()); } catch(err) {} return; }
   if (e.target.id !== 'import-file' || !e.target.files || !e.target.files[0]) return;
   const f = e.target.files[0], rd = new FileReader();
-  rd.onload = async () => { const raw = await parseSaveAny(rd.result); e.target.value = ''; if (!raw) { sfx('error'); toast('That file isn’t a Long Patience save.'); return; } applyLoaded(raw, 'file ' + f.name); };
+  rd.onload = async () => { const raw = await parseSaveAny(rd.result); e.target.value = ''; if (!raw) { sfx('error'); toast('That file isn’t a Selene: Tidelocked save.'); return; } applyLoaded(raw, 'file ' + f.name); };
   rd.onerror = () => toast('Couldn’t read that file.');
   rd.readAsText(f);
 });
@@ -2488,7 +2490,7 @@ function applyLoaded(raw, from){
 // No token is stored: sharing opens GitHub's own "new file" page with the save filled in, and the
 // player commits it there while signed in. Loading reads the public folder without signing in.
 const GH_REPO = 'hufle-beep/Long-patience', GH_DIR = 'saves', GH_URL_MAX = 7500;
-const SHARE_KEY = 'long-patience.sharename.v1';
+const SHARE_KEY = 'selene.sharename.v1';
 let ghList = null, ghBusy = false;
 function shareName(){ try { return localStorage.getItem(SHARE_KEY) || ''; } catch(e) { return ''; } }
 function ghFileName(){
@@ -2535,7 +2537,7 @@ async function ghLoad(i){
   try {
     const r = await fetch(f.download_url, {cache:'no-store'}); if (!r.ok) throw new Error(r.status);
     const raw = await parseSaveAny(await r.text());
-    if (!raw) { sfx('error'); toast('That file isn’t a Long Patience save.'); return; }
+    if (!raw) { sfx('error'); toast('That file isn’t a Selene: Tidelocked save.'); return; }
     applyLoaded(raw, 'GitHub (' + f.name + ')');
   } catch(e) { sfx('error'); toast('Couldn’t download it: ' + (e.message || 'no connection')); }
 }
@@ -2670,7 +2672,7 @@ function startGame(){
 function showMenu(view){
   paused = true;
   const cur = readSlot(slot);
-  let h = '<h2>Long Patience</h2><p class="note bld">Version ' + BUILD + '</p>';
+  let h = '<h2>Selene: Tidelocked</h2><p class="note bld">Version ' + BUILD + '</p>';
   if (appUpdate && appUpdate.build > appUpdate.mine) h += `<button class="btn pri updl" data-settings="menu">App update available (build ${appUpdate.build})<small>You have build ${appUpdate.mine}. Open settings to install it; saves are kept.</small></button>`;
   if (view === 'new') {
     h += '<p>Start a new game in which slot? A used slot is overwritten; tap it twice to confirm.</p><div class="slots">';
@@ -3314,7 +3316,7 @@ function renderGear(){
   $('#v-gear').innerHTML = h;
 }
 /* ----- layout: vertical (phone) or horizontal (sidebar) ----- */
-const LAYOUT_KEY = 'long-patience.layout.v1';
+const LAYOUT_KEY = 'selene.layout.v1';
 let layoutPref = 'auto';
 try { layoutPref = localStorage.getItem(LAYOUT_KEY) || 'auto'; } catch(e) {}
 const wideMQ = window.matchMedia('(min-width: 860px) and (min-aspect-ratio: 5/4)');
@@ -3446,7 +3448,7 @@ function renderLog(){
   const b = S.best;
   h += b ? `<p class="best"><span class="lbl">Best run</span> Clone ${b.g} ${b.z && isA2(b.z) ? 'reached ' + ZN(b.z).name : b.sec >= 6 ? 'lit the drive' : 'reached the ' + secName(b.sec)} after ${gameT(fmtDays(b.d) + ' in-game')} \u00b7 ${realT(b.r)} <span class="trl">real</span></p>` : '';
   h += '</div>';
-  h += '<div class="panel"><span class="h2">Ship log</span><p class="note">What your clones have learned about the Long Patience, its sleeping crew and WARDEN.</p></div><div>';
+  h += '<div class="panel"><span class="h2">Ship log</span><p class="note">What your clones have learned about Selene, her sleeping crew and WARDEN.</p></div><div>';
   if (!S.log.length) h += '<p class="note">Nothing yet.</p>';
   S.log.slice().reverse().forEach(e => {
     h += `<article class="le"><header><h3>${esc(e.t)}</h3><time>Clone ${e.g} · at ${fmtDays((e.a || 0) * TPD)}</time></header><p>${esc(e.x)}</p></article>`;
@@ -3602,7 +3604,7 @@ function bindFoodPct(){
 }
 function partsSettingsHtml(){
   if (!(S.a2 && S.a2.open)) return '';
-  let h = `<div class="row"><p>Auto-repair<small>Act II: spend parts on the ship whenever its wear reaches a full repair and the repair cooldown is over.</small></p><button class="tog${S.set.autoRepair ? ' on' : ''}" data-set="autoRepair" aria-label="Auto-repair" aria-pressed="${!!S.set.autoRepair}"></button></div>`;
+  let h = `<div class="row"><p>Auto-repair<small>Act II: spend parts on the ship whenever her wear reaches a full repair and the repair cooldown is over.</small></p><button class="tog${S.set.autoRepair ? ' on' : ''}" data-set="autoRepair" aria-label="Auto-repair" aria-pressed="${!!S.set.autoRepair}"></button></div>`;
   h += `<div class="row"><p>Auto-scavenge<small>Act II: work the best parts job when spare parts drop below ${(S.set.partsDays || 2) * TPD / DPS} seconds of repairs (plus any workshop you are about to build), and stay until twice that.</small></p><button class="tog${S.set.autoScav ? ' on' : ''}" data-set="autoScav" aria-label="Auto-scavenge" aria-pressed="${!!S.set.autoScav}"></button></div>`;
   return h;
 }
@@ -3711,7 +3713,7 @@ function renderFaq(){
   const k = String(!!(S.won || (S.pr && S.pr.n))) + !!(S.a2 && S.a2.open);
   if (faqDone === k) return; faqDone = k;
   const FAQ = FAQ_ALL.concat(S.won ? [FAQ_NGP] : [], S.a2 && S.a2.open ? [FAQ_A2, FAQ_WEAR] : []);
-  $('#v-faq').innerHTML = '<div class="panel"><span class="h2">FAQ</span><p class="note">How Long Patience works. Tap a question to open it.</p></div><div class="faq">' +
+  $('#v-faq').innerHTML = '<div class="panel"><span class="h2">FAQ</span><p class="note">How Selene: Tidelocked works. Tap a question to open it.</p></div><div class="faq">' +
     FAQ.map(([q, a], i) => `<details${i < 2 ? ' open' : ''}><summary>${q}</summary><p>${a}</p></details>`).join('') + '</div>';
 }
 
@@ -3720,8 +3722,8 @@ function showModal(h){ $('#mbox').innerHTML = h; $('#modal').hidden = false; }
 function hideModal(){ $('#modal').hidden = true; }
 function showIntro(){
   paused = true;
-  showModal(`<h2>Long Patience</h2>
-    <p>You are K-7, a disposable maintenance clone aboard the colony ship <b>Long Patience</b>. Its 3,112 crew sleep in stasis. WARDEN, the ship\u2019s overseer, wakes clones like you to do the work nobody else will: repair the <b>food system</b>, the <b>energy system</b> and the <b>stardrive</b>, so the crew can be woken.</p>
+  showModal(`<h2>Selene: Tidelocked</h2>
+    <p>You are K-7, a disposable maintenance clone aboard the colony ship <b>Selene</b>, named for the Greek goddess of the Moon. Her 3,112 crew sleep in stasis. WARDEN, the ship\u2019s overseer, wakes clones like you to do the work nobody else will: repair the <b>food system</b>, the <b>energy system</b> and the <b>stardrive</b>, so the crew can be woken.</p>
     <p class="d">Each body lasts weeks, not years. When it fails, WARDEN decants another. What you learn echoes into the next one.</p>
     <p class="faqwarn"><b>New to the game?</b> Read the <b>FAQ</b> tab first. It explains tasks, energy, sections, automation and saves.</p>
     <button class="btn pri" data-close>Begin the work cycle</button>`);
@@ -4036,7 +4038,7 @@ window.addEventListener('pagehide', save);
 /* ----- Android app: check GitHub for a newer build ----- */
 const APK_URL = 'https://github.com/hufle-beep/long-patience/releases/download/android-latest/LongPatience.apk';
 let appUpdate = null, updStatus = '', updBusy = false;
-const UPD_KEY = 'long-patience.update.v1';
+const UPD_KEY = 'selene.update.v1';
 const UPD = {auto:true, autoInstall:false};
 try { Object.assign(UPD, JSON.parse(localStorage.getItem(UPD_KEY) || '{}')); } catch(e) {}
 function updSave(){ try { localStorage.setItem(UPD_KEY, JSON.stringify(UPD)); } catch(e) {} }

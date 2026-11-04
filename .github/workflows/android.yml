@@ -62,10 +62,10 @@ jobs:
 
           Download LongPatience.apk below and open it on your Android phone to install or update.
           Updates install over the previous version and keep your saves."
-          TITLE="Long Patience for Android (build ${GITHUB_RUN_NUMBER})"
+          TITLE="Selene: Tidelocked for Android (build ${GITHUB_RUN_NUMBER})"
           if ! gh release view android-latest >/dev/null 2>&1; then
             # first time only: create the release (its title names a build once the file is up)
-            gh release create android-latest --title "Long Patience for Android" --notes "$NOTES" --target "$GITHUB_SHA"
+            gh release create android-latest --title "Selene: Tidelocked for Android" --notes "$NOTES" --target "$GITHUB_SHA"
           fi
           # Upload the new file under a temporary name first, so the download link never points at nothing,
           # then swap it in and only then announce the new build number (the app reads it from the title).
