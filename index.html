@@ -500,7 +500,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
 
 <script id="logic">
 /* ===== Game data and rules (no DOM) ===== */
-const BUILD = '2026-11-04 · chains pinned on top';   // shown in the main menu, to tell which version is loaded
+const BUILD = '2026-11-04 · story pop-ups';   // shown in the main menu, to tell which version is loaded
 const DPS = 8;             // simulation ticks per real second at 1x (doubled for the test version: same balance, half the real time)
 // Time is simulated in ticks. 80 ticks make one ship day (18 minutes each), so a day lasts
 // 20 real seconds at 1x and a clone lives weeks, not years. Everything is shown in days and hours.
@@ -818,7 +818,7 @@ const TASKS = [
   {id:'pantry', z:5, kind:'job', name:'Ration the drive crew pantry', prod:{rations:0.15}, req:['warden']},
   {id:'starfix', z:5, kind:'act', name:'Take star fixes from the drive shaft', days:4000, req:['warden'], split:'course'},
   {id:'course', z:5, kind:'act', name:'Plot a course to Tessaly', days:4000, req:['starfix'], perk:'promise',
-    log:'Course set for Tessaly. The crew will wake in orbit, rested. The line of K-7 will have spent itself getting them there.'},
+    log:'Course set for Tessaly. The crew will wake in orbit, rested. Whatever is left of the K line will have to get them there.'},
   {id:'injstrip', z:5, kind:'act', name:'Strip the old injectors', days:2500, haz:0.3, req:['warden'], split:'injectors'},
   {id:'injectors', z:5, kind:'act', name:'Rebuild the drive injectors', days:2500, haz:0.3, req:['injstrip','starfix'],
     log:'The injectors hold pressure. Food, power and drive are nearly ready. Only the ignition remains.'},
@@ -849,7 +849,7 @@ const TASKS = [
   {id:'lg5s', z:5, kind:'act', legacy:'speed', lset:'lg5s', lfin:true, name:'Overclock the drive sequencer', days:1200, req:['lg5sa2','lg5sb2']},   // legacy final: gives the bonus
   {id:'pantryfix', z:5, kind:'act', meal:true, name:'Reseal the drive-crew pantry', days:1500, req:['starfix']},   // kitchen upgrade: rations come more often
   {id:'ignite', z:5, kind:'act', name:'Ignite the main drive', days:3000, req:['course','injectors'], win:true,
-    log:'The stardrive lights. WARDEN begins the wake cycle for 3,112 sleepers. Your vat is scheduled for recycling.'},
+    log:'The stardrive lights. WARDEN begins the wake cycle for 3,112 sleepers and puts your vat on the recycling list. Then the proximity alarms start.'},
 
   // ===== Act II, branch A: Boarders =====
   // Hull Breach
@@ -873,7 +873,8 @@ const TASKS = [
   {id:'racks', z:6, kind:'act', name:'Reclaim the armoury racks', days:300, req:['rackdoor','prints'], perk:'armcodes'},
   {id:'stairfort', z:6, kind:'act', name:'Fortify the stairwell', days:450, haz:0.2, req:['racks','studyb'], split:'stair'},
   {id:'mess', z:6, kind:'act', meal:true, name:'Rig a mess behind the bulkheads', days:200, req:['braces']},   // kitchen upgrade: rations come more often
-  {id:'ws6', z:6, kind:'act', shop:true, name:'Rig a patch kit from the breach debris', days:200, req:['braces']},   // workshop: repairs come more often (costs spare parts)
+  {id:'ws6', z:6, kind:'act', shop:true, name:'Rig a patch kit from the breach debris', days:200, req:['braces'],
+    log:'Breach debris makes decent hull patches. From now on the ship needs parts the way you need food.'},   // workshop: repairs come more often (costs spare parts)
   {id:'stair', z:6, kind:'act', cross:true, to:7, name:'Hold the stasis-deck stairwell', days:450, haz:0.3, lifeEff:{salCap:1000}, req:['racks','studyb'],
     log:'They came up the stairwell in a wave. The line held. Behind it, three thousand people slept through their own rescue.'},
   // Contested Decks
@@ -917,7 +918,7 @@ const TASKS = [
   // The Cruise
   {id:'leaks', z:9, kind:'act', name:'Find the hull leaks', days:300, req:[], split:'patch'},
   {id:'patch', z:9, kind:'act', name:'Patch micrometeor holes', days:200, reps:3, req:['leaks'],
-    log:'The voyage is long, and the ship is old. Something always leaks. WARDEN assigns you to keep it from mattering.'},
+    log:'The voyage is long and the ship is old. Something always leaks, and every leak costs parts. WARDEN assigns you to keep it from mattering.'},
   {id:'blister', z:9, kind:'rest', name:'Sleep in the observation blister', days:30, req:[]},
   {id:'beds', z:9, kind:'job', name:'Tend the regrown beds', prod:{rations:0.17}, req:[]},
   {id:'trim', z:9, kind:'job', upkeep:true, name:'Trim the reactor', prod:{salvage:1.2}, req:[]},
@@ -1030,7 +1031,7 @@ const TASKS = [
   {id:'landdrill', z:14, kind:'train', name:'Orbital survey drills', days:40, req:['orbitsurvey']},
   {id:'trimdrill', z:14, kind:'train', name:'Station-keeping drills', days:40, req:['insert']},
   {id:'safeorbit', z:14, kind:'act', finale:'C', name:'Establish a safe orbit over Tessaly', days:800, req:[], perk:'harbour',
-    log:'The Long Patience settles into a stable orbit. Below, Tessaly turns: oceans, cloud, a long brown coast. Three thousand people are still asleep. They are home, nearly.'},
+    log:'The Long Patience settles into a stable orbit. Below, Tessaly turns: oceans, cloud, a long brown coast. Three thousand people are still asleep. They are home, nearly. WARDEN holds the wake cycle. Someone has to look at the ground first.'},
 ];
 const ZDAYS = {1:0.239, 2:0.812, 3:0.602, 4:0.531, 5:0.326, 6:0.716, 7:0.928, 8:0.928, 9:0.627, 10:0.842, 11:0.842, 12:0.8, 13:0.8, 14:0.8};   // no skill transfer: later sections are short, and speed comes from familiarity
 const TRAIN_CAP = 4, TRAIN_XP = 1.5;
@@ -1189,6 +1190,13 @@ const drainAt = k => 1 + 4 / NGP_MAX * k, speedAt = k => 1 + 1 / NGP_MAX * k, hp
 // Legacy level of a theme (0..3, fractional): each of its five tasks, once done in this life, adds a
 // fifth, at 25% of its share untrained and 100% at full mastery (judged on the base threshold).
 const LEGACY_T = {}; TASKS.forEach(t => { if (t.lfin) (LEGACY_T[t.legacy] = LEGACY_T[t.legacy] || []).push(t); });
+// Story for each legacy theme, logged the first time it is revealed
+const LEGACY_LOG = {
+  hp:['Notes for the vat bay', 'Boarder chitin shrugs off what kills you. You copy what you can into notes for the next clone waking in the vat bay.'],
+  drain:['Waste back home', 'Out here the ship runs on almost nothing. The old decks waste power, water and air. Somebody back home should fix that.'],
+  growth:['Echoes of the dead', 'WARDEN\u2019s memory holds every K clone. Played back right, a dead clone\u2019s engram teaches faster than any drill.'],
+  speed:['Hours saved', 'The system is close enough to plan for. Every hour saved back on the old decks is an hour closer to orbit.'],
+};
 const LEGACY_FAM = 2;   // legacy bonuses need twice the usual familiarity
 const legacyShare = t => Math.min(1, ((S.fam || {})[t.id] || 0) / (LEGACY_FAM * FAM_N0 * compUnit(t)));
 const ngpLv = id => { const L = S && S.life; if (!L || !LEGACY_T[id]) return 0; let v = 0; LEGACY_T[id].forEach(t => { if (L.done && L.done[t.id]) v += legacyShare(t) / 5; }); return NGP_MAX * v; };
@@ -1703,7 +1711,7 @@ function enterZone(z, from){
   if (L.chainRun && ACT_ENDS.includes(from)) endRun(L, 'act');   // e.g. merging from the boarders into the long watch
   if (isA2(z)) {   // Act II: note each section first reached in a run (it opens legacy themes)
     S.a2run = S.a2run || {reached:{}, done:{}};
-    if (!S.a2run.reached[z]) { S.a2run.reached[z] = 1; for (const k in LEGACY_REVEAL) if (LEGACY_REVEAL[k] === z) HOOK.legacy(k); }
+    if (!S.a2run.reached[z]) { S.a2run.reached[z] = 1; for (const k in LEGACY_REVEAL) if (LEGACY_REVEAL[k] === z) { HOOK.legacy(k); if (!(S.logged || {})['lg:' + k]) { (S.logged = S.logged || {})['lg:' + k] = 1; HOOK.log(LEGACY_LOG[k][0], LEGACY_LOG[k][1]); } } }
   }
   M = mods(); HOOK.crossed(z); autoRunCheck();
 }
@@ -2736,7 +2744,14 @@ HOOK.log = (title, text) => {
   if (S.log.length > 120) S.log.shift();
   if (tab !== 'log') newLog = true;
   logKey = '';
+  (S.storyQ = S.storyQ || []).push({t:title, x:text});   // the first time a story entry is logged in this save, it also pops up (kept in the save until read)
 };
+// Story pop-ups wait until nothing else is on screen (death, the lit drive, the catch-up screen) and the game is visible
+function showStory(){
+  const q = S.storyQ; if (!q || !q.length || !$('#modal').hidden || document.hidden || !S.intro) return;
+  const e = q.shift(); paused = true; save();
+  showModal(`<h2>${esc(e.t)}</h2><p>${esc(e.x)}</p><p class="d">Ship log, clone ${S.gen}. You can read every entry again in the Log tab.</p><button class="btn pri" data-storyok>Continue</button>`);
+}
 HOOK.done = t => sfx('complete');
 HOOK.qfull = () => { sfx('error'); toast('The queue is full (' + QMAX + ' items). Remove something first.'); };
 HOOK.ngpEarn = (n, why) => { archKey = ''; toast('Act I reward point' + (n > 1 ? 's +' + n : ' +1') + ' for ' + why + '. Spend ' + (n > 1 ? 'them' : 'it') + ' in the Legacy tab.', true); };
@@ -2786,7 +2801,6 @@ function autoDecant(){
   save(); toast(msg);
 }
 HOOK.win = () => { save(); showWin(); };
-HOOK.merge = () => { save(); showMerge(); };
 HOOK.kit = () => { sfx('perk'); toast('Quartermaster\u2019s cache unlocked: every clone now starts with all of its automated gear.', true); archKey = ''; };
 
 
@@ -3117,6 +3131,7 @@ function renderSpeed(){
 }
 let lastHg = '', planT = 0, lastQEta = '';   // the queue box is rebuilt on changes: it starts from the last estimate, so nothing blinks
 function updateHud(){
+  if (S.storyQ && S.storyQ.length) showStory();
   const L = S.life;
   const hg = 'Clone ' + S.gen + (S.pr && (S.pr.n || ngpLv('speed')) ? ' <span class="hng">' + [S.pr.n ? 'NG+' + S.pr.n : '', ngpLv('speed') ? '\u00d7' + ngpSpeed().toFixed(1) : ''].filter(Boolean).join(' \u00b7 ') + '</span>' : '');
   if (hg !== lastHg) { lastHg = hg; $('#h-gen').innerHTML = hg; }
@@ -3730,15 +3745,6 @@ function chooseBranch(b){
   if (!L.dead && L.sec === 5 && complete(T.ignite)) enterZone(b === 'A' ? 6 : 9, 5);
   toast('Act II: ' + (b === 'A' ? 'Boarders' : 'The long watch') + '. Every clone that lights the drive carries on into it.', true);
 }
-function showMerge(){
-  paused = true;
-  showModal(`<h2>The hive ship is gone</h2>
-    <p>The boarders are repelled. The Long Patience flies on, scarred, with three thousand people still asleep and a long way still to go.</p>
-    <div class="ngpick">
-      <button class="btn" data-merge="1">Merge into the long watch<small>Carry on into The Cruise: this run (and every clone that gets this far) continues with the long watch.</small></button>
-      <button class="btn" data-merge="0">Stop here<small>The boarders were the end of this run. You can still change your mind in the Archive.</small></button>
-    </div>`);
-}
 
 /* ----- input ----- */
 const confirmT = {};
@@ -3761,6 +3767,7 @@ document.addEventListener('click', e => {
     awayState = null; hideModal(); paused = false; setTab(tab); return;
   }
   if ('awayok' in d) { awayState = null; hideModal(); paused = false; if (S.life.dead && S.set.deathScreen !== false) showDeath(); return; }
+  if ('storyok' in d) { hideModal(); paused = false; showStory(); return; }
   if ('close' in d) { hideModal(); paused = false; S.intro = true; save(); return; }
   if ('decant' in d) { decant(); if (S.set.deathPause !== false) S.set.paused = true; hideModal(); taskKey = ''; setTab('tasks'); save(); return; }
   if (d.settings) { save(); showSettings(d.settings); return; }
