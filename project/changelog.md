@@ -2,7 +2,8 @@
 
 Every commit, newest first (from git history; Android build numbers are GitHub Actions run numbers). Generated before each push.
 
-- (next) · Restore-point workflow (newest 5 commits tagged); docs updated; republishes the web version
+- (next) · Restore points doc: which commits can carry tags
+- 2026-11-04 21:49 · `10d77dc` · Restore points: a workflow keeps tags on the newest 5 commits; docs updated (also republishes the web version)
 - 2026-11-04 21:42 · `b12d331` · Restore points: record the project-docs commit
 - 2026-11-04 21:42 · `05e5518` · Project docs and tools in the repo (working agreement, handover, roadmap, notes, design, changelog, restore points); keep the newest 5 Android builds as backup releases
 - 2026-11-04 21:31 · `4b28cfd` · Cleanup: remove patch tasks, the old fault, boost/background-pause/NG+ leftovers and unused code; refresh comments and README

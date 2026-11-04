@@ -8,14 +8,14 @@ The **Restore points** workflow (`.github/workflows/restore-points.yml`) runs on
 What the recent commits are (newest first):
 | Commit | What it is |
 |---|---|
-| (this commit) | Restore-point workflow; project docs updated; republishes the web version |
+| `10d77dc` | Restore-point workflow; project docs updated |
 | `b12d331` | Restore points recorded in the docs |
 | `05e5518` | Project docs and tools in the repo; Android backup builds (game same as "cleanup") |
 | `4b28cfd` | Code cleanup: patch tasks, fault, boost/NG+ leftovers removed; comments and README |
 | `92183c1` | Hearth Tree reskin, lore, palette, new Act I order, Act II names |
 | `e0187fb` | Renamed to Selene: Tidelocked; storage keys moved to `selene.*` (older than the newest 5: no tag, still in history) |
 
-Tags can't be created from Claude's workspace (GitHub refuses it there), which is why the workflow does it.
+Tags can't be created from Claude's workspace (GitHub refuses it there), which is why the workflow does it. GitHub also refuses the workflow a tag on a commit whose workflow files differ from today's, so commits from before 2026-11-04 21:40 (4b28cfd, 92183c1 and older) have no tag. They are still in history; within a few pushes the newest 5 are all tagged.
 
 ### How to roll back the game
 - **See an old version:** on GitHub, open the tag and then `index.html`.
