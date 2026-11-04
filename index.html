@@ -490,7 +490,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
 
 <script id="logic">
 /* ===== Game data and rules (no DOM) ===== */
-const BUILD = '2026-11-04 · legacy tasks';   // shown in the main menu, to tell which version is loaded
+const BUILD = '2026-11-04 · overclock x2';   // shown in the main menu, to tell which version is loaded
 const DPS = 8;             // simulation ticks per real second at 1x (doubled for the test version: same balance, half the real time)
 // Time is simulated in ticks. 80 ticks make one ship day (18 minutes each), so a day lasts
 // 20 real seconds at 1x and a clone lives weeks, not years. Everything is shown in days and hours.
@@ -845,7 +845,7 @@ const TASKS = [
   {id:'wakefirst', z:11, kind:'act', finale:'B', name:'Wake the first sleeper', days:900, req:['prepwake'], perk:'tessaly2',
     log:'The first sleeper opens her eyes and sees a maintenance clone. “Who are you?” You have never had to answer that before.'},
 ];
-const ZDAYS = {1:0.239, 2:0.812, 3:0.602, 4:0.531, 5:0.326, 6:1.073, 7:1.391, 8:1.391, 9:0.785, 10:1.054, 11:1.054};   // no skill transfer: later sections are short, and speed comes from familiarity
+const ZDAYS = {1:0.239, 2:0.812, 3:0.602, 4:0.531, 5:0.326, 6:1.341, 7:1.739, 8:1.739, 9:1.099, 10:1.476, 11:1.476};   // no skill transfer: later sections are short, and speed comes from familiarity
 const TRAIN_CAP = 4, TRAIN_XP = 1.5;
 const T = {}; TASKS.forEach(t => { T[t.id] = t; t.sk = []; t.reps = t.kind === 'train' ? TRAIN_CAP : (t.reps || 1); if (t.days) t.days = Math.round(t.days * ZDAYS[t.z]); });
 // A section's finisher (its crossing, the ignition or an Act II finale) needs every other action of the section.
@@ -982,9 +982,10 @@ const NGP = [
   {id:'growth', name:'Deep echo',       max:NGP_MAX, now:k => 'familiarity needed ×' + Math.pow(FAM_ECHO, k).toFixed(2) + ' in Act I, ×' + (1 - (1 - Math.pow(FAM_ECHO, k)) * A2_SHARE).toFixed(2) + ' in Act II', step:'Tasks reach ×10 with about 30% less familiarity in Act I (10% of that in Act II)'},
   {id:'drain',  name:'Drain dampener',  max:NGP_MAX, now:k => 'health drain ÷' + drainAt(k).toFixed(1) + ' in Act I, ÷' + (1 + (drainAt(k) - 1) * A2_SHARE).toFixed(1) + ' in Act II', step:'Divides health drain (Act I ÷2.3, ÷3.7, ÷5; Act II at 10% of that)'},
   {id:'hp',     name:'Template upgrade',max:NGP_MAX, now:k => '+' + hpAt(k) + ' max health in Act I, +' + Math.round(hpAt(k) * A2_SHARE) + ' in Act II', step:'More max health (Act I +167, +333, +500; Act II at 10% of that)'},
-  {id:'speed',  name:'Overclocked line', max:NGP_MAX, now:k => 'game speed ×' + speedAt(k).toFixed(1), step:'The whole game runs faster, both acts, without using banked time (×2.3, ×3.7, ×5 at the last step)'},
+  {id:'speed',  name:'Overclocked line', max:NGP_MAX, now:k => 'game speed ×' + speedAt(k).toFixed(1), step:'The whole game runs faster, both acts, without using banked time (up to ×2)'},
 ];
-const drainAt = k => 1 + 4 / NGP_MAX * k, speedAt = k => 1 + 4 / NGP_MAX * k, hpAt = k => Math.round(500 / NGP_MAX * k);
+// Overclock tops out at x2 game speed
+const drainAt = k => 1 + 4 / NGP_MAX * k, speedAt = k => 1 + 1 / NGP_MAX * k, hpAt = k => Math.round(500 / NGP_MAX * k);
 // Legacy level of a theme (0..3, fractional): each of its five tasks, once done in this life, adds a
 // fifth, at 25% of its share untrained and 100% at full mastery (judged on the base threshold).
 const LEGACY_T = {}; TASKS.forEach(t => { if (t.legacy) (LEGACY_T[t.legacy] = LEGACY_T[t.legacy] || []).push(t); });
@@ -3377,7 +3378,7 @@ const FAQ_ALL = [
   ['Settings', '<b>Settings</b> (the ⚙ button, or Settings in the ☰ menu) holds the clock and pause options (death screen, starting paused, pausing in the background, after a new section, when a section run ends or when a task finishes), sound (music and effects), layout (vertical or horizontal) and, in the Android app, app updates. Food and automation options (auto-eat, auto-forage, the forage threshold, rests, feeding, filling storage) are in the Auto tab.'],
 ];
 // Shown once the drive is first lit.
-const FAQ_NGP = ['Legacy tasks', 'There is no restarting: after the drive is lit, the story always moves forward. From then on every Act I section has four extra <b>legacy tasks</b>, one per theme: <b>Echo</b> (Act I tasks need less familiarity for \u00d710 and gain it faster), <b>Dampening</b> (less health drain), <b>Template</b> (more max health) and <b>Overclock</b> (the whole game runs faster, without using banked time). Once a clone finishes one, its bonus works for the rest of that life: a quarter of its share untrained, all of it at full mastery. All five of a theme, done and mastered, give the full effect: familiarity needed \u00d70.33 and gained twice as fast, drain \u00f75, +500 max health, game speed \u00d75. Echo, Dampening and Template work fully in Act I and at 10% strength in Act II. The tasks are optional for crossings but join chains and section runs once automated. The <b>Legacy</b> tab shows how far each theme has got. Lighting the drive the first time also unlocks the <b>Quartermaster\u2019s cache</b>: every clone starts with all of its automated gear already built, in both acts.'];
+const FAQ_NGP = ['Legacy tasks', 'There is no restarting: after the drive is lit, the story always moves forward. From then on every Act I section has four extra <b>legacy tasks</b>, one per theme: <b>Echo</b> (Act I tasks need less familiarity for \u00d710 and gain it faster), <b>Dampening</b> (less health drain), <b>Template</b> (more max health) and <b>Overclock</b> (the whole game runs faster, without using banked time). Once a clone finishes one, its bonus works for the rest of that life: a quarter of its share untrained, all of it at full mastery. All five of a theme, done and mastered, give the full effect: familiarity needed \u00d70.33 and gained twice as fast, drain \u00f75, +500 max health, game speed \u00d72. Echo, Dampening and Template work fully in Act I and at 10% strength in Act II. The tasks are optional for crossings but join chains and section runs once automated. The <b>Legacy</b> tab shows how far each theme has got. Lighting the drive the first time also unlocks the <b>Quartermaster\u2019s cache</b>: every clone starts with all of its automated gear already built, in both acts.'];
 const FAQ_A2 = ['Act II', 'Once the main drive is lit, every clone that lights it carries on into <b>Act II</b>: six more sections, one after another, each revealed when a clone first reaches it. Act II tasks have their own familiarity, which Deep echo reduces only at 10% strength: it starts at 90 lives\u2019 worth for \u00d710 and drops by a quarter at each of Act II\u2019s two big milestones. Act II familiarity, automation and records are kept for good.'];
 // Honours stay a secret until Act II has been finished once
 const FAQ_HON = ['Honours', 'Honours (one per Act II section first reached, two for each of Act II\u2019s two big milestones: 10 in all) buy rewards in the <b>Legacy</b> tab that work in <b>both acts</b>: Veteran template (hazard damage \u221225% per level), Long-watch rhythm (strain \u221213%), Scavenger\u2019s eye (salvage from jobs +33%) and Field rations (meals 17% more often). Like Act I rewards they have three levels each, and spending is permanent.'];
