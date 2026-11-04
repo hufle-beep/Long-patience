@@ -483,7 +483,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
 
 <script id="logic">
 /* ===== Game data and rules (no DOM) ===== */
-const BUILD = '2026-11-04 · gear build times';   // shown in the main menu, to tell which version is loaded
+const BUILD = '2026-11-04 · parts wording';   // shown in the main menu, to tell which version is loaded
 const DPS = 8;             // simulation ticks per real second at 1x (doubled for the test version: same balance, half the real time)
 // Time is simulated in ticks. 80 ticks make one ship day (18 minutes each), so a day lasts
 // 20 real seconds at 1x and a clone lives weeks, not years. Everything is shown in days and hours.
@@ -3185,7 +3185,7 @@ function renderGear(){
   const known = ITEMS.filter(i => !isDone(i.req) && ((S.gprac || {})[i.id] || 0) > 0 && !zBefore(gearZone(i), L.sec || 1));
   const key = M.salCap + '|' + L.queue.filter(isGQ).join() + '|' + known.map(i => i.id).join() + '|' + av.map(i => i.id + (L.owned[i.id] ? 'o' : assembling(i.id) ? 'a' + Math.floor((L.prog['b:' + i.id] || 0) / BT[i.id].days * 20) : (L.salvage >= i.cost ? 'y' : 'n')) + ((S.gprac || {})[i.id] || 0) + (S.gauto && S.gauto[i.id] ? '*' : '') + gearPrio(i)).join();
   if (key === gearKey) return; gearKey = key;
-  let h = '<div class="panel"><span class="h2">Fabricator</span><p class="note">Gear is built from salvage (spare parts in Act II) and lasts for this clone only. New designs appear as you explore. Salvage storage is limited; opening up more of the ship raises it.</p></div><div>';
+  let h = '<div class="panel"><span class="h2">Fabricator</span><p class="note">' + (salW() === 'parts' ? 'Gear is built from parts and lasts for this clone only. New designs appear as you explore. Parts storage is limited; opening up more of the ship raises it.' : 'Gear is built from salvage and lasts for this clone only. New designs appear as you explore. Salvage storage is limited; opening up more of the ship raises it.') + '</p></div><div>';
   if (!av.length) h += '<p class="note">Nothing to build yet. Climb out of the vat first.</p>';
   let lastZ = 0;
   av.slice().sort((a, b) => gearZone(a) - gearZone(b)).forEach(i => {
@@ -3488,7 +3488,7 @@ function bindFoodPct(){
 }
 function partsSettingsHtml(){
   if (!(S.a2 && S.a2.open)) return '';
-  let h = `<div class="row"><p>Auto-repair<small>Act II: spend spare parts (salvage) on the ship whenever its wear reaches a full repair and the repair cooldown is over.</small></p><button class="tog${S.set.autoRepair ? ' on' : ''}" data-set="autoRepair" aria-label="Auto-repair" aria-pressed="${!!S.set.autoRepair}"></button></div>`;
+  let h = `<div class="row"><p>Auto-repair<small>Act II: spend parts on the ship whenever its wear reaches a full repair and the repair cooldown is over.</small></p><button class="tog${S.set.autoRepair ? ' on' : ''}" data-set="autoRepair" aria-label="Auto-repair" aria-pressed="${!!S.set.autoRepair}"></button></div>`;
   h += `<div class="row"><p>Auto-scavenge<small>Act II: work the best parts job when spare parts drop below ${(S.set.partsDays || 2) * TPD / DPS} seconds of repairs (plus any workshop you are about to build), and stay until twice that.</small></p><button class="tog${S.set.autoScav ? ' on' : ''}" data-set="autoScav" aria-label="Auto-scavenge" aria-pressed="${!!S.set.autoScav}"></button></div>`;
   return h;
 }
