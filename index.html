@@ -502,7 +502,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
 
 <script id="logic">
 /* ===== Game data and rules (no DOM) ===== */
-const BUILD = '2026-11-04 · jobs not automated';   // shown in the main menu, to tell which version is loaded
+const BUILD = '2026-11-04 · energy pressure';   // shown in the main menu, to tell which version is loaded
 const DPS = 8;             // simulation ticks per real second at 1x (doubled for the test version: same balance, half the real time)
 // Time is simulated in ticks. 80 ticks make one ship day (18 minutes each), so a day lasts
 // 20 real seconds at 1x and a clone lives weeks, not years. Everything is shown in days and hours.
@@ -544,7 +544,18 @@ const FOODS = [
 ];
 const FD = {}; FOODS.forEach(f => FD[f.id] = f);
 const FOOD_OF = {}; for (let z = 1; z <= 14; z++) FOOD_OF[z] = 'ration';
-const STORE_CAP = {1:5, 2:20, 3:35, 4:60, 5:90, 6:110, 7:125, 8:135, 9:110, 10:125, 11:135, 12:140, 13:145, 14:150}   // store sizes and increases come in steps of 5;
+// Energy pressure: each crossing costs a share of the cells carried (Supply manifests halve it), and each
+// section's charging station holds a limited reserve per clone life (its charger upgrade adds half again).
+const crossCost = z => Math.min(0.45, 0.08 + 0.03 * Math.max(0, z - 2)) * ((M && M.crossCost) || 1);
+const RESERVE_K = 0.3;   // share of an untrained clone's recharges for the whole section that its station holds
+const SEC_TICKS = {};
+function stationMax(z){
+  if (SEC_TICKS[z] == null) SEC_TICKS[z] = TASKS.filter(t => t.z === z && t.kind === 'act' && !t.legacy).reduce((a, t) => a + t.days * (t.reps || 1), 0);
+  const up = TASKS.find(t => t.z === z && t.meal);
+  return Math.max(10, 5 * Math.round(RESERVE_K * SEC_TICKS[z] / MEAL_CD / 5)) * (up && isDone(up.id) ? 1.5 : 1) * ((M && M.stationRes) || 1);
+}
+const stationLeft = z => Math.max(0, stationMax(z) - ((S.life.used || {})[z] || 0));
+const STORE_CAP = {1:5, 2:20, 3:35, 4:60, 5:90, 6:55, 7:60, 8:70, 9:55, 10:60, 11:70, 12:70, 13:70, 14:75}   // store sizes and increases come in steps of 5;
 // The section upgrade actions and the ration strength each one brings (kept for the rest of the life)
 const MEAL_UP = {heatpaste:1.27, strains:1.54, packer:1.85, ovens:2.17, pantryfix:2.48, mess:2.55, synthfix:2.62, hivegel:2.7, graft:2.8, sprout:3.07, darkmess:3.2, burnmess:3.34, sysmess:3.45, feast:3.55};
 const REPAIR_UP = {ws6:1.15, ws7:1.3, ws8:1.45, ws9:1.6, ws10:1.75, ws11:1.9, ws12:2.05, ws13:2.2, ws14:2.35};
@@ -644,7 +655,7 @@ const TASKS = [
   // Zone 1
   {id:'wake', z:1, kind:'act', name:'Climb out of the vat', days:2, req:[],
     log:'Fluid drains from the vat. A voice from the walls: \u201cMaintenance unit K-7, decanted. Work cycle begins.\u201d Stencilled on the glass: PROPERTY OF THE LONG PATIENCE.'},
-  {id:'algae', z:1, kind:'job', name:'Press vat algae', prod:{rations:0.035}, req:['wake']},
+  {id:'algae', z:1, kind:'job', name:'Press vat algae', prod:{rations:0.035}, req:['vats']},
   {id:'scrap', z:1, kind:'job', name:'Strip wall panels', prod:{salvage:0.05}, req:['wake']},
   {id:'vats', z:1, kind:'act', name:'Check the clone vats', days:19, req:['wake'], split:'search'},
   {id:'search', z:1, kind:'act', name:'Search the vat bay', days:19, req:['wake'], reward:{salvage:2, rations:1}, perk:'decant',
@@ -731,7 +742,7 @@ const TASKS = [
     log:'The spine lift climbs past the stasis decks. Through frosted glass, row after row of sleeping faces.'},
   // Zone 3
   {id:'shield', z:3, kind:'rest', name:'Sleep against the warm reactor shielding', days:30, req:['lift']},
-  {id:'lockers', z:3, kind:'job', name:'Crack sealed ration lockers', prod:{rations:0.09}, req:['lift']},
+  {id:'lockers', z:3, kind:'job', name:'Crack sealed ration lockers', prod:{rations:0.09}, req:['droneyard']},
   {id:'reactor', z:3, kind:'job', name:'Babysit the fusion bottle', prod:{salvage:0.05}, haz:0.08, req:['lift']},
   {id:'droneyard', z:3, kind:'act', name:'Corral the maintenance drones', days:351, req:['lift'], split:'drones'},
   {id:'drones', z:3, kind:'act', name:'Reprogram maintenance drones', days:562, req:['droneyard'], lifeEff:{salCap:25, pSal:0.025}, perk:'manifest',
@@ -773,7 +784,7 @@ const TASKS = [
   // Zone 4
   {id:'quarters', z:4, kind:'rest', name:'Sleep in the captain\u2019s quarters', days:15, req:['secdeck']},
   {id:'charts', z:4, kind:'job', name:'Run star-chart calculations', prod:{salvage:0.0875}, req:['secdeck']},
-  {id:'galley', z:4, kind:'job', name:'Run the officers’ galley', prod:{rations:0.125}, req:['secdeck']},
+  {id:'galley', z:4, kind:'job', name:'Run the officers’ galley', prod:{rations:0.125}, req:['relays']},
   {id:'relays', z:4, kind:'act', name:'Reset the bridge relays', days:1053, req:['secdeck'], split:'bridgepower'},
   {id:'bridgepower', z:4, kind:'act', name:'Restore bridge power', days:1685, lifeEff:{salCap:100}, req:['relays'], perk:'clock',
     log:'The bridge lights up. The chronometer says the ship is 61 years behind schedule. The crew slept through all of it.'},
@@ -814,7 +825,7 @@ const TASKS = [
   // Zone 5
   {id:'pods', z:5, kind:'rest', name:'Cryo-nap in the drive crew pods', days:10, req:['warden']},
   {id:'crewlock', z:5, kind:'job', name:'Strip the drive crew lockers', prod:{salvage:0.1}, req:['warden']},
-  {id:'pantry', z:5, kind:'job', name:'Ration the drive crew pantry', prod:{rations:0.15}, req:['warden']},
+  {id:'pantry', z:5, kind:'job', name:'Ration the drive crew pantry', prod:{rations:0.15}, req:['starfix']},
   {id:'starfix', z:5, kind:'act', name:'Take star fixes from the drive shaft', days:2884, req:['warden'], split:'course'},
   {id:'course', z:5, kind:'act', name:'Plot a course to Tessaly', days:2884, req:['starfix'], perk:'promise',
     log:'Course set for Tessaly. The crew will wake in orbit, rested. Whatever is left of the K line will have to get them there.'},
@@ -899,6 +910,7 @@ const TASKS = [
   {id:'dockseal', z:8, kind:'act', name:'Breach the docking seal', days:527, haz:0.3, req:[], split:'umbilical'},
   {id:'umbilical', z:8, kind:'act', name:'Cross the docking umbilical', days:330, haz:0.35, req:['dockseal']},
   {id:'hivenap', z:8, kind:'rest', name:'Rest in a dead hive cell', days:15, req:['umbilical']},
+  {id:'hivecells', z:8, kind:'job', name:'Draw power from the hive\u2019s bio-cells', prod:{rations:0.18}, haz:0.1, req:['mindtrail']},   // the Hive Ship's only charging, late in the section
   {id:'chitinj', z:8, kind:'job', name:'Salvage hive chitin', prod:{salvage:0.18}, haz:0.1, req:[]},
   {id:'hivedrill', z:8, kind:'train', name:'Hive-tunnel drills', days:40, req:['umbilical']},
   {id:'hivewall', z:8, kind:'act', name:'Burn a way into the hive', days:762, haz:0.35, req:['umbilical'], split:'cuthive'},
@@ -919,7 +931,7 @@ const TASKS = [
   {id:'patch', z:9, kind:'act', name:'Patch micrometeor holes', days:167, reps:3, req:['leaks'],
     log:'The voyage is long and the ship is old. Something always leaks, and every leak costs parts. WARDEN assigns you to keep it from mattering.'},
   {id:'blister', z:9, kind:'rest', name:'Sleep in the observation blister', days:30, req:[]},
-  {id:'beds', z:9, kind:'job', name:'Thin the regrown beds', prod:{rations:0.17}, req:[]},
+  {id:'beds', z:9, kind:'job', name:'Thin the regrown beds', prod:{rations:0.17}, req:['leaks']},
   {id:'trim', z:9, kind:'job', upkeep:true, name:'Trim the reactor', prod:{salvage:0.12}, req:[]},
   {id:'watchdrill', z:9, kind:'train', name:'Damage-control drills', days:40, req:['patch']},
   {id:'podscan', z:9, kind:'act', name:'Scan the stasis pods', days:205, req:['patch'], split:'recal'},
@@ -1047,13 +1059,13 @@ TASKS.forEach(t => { if (isFinisher(t)) t.req = TASKS.filter(x => x.z === t.z &&
   TASKS.forEach(t => { if (!t.lroot) return; const last = TASKS.filter(x => x.z === t.z && x.kind === 'act' && !x.legacy && !isFinisher(x)).sort((a, b) => d(b) - d(a) || TASKS.indexOf(b) - TASKS.indexOf(a))[0]; if (last) t.req = [last.id]; }); }
 
 const PERKS = [
-  {id:'decant',   name:'Decant cache',          from:1, desc:'New clones wake with 1 ration.'},
+  {id:'decant',   name:'Decant cache',          from:1, desc:'New clones wake with 3 rations.'},
   {id:'survival', name:'Maintenance manual',    from:1, desc:'WARDEN\u2019s repair manuals: work in the Vat Bay and the Hydroponics Ring 25% faster.', eff:{zsp:{1:1.25, 2:1.25}}},   // (id kept for old saves; auto-forage is standard now)
   {id:'muscle',   name:'Muscle memory',         from:1, desc:'+15% familiarity from all work.', eff:{xp:1.15}},
   {id:'chitin',   name:'Chitin lore',           from:1, desc:'Hazard damage −10%.', eff:{haz:0.9}},
   {id:'medrec',   name:'Medbay records',        from:2, desc:'Meals come 25% more often.', eff:{pace:1.25}},
   {id:'seedbank', name:'Seed-bank index',       from:2, desc:'The ration store holds 10 more.', eff:{fcap:10}},
-  {id:'manifest', name:'Supply manifests',      from:3, desc:'Food jobs work 20% faster.', eff:{foodSpd:1.2}},
+  {id:'manifest', name:'Supply manifests',      from:3, desc:'Food jobs work 20% faster, and crossings cost half the food carried.', eff:{foodSpd:1.2, crossCost:0.5}},
   {id:'telomere', name:'Telomere patch',        from:2, desc:'+25 max health for every clone.', eff:{maxHp:25}},
   {id:'transit',  name:'Ring transit',          from:2, desc:'+10% speed on every task.', eff:{spd:1.1}},
   {id:'hardened', name:'Radiation hardening',   from:3, desc:'Hazard damage −20%.', eff:{haz:0.8}},
@@ -1069,7 +1081,7 @@ const PERKS = [
   {id:'medcache', act2:true, name:'Medbay cache',        desc:'Meals come 5% more often.', eff:{pace:1.05}},
   {id:'hivemap',  act2:true, name:'Hive charts',         desc:'+10% familiarity from Act II work.', eff:{a2fam:1.1}},
   {id:'hivecore', act2:true, name:'Hive-mind fragment',  desc:'+20% familiarity from Act II work.', eff:{a2fam:1.2}},
-  {id:'podtel',   act2:true, name:'Pod telemetry',       desc:'Meals come 5% more often.', eff:{pace:1.05}},
+  {id:'podtel',   act2:true, name:'Pod telemetry',       desc:'Meals come 5% more often, and every food station holds 25% more.', eff:{pace:1.05, stationRes:1.25}},
   {id:'wardenlog',act2:true, name:'WARDEN\u2019s confession', desc:'+20% familiarity from Act II work.', eff:{a2fam:1.2}},
   {id:'driftrec', act2:true, name:'Drift log',           desc:'Strain grows 10% slower.', eff:{strainMul:0.9}},
   {id:'wardenmem', act2:true, name:'WARDEN\u2019s memory',  desc:'+15% familiarity from Act II work.', eff:{a2fam:1.15}},
@@ -1155,7 +1167,7 @@ function loadPrefs(){ try { const p = JSON.parse(localStorage.getItem(PREF_KEY) 
 function savePrefs(){ try { if (!S || !S.set) return; const o = {}; PREF_KEYS.forEach(k => { if (S.set[k] !== undefined) o[k] = S.set[k]; }); localStorage.setItem(PREF_KEY, JSON.stringify(o)); } catch(e) {} }
 function newLife(s){
   const p = s.perks;
-  const L = {day:0, hp:100, rations:p.decant?1:0, food:{ration:p.decant?1:0}, salvage:0, lv:{}, xp:{}, echo0:{},
+  const L = {day:0, hp:100, rations:p.decant?3:0, food:{ration:p.decant?3:0}, salvage:0, lv:{}, xp:{}, echo0:{},
     done:{}, prog:{}, cyc:{}, bat:{}, visited:{1:1}, qdone:[], meal:0, strain:1, sec:1, job:null, queue:[], owned:{}, order:[], foraging:false, cur:null, dead:false, cause:''};
   SKILLS.forEach(k => { L.lv[k.id] = 0; L.xp[k.id] = 0; L.echo0[k.id] = 0; });
   L.fam0 = Object.assign({}, s.fam || {});   // familiarity at the start of this life, for the death screen
@@ -1219,7 +1231,7 @@ const drainDiv = () => S && S.life && isA2(S.life.sec || 1) ? 1 + (drainAt(ngpLv
 const ngpSpeed = () => speedAt(ngpLv('speed'));    // Act I reward: overclock, flat game speed for the whole game, free
 function mods(){
   const L = S.life, P = S.perks;
-  const m = {sk:{}, xpSk:{}, zsp:{}, zxp:{}, spd:1, xp:1, haz:1, maxHp:Math.min(BASE_HP_MAX, 100 + Math.floor(S.vit || 0)), pRat:0, pSal:0, strainMul:1, regen:0.05, ratCap:5, salCap:5, fcap:{}, pFood:{}, fq:{}, foodSpd:1, a2haz:1, a2strain:1, a2sal:1, a2food:1, a2fam:1, wear:1};
+  const m = {sk:{}, xpSk:{}, zsp:{}, zxp:{}, spd:1, xp:1, haz:1, maxHp:Math.min(BASE_HP_MAX, 100 + Math.floor(S.vit || 0)), pRat:0, pSal:0, crossCost:1, stationRes:1, strainMul:1, regen:0.05, ratCap:5, salCap:5, fcap:{}, pFood:{}, fq:{}, foodSpd:1, a2haz:1, a2strain:1, a2sal:1, a2food:1, a2fam:1, wear:1};
   FOODS.forEach(f => { m.fcap[f.id] = f.cap; m.pFood[f.id] = 0; m.fq[f.id] = 1; }); m.fcap.ration = STORE_CAP[L.sec || 1] || 5; m.fspd = {};
   SKILLS.forEach(k => { m.sk[k.id] = 1; m.xpSk[k.id] = 1; });
   const ap = e => {
@@ -1236,7 +1248,7 @@ function mods(){
     if (e.pFood) for (const f in e.pFood) m.pFood[f] += e.pFood[f];
     if (e.fq) for (const f in e.fq) m.fq[f] *= e.fq[f];
     if (e.foodSpd) m.foodSpd *= e.foodSpd;
-    if (e.a2haz) m.a2haz *= e.a2haz; if (e.a2fam) m.a2fam *= e.a2fam; if (e.wear) m.wear *= e.wear;
+    if (e.crossCost) m.crossCost *= e.crossCost; if (e.stationRes) m.stationRes *= e.stationRes; if (e.a2haz) m.a2haz *= e.a2haz; if (e.a2fam) m.a2fam *= e.a2fam; if (e.wear) m.wear *= e.wear;
   };
   PERKS.forEach(p => { if (hasPerk(p)) ap(p.eff); });
 
@@ -1259,7 +1271,7 @@ const isDone = id => (S.life.done[id] || 0) >= T[id].reps;
 const LEGACY_REVEAL = {hp:7, drain:9, growth:11, speed:13};   // Act II sections 2, 4, 6 and 8
 const legacyOpen = t => !t.legacy || !!(S.won && S.a2run && S.a2run.reached && S.a2run.reached[LEGACY_REVEAL[t.legacy]]);
 const reqMet = id => isDone(id) || !legacyOpen(T[id]);   // an unrevealed legacy final doesn't hold up its crossing
-const available = t => t.z === (S.life.sec || 1) && legacyOpen(t) && t.req.every(reqMet) && (!t.parts || complete(t) || (S.life.paid || {})[t.id] || S.life.salvage >= t.parts);
+const available = t => t.z === (S.life.sec || 1) && legacyOpen(t) && !(t.kind === 'job' && t.prod && t.prod.rations && stationLeft(t.z) <= 0.01) && t.req.every(reqMet) && (!t.parts || complete(t) || (S.life.paid || {})[t.id] || S.life.salvage >= t.parts);
 const complete = t => t.kind !== 'job' && isDone(t.id);
 const lifeDays = () => Infinity;   // no lifespan limit
 function skF(s){ return (1 + 0.1 * S.life.lv[s]) * echoSpeed(s) * M.sk[s]; }
@@ -1706,6 +1718,10 @@ function bestClone(g, fin){
 // Move the clone into section z (a crossing, or Act II after the drive / the boarders' finale)
 function enterZone(z, from){
   const L = S.life;
+  if (from && z !== from && L.food) {   // crossing costs a share of the charge carried
+    const c = crossCost(z), lost = (L.food.ration || 0) * c;
+    if (lost > 0) { L.food.ration -= lost; syncFood(); L.crossLost = lost; }
+  }
   L.sec = z; if (!L.secAt) L.secAt = {}; if (!L.secAt[z]) L.secAt[z] = {d:L.day, r:L.real || 0};
   (L.visited = L.visited || {})[z] = 1;
   const stay = id => isCQ(id) ? cSteps(id).some(x => isGQ(x) ? !zBefore(gearZone(IT[x.slice(2)]), z) : !zBefore(T[x].z, z)) : isGQ(id) ? (qItem(id) && (isDone(qItem(id).req) || !zBefore(gearZone(qItem(id)), z))) : !zBefore(T[id].z, z);
@@ -1843,7 +1859,7 @@ function work(t, dt, chained){
         L.cyc[t.id] -= n;
         const before = L.bat[t.id] || 0; L.bat[t.id] = before + n;
         addPractice(t, n);   // every batch counts
-        if (t.prod) { if (t.prod.rations) addFood(jobFood(t), t.prod.rations * JOB_CYCLE * n); if (t.prod.salvage) L.salvage += t.prod.salvage * JOB_CYCLE * n * M.a2sal; }
+        if (t.prod) { if (t.prod.rations) { const a = Math.min(t.prod.rations * JOB_CYCLE * n, stationLeft(t.z)); addFood(jobFood(t), a); (L.used = L.used || {})[t.z] = ((L.used || {})[t.z] || 0) + a; } if (t.prod.salvage) L.salvage += t.prod.salvage * JOB_CYCLE * n * M.a2sal; }
         if (!wasFull && jobFull(t)) HOOK.taskDone(t);   // a job is done when its storage is full
       }
     } else {
@@ -3175,7 +3191,12 @@ function updateHud(){
   surv.classList.toggle('warn', !L.dead && sv.why !== 'nothing soon');
   const re = storeEta(L.rations, M.ratCap, rr), se = storeEta(L.salvage, M.salCap, sr);
   // only a warning about running out altogether; the stores themselves are listed per food
-  $('#t-ratt').textContent = !nextFood() ? 'no food: starving' : re.txt === 'empty in' ? 'all food gone in ' + both(re.days) : '';
+  { const z = L.sec || 1, st = TASKS.find(t => t.z === z && t.kind === 'job' && t.prod && t.prod.rations), end = sectionEnd(z), nz = end && (end.to || end.z + 1);
+    const parts = [!nextFood() ? 'no food: starving' : re.txt === 'empty in' ? 'all food gone in ' + both(re.days) : ''];
+    if (st) parts.push(stationLeft(z) <= 0.01 ? 'food station drained' : 'station reserve ' + fmt(stationLeft(z)) + '/' + fmt(stationMax(z)) + (isDone(st.req[0] || st.id) || !st.req.length ? '' : ' \u00b7 opens after ' + T[st.req[0]].name));
+    else parts.push('no food station in this section');
+    if (nz && nz <= 14) parts.push('crossing costs ' + Math.round(100 * crossCost(nz)) + '% of food carried');
+    $('#t-ratt').textContent = parts.filter(Boolean).join(' \u00b7 '); }
   $('#t-ratt').classList.toggle('neg', true);
   setH($('#t-salt'), se.txt === 'full' ? 'storage full' : se.txt === 'steady' ? '' : se.txt + ' ' + (se.txt === 'empty in' ? '<span class="neg">' + both(se.days) + '</span>' : bothH(se.days)));
   const fl = foodsInPlay().map(f => {   // what you carry, plus this section's food
