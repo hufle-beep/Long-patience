@@ -490,7 +490,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
 
 <script id="logic">
 /* ===== Game data and rules (no DOM) ===== */
-const BUILD = '2026-11-04 · the arrival';   // shown in the main menu, to tell which version is loaded
+const BUILD = '2026-11-04 · honours parked';   // shown in the main menu, to tell which version is loaded
 const DPS = 8;             // simulation ticks per real second at 1x (doubled for the test version: same balance, half the real time)
 // Time is simulated in ticks. 80 ticks make one ship day (18 minutes each), so a day lasts
 // 20 real seconds at 1x and a clone lives weeks, not years. Everything is shown in days and hours.
@@ -510,7 +510,7 @@ const STRAIN_RES = 0.002;
 // Late wear: after a couple of weeks the growth rate climbs much faster (squared term), which keeps
 // well-fed late clones to roughly a month.
 const STRAIN_LATE = 540;
-const strainRate = wear => (1 + wear / STRAIN_ACCEL + Math.pow(wear / STRAIN_LATE, 2)) / STRAIN_RAMP / (1 + STRAIN_RES * (S.life.lv.res || 0)) * (M ? M.strainMul : 1) * (M ? M.a2strain : 1);   // Honours (Long-watch rhythm) work in both acts
+const strainRate = wear => (1 + wear / STRAIN_ACCEL + Math.pow(wear / STRAIN_LATE, 2)) / STRAIN_RAMP / (1 + STRAIN_RES * (S.life.lv.res || 0)) * (M ? M.strainMul : 1) * (M ? M.a2strain : 1);
 const MAX_DRAIN = 1.2;     // most health a young clone can lose per tick (the cap grows with age, see drainNow)
 // Difficulty: the drain cap doubles every CAP_DOUBLE ship days of a clone's life, so strain always wins in
 // the end (good feeding buys time, not immortality); and each section is a little more dangerous than the
@@ -541,7 +541,7 @@ const MEAL_UP = {heatpaste:1.27, strains:1.54, packer:1.85, ovens:2.17, pantryfi
 function mealTier(){ const L = S && S.life; let q = 1; if (L) for (const id in MEAL_UP) if (L.done && L.done[id]) q = Math.max(q, MEAL_UP[id]); return q; }
 const jobFood = t => !(t && t.prod && t.prod.rations) ? null : (FOODS.find(f => f.job === t.id) || FD.ration).id;
 // Meal pace: every meal heals the same; better food and kitchens make the meal timer shorter (12 h / pace)
-function foodQ(f){ f = f || 'ration'; return (f === 'ration' ? mealTier() : FD[f].q) * ((M && M.fq && M.fq[f]) || 1) * ((M && M.pace) || 1) * ((M && M.a2food) || 1); }   // Honours (Field rations) work in both acts
+function foodQ(f){ f = f || 'ration'; return (f === 'ration' ? mealTier() : FD[f].q) * ((M && M.fq && M.fq[f]) || 1) * ((M && M.pace) || 1) * ((M && M.a2food) || 1); }
 function syncFood(){ const L = S.life; L.rations = FOODS.reduce((a, f) => a + Math.max(0, L.food[f.id] || 0), 0); }
 function addFood(f, a){
   const L = S.life; if (a <= 0) return; f = f || 'ration';
@@ -911,7 +911,7 @@ const TASKS = [
   {id:'safeorbit', z:14, kind:'act', finale:'C', name:'Establish a safe orbit over Tessaly', days:800, req:[], perk:'harbour',
     log:'The Long Patience settles into a stable orbit. Below, Tessaly turns: oceans, cloud, a long brown coast. Three thousand people are still asleep. They are home, nearly.'},
 ];
-const ZDAYS = {1:0.239, 2:0.812, 3:0.602, 4:0.531, 5:0.326, 6:0.778, 7:1.009, 8:1.009, 9:0.681, 10:0.915, 11:0.915, 12:0.974, 13:0.974, 14:0.974};   // no skill transfer: later sections are short, and speed comes from familiarity
+const ZDAYS = {1:0.239, 2:0.812, 3:0.602, 4:0.531, 5:0.326, 6:0.778, 7:1.009, 8:1.009, 9:0.681, 10:0.915, 11:0.915, 12:0.87, 13:0.87, 14:0.87};   // no skill transfer: later sections are short, and speed comes from familiarity
 const TRAIN_CAP = 4, TRAIN_XP = 1.5;
 const T = {}; TASKS.forEach(t => { T[t.id] = t; t.sk = []; t.reps = t.kind === 'train' ? TRAIN_CAP : (t.reps || 1); if (t.days) t.days = Math.round(t.days * ZDAYS[t.z]); });
 // A section's finisher (its crossing, the ignition or an Act II finale) needs every other action of the section.
@@ -1020,7 +1020,7 @@ ITEMS.forEach(i => { const t = {id:'b:' + i.id, gear:i.id, z:gearZone(i), kind:'
 
 let S, M;
 let HALT = false;   // set by the UI to stop the clock in the middle of a catch-up (e.g. pause on task completion)
-const HOOK = {legacy(){}, ngpEarn(){}, assembling(){}, taskDone(){}, log(){}, perk(){}, die(){}, win(){}, change(){}, stopped(){}, practiced(){}, done(){}, rested(){}, crossed(){}, bought(){}, qfull(){}, honour(){}, merge(){}, kit(){}, runEnd(){}};
+const HOOK = {legacy(){}, ngpEarn(){}, assembling(){}, taskDone(){}, log(){}, perk(){}, die(){}, win(){}, change(){}, stopped(){}, practiced(){}, done(){}, rested(){}, crossed(){}, bought(){}, qfull(){}, merge(){}, kit(){}, runEnd(){}};
 
 // Player preferences (switches, thresholds, boost speed) are stored once for the device, not per save:
 // a new game or another slot starts with the same settings.
@@ -1056,7 +1056,6 @@ const NGP_GROWTH = 0.2, NGP_GROWTH_MAX = 5;   // deep echo: +20% skill growth pe
 const NGP_MAX = 3;
 const A2_SHARE = 0.1;   // Deep echo, Drain dampener and Template upgrade work in Act II at 10% strength
 // Act II rewards per level (3 levels reach the old 5-level maximum)
-const A2_STEP = {vet:0.25, rhythm:0.4 / 3, scav:1 / 3, rations:0.5 / 3, rest:0.5};
 const NGP = [
   {id:'growth', name:'Deep echo',       max:NGP_MAX, now:k => 'familiarity needed ×' + Math.pow(FAM_ECHO, k).toFixed(2) + ' in Act I, ×' + (1 - (1 - Math.pow(FAM_ECHO, k)) * A2_SHARE).toFixed(2) + ' in Act II', step:'Tasks reach ×10 with about 30% less familiarity in Act I (10% of that in Act II)'},
   {id:'drain',  name:'Drain dampener',  max:NGP_MAX, now:k => 'health drain ÷' + drainAt(k).toFixed(1) + ' in Act I, ÷' + (1 + (drainAt(k) - 1) * A2_SHARE).toFixed(1) + ' in Act II', step:'Divides health drain (Act I ÷2.3, ÷3.7, ÷5; Act II at 10% of that)'},
@@ -1108,9 +1107,6 @@ function mods(){
     if (e.a2haz) m.a2haz *= e.a2haz; if (e.a2fam) m.a2fam *= e.a2fam; if (e.wear) m.wear *= e.wear;
   };
   PERKS.forEach(p => { if (hasPerk(p)) ap(p.eff); });
-  // Act II rewards bought with Honours (3 levels each, permanent)
-  const lv = id => Math.min(NGP_MAX, ((S.a2 || {}).lv || {})[id] || 0);
-  m.a2haz *= 1 - A2_STEP.vet * lv('vet'); m.a2strain *= 1 - A2_STEP.rhythm * lv('rhythm'); m.a2sal *= 1 + A2_STEP.scav * lv('scav'); m.a2food *= 1 + A2_STEP.rations * lv('rations');
 
   m.maxHp += isA2(L.sec || 1) ? Math.round(hpAt(ngpLv('hp')) * A2_SHARE) : hpAt(ngpLv('hp'));   // Act I reward: template upgrade (Act II: 10%)
   ITEMS.forEach(i => { if (L.owned[i.id]) ap(i.eff); });
@@ -1180,7 +1176,7 @@ function drillCredit(d){
   TASKS.forEach(t => { if (t.kind !== 'train' && t.z === d.z && !t.legacy) addFam(t, DRILL_CREDIT * compUnit(t) * famGain(t)); });
 }
 // hazards hurt less the more familiar the task is (up to /4, like the old combat and resolve levels)
-function hazDmg(t){ return (t.haz || 0) * M.haz * M.a2haz / (1 + 3 * masteryFrac(t)); }   // Honours (Veteran template) work in both acts
+function hazDmg(t){ return (t.haz || 0) * M.haz * M.a2haz / (1 + 3 * masteryFrac(t)); }
 function xpRate(t, s){ return 0; }   // skills are gone
 
 function pickFood(){
@@ -1511,7 +1507,7 @@ function finish(t){
     return;
   }
   if (t.kind === 'rest') {
-    L.strain = (L.strain || 1) / (2 + A2_STEP.rest * Math.min(NGP_MAX, ((S.a2 || {}).lv || {}).rest || 0));   // may drop below 1; Deep rest (Honours) cuts deeper
+    L.strain = (L.strain || 1) / 2;   // may drop below 1
     qConsumeAll(t.id);
     HOOK.rested(t); HOOK.taskDone(t); HOOK.change();
     return;
@@ -1563,18 +1559,18 @@ function enterZone(z, from){
   if (L.job && zBefore(T[L.job].z, z)) L.job = null;
   L.foraging = false; L.held = null;
   if (L.chainRun && ACT_ENDS.includes(from)) endRun(L, 'act');   // e.g. merging from the boarders into the long watch
-  if (isA2(z)) {   // Act II: an Honour for each section first reached in a run
+  if (isA2(z)) {   // Act II: note each section first reached in a run (it opens legacy themes)
     S.a2run = S.a2run || {reached:{}, done:{}};
-    if (!S.a2run.reached[z]) { S.a2run.reached[z] = 1; S.a2.hon = (S.a2.hon || 0) + 1; HOOK.honour(1, 'reaching ' + zoneThe(z)); for (const k in LEGACY_REVEAL) if (LEGACY_REVEAL[k] === z) HOOK.legacy(k); }
+    if (!S.a2run.reached[z]) { S.a2run.reached[z] = 1; for (const k in LEGACY_REVEAL) if (LEGACY_REVEAL[k] === z) HOOK.legacy(k); }
   }
   M = mods(); HOOK.crossed(z);
 }
 // How far a clone got: sections entered, plus one for lighting the drive
 function progOf(L){ return Object.keys(L.visited || {1:1}).length + (L.wonAt ? 1 : 0); }
-// An Act II branch finished: +2 Honours and a lower Act II threshold (first time each run)
+// An Act II part finished: a lower Act II threshold (first time each run)
 function finishBranch(t){
   const L = S.life; S.a2run = S.a2run || {reached:{}, done:{}};
-  if (!S.a2run.done[t.finale]) { S.a2run.done[t.finale] = 1; S.a2.fin = (S.a2.fin || 0) + 1; S.a2.hon = (S.a2.hon || 0) + 2; HOOK.honour(2, 'finishing ' + ({A:'the boarders', B:'the long watch', C:'the arrival'})[t.finale]); }
+  if (!S.a2run.done[t.finale]) { S.a2run.done[t.finale] = 1; S.a2.fin = (S.a2.fin || 0) + 1; }
   if (t.finale === 'A') enterZone(9, 8);   // the boarders are gone: on into the long watch
   if (t.finale === 'B') enterZone(12, 11);   // the long watch is over: on into the arrival
 }
@@ -1657,7 +1653,7 @@ function work(t, dt, chained){
         L.cyc[t.id] -= n;
         const before = L.bat[t.id] || 0; L.bat[t.id] = before + n;
         addPractice(t, n);   // every batch counts
-        if (t.prod) { if (t.prod.rations) addFood(jobFood(t), t.prod.rations * JOB_CYCLE * n); if (t.prod.salvage) L.salvage += t.prod.salvage * JOB_CYCLE * n * M.a2sal; }   // Honours (Scavenger's eye) work in both acts
+        if (t.prod) { if (t.prod.rations) addFood(jobFood(t), t.prod.rations * JOB_CYCLE * n); if (t.prod.salvage) L.salvage += t.prod.salvage * JOB_CYCLE * n * M.a2sal; }
         if (!wasFull && jobFull(t)) HOOK.taskDone(t);   // a job is done when its storage is full
       }
     } else {
@@ -1917,7 +1913,7 @@ function prestige(choice){
   const ns = defaultState();
   ns.set = o.set; ns.set.paused = false; ns.set.boost = false;
   ns.qpresets = o.qpresets; ns.bank = o.bank || 0; ns.intro = true; ns.flow = o.flow || 0; ns.bestAll = o.bestAll || null;
-  ns.a2 = o.a2 || ns.a2;   // Act II familiarity, practice, records and Honours carry over; its sections are replayed
+  ns.a2 = o.a2 || ns.a2;   // Act II familiarity, practice, and records carry over; its sections are replayed
   TASKS.forEach(t => { if (isA2(t.z)) { if ((o.fam || {})[t.id]) ns.fam[t.id] = o.fam[t.id]; if ((o.prac || {})[t.id]) ns.prac[t.id] = o.prac[t.id]; } });
   ITEMS.forEach(i => { if (isA2(gearZone(i)) && (o.gprac || {})[i.id]) ns.gprac[i.id] = o.gprac[i.id]; });   // the best clone ever survives new game plus
   // automation settings carry over: on/off switches and priorities for tasks and gear (the queue does not)
@@ -2433,7 +2429,7 @@ function mergeState(raw){
       if (s.life.sec > 14) s.life.sec = 14; }
     if (Array.isArray(s.qpresets)) s.qpresets = s.qpresets.map(p => Array.isArray(p) ? p.filter(ok) : []); }
   if (s.won || s.branch) { s.branch = 'A'; s.merge = true; }   // Act II is linear now: the boarders, then the long watch
-  if (s.a2 && s.a2.lv) for (const k in s.a2.lv) s.a2.lv[k] = Math.min(NGP_MAX, s.a2.lv[k] || 0);   // Act II rewards now have 3 levels: levels above that become unspent Honours
+  if (s.a2 && s.a2.lv) for (const k in s.a2.lv) s.a2.lv[k] = Math.min(NGP_MAX, s.a2.lv[k] || 0);   // old Honours data (parked for Act III) is kept but unused
   if (s.pr && (s.won || ((s.pr.pts != null ? s.pr.pts : s.pr.n) || 0) >= KIT_PTS)) s.pr.kit = true;   // Quartermaster's cache: any save that has lit the drive
   if (s.life && !s.life.visited) { s.life.visited = {}; for (let z = 1; z <= Math.min(5, s.life.sec || 1); z++) s.life.visited[z] = 1; }
   if (!s.autoDef) { s.autoDef = 1; const P = s.prac || {}; s.auto = s.auto || {};
@@ -2594,10 +2590,7 @@ function autoDecant(){
 HOOK.win = () => { save(); showWin(); };
 HOOK.merge = () => { save(); showMerge(); };
 HOOK.kit = () => { sfx('perk'); toast('Quartermaster\u2019s cache unlocked: every clone now starts with all of its automated gear.', true); archKey = ''; };
-HOOK.honour = (n, why) => { archKey = ''; legKey = ''; if (!a2Done()) return;   // Honours stay secret until Act II is finished
-  sfx('perk');
-  if (!S.honSeen) { S.honSeen = true; toast('Honours unlocked: ' + (S.a2.hon || 0) + ' to spend in the Legacy tab, earned across Act II.', true); }
-  else toast('+' + n + ' Honour' + (n > 1 ? 's' : '') + ' for ' + why + '.', true); };
+
 
 function toast(msg, gold){
   const el = document.createElement('div');
@@ -3111,26 +3104,6 @@ document.addEventListener('change', e => {
   else { S.set.boost = true; S.set.boostX = x; toast('Stasis boost \u00d7' + x + ': the bank lasts ' + fmtSecs(S.bank / (x - 1)) + ' of running time.'); }
   audioStart(); sfx('toggle'); save(); renderSpeed(); e.target.blur();
 });
-// Act II: the branch, and Honours: earned in Act II, their rewards work in both acts; 3 levels each, permanent
-const A2R = [
-  {id:'vet',     name:'Veteran template',  now:k => 'hazard damage \u2212' + Math.round(100 * A2_STEP.vet * k) + '%'},
-  {id:'rhythm',  name:'Long-watch rhythm', now:k => 'strain \u2212' + Math.round(100 * A2_STEP.rhythm * k) + '%'},
-  {id:'scav',    name:'Scavenger\u2019s eye', now:k => 'salvage +' + Math.round(100 * A2_STEP.scav * k) + '%'},
-  {id:'rest',    name:'Deep rest',         now:k => 'rests divide strain by ' + (2 + A2_STEP.rest * k)},
-  {id:'rations', name:'Field rations',     now:k => 'meals come ' + Math.round(100 * A2_STEP.rations * k) + '% more often'},
-];
-function act2Panel(){
-  const a = S.a2, spent = Object.values(a.lv || {}).reduce((x, y) => x + y, 0), free = Math.max(0, (a.hon || 0) - spent);
-  let h = '<div class="panel ngp"><span class="h2">Act II Honours</span>';
-  h += `<p class="note">After the drive is lit, every clone that lights it carries on into Act II. Act II familiarity, automation, records and Honours are kept for good. Act II needs ${fmt(famN0A2())} lives' worth of a task for \u00d710 (a quarter less at each of Act II\u2019s three big milestones).</p>`;
-  const seen2 = ZONES.filter(z => isA2(z.id) && (S.a2run.reached || {})[z.id]).map(z => z.name);
-  h += S.won ? '<p class="note">' + (seen2.length ? 'Reached so far: <b>' + seen2.join(' \u2192 ') + '</b>.' : 'Act II is open. Light the drive again to see where it leads.') + '</p>' : '<p class="note">Light the main drive to open Act II.</p>';
-  h += `<div class="ngpts"><span class="lbl">Honours</span> <b class="num">${free}</b> unspent of ${a.hon || 0} \u00b7 one per Act II section first reached, two at each of Act II\u2019s three big milestones (15 in all); their rewards work in both acts; spending is permanent</div>`;
-  A2R.forEach(r => { const k = Math.min(NGP_MAX, (a.lv || {})[r.id] || 0);
-    h += `<div class="ngrow"><div><b>${r.name}</b> <span class="num">${k}/${NGP_MAX}</span><small>${k ? r.now(k) : 'not taken'}${k < NGP_MAX ? ' \u00b7 next: ' + r.now(k + 1) : ''}</small></div>
-      <button class="btn" data-confirm="a2add" data-a2r="${r.id}" ${k < NGP_MAX && free ? '' : 'disabled'} aria-label="Spend an Honour on ${r.name}">+</button></div>`; });
-  return h + '</div>';
-}
 // Legacy tasks: what each theme gives this clone, and how far it can go
 const LEG_NAME = {growth:'Echo', drain:'Dampening', hp:'Template', speed:'Overclock'};
 function ngpPanel(){
@@ -3266,21 +3239,19 @@ function renderView(force){
   else if (tab === 'faq') renderFaq();
   document.querySelector('[data-tab="log"]').classList.toggle('dot', newLog);
   document.querySelector('[data-tab="archive"]').classList.toggle('dot', newPerk);
-  const lg = document.querySelector('[data-tab="legacy"]'); lg.hidden = !S.won; lg.classList.toggle('dot', a2Done() && a2Free() > 0);
+  const lg = document.querySelector('[data-tab="legacy"]'); lg.hidden = !S.won; lg.classList.remove('dot');
 }
-// Legacy tab: what the line of clones has earned for good (Act I rewards, Act II Honours)
+// Legacy tab: what the line of clones has earned for good (Act I rewards, legacy tasks)
 let legKey = '';
 function renderLegacy(){
   const key = JSON.stringify([S.pr, S.a2, S.won, S.a2run, Math.floor(S.gen), NGP.map(r => ngpLv(r.id).toFixed(2))]);
   if (key === legKey) return; legKey = key;
   let h = '';
   if (S.won) h += ngpPanel();
-  if (a2Done()) h += act2Panel();   // Honours are revealed once Act II has been finished
   if (!h) h = '<div class="panel"><p class="note">Nothing here yet.</p></div>';
   $('#v-legacy').innerHTML = h;
 }
 const a2Done = () => !!((S.a2run && S.a2run.done && S.a2run.done.C) || (S.a2 && S.a2.fin >= 3));
-const a2Free = () => { const a = S.a2 || {}; return Math.max(0, (a.hon || 0) - Object.values(a.lv || {}).reduce((x, y) => x + y, 0)); };
 
 /* ----- map: every action ever performed, by section, wired by requirement ----- */
 let mapKey = '', mapRefs = [];
@@ -3488,13 +3459,11 @@ const FAQ_ALL = [
 // Shown once the drive is first lit.
 const FAQ_NGP = ['Legacy tasks', 'There is no restarting: after the drive is lit, the story always moves forward. As Act II unfolds, <b>legacy tasks</b> open up in Act I, one theme at a time; each theme adds a task to every Act I section, available once a clone has done that section\u2019s last action before its crossing. Once a clone finishes one, its bonus works for the rest of that life and grows with mastery (nothing untrained, full share at twice the usual familiarity; drills don\u2019t train them). All five of a theme, done and mastered, give its full effect. The tasks are optional for crossings but join chains and section runs once automated, and until then they queue themselves each life. The <b>Legacy</b> tab shows what each revealed theme does and how far it has got. Lighting the drive the first time also unlocks the <b>Quartermaster\u2019s cache</b>: every clone starts with all of its automated gear already built, in both acts.'];
 const FAQ_A2 = ['Act II', 'Once the main drive is lit, every clone that lights it carries on into <b>Act II</b>: nine more sections, one after another, each revealed when a clone first reaches it. Act II tasks have their own familiarity, which Echo legacy tasks reduce only at 10% strength: it starts at 90 lives\u2019 worth for \u00d710 and drops by a quarter at each of Act II\u2019s three big milestones. Act II familiarity, automation and records are kept for good.'];
-// Honours stay a secret until Act II has been finished once
-const FAQ_HON = ['Honours', 'Honours (one per Act II section first reached, two at each of Act II\u2019s three big milestones: 15 in all) buy rewards in the <b>Legacy</b> tab that work in <b>both acts</b>: Veteran template (hazard damage \u221225% per level), Long-watch rhythm (strain \u221213%), Scavenger\u2019s eye (salvage from jobs +33%), Deep rest (rests divide strain by 2.5, 3, then 3.5 instead of 2) and Field rations (meals 17% more often). Like Act I rewards they have three levels each, and spending is permanent.'];
 let faqDone = '';
 function renderFaq(){
   const k = String(!!(S.won || (S.pr && S.pr.n))) + !!(S.a2 && S.a2.open);
   if (faqDone === k) return; faqDone = k;
-  const FAQ = FAQ_ALL.concat(S.won ? [FAQ_NGP] : [], S.a2 && S.a2.open ? [FAQ_A2] : [], a2Done() ? [FAQ_HON] : []);
+  const FAQ = FAQ_ALL.concat(S.won ? [FAQ_NGP] : [], S.a2 && S.a2.open ? [FAQ_A2] : []);
   $('#v-faq').innerHTML = '<div class="panel"><span class="h2">FAQ</span><p class="note">How Long Patience works. Tap a question to open it.</p></div><div class="faq">' +
     FAQ.map(([q, a], i) => `<details${i < 2 ? ' open' : ''}><summary>${q}</summary><p>${a}</p></details>`).join('') + '</div>';
 }
@@ -3658,7 +3627,6 @@ document.addEventListener('click', e => {
   if (d.merge != null) { S.merge = true; hideModal(); paused = false;
     if (S.merge && S.life.sec === 8 && !S.life.dead && complete(T.cutloose)) enterZone(9, 8);
     toast(S.merge ? 'The run continues into the long watch.' : 'The run ends with the boarders. You can still merge from the Archive.'); taskKey = ''; archKey = ''; renderView(); return; }
-  if (d.a2adj) return;   // Honours can't be moved once spent
   if (d.ngpadj) { if (ngpAdjust(d.ngpadj, +d.dd)) { sfx('toggle'); archKey = ''; legKey = ''; save(); renderView(true); } return; }
   if (d.ngpick) {
     const pr0 = S.pr || {};
@@ -3731,8 +3699,6 @@ document.addEventListener('click', e => {
     }
     clearTimeout(confirmT[k]); confirmT[k] = null;
     if (k === 'importfile') { b.textContent = 'Import save file'; $('#import-file').click(); return; }
-    if (k === 'a2add') { b.textContent = '+'; const id = d.a2r, v = S.a2.lv[id] || 0, free = (S.a2.hon || 0) - Object.values(S.a2.lv).reduce((x, y) => x + y, 0);
-      if (v < NGP_MAX && free > 0) { S.a2.lv[id] = v + 1; M = mods(); const r = A2R.find(x => x.id === id); sfx('perk'); toast(r.name + ' ' + (v + 1) + '/' + NGP_MAX + ': ' + r.now(v + 1) + '.'); archKey = ''; legKey = ''; save(); renderView(true); } return; }
     if (k === 'ngpadd') { b.textContent = '+'; if (ngpAdjust(d.ngr, 1)) { const r = NGP.find(x => x.id === d.ngr); sfx('perk'); toast(r.name + ' ' + ngpLv(r.id) + '/' + r.max + ': ' + r.now(ngpLv(r.id)) + '.'); archKey = ''; legKey = ''; save(); renderView(true); } return; }
     if (k === 'ghload') { b.textContent = 'Load'; ghLoad(+d.gi); return; }
     if (k === 'import') {
