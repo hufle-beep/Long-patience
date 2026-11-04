@@ -490,7 +490,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
 // Renamed from Long Patience: move this device's old storage keys to the new 'selene.' names once
 try { const old = []; for (let n = 0; n < localStorage.length; n++) old.push(localStorage.key(n)); old.forEach(k => { if (k && k.indexOf('long-patience.') === 0) { const nk = 'selene.' + k.slice(14); if (localStorage.getItem(nk) == null) localStorage.setItem(nk, localStorage.getItem(k)); localStorage.removeItem(k); } }); } catch(e) {}
 /* ===== Game data and rules (no DOM) ===== */
-const BUILD = '2026-11-04 · death screen fix';   // shown in the main menu, to tell which version is loaded
+const BUILD = '2026-11-04 · hidden records';   // shown in the main menu, to tell which version is loaded
 const DPS = 8;             // simulation ticks per real second at 1x (doubled for the test version: same balance, half the real time)
 // Time is simulated in ticks. 80 ticks make one day unit (18 minutes each), so a day lasts
 // 20 real seconds at 1x and Players only ever see in-game time and real time, never days.
@@ -3343,7 +3343,7 @@ function ngpPanel(){
     const tr = Math.round(100 * ts.reduce((a, t) => a + (legacyShare(t) - 0.25) / 0.75, 0) / Math.max(1, ts.length));
     h += `<div class="ngrow"><div><b>${LEG_NAME[r.id]}</b> <span class="num">${done}/5 finals · ${pd}/20 parts this life · ${tr}% trained</span><small>${k ? 'now: ' + r.now(k) : 'nothing yet this life'} · at full: ${r.now(NGP_MAX)}</small></div></div>`; });
   h += '<table class="dt">';
-  h += `<tr><td>Quartermaster’s cache</td><td>${pr.kit ? 'unlocked: seedlings start with all their automated gear, in both acts' : 'unlocks when the drive is first lit'}</td></tr>`;
+  h += `<tr><td>Quartermaster’s cache</td><td>${pr.kit ? 'unlocked: seedlings start with all their automated gear, in both acts' : 'unlocks when the Hearth Tree is first kindled'}</td></tr>`;
   h += '</table>';
   return h + '</div>';
 }
@@ -3351,13 +3351,14 @@ function renderArchive(force){
   const key = Object.keys(S.perks).join() + JSON.stringify(S.a2 || {}) + (S.branch || '') + S.merge + '|' + S.gen + '|' + JSON.stringify(S.set) + '|' + S.won + '|' + Math.floor((S.stats.played || 0) / 60) + '|' + JSON.stringify(S.pr);
   if (key === archKey && !force) return; archKey = key;
   const shown = PERKS.filter(p => !p.act2 || (S.a2 && S.a2.open)), got = shown.filter(hasPerk).length;
-  let h = `<div class="panel"><span class="h2">Archive records</span><p class="note">Permanent upgrades. Each is found the first time a seedling finishes a certain action. ${got} of ${shown.length} recovered.</p></div><div>`;
+  let h = `<div class="panel"><span class="h2">Archive records</span><p class="note">Permanent upgrades. Each is found the first time a seedling finishes a certain action, and appears here once recovered. ${got} of ${shown.length} recovered.</p></div><div>`;
   ZONES.forEach(z => {
     if (isA2(z.id) && !(S.a2 && S.a2.open)) return;   // Act II stays hidden until the drive is first lit
     const zp = PERKS.filter(p => p.from === z.id); if (!zp.length) return;
     const got = zp.filter(hasPerk).length;
     h += `<div class="sub" style="margin-top:10px">${z.name} \u00b7 ${got}/${zp.length}</div>`;
     zp.forEach(p => {
+      if (!hasPerk(p)) return;   // unrecovered records stay hidden until this save finds them (the counts still show how many there are)
       h += hasPerk(p)
         ? `<div class="perk"><h3>${esc(p.name)}</h3><p>${esc(p.desc)}${p.by && S.seen[p.by] ? ' <span class="by">From: ' + esc(T[p.by].name) + '</span>' : ''}</p></div>`
         : p.secEnd ? `<div class="perk no"><h3>${esc(p.name)}</h3><p>${p.secEnd === 'ignite' ? 'Kindle the Hearth Tree' : 'Leave ' + zoneThe(z.id)}: ${esc(p.desc)}</p></div>`
@@ -3377,11 +3378,11 @@ function statsGrid(){
   const st = S.stats;
   h += `<div class="stats">
     <div><b>${S.gen}</b><span>Seedlings sprouted</span></div>
-    <div><b>${st.bestDays ? st.bestDays.toFixed(1) : '—'}</b><span>Longest life (days)</span></div>
+    <div><b>${st.bestDays ? '<span class="tgm">' + fmtDays(st.bestDays * TPD) + '</span>' : '—'}</b><span>Longest life</span></div>
     <div><b>\u00f7${vitDiv().toFixed(2)}</b><span>Efficiency patch from run and memory analysis: energy drain (max \u00f7${(1 + VIT_K).toFixed(1)})</span></div>
     <div><b>${TASKS.filter(t => masteryFrac(t) >= 1).length}</b><span>Tasks at \u00d710</span></div>
     <div><b>${fmtHours(S.stats.played || 0)}</b><span>Time played</span></div>
-    <div><b>${S.won ? 'Seedling ' + S.winGen : 'Not yet'}</b><span>Drive ignited</span></div></div>`;
+    <div><b>${S.won ? 'Seedling ' + S.winGen : 'Not yet'}</b><span>Hearth Tree kindled</span></div></div>`;
   return h;
 }
 function renderLog(){
@@ -3409,7 +3410,7 @@ function renderLog(){
   const totRow = keys => keys.some(k => FA[k]) ? `<tr class="ftbest fttot"><td>Run total<small>played to get there</small></td>${keys.map(k => { const f = FA[k]; return `<td>${f ? gameT(fmtDays(f.d)) + '<small>' + realT(f.r) + '</small>' : '\u2014'}</td>`; }).join('')}</tr>` : '';
   if (hist.length) {
     // columns: when each section was first reached (unlocked) in a seedling's life, and when the Hearth Tree was kindled
-    const short = ['Taproot', 'Heartwood', 'Canopy', 'Crown', 'Lit'], longN = ['Reached the Taproot Galleries', 'Reached the Heartwood', 'Reached the Canopy Gardens', 'Reached the Ember Crown', 'Lit the main drive'];
+    const short = ['Taproot', 'Heartwood', 'Canopy', 'Crown', 'Lit'], longN = ['Reached the Taproot Galleries', 'Reached the Heartwood', 'Reached the Canopy Gardens', 'Reached the Ember Crown', 'Kindled the Hearth Tree'];
     h += '<span class="lbl" style="display:block;margin-top:12px">Section unlock times</span><p class="note"><span class="tgm">In-game</span> and <span class="trl">real time</span> when each seedling first reached a section, and when the Hearth Tree was kindled. <b>Run total</b> is the total time played in this run, all seedlings together, when a section was first reached. <b>Best seedling</b> is your best single seedling ever (most sections, then least in-game time). <b>Best</b> keeps the earliest unlock of each section from any seedling in this run, with the seedling number.</p>';
     h += `<div class="rtab"><table class="dt ft"><thead><tr><th>Seedling</th>${short.map((n, i) => `<th title="${longN[i]}">${n}</th>`).join('')}</tr></thead><tbody>${totRow([2, 3, 4, 5, 'lit'])}${S.bestAll ? `<tr class="ftbest ftall"><td>Best seedling<small>#${S.bestAll.g}</small></td>${ZONES.slice(0, 5).map((z, i) => { const f = S.bestAll.fin[i]; return `<td>${f ? gameT(fmtDays(f[0] * TPD)) + '<small>' + realT(f[1]) + '</small>' : '\u2014'}</td>`; }).join('')}</tr>` : ''}${S.bestSec && S.bestSec.some(Boolean) ? `<tr class="ftbest"><td>Best</td>${ZONES.slice(0, 5).map((z, i) => { const b = S.bestSec[i]; return `<td>${b ? gameT(fmtDays(b.d * TPD)) + '<small>' + realT(b.r) + '</small><small>seedling ' + b.g + '</small>' : '\u2014'}</td>`; }).join('')}</tr>` : ''}${hist.map(e => `<tr><td>${e.g}</td>${ZONES.slice(0, 5).map((z, i) => { const f = e.fin && e.fin[i]; return `<td>${f ? gameT(fmtDays(f[0] * TPD)) + '<small>' + realT(f[1]) + '</small>' : '\u2014'}</td>`; }).join('')}</tr>`).join('')}</tbody></table></div>`;  }
   if ([6,7,8,9,10,11,12,13,14].some(z => FA[z])) {
@@ -3760,7 +3761,7 @@ function showDeath(){
 }
 function showWin(){
   paused = true;
-  showModal(`<h2>The drive is lit</h2>
+  showModal(`<h2>The Hearth Tree is kindled</h2>
     <p>The sap flows, the gardens fruit and the Hearth Tree carries Selene on the current toward Tessaly. It took ${S.gen} seedling${S.gen > 1 ? 's' : ''} of K-7 to get here. None of them will be remembered.</p>
     <p>WARDEN begins the wake cycle, then stops. Proximity alarms. Something is closing on the ship.</p>
     <p class="d"><b>Act II</b> begins. The ship isn\u2019t done with K-7 yet: every seedling that kindles the Hearth Tree carries on into whatever comes next. Going further will open up <b>legacy tasks</b> in Act I (see the Legacy tab), and the <b>Quartermaster\u2019s cache</b> is unlocked: from now on seedlings start with their automated gear.</p>

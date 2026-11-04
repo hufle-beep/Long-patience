@@ -10,6 +10,7 @@ Last updated: 2026-11-04. Update in every push.
 5. **Then either Act III, or publishing** on Google Play, itch.io and galaxy.click (see "Later" below).
 
 ## Next up
+- **Meteor shower redesign (approved 2026-11-04, see design.md):** Stage 1 new Act I section The Shattered Bark (after the Taproot Galleries) + fifth legacy theme Hardened grain; Stage 2 Act II reordered (long watch with Turnover first, Boarders + new The Mending with Rekindle the Hearthfire, then Arrival); Stage 3 480-year voyage clock and texts. Confirm each stage's exact changes before building.
 - Section 2 (Taproot Galleries) retune: waiting for the owner's playtest save.
 
 ## Decided

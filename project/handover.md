@@ -1,6 +1,6 @@
 # Handover: Selene: Tidelocked
 
-Last updated: 2026-11-04 (build "cleanup" + project docs). Update this file in every push.
+Last updated: 2026-11-04 23:40 (build "hidden records"). Next big job: the meteor shower redesign (design.md, roadmap.md). Update this file in every push.
 
 ## 1. What the game is
 An incremental "clone-loop" game in one HTML file (like Increlution/Incremortal). You are K-7, a **seedling** (disposable drone of WARDEN and the Hearth Tree) aboard **Selene**, a living-wood colony ship of the Root-Kin of Earth. Each seedling works tasks until its energy runs out; familiarity, records and automation carry over to the next one.
@@ -61,6 +61,7 @@ Play: https://hufle-beep.github.io/Long-patience/ · Android APK: release `andro
   - `PERKS`, permanent, found the first time certain actions are finished.
   - Stasis watch I-XIV, one per section end.
   - Legacy themes (Echo, Dampening, Storage optimization, Overclock): five-part sets in every Act I section, revealed by Act II progress and needed for crossings once revealed (`legacy`, `lset`, `lfin`, `LEGACY_LEN 0.6`, `NGP_MAX 3`).
+- **Archive:** only recovered records are listed (`hasPerk`); the counts (x of y, per section x/y) still show how many exist.
 - **Log:**
   - `S.log` holds the story entries, taken from tasks' `log:` text.
   - First-time entries pop up (`S.storyQ`).

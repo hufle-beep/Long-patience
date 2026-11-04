@@ -1,5 +1,50 @@
 # Selene: Tidelocked: Act II design (updated 2026-11-04, names as of build "the Hearth Tree")
 
+## APPROVED, NOT BUILT YET: meteor shower redesign (owner, 2026-11-04 23:37)
+Build in three stages, each tested and pushed on its own (HARD RULE: confirm the exact changes of each stage before building).
+
+**Lore**
+- K-7 is woken because a **meteor shower** damaged Selene a quarter of the way to Tessaly.
+- WARDEN has sealed the Ember Crown behind a **ward-lock** (safety lock): the injury is serious, and kindling the Hearth Tree, even for a partial burn, would destroy the ship. The Ember Crown's crossing/finale shows "Sealed by WARDEN's ward-lock" until the hull is mended.
+
+**Timeline: 480-year voyage**
+- Meteor shower at **year 120**, a quarter of the way. All of Act I happens within days.
+- Turnover (midpoint flip) at **year 240**.
+- Boarders about **2-3 years before arrival**, years ~477-478.
+- Arrival at **year 480**.
+- Fix the Heartwood log "61 years behind schedule" to fit this, for example "120 years out; the shower knocked her off her current".
+- Add a voyage clock: each section header shows the year and the share of the way. The Act screens and a new FAQ entry "Selene's voyage" give the timeline.
+
+**Stage 1: new Act I section, position P1 (right after power)**
+- New order: Seedling Vaults -> Taproot Galleries -> **The Shattered Bark** (subtitle "Hull · the meteor wounds") -> The Heartwood -> Canopy Gardens -> Ember Crown.
+- Content:
+  - **2x2 interlocking steps before the crossing:** Map the meteor breaches -> Seal the smaller breaches with resin; Brace the split boughs -> Graft living bark over the great wound. Both pairs feed the crossing "Lift the ward-lock on the Hearth Tree's fire".
+  - **Other actions:** for example Survey the scars, Coax sap back into the scarred wood.
+  - **Drills (at least 2):** Pressure-seal drills on the outer bark; Grafting drills on dead boughs.
+  - **Energy:** charging station "Charge off the healing sap" and charger upgrade "Root a charger in the healing bark".
+  - **Deadwood job:** Strip the shattered bark.
+  - **Gear (at least 1):** Bark-mender's kit (work here faster); Resin pressure suit (energy, less hazard).
+  - **Archive record (at least 1):** "Hull integrity log" (for example hazard -10%), plus its own Stasis watch.
+- **New fifth legacy theme "Hardened grain", effect E2:** Act II wear builds slower, up to -40% at full. It has a five-part set (+ optional drill) in every Act I section, like the others, and is revealed on first reaching **The Mending** (Act II).
+- **Implementation notes:**
+  - Give new sections NEW internal ids (do not renumber 1-14: saves store progress by section id and task ids).
+  - Ordering through the section path (`pathOf`, `zBefore`/`zAfter`, `t.to`), not id arithmetic. Check every `z + 1`, `isA2(z)` (z >= 6), the five-entry `fin` arrays (hist, bestSec, bestAll), `firstAt`, run-total columns and log tables.
+  - Stasis watch ladder re-spread: still -10% across Act I and -50% in total.
+  - The energy cap stays at +100 for Act I.
+  - The new section is untuned: it joins the section-by-section retune. Seedling Vaults stays FROZEN.
+
+**Stage 2: Act II reordered**
+1. **The long watch:** The Long Current, The Drift, The Long Dark, **Turnover** (moves here: the flip is at the midpoint).
+2. **Boarders** (2-3 years before Tessaly, while braking): Bark Breach, Contested Boughs, The Hive Ship, **new: The Mending**. The Mending repairs the boarders' damage: lighter than the meteor shower (shorter, lower hazards). Its finale is **"Rekindle the Hearthfire"**.
+3. **Arrival:** The Tessaly System, Tessaly Orbit.
+
+Notes:
+- Re-assign legacy reveals, Stasis watches, parts/finales (`a2run.done`), energy-cap steps (+100 Boarders, +100 Long Watch) and danger ramps to the new order.
+- Saves already in Act II continue from their current section in the new order.
+
+**Stage 3: voyage clock and texts**
+- Section headers, Act screens, the FAQ entry "Selene's voyage", and log texts that mention the timeline.
+
 ## World and lore (2026-11-04)
 - The Root-Kin of Earth: a highly advanced techno-magical civilisation that grows its technology from specialised, magically hardened trees. Tools, cities, vehicles and ships are organic. No nation states, local cultures preserved; one World Government for thousands of years, a democracy with slight meritocratic elements.
 - **Selene** (she/her, never "the Selene"), named for the Greek Moon goddess: a colony ship of living wood, shaped like a long, swept hull with crescent wings (the White Star from Babylon 5 is the shape reference; never named in the game). At her heart grows the **Hearth Tree**: her drive, her mind (WARDEN) and her hydroponic garden at once, so all of Act I happens in and around it.

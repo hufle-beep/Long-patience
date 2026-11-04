@@ -2,7 +2,8 @@
 
 Every commit, newest first (from git history; Android build numbers are GitHub Actions run numbers). Generated before each push.
 
-- 2026-11-04 22:55 · Fix: Sprout button on the death screen (broken by the reskin); page no longer scrolls behind pop-ups; sanity check taps pop-up buttons; roadmap order of work
+- 2026-11-04 23:40 · Archive hides unrecovered records (counts kept); Longest life in in-game time; last drive wording fixed; meteor shower redesign approved and written down
+- 2026-11-04 22:52 · `2dd542f` · Fix: the death screen's Sprout button works again (its marker was renamed by the reskin); page locked behind pop-ups; sanity check taps pop-up buttons; roadmap order of work
 - 2026-11-04 22:32 · `443fcae` · FAQ unfolds as the game does (unlocks kept on the device); Reset in Settings: settings and unlocks, or everything, with export/restore of all saves; FAQ wording fixes; roadmap: chain names idea, no iOS app
 - 2026-11-04 22:17 · `8c63e56` · Test version: every game speed open from the start (TEST_ALL_SPEEDS, off for the final version); docs updated
 - 2026-11-04 21:51 · `10c323a` · Restore points doc: commits before the workflow change can't carry tags
