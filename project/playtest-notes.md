@@ -54,25 +54,29 @@ Seedlings = seedlings that first reached the next section minus those that first
 | 3 | The Heartwood | 0.686 | 1.10 | 35 | 15 | 11% | 21 | |
 | 4 | Canopy Gardens | 0.606 | 1.15 | 60 | 30 | 14% | 10 | |
 | 5 | Ember Crown | 0.372 | 1.20 | 90 | 30 | 17% | 7 | |
-| 6 | Bark Breach | 0.677 | 2.12 | 25 | 10 | 20% | 3 | |
-| 7 | Contested Boughs | 0.877 | 2.18 | 25 | 10 | 23% | 12 | |
-| 8 | The Hive Ship | 0.877 | 2.24 | 30 | 10 | 26% | 17 | |
-| 9 | The Long Current | 0.593 | 2.30 | 25 | 10 | 29% | 4 | |
-| 10 | The Drift | 0.796 | 2.36 | 25 | 10 | 32% | 6 | |
-| 11 | The Long Dark | 0.796 | 2.42 | 30 | 10 | 35% | 8 | |
-| 12 | Turnover | 0.756 | 2.48 | 30 | 10 | 38% | 4 | |
-| 13 | The Tessaly System | 0.756 | 2.54 | 30 | 15 | 41% | 5 | |
-| 14 | Tessaly Orbit | 0.756 | 2.60 | 35 | 10 | 44% | 3 | |
+| 9 | The Long Current (long watch, first in Act II) | 0.593 | 2.12 | 25 | 10 | 20% | 3 | |
+| 10 | The Drift | 0.796 | 2.18 | 25 | 10 | 23% | 9 | |
+| 11 | The Long Dark | 0.796 | 2.24 | 30 | 10 | 26% | 13 | |
+| 12 | Turnover (ends the long watch) | 0.756 | 2.30 | 30 | 10 | 29% | 9 | |
+| 6 | Bark Breach (Boarders) | 0.677 | 2.36 | 25 | 10 | 32% | 2 | |
+| 7 | Contested Boughs | 0.877 | 2.42 | 25 | 10 | 35% | 5 | |
+| 8 | The Hive Ship | 0.877 | 2.48 | 30 | 10 | 38% | 6 | |
+| 16 | **The Mending** (new, ends the Boarders) | 1.0 | 2.51 | 30 | 10 | 39.5% | 1 | new, untuned |
+| 13 | The Tessaly System (Arrival) | 0.756 | 2.54 | 30 | 15 | 41% | 3 | |
+| 14 | Tessaly Orbit | 0.756 | 2.60 | 35 | 10 | 44% | 2 | |
 
 Lean bot totals:
-- Build "the Shattered Bark" (2026-11-05, current): Act I **5.70 h, 79 seedlings** (Seedling Vaults 4, Taproot 23, Shattered Bark 21, Heartwood 16, Canopy 8, Ember Crown 6); Act II 7.72 h (Boarders 3.49, Long Watch 2.46, Arrival 1.78), 53 deaths. Completionist: Seedling Vaults 10 (unchanged), Taproot 16, Shattered Bark 14. With Hardened grain forced on (revealed at Contested Boughs, test only): level 2.47, wear x0.67, Act II 8.20 h (its sets add Act I work).
+- Build "Act II reordered" (2026-11-05, current): Act I 5.70 h, 79 seedlings (unchanged); Act II **8.69 h** (long watch 4.89, Boarders 2.41, Arrival 1.39), 53 deaths (unchanged). The long watch now comes first, before any Act II part is finished (each finished part lowers the Act II familiarity threshold) and with Storage optimization and Dampening revealed early, so it takes most of the time; Boarders and Arrival got faster.
+- Build "the Shattered Bark" (2026-11-05): Act I **5.70 h, 79 seedlings** (Seedling Vaults 4, Taproot 23, Shattered Bark 21, Heartwood 16, Canopy 8, Ember Crown 6); Act II 7.72 h (Boarders 3.49, Long Watch 2.46, Arrival 1.78), 53 deaths. Completionist: Seedling Vaults 10 (unchanged), Taproot 16, Shattered Bark 14. With Hardened grain forced on (revealed at Contested Boughs, test only): level 2.47, wear x0.67, Act II 8.20 h (its sets add Act I work).
 - Build "cleanup": Act I 4.71 h in-game, 66 seedlings; Act II 7.84 h, 62 seedlings.
 - Build "stasis tuning": Act I 4.50 h, 63 seedlings; Act II 7.00 h (Boarders 3.12, Long Watch 2.01, Arrival 1.87), 44 deaths.
 - Build "Act II danger +18%" and "the Hearth Tree": Act I 4.50 h; Act II 7.45 h (Boarders 3.38, Long Watch 2.22, Arrival 1.85), 55 deaths. Trial levels: +5% 7.22 h / 48, +12% 7.29 h / 52, +24% 7.61 h / 59, +30% 7.74 h / 62.
 
 Global: DRAIN_X 3.2, RESERVE_K 0.15 (Act II x0.5), energy bar 100 base, +100 Act I (Resin pressure suit +10, Tessaly's promise now +10), +100 Boarders, +100 Long Watch, +100 legacy (cap 500). No fault, no patches. No away time: the game stops when hidden.
 
-**Stasis watch ladder** (records Stasis watch I-XV, one per section in route order, each makes energy drain slower): 1, 1.5, 1.5 (Shattered Bark), 2, 2, 2 % (Act I, total -10%; was 1, 1.5, 2, 2.5, 3 before the Shattered Bark) | 3, 3.5, 4, 4, 4.5, 4.5, 5, 5.5, 6 % (Act II) = **-50% total**. Replaced the old +8 h of time away.
+Act II progression values (danger, crossing cost, wear, charger and workshop tiers, Stasis watches) follow the route since build "Act II reordered": wear 0.4, 0.5, 0.6, 0.9 (long watch), 1.0, 1.1, 1.3, 1.0 (Boarders, The Mending), 1.1, 1.2 (Arrival); workshop tiers 1.15 to 2.50; charger tiers 2.55 to 3.55.
+
+**Stasis watch ladder** (records Stasis watch I-XVI, one per section in route order, each makes energy drain slower): 1, 1.5, 1.5 (Shattered Bark), 2, 2, 2 % (Act I, total -10%; was 1, 1.5, 2, 2.5, 3 before the Shattered Bark) | 3, 3, 3.5, 3.5 (long watch), 4, 4, 4.5, 4.5 (Boarders, The Mending), 5, 5 (Arrival) % (Act II, route order; Stasis watch VII-XVI) = **-50% total**. Replaced the old +8 h of time away.
 
 ### Seedling Vaults tuning log
 - Build "energy cap 500": completionist needed **29 seedlings** (each drill session about 30 s in-game after the 6.5x stretch); lean bot 10.

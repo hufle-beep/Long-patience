@@ -1,6 +1,6 @@
 # Selene: Tidelocked: Act II design (updated 2026-11-04, names as of build "the Hearth Tree")
 
-## APPROVED: meteor shower redesign (owner, 2026-11-04 23:37). Stage 1 BUILT 2026-11-05 (build "the Shattered Bark"); Stages 2 and 3 not built yet
+## APPROVED: meteor shower redesign (owner, 2026-11-04 23:37). Stage 1 BUILT 2026-11-05 (build "the Shattered Bark"); Stage 2 BUILT 2026-11-05 (build "Act II reordered"); Stage 3 not built yet
 Build in three stages, each tested and pushed on its own (HARD RULE: confirm the exact changes of each stage before building).
 
 **Lore**
@@ -36,7 +36,10 @@ Build in three stages, each tested and pushed on its own (HARD RULE: confirm the
   - The energy cap stays at +100 for Act I.
   - The new section is untuned: it joins the section-by-section retune. Seedling Vaults stays FROZEN.
 
-**Stage 2: Act II reordered**
+**Stage 2: Act II reordered: BUILT** (owner's picks 2026-11-05: progression values re-assigned by route position with The Mending slotted in, Arrival's end unchanged; story text the new order breaks fixed now, years wait for Stage 3)
+- As built: route 9, 10, 11, 12, 6, 7, 8, 16, 13, 14 (`ACT2R`). Kindling leads into The Long Current; Reach the turnover point is a crossing into Turnover; Drop out of relativistic speed is the long-watch finale (part B) into Bark Breach; Cut the hive loose is a crossing into The Mending; Rekindle the Hearthfire is the Boarders finale (part A) into the Tessaly System; Establish a safe orbit stays part C. Runs stop at 5, 12, 16, 14.
+- The Mending (id 16): tally, cutscars, clearhusks, resapline, groveheal, emberbed, mendcharger (3.40), ws16, finale rekindle (650); drills menddrill, emberdrill; jobs mendsap (cells 0.19), husktrim (grafts 0.19); gear mendframe (260, The Mending 30% faster); records hearthlog (Act II wear -10%), watch16 (Stasis watch XIV, 4.5%). About 2,620 units, length factor 1.0, danger 2.51, crossing 39.5%, wear 1.0.
+- Legacy reveals by route position: Storage optimization at The Drift, Dampening at Turnover, Echo at Contested Boughs, Hardened grain at The Mending, Overclock at the Tessaly System. Revealed themes are kept in the save (`a2run.lrev`); saves keep what the old rule revealed.
 1. **The long watch:** The Long Current, The Drift, The Long Dark, **Turnover** (moves here: the flip is at the midpoint).
 2. **Boarders** (2-3 years before Tessaly, while braking): Bark Breach, Contested Boughs, The Hive Ship, **new: The Mending**. The Mending repairs the boarders' damage: lighter than the meteor shower (shorter, lower hazards). Its finale is **"Rekindle the Hearthfire"**.
 3. **Arrival:** The Tessaly System, Tessaly Orbit.
@@ -58,11 +61,11 @@ Notes:
 
 ## Flow
 - Act I = 6 sections (Seedling Vaults, Taproot Galleries, The Shattered Bark, The Heartwood, Canopy Gardens, Ember Crown). Kindling the Hearth Tree ends Act I; there is no restarting. Every seedling that kindles it carries on into Act II.
-- Act II is linear, three parts, nine sections:
-  1. The boarders: Bark Breach, Contested Boughs, The Hive Ship (finale: Cut the hive loose).
-  2. The long watch: The Long Current, The Drift, The Long Dark (finale: Reach the turnover point).
-  3. Arrival: Turnover (restore the artificial gravity, raise the ward-shields, plot the turnover, flip Selene end over end, bank and relight the Hearthfire, plot the approach, begin the braking burn), The Tessaly System (scan the gas giant, its moons, the asteroid belt, a comet tail, the radiation belt, the inner worlds; slingshot), Tessaly Orbit (orbit insertion, orbital survey, sweep debris; finale: Establish a safe orbit over Tessaly).
-- Pacing: see playtest-notes.md (current: Act I 4.50 h, Act II 7.45 h in-game, lean bot).
+- Act II is linear, three parts, ten sections (from build "Act II reordered"):
+  1. The long watch: The Long Current, The Drift, The Long Dark, Turnover (restore the artificial gravity, raise the ward-shields, plot the turnover, flip Selene end over end, bank and relight the Hearthfire, plot the approach, begin the braking burn; finale: Drop out of relativistic speed).
+  2. The Boarders (while Selene brakes): Bark Breach, Contested Boughs, The Hive Ship, The Mending (finale: Rekindle the Hearthfire).
+  3. Arrival: The Tessaly System (scan the gas giant, its moons, the asteroid belt, a comet tail, the radiation belt, the inner worlds; slingshot), Tessaly Orbit (orbit insertion, orbital survey, sweep debris; finale: Establish a safe orbit over Tessaly).
+- Pacing: see playtest-notes.md (current: Act I 5.70 h, Act II 8.69 h in-game, lean bot).
 
 ## Difficulty
 - Danger ramp (drain and hazards): x1.0 in the Seedling Vaults, +5% per Act I section (the Shattered Bark slotted in at x1.075); Act II x2.12 (Bark Breach) up to x2.60 (Tessaly Orbit) after the +18% retune.
@@ -77,7 +80,7 @@ Notes:
 
 ## Legacy tasks (replace the old Act I reward points)
 - Five themes, each with a set in every Act I section: Echo (Act I familiarity), Dampening (drain), Storage optimization (max energy), Overclock (game speed), Hardened grain (Act II wear, revealed at The Mending from Stage 2).
-- Themes are revealed as Act II sections are first reached.
+- Themes are revealed as Act II sections are first reached (route positions 2, 4, 6, 8, 9) and stay revealed.
 - Each set = five actions: two pairs (A1 -> A2, B1 -> B2), then a final that needs A2 and B2. Only the final gives the bonus. A1, B1 need the section's last regular action. LEGACY_LEN 0.6.
 - Mandatory: once a theme is revealed, its finals are required for the section's crossing (and for kindling the Hearth Tree). Unrevealed themes don't block.
 - Not auto-queued: a toast when parts first open in a life, and a dot on the Tasks tab. Once automated they join chains and section runs.

@@ -1,12 +1,12 @@
 # Handover: Selene: Tidelocked
 
-Last updated: 2026-11-05 00:20 (build "the Shattered Bark"). Meteor shower Stage 1 is built; next: Stage 2 (Act II reordered, The Mending) when the owner confirms its exact changes (design.md, roadmap.md). Update this file in every push.
+Last updated: 2026-11-05 00:45 (build "Act II reordered"). Meteor shower Stages 1 and 2 are built; next: Stage 3 (voyage clock and texts) when the owner confirms its exact changes, and the section retune (design.md, roadmap.md). Update this file in every push.
 
 ## 1. What the game is
 An incremental "clone-loop" game in one HTML file (like Increlution/Incremortal). You are K-7, a **seedling** (disposable drone of WARDEN and the Hearth Tree) aboard **Selene**, a living-wood colony ship of the Root-Kin of Earth. Each seedling works tasks until its energy runs out; familiarity, records and automation carry over to the next one.
 
 - **Act I** (six sections, all inside the Hearth Tree; route by section id 1, 2, 15, 3, 4, 5): Seedling Vaults -> Taproot Galleries (power) -> **The Shattered Bark** (id 15: the hull, the meteor wounds) -> The Heartwood (navigation, WARDEN's mind) -> Canopy Gardens (food) -> Ember Crown (propulsion). Ends with "Kindle the Hearth Tree", which WARDEN's ward-lock seals until the same seedling has done "Lift the ward-lock on the Hearth Tree's fire" (the Shattered Bark crossing).
-- **Act II** (sections 6-14, linear): Boarders (Bark Breach, Contested Boughs, The Hive Ship), The long watch (The Long Current, The Drift, The Long Dark), Arrival (Turnover, The Tessaly System, Tessaly Orbit).
+- **Act II** (linear, route `ACT2R` = 9, 10, 11, 12, 6, 7, 8, 16, 13, 14): The long watch (The Long Current, The Drift, The Long Dark, Turnover; finale Drop out of relativistic speed = part B), Boarders (Bark Breach, Contested Boughs, The Hive Ship, **The Mending** id 16; finale Rekindle the Hearthfire = part A), Arrival (The Tessaly System, Tessaly Orbit; finale Establish a safe orbit = part C).
 - **Act III**: parked (see design.md).
 
 Play: https://hufle-beep.github.io/Long-patience/ · Android APK: release `android-latest`, file `LongPatience.apk`.
@@ -37,10 +37,10 @@ Play: https://hufle-beep.github.io/Long-patience/ · Android APK: release `andro
   - `danger(z)` comes from `DANGER`.
   - `vitDiv` is the death award ("efficiency patch from run and memory analysis"): it grows with `S.vit`.
   - Stasis is the sum of the Stasis watch records: -10% across Act I, -50% in total.
-  - Max energy: 100 base, +100 from Act I records/gear, +100 Boarders, +100 Long Watch, +100 legacy Storage optimization (cap 500).
+  - Max energy: 100 base, +100 from Act I records/gear, +100 Long Watch, +100 Boarders, +100 legacy Storage optimization (cap 500).
 - **Sections and the route (from build "the Shattered Bark"):**
   - Section ids never change (saves store progress by them); new sections get new ids (the Shattered Bark is 15, The Mending will be 16).
-  - Order comes from the route, never from id arithmetic: `ACT1 = [1, 2, 15, 3, 4, 5]`, `ROUTE` (Act I then 6-14), `pathOf()`, `nextZone(z)`, `zBefore`/`zAfter`, `act1No(z)` (Act I position 1-6). `ZN(id)` looks a zone up by id (`ZBY`); `isA2(z)` reads the zone's `act`.
+  - Order comes from the route, never from id arithmetic: `ACT1 = [1, 2, 15, 3, 4, 5]`, `ACT2R = [9, 10, 11, 12, 6, 7, 8, 16, 13, 14]`, `ROUTE` (both), `ACT_ENDS` (runs stop there: 5, 12, 16, 14), `pathOf()`, `nextZone(z)`, `zBefore`/`zAfter`, `act1No(z)` (Act I position 1-6). `ZN(id)` looks a zone up by id (`ZBY`); `isA2(z)` reads the zone's `act`.
   - Crossings take `t.to` or `nextZone(t.z)`; gear opened by a crossing belongs to the section it leads into (`gearZone`).
   - Seedling tables: `fin` arrays (hist, `bestSec`, `bestAll`) have one entry per Act I route position, each the time the next section (or the kindling) was reached; hist `sec` is the Act I position, 7 = kindled. Saves from before the Shattered Bark are migrated once (`S.hullv`): an empty 'reached the Shattered Bark' entry is inserted at position 2 and positions 3+ move up one.
 - **Sap cells and stations:**
@@ -52,7 +52,7 @@ Play: https://hufle-beep.github.io/Long-patience/ · Android APK: release `andro
 - **Deadwood and grafts:**
   - Stored in `L.salvage`. `salW(z)` gives the display word: "deadwood" in Act I, "grafts" in Act II.
   - Gear (`ITEMS`) is built from it, with assembly tasks `b:<id>` (`BT`).
-  - Act II wear (`WEAR_RATE`) adds drain. Repairs cost grafts. There are workshops ws6-ws14.
+  - Act II wear (`WEAR_RATE`, by route: least early in the long watch, most in Arrival) adds drain. Repairs cost grafts. There are workshops ws6-ws14 and ws16; their tiers (`REPAIR_UP`) and the charger tiers (`MEAL_UP`) rise in route order.
 - **Familiarity (Mastery tab):**
   - Stored in `S.fam[id]`. Speed is 1 + 9 x min(1, fam/famNeed) (`MASTER_MIN 0.1`).
   - Drills (`kind:'train'`, `TRAIN_CAP 4`) spread familiarity across a section.
@@ -65,7 +65,7 @@ Play: https://hufle-beep.github.io/Long-patience/ · Android APK: release `andro
 - **Records (Archive):**
   - `PERKS`, permanent, found the first time certain actions are finished.
   - Stasis watch I-XV, one per section end, numbered in route order (record ids watch1-watch15 kept; watch15 is the Shattered Bark, shown as III).
-  - Legacy themes (Echo, Dampening, Storage optimization, Overclock, Hardened grain): five-part sets in every Act I section (six sections, so six finals per theme; `ngpLv` divides by the number of finals), revealed by Act II progress (`LEGACY_REVEAL`; Hardened grain at id 16, The Mending, which arrives in Stage 2, so it stays hidden for now) and needed for crossings once revealed (`legacy`, `lset`, `lfin`, `LEGACY_LEN 0.6`, `NGP_MAX 3`). Hardened grain: `wearAt(level)` multiplies `wearRate`, x0.6 at full.
+  - Legacy themes (Echo, Dampening, Storage optimization, Overclock, Hardened grain): five-part sets in every Act I section (six sections, so six finals per theme; `ngpLv` divides by the number of finals), revealed by Act II progress (`LEGACY_REVEAL`; by route position: Storage optimization at The Drift, Dampening at Turnover, Echo at Contested Boughs, Hardened grain at The Mending, Overclock at the Tessaly System; revealed themes are kept in `S.a2run.lrev`, and saves keep what the old rule had revealed) and needed for crossings once revealed (`legacy`, `lset`, `lfin`, `LEGACY_LEN 0.6`, `NGP_MAX 3`). Hardened grain: `wearAt(level)` multiplies `wearRate`, x0.6 at full.
 - **Archive:** only recovered records are listed (`hasPerk`); the counts (x of y, per section x/y) still show how many exist.
 - **Log:**
   - `S.log` holds the story entries, taken from tasks' `log:` text.
@@ -86,7 +86,7 @@ Play: https://hufle-beep.github.io/Long-patience/ · Android APK: release `andro
 - **Fonts:** Saira Condensed, IBM Plex Sans and IBM Plex Mono from Google Fonts. The cloud workspace cannot load them, so its screenshots use fallback fonts.
 
 ## 4. Balance state (details in playtest-notes.md)
-- Lean bot (build "the Shattered Bark"): Act I 5.70 h in-game, 79 seedlings (Shattered Bark 21 of them, untuned); Act II 7.72 h (Boarders 3.49, Long Watch 2.46, Arrival 1.78), 53 deaths. Before the new section: Act I 4.50 h / 63, Act II 7.45 h.
+- Lean bot (build "Act II reordered"): Act I 5.70 h in-game, 79 seedlings (Shattered Bark 21 of them, untuned); Act II 8.69 h (long watch 4.89, Boarders 2.41, Arrival 1.39), 53 deaths. Build "the Shattered Bark" had Act II 7.72 h in the old order. Before the new section: Act I 4.50 h / 63, Act II 7.45 h.
 - Section 1 (Seedling Vaults) is **FROZEN**: completionist clears at seedling 10; the owner cleared it with 9.
 - Next: section 2 (Taproot Galleries) retune, from the owner's playtest save; then the Shattered Bark (completionist 14 seedlings now).
 
@@ -98,7 +98,7 @@ Set up in a fresh workspace:
 The tools:
 - `node sim11c.js`: lean Act I bot. It prints `TOTAL in-game h` and death causes.
 - `node simcomp2.js`: completionist bot. Look for the first seedling with `sec 2` to get the section 1 count. `UPTO=<section id> MAXG=<n>` runs further (for example `UPTO=3` stops when a seedling reaches the Heartwood; the route is 1, 2, 15, 3, 4, 5).
-- `node sim16c.js AB`: whole-game Act II bot. It prints Boarders / Long Watch / Arrival hours and death causes.
+- `node sim16c.js AB`: whole-game Act II bot. It prints long watch / Boarders / Arrival hours (route order) and death causes.
 - `STOPZ=7 STOPT=600 OUT=snap.json node simsnap.js AB`: writes a save snapshot once a section is reached (for screenshots). `STOPZ` is a section id compared by route order (15 = the Shattered Bark).
 - `python3 sanity.py`: the full sanity check. It checks:
   - duplicate or empty names;

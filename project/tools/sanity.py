@@ -2,7 +2,7 @@ import base64,gzip,json,re
 from playwright.sync_api import sync_playwright
 URL='file:///home/claude/long-patience/index.html'
 up=gzip.decompress(base64.b64decode(open('/home/claude/long-patience/saves/hufle2-2026-11-04-1241-clone10.txt').read()[5:].strip())).decode()
-snaps={'taproot(old keys)':up,'canopy(old build, ward-lock)':open('snap4old.json').read(),'contested':open('snap7.json').read(),'turnover':open('snap12.json').read()}
+snaps={'mending':open('snap16.json').read(),'taproot(old keys)':up,'canopy(old build, ward-lock)':open('snap4old.json').read(),'contested':open('snap7.json').read(),'turnover':open('snap12.json').read()}
 BAD=re.compile(r"\b(undefined|NaN|null|[Cc]lones?|[Ss]alvage|[Dd]ecant\w*|Vat Bay|Hydroponics|Engineering Spine|Command Deck|Main Drive|reactor|stardrive|the The|pod bay|power bus|wall panels|main drive|drive is lit|lights it|section.s rest|[Dd]rive ignited|[Ll]it the main drive|drive is lit|drive is first lit)\b")
 errs=[]; problems=[]
 with sync_playwright() as p:
@@ -21,6 +21,8 @@ with sync_playwright() as p:
         pg.goto(URL); pg.wait_for_timeout(1000)
         if name=='fresh': pg.click('text=Begin the work cycle')
         pg.evaluate("()=>{ hideModal(); S.intro=true; logTables=true; S.set.deathScreen=false; S.set.deathPause=false; S.set.paused=false; paused=false; setSpeed && setSpeed(5); }") if False else pg.evaluate("()=>{ hideModal(); S.intro=true; logTables=true; S.set.deathScreen=false; S.set.paused=false; paused=false; }")
+        if name in ('contested','turnover'):   # built before the Act II reorder: themes revealed by the old rule stay revealed
+            print('act II:', name, pg.evaluate("()=>({sec:S.life.sec, lrev:Object.keys(S.a2run.lrev||{}).sort().join(','), done:Object.keys(S.a2run.done||{}).join(',')})"))
         if 'ward-lock' in name:   # a seedling from before the Shattered Bark, already past the Taproot: sealed out of the kindling; tables moved to six Act I columns
             print('ward-lock:', pg.evaluate("()=>({sec:S.life.sec, sealed:!reqMet('wardlift') && T.ignite.req.includes('wardlift'), finCols:(S.hist||[]).every(e=>!e.fin||e.fin.length===6), bestSec:(S.bestSec||[]).length, best:S.best&&S.best.sec, hullv:S.hullv})"))
         g0=pg.evaluate('S.gen'); d0=pg.evaluate('S.stats.daysLived+S.life.day')
