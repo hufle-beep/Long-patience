@@ -73,6 +73,12 @@ jobs:
           gh release upload android-latest "$RUNNER_TEMP/LongPatience-next.apk" --clobber
           REPO="${GITHUB_REPOSITORY}"
           ids() { gh api "repos/$REPO/releases/tags/android-latest" --jq ".assets[] | select(.name==\"$1\") | .id"; }
-          for id in $(ids LongPatience.apk); do gh api -X DELETE "repos/$REPO/releases/assets/$id"; done
-          for id in $(ids LongPatience-next.apk); do gh api -X PATCH "repos/$REPO/releases/assets/$id" -f name=LongPatience.apk >/dev/null; done
+          # (retried: the API sometimes answers with an empty body; --silent stops gh from parsing it)
+          for try in 1 2 3; do
+            for id in $(ids LongPatience.apk); do gh api -X DELETE "repos/$REPO/releases/assets/$id" --silent || true; done
+            for id in $(ids LongPatience-next.apk); do gh api -X PATCH "repos/$REPO/releases/assets/$id" -f name=LongPatience.apk --silent || true; done
+            [ -n "$(ids LongPatience.apk)" ] && [ -z "$(ids LongPatience-next.apk)" ] && break
+            sleep 5
+          done
+          [ -n "$(ids LongPatience.apk)" ] || { echo "LongPatience.apk missing after swap"; exit 1; }
           gh release edit android-latest --title "$TITLE" --notes "$NOTES"
