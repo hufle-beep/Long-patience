@@ -5,7 +5,7 @@
 ## Game versions (git tags)
 | Tag | Commit | What it is |
 |---|---|---|
-| `restore/2026-11-04-project-docs` | (the commit that added this file) | Project docs and tools in the repo, backup builds in the workflow; game same as "cleanup" |
+| `restore/2026-11-04-project-docs` | `05e5518` | Project docs and tools in the repo, backup builds in the workflow; game same as "cleanup" |
 | `restore/2026-11-04-cleanup` | `4b28cfd` | Code cleanup: patch tasks, fault, boost/NG+ leftovers removed; comments and README |
 | `restore/2026-11-04-hearth-tree` | `92183c1` | Hearth Tree reskin, lore, palette, new Act I order, Act II names |
 | `restore/2026-11-04-rename-selene` | `e0187fb` | Renamed to Selene: Tidelocked; storage keys moved to `selene.*` |
