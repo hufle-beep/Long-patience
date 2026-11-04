@@ -1,6 +1,6 @@
 # Selene: Tidelocked: Act II design (updated 2026-11-04, names as of build "the Hearth Tree")
 
-## APPROVED: meteor shower redesign (owner, 2026-11-04 23:37). Stage 1 BUILT 2026-11-05 (build "the Shattered Bark"); Stage 2 BUILT 2026-11-05 (build "Act II reordered"); Stage 3 not built yet
+## APPROVED: meteor shower redesign (owner, 2026-11-04 23:37). Stage 1 BUILT 2026-11-05 (build "the Shattered Bark"); Stage 2 BUILT 2026-11-05 (build "Act II reordered"); Stage 3 BUILT 2026-11-05 (build "voyage clock")
 Build in three stages, each tested and pushed on its own (HARD RULE: confirm the exact changes of each stage before building).
 
 **Lore**
@@ -48,7 +48,9 @@ Notes:
 - Re-assign legacy reveals, Stasis watches, parts/finales (`a2run.done`), energy-cap steps (+100 Boarders, +100 Long Watch) and danger ramps to the new order.
 - Saves already in Act II continue from their current section in the new order.
 
-**Stage 3: voyage clock and texts**
+**Stage 3: voyage clock and texts: BUILT** (owner's picks 2026-11-05: clock A, fixed year per section; FAQ entry gated to Act II)
+- As built: `yr` on every zone, `VOYAGE = 480`, `voyTxt(z)` = "Year N · P% of the voyage" (P = round(N/480 x 100)), shown as a second header line on the Tasks and Auto tabs (not in the top bar). Years: Act I all 120 (25%); The Long Current 120, The Drift 160 (33%), The Long Dark 200 (42%), Turnover 240 (50%); Bark Breach 477 (99%), Contested Boughs 477, The Hive Ship 478 (100%), The Mending 478; The Tessaly System 479, Tessaly Orbit 480. The 240 -> 477 jump happens in Turnover's finale (Drop out of relativistic speed).
+- Texts: Heartwood log "Its chronometer rings count 120 years out; the meteor shower knocked her off her current."; intro line "Year 120 of a 480-year voyage..."; kindling screen gives the 360 more years (turnover 240, Tessaly 480); halfway log "Ahead, Tessaly's sun, still only a bright star."; Flip Selene "For the first time in 240 years"; Drop out of relativistic speed opens "Two hundred and thirty-seven years of braking later"; FAQ "Selene's voyage" (gate `a2`); FAQ "Act II" now says ten more sections.
 - Section headers, Act screens, the FAQ entry "Selene's voyage", and log texts that mention the timeline.
 
 ## World and lore (2026-11-04)

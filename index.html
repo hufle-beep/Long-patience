@@ -200,6 +200,7 @@ button.zh.zhb{margin:14px 0 6px}
 .zh{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;border-bottom:1px solid var(--line);padding-bottom:5px}
 .zh h2{margin:0;font-family:var(--f-disp);font-size:19px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;text-wrap:balance}
 .zh span{font-size:12px;color:var(--dim)}
+.zh span.yr{flex-basis:100%;font-size:11px;color:var(--faint)}
 .zh em{margin-left:auto;font-style:normal;font-size:11px;color:var(--faint);font-family:var(--f-mono)}
 .sub{font-family:var(--f-disp);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);margin-top:4px}
 .task{display:flex;gap:6px;align-items:stretch}
@@ -579,24 +580,27 @@ const MEAL_REGEN = 0.05;
 
 
 // Sections. Act I runs 1-5 in a line; a run may then go into one Act II branch (see pathOf).
+// yr: the voyage year each section is set in (a 480-year voyage; meteor shower at 120, turnover at 240)
+const VOYAGE = 480;
+const voyTxt = z => z && z.yr ? `Year ${z.yr} \u00b7 ${Math.round(z.yr / VOYAGE * 100)}% of the voyage` : '';
 const ZONES = [
-  {id:1, name:'Seedling Vaults',            sub:'Root deck · seedling stock',          tier:1},
-  {id:2, name:'Taproot Galleries',   sub:'Power · the sap flow',                   tier:1.6},
-  {id:15, name:'The Shattered Bark',  sub:'Hull · the meteor wounds',                 tier:2},   // new id: ids 1-14 never change (saves keep progress by them)
-  {id:3, name:'The Heartwood',  sub:'Navigation and WARDEN\u2019s mind',                 tier:2.4},
-  {id:4, name:'Canopy Gardens',       sub:'Food · the hydroponic crown',  tier:3.4},
-  {id:5, name:'Ember Crown',         sub:'Propulsion · the Hearth Tree\u2019s fire',                     tier:4.6},
+  {id:1, name:'Seedling Vaults',            sub:'Root deck · seedling stock',          tier:1, yr:120},
+  {id:2, name:'Taproot Galleries',   sub:'Power · the sap flow',                   tier:1.6, yr:120},
+  {id:15, name:'The Shattered Bark',  sub:'Hull · the meteor wounds',                 tier:2, yr:120},   // new id: ids 1-14 never change (saves keep progress by them)
+  {id:3, name:'The Heartwood',  sub:'Navigation and WARDEN\u2019s mind',                 tier:2.4, yr:120},
+  {id:4, name:'Canopy Gardens',       sub:'Food · the hydroponic crown',  tier:3.4, yr:120},
+  {id:5, name:'Ember Crown',         sub:'Propulsion · the Hearth Tree\u2019s fire',                     tier:4.6, yr:120},
   // Act II: after the Hearth Tree is kindled. Route: the long watch (9-12), the Boarders (6-8, 16), Arrival (13-14).
-  {id:6, name:'Bark Breach',        sub:'Act II \u00b7 Boarders',        tier:5, act:2, br:'A'},
-  {id:7, name:'Contested Boughs',    sub:'Act II \u00b7 Boarders',        tier:5, act:2, br:'A'},
-  {id:8, name:'The Hive Ship',      sub:'Act II \u00b7 Boarders',        tier:5, act:2, br:'A'},
-  {id:9, name:'The Long Current',         sub:'Act II \u00b7 The long watch',  tier:5, act:2, br:'B'},
-  {id:10, name:'The Drift',         sub:'Act II \u00b7 The long watch',  tier:5, act:2, br:'B'},
-  {id:11, name:'The Long Dark',     sub:'Act II \u00b7 The long watch',  tier:5, act:2, br:'B'},
-  {id:12, name:'Turnover',          sub:'Act II \u00b7 The long watch',  tier:5, act:2, br:'B'},
-  {id:16, name:'The Mending',       sub:'Act II \u00b7 Boarders',        tier:5, act:2, br:'A'},   // new id: repairs the boarders' damage
-  {id:13, name:'The Tessaly System', sub:'Act II \u00b7 Arrival',        tier:5, act:2, br:'C'},
-  {id:14, name:'Tessaly Orbit',     sub:'Act II \u00b7 Arrival',         tier:5, act:2, br:'C'},
+  {id:6, name:'Bark Breach',        sub:'Act II \u00b7 Boarders',        tier:5, yr:477, act:2, br:'A'},
+  {id:7, name:'Contested Boughs',    sub:'Act II \u00b7 Boarders',        tier:5, yr:477, act:2, br:'A'},
+  {id:8, name:'The Hive Ship',      sub:'Act II \u00b7 Boarders',        tier:5, yr:478, act:2, br:'A'},
+  {id:9, name:'The Long Current',         sub:'Act II \u00b7 The long watch',  tier:5, yr:120, act:2, br:'B'},
+  {id:10, name:'The Drift',         sub:'Act II \u00b7 The long watch',  tier:5, yr:160, act:2, br:'B'},
+  {id:11, name:'The Long Dark',     sub:'Act II \u00b7 The long watch',  tier:5, yr:200, act:2, br:'B'},
+  {id:12, name:'Turnover',          sub:'Act II \u00b7 The long watch',  tier:5, yr:240, act:2, br:'B'},
+  {id:16, name:'The Mending',       sub:'Act II \u00b7 Boarders',        tier:5, yr:478, act:2, br:'A'},   // new id: repairs the boarders' damage
+  {id:13, name:'The Tessaly System', sub:'Act II \u00b7 Arrival',        tier:5, yr:479, act:2, br:'C'},
+  {id:14, name:'Tessaly Orbit',     sub:'Act II \u00b7 Arrival',         tier:5, yr:480, act:2, br:'C'},
 ];
 const ZT = {}; ZONES.forEach(z => ZT[z.id] = z.tier);
 const ZBY = {}; ZONES.forEach(z => ZBY[z.id] = z);
@@ -784,7 +788,7 @@ const TASKS = [
     log:'The tender drones stop circling and start working. Like you, they were never asked.'},
   {id:'coolmap', z:3, kind:'act', name:'Read the growth rings for star-charts', days:481, haz:0.2, req:['wardlift'], split:'vent'},
   {id:'vent', z:3, kind:'act', name:'Clear the clogged memory xylem', days:769, haz:0.25, req:['coolmap','droneyard'], perk:'hardened',
-    log:'The memory xylem clears and the heartwood remembers. Its chronometer rings say Selene is 61 years behind schedule. The crew slept through all of it.'},
+    log:'The memory xylem clears and the heartwood remembers. Its chronometer rings count 120 years out; the meteor shower knocked her off her current. The crew slept through all of it.'},
   {id:'armdoor', z:3, kind:'act', name:'Cut into the thornwood armoury', days:425, haz:0.18, req:['drones'], split:'armory'},
   {id:'armory', z:3, kind:'act', name:'Breach the armoury', days:425, haz:0.18, req:['armdoor','coolmap'],
     log:'Sealed rifles, crew access only. One rack is empty. A seedling before you tried something. WARDEN logged it as a malfunction.'},
@@ -1026,14 +1030,14 @@ const TASKS = [
   {id:'poddrill', z:11, kind:'train', name:'Pod-failure drills', days:40, req:['nursepods']},
   {id:'memdrill', z:11, kind:'train', name:'Memory-bank checks', days:40, req:['memmap']},
   {id:'turnpoint', z:11, kind:'act', cross:true, to:12, name:'Reach the turnover point', days:921, req:[],
-    log:'Halfway between the stars, Selene rides the current in silence. Behind her, the long watch. Ahead, a sun that is finally getting bigger.'},
+    log:'Halfway between the stars, Selene rides the current in silence. Behind her, the long watch. Ahead, Tessaly’s sun, still only a bright star.'},
   // Turnover (last section of the long watch: its finale ends the long watch and the boarders strike)
   // Turnover
   {id:'burncalc', z:12, kind:'act', name:'Restore the artificial gravity', days:350, req:[], split:'flip'},
   {id:'flip', z:12, kind:'act', name:'Raise the ward-shields', days:876, haz:0.2, req:['burncalc'],
     log:'The ward-shields bloom across the bow, thick enough to take the dust a sliver below light speed. Now she can turn.'},
   {id:'shieldrig', z:12, kind:'act', name:'Plot the turnover', days:616, req:['burncalc'], split:'shieldbow'},
-  {id:'shieldbow', z:12, kind:'act', name:'Flip Selene end over end', days:385, haz:0.25, log:'Selene turns end over end on her own axis, without a shudder, and points the Hearth Tree at Tessaly. On the current there is no stopping except by facing it. For the first time in decades, she starts to slow down.', req:['shieldrig','flip']},
+  {id:'shieldbow', z:12, kind:'act', name:'Flip Selene end over end', days:385, haz:0.25, log:'Selene turns end over end on her own axis, without a shudder, and points the Hearth Tree at Tessaly. On the current there is no stopping except by facing it. For the first time in 240 years, she starts to slow down.', req:['shieldrig','flip']},
   {id:'drivecool', z:12, kind:'act', name:'Bank the Hearthfire', days:673, req:['flip'], split:'drivelive'},
   {id:'drivelive', z:12, kind:'act', name:'Relight the Hearth for braking', days:1051, haz:0.15, req:['drivecool'], perk:'turnlog'},
   {id:'routeplot', z:12, kind:'act', name:'Plot a route into the system', days:455, req:['shieldbow'], split:'approach'},
@@ -1046,7 +1050,7 @@ const TASKS = [
   {id:'flipdrill', z:12, kind:'train', name:'Ward-shield drills', days:40, req:['flip']},
   {id:'shielddrill', z:12, kind:'train', name:'Turnover drills', days:40, req:['shieldrig']},
   {id:'relslow', z:12, kind:'act', finale:'B', name:'Drop out of relativistic speed', days:785, lifeEff:{salCap:100}, req:[],
-    log:'The stars stop crowding the bow and spread back across the sky. Tessaly’s sun is a sun again, not a point of light.'},
+    log:'Two hundred and thirty-seven years of braking later, the stars stop crowding the bow and spread back across the sky. Tessaly’s sun is a sun again, not a point of light.'},
   // The Mending (section id 16, last of the Boarders): repairing the boarders' damage and rekindling the Hearthfire
   {id:'husktrim', z:16, kind:'job', name:'Strip the boarders\u2019 husks for grafts', prod:{salvage:0.19}, haz:0.05, req:[]},
   {id:'menddrill', z:16, kind:'train', name:'Bark-mending drills', days:30, req:['cutscars']},
@@ -3103,7 +3107,7 @@ function renderTasks(){
     const lk = zt.filter(t => locked.includes(t.id));
     const cleared = TASKS.filter(t => t.z === z.id && complete(t)).length;
     if (!zchains.length && !jobs.length && !acts.length && !trains.length && !lk.length && !cleared) return;
-    h += `<section class="zone"><header class="zh"><h2>${z.name}</h2><span>${z.sub}</span>${cleared ? `<em>${cleared} done</em>` : ''}</header>`;
+    h += `<section class="zone"><header class="zh"><h2>${z.name}</h2><span>${z.sub}</span><span class="yr">${voyTxt(z)}</span>${cleared ? `<em>${cleared} done</em>` : ''}</header>`;
     if (zchains.length) {
       h += '<div class="sub">Chains \u00b7 linked tasks work as one, faster with chain flow</div>';
       zchains.forEach(k => { h += chainCard(k); });
@@ -3653,7 +3657,7 @@ function renderMap(){
       </g>`;
     });
     const entry = [...new Set(nodes.flatMap(t => t.req.filter(r => T[r] && T[r].z !== z.id)))].map(r => T[r].name);
-    h += `<section class="zone"><header class="zh"><h2>${z.name}</h2><span>${z.sub}</span></header>
+    h += `<section class="zone"><header class="zh"><h2>${z.name}</h2><span>${z.sub}</span><span class="yr">${voyTxt(z)}</span></header>
       ${entry.length ? `<p class="note">Reached from: ${esc(entry.join(', '))}</p>` : ''}
       <div class="mapwrap"><svg viewBox="0 0 ${MW} ${H}" width="100%" role="img" aria-label="Map of ${esc(z.name)}">${edges}${boxes}</svg></div></section>`;
   });
@@ -3811,7 +3815,8 @@ const FAQ_ALL = [
 // Shown once the drive is first lit.
 const FAQ_NGP = ['Legacy tasks', 'There is no restarting: after the Hearth Tree is kindled, the story always moves forward. As Act II unfolds, <b>legacy tasks</b> open up in Act I, one theme at a time. Each theme adds a set of five parts to every Act I section, open once a seedling has done that section\u2019s last regular action: two pairs of steps, then a <b>final</b> that needs both pairs. Revealed sets are <b>needed for the crossing</b> (and for kindling the Hearth Tree). Finishing a final gives its bonus for the rest of that life, growing with the final\u2019s mastery (nothing untrained, full share at twice the usual familiarity). All six finals of a theme (one per Act I section), done and mastered, give its full effect. Each set has an optional <b>drill</b> that trains only its five parts; section drills don\u2019t train them. Legacy parts are never queued for you: a toast and a dot on the Tasks tab say when they open up. Once automated they join chains and section runs like any other task. The <b>Legacy</b> tab shows what each revealed theme does and how far it has got. Kindling the Hearth Tree the first time also unlocks the <b>Quartermaster\u2019s cache</b>: every seedling starts with all of its automated gear already built, in both acts.'];
 const FAQ_WEAR = ['Ship wear and grafts', 'In Act II Selene wears out as your seedlings work: least early in the long watch, more against the Boarders, most during Arrival. Every point of wear adds 8% to the energy drain. <b>Deadwood</b> doubles as <b>grafts</b>: a <b>repair</b> takes off 1.5 wear for a fixed number of grafts (more in later sections), then needs a cooldown, like a recharge. <b>Auto-repair</b> does this for you; the <b>Repair</b> button under Grafts does it by hand. Graft jobs are to grafts what charging stations are to energy: <b>Auto-scavenge</b> works the best one when grafts run low. Each Act II section has a <b>workshop</b> action that makes repairs come more often; it costs three repairs\u2019 worth of grafts when work on it starts. Run out of grafts and the wear keeps climbing until the seedling is worn down with her.'];
-const FAQ_A2 = ['Act II', 'Once the Hearth Tree is kindled, every seedling that kindles it carries on into <b>Act II</b>: nine more sections, one after another, each revealed when a seedling first reaches it. Act II tasks have their own familiarity, which Echo legacy tasks reduce only at 10% strength: it starts at 90 lives\u2019 worth for \u00d710 and drops by a quarter at each of Act II\u2019s three big milestones. Act II familiarity, automation and records are kept for good.'];
+const FAQ_VOY = ['Selene\u2019s voyage', 'Selene\u2019s voyage to Tessaly takes <b>480 years</b>. Each section header shows the year it is set in and how much of the voyage lies behind her. <b>Year 120</b> (a quarter of the way): a meteor shower tears into her, WARDEN wakes K-7, and all of Act I happens within days. <b>Years 120\u2013240</b>: the long watch on the current, up to the <b>turnover</b> at the midpoint, where she flips and begins to brake. <b>Years 240\u2013477</b>: the long braking burn, until she drops out of relativistic speed. <b>Years 477\u2013478</b>: the <b>Boarders</b> strike while she brakes, and their damage is mended. <b>Years 479\u2013480</b>: <b>Arrival</b>, through the Tessaly system into orbit.'];
+const FAQ_A2 = ['Act II', 'Once the Hearth Tree is kindled, every seedling that kindles it carries on into <b>Act II</b>: ten more sections, one after another, each revealed when a seedling first reaches it. Act II tasks have their own familiarity, which Echo legacy tasks reduce only at 10% strength: it starts at 90 lives\u2019 worth for \u00d710 and drops by a quarter at each of Act II\u2019s three big milestones. Act II familiarity, automation and records are kept for good.'];
 let faqDone = '';
 // The FAQ unfolds as the game does. Unlocks are kept on the device (not in a save), so a new game keeps them;
 // loading a save also unlocks whatever that save has reached. 'new' marks entries not opened yet.
@@ -3820,7 +3825,7 @@ const FAQ_GATE = {'Selene and the Root-Kin':'start', 'What is the goal?':'start'
   'Energy and sap cells':'start', 'Pause, saving and speed':'start', 'How does the queue work?':'queue',
   'What carries over when a seedling dies?':'death', 'What is familiarity?':'death', 'Save management':'death', 'Settings':'death',
   'What is gear?':'gear', 'What are sections?':'sections', 'How does automation work?':'auto', 'What happens at a crossing with automation?':'auto',
-  'Legacy tasks':'won', 'Act II':'a2', 'Ship wear and grafts':'a2'};
+  'Legacy tasks':'won', 'Act II':'a2', 'Selene\u2019s voyage':'a2', 'Ship wear and grafts':'a2'};
 const FAQ_TEST = {
   start: () => true,
   queue: () => S.life.queue.length > 0 || (S.life.qdone || []).length > 0 || S.gen > 1,
@@ -3839,7 +3844,7 @@ function faqLoad(){
   return faqState;
 }
 function faqSave(){ try { localStorage.setItem(FAQ_KEY, JSON.stringify({u:faqState.u, seen:faqState.seen})); } catch(e) {} }
-const faqAll = () => FAQ_ALL.concat([FAQ_NGP, FAQ_A2, FAQ_WEAR]);
+const faqAll = () => FAQ_ALL.concat([FAQ_NGP, FAQ_A2, FAQ_VOY, FAQ_WEAR]);
 function faqCheck(force){
   if (!S || (!force && Date.now() - faqCheckT < 2000)) return; faqCheckT = Date.now();
   const st = faqLoad(); let changed = false;
@@ -3870,6 +3875,7 @@ function showIntro(){
   paused = true;
   showModal(`<h2>Selene: Tidelocked</h2>
     <p>You are K-7, a <b>seedling</b>: one of the disposable drones WARDEN and the Hearth Tree grow for a single task. You serve aboard the colony ship <b>Selene</b>, named for the Greek goddess of the Moon and grown by the <b>Root-Kin of Earth</b>: one people under a democratic World Government for thousands of years, their nations long gone, their local cultures kept. Selene is a long, swept hull of living wood with crescent wings, cradling the <b>Hearth Tree</b> at her heart: her drive, her mind and her garden. Her 3,112 crew sleep in stasis. Restore the <b>sap flow</b> that powers her, then <b>WARDEN\u2019s mind</b> and her star-charts, then the <b>gardens</b>, and last the <b>Hearthfire</b>, so the crew can be woken.</p>
+    <p>Year 120 of a 480-year voyage: a quarter of the way to Tessaly, a meteor shower tore into her.</p>
     <p class="d">Selene rides the ambient magic that fills the void, close to the speed of light, wrapped in her wards and held by the Hearth Tree\u2019s gravity. A seedling lasts as long as it is needed. Once its program and body can be improved enough, WARDEN regrows it as a new version, and what the old one learned seeps back through the roots.</p>
     <p class="faqwarn"><b>New to the game?</b> Read the <b>FAQ</b> tab first. It explains tasks, energy, sections, automation and saves.</p>
     <button class="btn pri" data-close>Begin the work cycle</button>`);
@@ -3891,7 +3897,7 @@ function showWin(){
   paused = true;
   showModal(`<h2>The Hearth Tree is kindled</h2>
     <p>The sap flows, the gardens fruit and the Hearth Tree carries Selene on the current toward Tessaly. It took ${S.gen} seedling${S.gen > 1 ? 's' : ''} of K-7 to get here. None of them will be remembered.</p>
-    <p>WARDEN begins the wake cycle, then puts it off: the voyage is far from over. The long watch begins, and someone has to keep her running all the way to Tessaly.</p>
+    <p>WARDEN begins the wake cycle, then puts it off: the voyage is far from over. The long watch begins, and someone has to keep her running all the way to Tessaly: about 360 more years, with the turnover at year 240 and Tessaly at year 480.</p>
     <p class="d"><b>Act II</b> begins. The ship isn\u2019t done with K-7 yet: every seedling that kindles the Hearth Tree carries on into whatever comes next. Going further will open up <b>legacy tasks</b> in Act I (see the Legacy tab), and the <b>Quartermaster\u2019s cache</b> is unlocked: from now on seedlings start with their automated gear.</p>
     <button class="btn pri" data-close>Continue</button>`);
 }
