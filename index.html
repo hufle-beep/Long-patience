@@ -500,7 +500,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
 
 <script id="logic">
 /* ===== Game data and rules (no DOM) ===== */
-const BUILD = '2026-11-04 · real-time countdown';   // shown in the main menu, to tell which version is loaded
+const BUILD = '2026-11-04 · chains pinned on top';   // shown in the main menu, to tell which version is loaded
 const DPS = 8;             // simulation ticks per real second at 1x (doubled for the test version: same balance, half the real time)
 // Time is simulated in ticks. 80 ticks make one ship day (18 minutes each), so a day lasts
 // 20 real seconds at 1x and a clone lives weeks, not years. Everything is shown in days and hours.
@@ -2003,11 +2003,7 @@ function absorbChains(){
       L.queue.push(ck); changed = true;
     }
   }));
-  // keep the chain entries in run order (other queue items keep their places)
-  const slots = [], cqs = [];
-  L.queue.forEach((q, i) => { if (isCQ(q)) { slots.push(i); cqs.push(q); } });
-  const sorted = cqs.slice().sort((a, b) => chainRunKey(a) - chainRunKey(b));
-  if (sorted.some((q, i) => q !== cqs[i])) { slots.forEach((i, j) => { L.queue[i] = sorted[j]; }); changed = true; }
+  if (pinChains()) changed = true;
   if (changed) HOOK.change();
 }
 // Which tasks are linked into a chain right now (cached briefly: chains change slowly)
@@ -2056,7 +2052,7 @@ function qAdd(id, front){
     if (i === 0) return true;
     if (i > 0) L.queue.splice(i, 1);
     else if (L.queue.length >= QMAX) { HOOK.qfull(); return false; }
-    L.queue.unshift(id); return true;
+    L.queue.unshift(id); pinChains(); return true;
   }
   if (L.queue.length >= QMAX) { HOOK.qfull(); return false; }
   L.queue.push(id); return true;
@@ -2070,17 +2066,25 @@ function qConsumeRep(id){ if (S.life.now !== id && qCount(id) > 1) qConsume(id);
 function qRemoveAt(i){ const L = S.life, id = L.queue[i]; if (id == null) return; L.queue.splice(i, 1); if (isCQ(id) || (T[id] && T[id].legacy)) (L.cdis = L.cdis || {})[id] = 1;   // a chain you removed stays out (this life)
   if (L.held === id && !L.queue.includes(id)) L.held = null; }
 function qRemove(id){ const L = S.life; if (L.held === id) L.held = null; L.queue = L.queue.filter(x => x !== id); }
+// Chains are pinned at the top of the queue, in run order (section by section); everything else follows in its own order
+function pinChains(){
+  const L = S.life, cq = L.queue.filter(isCQ).sort((a, b) => chainRunKey(a) - chainRunKey(b)), rest = L.queue.filter(q => !isCQ(q));
+  const nq = cq.concat(rest); if (nq.every((q, i) => q === L.queue[i])) return false;
+  L.queue = nq; return true;
+}
+const qPinned = () => S.life.queue.filter(isCQ).length;   // how many rows at the top are pinned chains
 function qMove(i, dir){
   const L = S.life, j = i + dir;
   if (i < 0 || i >= L.queue.length || j < 0 || j >= L.queue.length) return;
+  if (isCQ(L.queue[i]) || isCQ(L.queue[j])) return;   // chains are pinned
   [L.queue[i], L.queue[j]] = [L.queue[j], L.queue[i]];
 }
 function qMoveTo(i, to){
   const L = S.life;
   if (i < 0 || i >= L.queue.length) return;
   to = Math.max(0, Math.min(L.queue.length - 1, to));
-  if (to === i) return;
-  const [id] = L.queue.splice(i, 1); L.queue.splice(to, 0, id);
+  if (to === i || isCQ(L.queue[i])) return;
+  const [id] = L.queue.splice(i, 1); L.queue.splice(Math.max(to, qPinned()), 0, id);   // never above the pinned chains
 }
 // New game plus: everything resets except the rewards, settings, presets and the
 // time-away limit, which carries over and keeps adding up (+8 h per section finished, every run).
@@ -2481,7 +2485,7 @@ document.addEventListener('change', e => {
 window.onAndroidExport = (ok, msg) => toast(ok ? 'Saved ' + msg : 'Export failed: ' + msg);
 
 function applyLoaded(raw, from){
-  S = mergeState(raw); M = mods();
+  S = mergeState(raw); M = mods(); pinChains();
   taskKey = ''; gearKey = ''; archKey = ''; logKey = '';
   paused = false; hideModal(); S.intro = true; save();
   setTab('archive');
@@ -2762,7 +2766,7 @@ HOOK.runEnd = (from, to, why) => { taskKey = ''; autoKey = '';
   else toast(msg); };
 HOOK.rested = t => { sfx('eat'); toast('Rested. Strain halved to \u00d7' + (S.life.strain || 1).toFixed(2) + '.'); };
 HOOK.perk = p => { sfx('perk'); toast('Archive record: ' + p.name, true); if (tab !== 'archive') newPerk = true; archKey = ''; };
-HOOK.change = () => { taskKey = ''; gearKey = ''; };
+HOOK.change = () => { taskKey = ''; gearKey = ''; if (S && S.life) pinChains(); };
 HOOK.practiced = t => { sfx('perk'); taskKey = ''; autoKey = ''; toast('Automated: \u201c' + t.name + '\u201d' + (S.auto[t.id] ? ' now runs by itself (tap AUTO to switch it off).' : ' can run by itself (tap AUTO).'), true); };
 HOOK.stopped = j => { sfx('error'); taskKey = ''; toast((j.prod.rations ? FD[jobFood(j)].name : 'Salvage') + ' storage full. Stopped \u201c' + j.name + '\u201d; time is stopped.'); };
 // Death screen (on by default): the game waits on it until you decant. Once AUTO_LIVES clones have died
@@ -2841,9 +2845,9 @@ function chainRow(id, i){
   const cur = st.find(x => !cStepDone(id, x));
   const sub = open ? '<ol class="csub">' + st.map(x => { const d = cStepDone(id, x);
     return `<li class="${d ? 'done' : x === cur ? 'cur' : ''}">${d ? '\u2713' : x === cur ? '\u25b8' : '\u00b7'} ${esc(stepName(x))}${!isGQ(x) && T[x].kind === 'job' ? ' <small>fill</small>' : ''}</li>`; }).join('') + '</ol>' : '';
-  return `<li class="qrow cq" data-qid="${id}"><span class="qdrag" data-qdrag="${i}" aria-hidden="true" title="Drag to reorder">\u2807</span><span class="qn">${i + 1}.</span>
+  return `<li class="qrow cq pin" data-qid="${id}"><span class="qdrag" aria-hidden="true" title="Pinned: chains stay at the top, in section order">\u2022</span><span class="qn">${i + 1}.</span>
     <span class="qt"><button class="cqt" data-qopen="${id}" aria-expanded="${open}">${open ? '\u25be' : '\u25b8'} Chain \u00b7 ${esc(stepName(st[0]))}${st.length > 1 ? ' \u2192 \u2026 \u2192 ' + esc(stepName(st[st.length - 1])) : ''}</button> <small>${done}/${st.length} steps${cur ? ' \u00b7 now: ' + esc(stepName(cur)) : ''} \u00b7 flow \u00d7${flowMul().toFixed(2)}</small>${sub}</span>
-    <button data-qmove="${i}" data-dir="-1" ${i === 0 ? 'disabled' : ''} aria-label="Move chain up">\u2191</button><button data-qmove="${i}" data-dir="1" ${i === L.queue.length - 1 ? 'disabled' : ''} aria-label="Move chain down">\u2193</button><button data-unqi="${i}" aria-label="Remove chain from queue">\u2715</button></li>`;
+    <button data-unqi="${i}" aria-label="Remove chain from queue (it stays out for this clone)">\u2715</button></li>`;
 }
 // The running section run, pinned at the top of the queue
 function runRow(){
@@ -2880,7 +2884,7 @@ let qDrag = null;
 document.addEventListener('pointerdown', e => {
   const hnd = e.target.closest && e.target.closest('[data-qdrag]');
   if (!hnd || qDrag || e.button > 0) return;
-  const row = hnd.closest('.qrow'), list = row.parentElement, rows = [...list.children];
+  const row = hnd.closest('.qrow'), list = row.parentElement, rows = [...list.children].filter(r => r.dataset.qid);   // queue rows only (not the pinned section run)
   e.preventDefault();
   qDrag = {id: S.life.queue[+hnd.dataset.qdrag], row, list, rows, from: rows.indexOf(row), to: rows.indexOf(row), y0: e.clientY,
     mids: rows.map(r => { const b = r.getBoundingClientRect(); return b.top + b.height / 2; }), h: row.getBoundingClientRect().height + 4, pid: e.pointerId, st0: list.scrollTop};
@@ -2927,6 +2931,7 @@ function renderTasks(){
   if (key + gk === taskKey) return;
   taskKey = key + gk;
 
+  pinChains();   // chains always lead the queue, whatever put them out of place
   const sr = secRunHtml(L.sec || 1);   // the section run sits above the queue, across the full width
   let h = sr.replace('class="secrun', 'class="secrun top') + '<div class="qp"><div class="qh"><span class="lbl">Queue <span class="num qcount">' + L.queue.length + '/' + QMAX + '</span> <span class="num qeta" id="q-eta">' + lastQEta + '</span></span><span class="qhb">' + (L.queue.length || (L.qdone || []).length ? '<button class="qclear" data-clearq aria-label="Clear the whole queue">\u2715 Clear queue</button>' : '') + '</span></div>';
   if (L.held) {
@@ -2943,7 +2948,7 @@ function renderTasks(){
       const why = g ? (!isDone(it.req) ? 'after: ' + T[it.req].name : it.cost > M.salCap ? 'needs bigger salvage storage' : fmt(Math.min(L.salvage, it.cost)) + '/' + fmt(it.cost) + ' salvage')
         : L.held === id ? 'on hold: wrapping up the section' : !bl ? '' : zAfter(t.z, L.sec) ? 'waits for ' + zoneThe(t.z) : zBefore(t.z, L.sec) ? 'left behind' : 'waiting for its requirements';
       return `<li class="qrow${bl ? ' blocked' : ''}${g ? ' gq' : ''}" data-qid="${id}"><span class="qdrag" data-qdrag="${i}" aria-hidden="true" title="Drag to reorder">⠇</span><span class="qn">${i + 1}.</span><span class="qt">${esc(t.name)}${t.kind === 'job' ? ' <small>until full</small>' : ''}${why ? ` <small>${why}</small>` : ''}</span>
-        <button data-qmove="${i}" data-dir="-1" ${i === 0 ? 'disabled' : ''} aria-label="Move ${esc(t.name)} up">\u2191</button><button data-qmove="${i}" data-dir="1" ${i === L.queue.length - 1 ? 'disabled' : ''} aria-label="Move ${esc(t.name)} down">\u2193</button><button data-unqi="${i}" aria-label="Remove ${esc(t.name)} from queue">\u2715</button></li>`;
+        <button data-qmove="${i}" data-dir="-1" ${i <= qPinned() ? 'disabled' : ''} aria-label="Move ${esc(t.name)} up">\u2191</button><button data-qmove="${i}" data-dir="1" ${i === L.queue.length - 1 ? 'disabled' : ''} aria-label="Move ${esc(t.name)} down">\u2193</button><button data-unqi="${i}" aria-label="Remove ${esc(t.name)} from queue">\u2715</button></li>`;
     }).join('') + '</ol>';
   } else {
     h += '<div class="qnote">Empty. Tap a task to start it now, or + to add it to the end. Queued jobs run until their storage is full.</div>';
@@ -4118,6 +4123,7 @@ function boot(data){
   if (!raw) S.life.hp = M.maxHp;
   if (S.set.startPaused && !S.life.dead) S.set.paused = true;   // option: open the game paused
   S.bank = 0; S.set.boost = false;   // the stasis boost is gone
+  pinChains();
   unlockSpeeds(true);
   setTab('tasks');
   if (raw) showMenu(); else startGame();
