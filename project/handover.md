@@ -31,7 +31,7 @@ Play: https://hufle-beep.github.io/Long-patience/ · Android APK: release `andro
   - `DPS = 8` ticks per real second at x1; `TPD = 80` ticks per internal "day unit" (10 s in-game).
   - Players only ever see in-game time (blue `.tgm`) and real time (amber `.trl`); remaining time is red. `fmtDays(ticks)` formats an in-game clock.
   - The game stops when the tab or app is hidden. There is no away time.
-  - Speed menu x1/x2/x5: `SPEEDS`. Unlocks are kept in localStorage and in the save (`S.spdUnl`).
+  - Speed menu x1/x2/x5: `SPEEDS`. Unlocks are kept in localStorage and in the save (`S.spdUnl`). **Test version:** `TEST_ALL_SPEEDS = true` opens every speed from the start without recording an unlock (`speedOpen` vs `earnedSpeed`); it goes off before release.
 - **Energy:**
   - `drainNow(haz, wear, z)` = min((HUNGER + haz) x danger, MAX_DRAIN x danger) x DRAIN_X(3.2) x (1 - stasis) / drainDiv() / vitDiv().
   - `danger(z)` comes from `DANGER`.
@@ -100,6 +100,7 @@ The tools:
   
   It must print `page errors: none` and `text problems: none`.
 - `python3 shots.py`: screenshots of every screen to `/home/claude/shots`, at device scale 2.
+- `pw161.py`: test speed switch (x5 open, no unlock written).
 - `pw151/152/153/158/159/160.py`: Playwright checks (header and pause, stasis, death saves, save names, compact cards, storage migration). Each must print `errors []`.
 - `oneoff/`: the scripts that did the Hearth Tree reskin, cleanup and comment rewording (history and reference only).
 

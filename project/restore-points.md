@@ -8,6 +8,8 @@ The **Restore points** workflow (`.github/workflows/restore-points.yml`) runs on
 What the recent commits are (newest first):
 | Commit | What it is |
 |---|---|
+| (next) | Test speed switch: x1/x2/x5 open from the start (test version only); republishes the web version |
+| `10c323a` | Restore points doc note |
 | `10d77dc` | Restore-point workflow; project docs updated |
 | `b12d331` | Restore points recorded in the docs |
 | `05e5518` | Project docs and tools in the repo; Android backup builds (game same as "cleanup") |

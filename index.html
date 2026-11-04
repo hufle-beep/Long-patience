@@ -487,7 +487,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
 // Renamed from Long Patience: move this device's old storage keys to the new 'selene.' names once
 try { const old = []; for (let n = 0; n < localStorage.length; n++) old.push(localStorage.key(n)); old.forEach(k => { if (k && k.indexOf('long-patience.') === 0) { const nk = 'selene.' + k.slice(14); if (localStorage.getItem(nk) == null) localStorage.setItem(nk, localStorage.getItem(k)); localStorage.removeItem(k); } }); } catch(e) {}
 /* ===== Game data and rules (no DOM) ===== */
-const BUILD = '2026-11-04 · cleanup';   // shown in the main menu, to tell which version is loaded
+const BUILD = '2026-11-04 · test speeds';   // shown in the main menu, to tell which version is loaded
 const DPS = 8;             // simulation ticks per real second at 1x (doubled for the test version: same balance, half the real time)
 // Time is simulated in ticks. 80 ticks make one day unit (18 minutes each), so a day lasts
 // 20 real seconds at 1x and Players only ever see in-game time and real time, never days.
@@ -2273,12 +2273,16 @@ function fmtDays(t){ return isFinite(t) ? fmtReal(t / DPS) : '\u221e'; }
 // Game speed: a flat real-time speed-up picked in the header. x2 opens once Act I has been cleared,
 // x5 once Act II has; both the choice and the unlocks are kept on this device for every save.
 const SPEEDS = [1, 2, 5], SPD_KEY = 'selene.speeds.v1';
+// TEST VERSION ONLY: every speed is open from the start, as if Act II had been cleared once.
+// Nothing is written to saves or the device for it. Set to false for the final version (see project/roadmap.md).
+const TEST_ALL_SPEEDS = true;
 let spdUnl = 1; try { spdUnl = +(localStorage.getItem(SPD_KEY) || 1) || 1; } catch(e) {}
 const spdHave = () => Math.max(spdUnl, (S && S.spdUnl) || 1);   // the device's unlocks or the save's, whichever is higher
-function speedOpen(x){ return x === 1 || (x === 2 && (spdHave() >= 2 || !!S.won)) || (x === 5 && (spdHave() >= 5 || a2Done())); }
+function speedOpen(x){ return x === 1 || TEST_ALL_SPEEDS || earnedSpeed(x); }
+function earnedSpeed(x){ return x === 1 || (x === 2 && (spdHave() >= 2 || !!S.won)) || (x === 5 && (spdHave() >= 5 || a2Done())); }
 function gameSpeed(){ const x = +(S.set.speed || 1); return SPEEDS.includes(x) && speedOpen(x) ? x : 1; }
 function unlockSpeeds(quiet){
-  const top = SPEEDS.filter(speedOpen).pop();
+  const top = SPEEDS.filter(earnedSpeed).pop();   // only real unlocks are kept (never the test switch)
   if (S && top > (S.spdUnl || 1)) S.spdUnl = top;   // every save carries the highest speed unlocked, so a wiped device gets it back
   if (top > spdUnl) { spdUnl = top; try { localStorage.setItem(SPD_KEY, String(top)); } catch(e) {} lastSpd = ''; renderSpeed(); if (!quiet) toast('Game speed \u00d7' + top + ' unlocked: pick it from the speed menu at the top.', true); }
 }

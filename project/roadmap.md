@@ -14,6 +14,7 @@ Last updated: 2026-11-04. Update in every push.
 - **Backup Android build** (on hold by the owner): GitLab mirror + GitLab CI, or a local Android Studio build, for GitHub outages.
 
 ## Before release (final version)
+- Turn **`TEST_ALL_SPEEDS`** off (index.html, next to `SPEEDS`): in the test version x1/x2/x5 are open from the start; the final version unlocks x2 after Act I and x5 after Act II again. The switch never writes unlocks into saves or devices, so nothing leaks into the final version.
 - Replace the five per-slot death saves with **one global death save** (owner's decision; per-slot is for testing only).
 - Re-check every section freeze and the Act I/Act II totals.
 
