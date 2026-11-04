@@ -138,8 +138,9 @@ button.zh.zhb{margin:14px 0 6px}
 .secrun.on{border-color:var(--cyan)}
 .secrun.dim{color:var(--dim)}
 .secrun .btn{padding:6px 12px;font-size:12.5px;white-space:nowrap}
-.secrun.top{margin:0 0 10px;padding:10px 12px;border-width:2px;border-color:var(--cyan);font-size:13.5px}
+.secrun.top{width:100%;box-sizing:border-box;margin:0 0 10px;padding:10px 12px;border-width:2px;border-color:var(--cyan);font-size:13.5px}
 .secrun.top .btn{padding:9px 18px;font-size:14px}
+.secrun.top.dim{border-color:var(--cyan-soft)}
 .gitem .ta{margin-left:6px}
 .chain{display:flex;flex-wrap:wrap;gap:4px 6px;align-items:center;font-size:12px;padding:6px 0;border-bottom:1px solid var(--line)}
 .chain .cqadd{margin-left:auto;padding:3px 8px;font-size:11.5px}
@@ -492,7 +493,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
 
 <script id="logic">
 /* ===== Game data and rules (no DOM) ===== */
-const BUILD = '2026-11-04 · run button on top';   // shown in the main menu, to tell which version is loaded
+const BUILD = '2026-11-04 · run bar always on top';   // shown in the main menu, to tell which version is loaded
 const DPS = 8;             // simulation ticks per real second at 1x (doubled for the test version: same balance, half the real time)
 // Time is simulated in ticks. 80 ticks make one ship day (18 minutes each), so a day lasts
 // 20 real seconds at 1x and a clone lives weeks, not years. Everything is shown in days and hours.
@@ -2768,7 +2769,7 @@ function secRunHtml(z){
   if (L.chainRun && (L.sec || 1) === z) return `<div class="secrun on"><span>${sp.length > 1 ? 'Running ' + sp.length + ' sections as one chain: ' + names + '\u2026' : 'Running the whole section as one chain\u2026'}</span><button class="btn" data-secstop>Stop</button></div>`;
   if (sp.length > 1) return `<div class="secrun"><span>Sections linked: ${names}. Every task is automated and \u00d7${SECTION_F} familiar, so the run carries on across ${sp.length - 1 === 1 ? 'the crossing' : 'the crossings'}.${endNote}</span><button class="btn pri" data-secrun>\u25b6 Run ${sp.length} sections</button></div>`;
   if (g.ready) return `<div class="secrun"><span>Section chain ready: every task is automated and \u00d7${SECTION_F} familiar.</span><button class="btn pri" data-secrun>\u25b6 Run section</button></div>`;
-  return g.ok ? `<div class="secrun dim"><span>Section chain: ${g.ok}/${g.n} parts automated at \u00d7${SECTION_F} (gear: automated). Details in the Auto tab.</span></div>` : '';
+  return `<div class="secrun dim"><span>Section chain: ${g.ok}/${g.n} parts automated at \u00d7${SECTION_F} (gear: automated). Details in the Auto tab.</span><button class="btn" disabled>\u25b6 Run section</button></div>`;   // always shown above the queue
 }
 function autoBtn(t){
   if (!practiced(t)) return '';
@@ -2832,11 +2833,12 @@ function renderTasks(){
     else if (!av && S.seen[t.id] && legacyOpen(t)) locked.push(t.id);
   });
   const key = vis.join() + '|' + locked.join() + '|' + [...chainedIds()].join() + JSON.stringify(cOpen) + JSON.stringify(qOpen) + JSON.stringify(L.cjd || {}) + L.queue.filter(isCQ).map(id => cSteps(id).filter(x => cStepDone(id, x)).length).join() + (L.now || '') + (L.chainRun ? 'R' : '') + runSpan(L.sec || 1).join('') + JSON.stringify(sectionGate(L.sec || 1)) + ITEMS.filter(i => isDone(i.req)).map(i => i.id + (L.owned[i.id] ? 'o' : assembling(i.id) ? 'a' + Math.floor((L.prog['b:' + i.id] || 0) / BT[i.id].days * 20) : L.salvage >= i.cost ? 'y' : 'n') + (gearAuto(i) ? '*' : '') + ((S.gprac || {})[i.id] || 0)).join() + '|' + L.queue.join() + (L.queue.some(isGQ) ? Math.floor(L.salvage) + '/' + M.salCap + Object.keys(L.owned).join() : '') + '|' + L.job + '|' + Object.keys(S.perks).join() + '|' + S.gen + '|' + JSON.stringify(showLocked) + '|' + L.sec + '|' + (L.held || '') + holdList().join() + '|' + JSON.stringify(S.qpresets) + (L.qdone || []).length + (S.set.keepQueue !== false) + '|' + TASKS.filter(t => practiced(t)).map(t => t.id + (S.auto[t.id] ? '*' : '') + prioOf(t)).join() + '|' + openPrio;
-  if (key === taskKey) return;
-  taskKey = key;
+  const gk = JSON.stringify(sectionGate(L.sec || 1)) + runSpan(L.sec || 1).join() + !!L.chainRun;
+  if (key + gk === taskKey) return;
+  taskKey = key + gk;
 
-  const sr = secRunHtml(L.sec || 1), srTop = sr && !/secrun dim/.test(sr);   // a ready or running section run goes above the queue
-  let h = (srTop ? sr.replace('class="secrun', 'class="secrun top') : '') + '<div class="qp"><div class="qh"><span class="lbl">Queue <span class="num qcount">' + L.queue.length + '/' + QMAX + '</span> <span class="num qeta" id="q-eta">' + lastQEta + '</span></span><span class="qhb">' + (L.queue.length || (L.qdone || []).length ? '<button class="qclear" data-clearq aria-label="Clear the whole queue">\u2715 Clear queue</button>' : '') + '</span></div>';
+  const sr = secRunHtml(L.sec || 1);   // the section run sits above the queue, across the full width
+  let h = sr.replace('class="secrun', 'class="secrun top') + '<div class="qp"><div class="qh"><span class="lbl">Queue <span class="num qcount">' + L.queue.length + '/' + QMAX + '</span> <span class="num qeta" id="q-eta">' + lastQEta + '</span></span><span class="qhb">' + (L.queue.length || (L.qdone || []).length ? '<button class="qclear" data-clearq aria-label="Clear the whole queue">\u2715 Clear queue</button>' : '') + '</span></div>';
   if (L.held) {
     const left = holdList();
     h += `<div class="hold"><div><b>${esc(T[L.held].name)}</b> is on hold until this section is wrapped up. Still to do: ${esc(left.join(', ') || 'nothing')}. Drag tasks above it in the queue to run them first.</div><button class="btn" data-skiphold>Skip the rest and cross now</button></div>`;
@@ -2877,7 +2879,6 @@ function renderTasks(){
     const cleared = TASKS.filter(t => t.z === z.id && complete(t)).length;
     if (!zchains.length && !jobs.length && !acts.length && !rests.length && !trains.length && !lk.length && !cleared) return;
     h += `<section class="zone"><header class="zh"><h2>${z.name}</h2><span>${z.sub}</span>${cleared ? `<em>${cleared} done</em>` : ''}</header>`;
-    if (z.id === (L.sec || 1) && !srTop) h += sr;   // progress only; the button itself sits above the queue
     if (zchains.length) {
       h += '<div class="sub">Chains \u00b7 linked tasks work as one, faster with chain flow</div>';
       zchains.forEach(k => { h += chainCard(k); });
