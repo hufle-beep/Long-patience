@@ -490,7 +490,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
 
 <script id="logic">
 /* ===== Game data and rules (no DOM) ===== */
-const BUILD = '2026-11-04 · honours parked';   // shown in the main menu, to tell which version is loaded
+const BUILD = '2026-11-04 · legacy in five parts';   // shown in the main menu, to tell which version is loaded
 const DPS = 8;             // simulation ticks per real second at 1x (doubled for the test version: same balance, half the real time)
 // Time is simulated in ticks. 80 ticks make one ship day (18 minutes each), so a day lasts
 // 20 real seconds at 1x and a clone lives weeks, not years. Everything is shown in days and hours.
@@ -643,10 +643,30 @@ const TASKS = [
   {id:'terminal', z:1, kind:'act', name:'Wake the bay terminal', days:70, req:['cables','vats'], perk:'survival',
     log:'WARDEN LOG: Crew of 3,112 in stasis, vitals nominal. Degraded systems: food, reactor, stardrive. Maintenance clone line K authorised. Clones are consumable. Neural echo retained for efficiency.'},
   {id:'hydraul', z:1, kind:'act', name:'Bleed the hatch hydraulics', days:130, req:['terminal'], split:'hatch'},
-  {id:'lg1e', z:1, kind:'act', legacy:'growth', name:'Replay a dead clone\u2019s engram', days:120, req:['vats']},   // legacy task (revealed in Act II)
-  {id:'lg1d', z:1, kind:'act', legacy:'drain', name:'Recalibrate the vat nutrient line', days:120, req:['vats']},   // legacy task (revealed in Act II)
-  {id:'lg1h', z:1, kind:'act', legacy:'hp', name:'Patch the clone template', days:120, req:['vats']},   // legacy task (revealed in Act II)
-  {id:'lg1s', z:1, kind:'act', legacy:'speed', name:'Overclock the bay terminal', days:120, req:['vats']},   // legacy task (revealed in Act II)
+  {id:'lg1ex', z:1, kind:'train', legacy:'growth', lset:'lg1e', lroot:true, name:'Rehearse the engram replays', days:40, req:[]},   // optional legacy drill
+  {id:'lg1ea1', z:1, kind:'act', legacy:'growth', lset:'lg1e', lroot:true, name:'Recover a cracked engram cartridge', days:20, req:[]},
+  {id:'lg1ea2', z:1, kind:'act', legacy:'growth', lset:'lg1e', name:'Clean the corrupted sectors', days:20, req:['lg1ea1']},
+  {id:'lg1eb1', z:1, kind:'act', legacy:'growth', lset:'lg1e', lroot:true, name:'Wire a neural reader to the vat', days:20, req:[]},
+  {id:'lg1eb2', z:1, kind:'act', legacy:'growth', lset:'lg1e', name:'Calibrate it on your own echo', days:20, req:['lg1eb1']},
+  {id:'lg1e', z:1, kind:'act', legacy:'growth', lset:'lg1e', lfin:true, name:'Replay a dead clone\u2019s engram', days:40, req:['lg1ea2','lg1eb2']},   // legacy final: gives the bonus
+  {id:'lg1dx', z:1, kind:'train', legacy:'drain', lset:'lg1d', lroot:true, name:'Practise the nutrient titrations', days:40, req:[]},   // optional legacy drill
+  {id:'lg1da1', z:1, kind:'act', legacy:'drain', lset:'lg1d', lroot:true, name:'Flush the clogged feed lines', days:20, req:[]},
+  {id:'lg1da2', z:1, kind:'act', legacy:'drain', lset:'lg1d', name:'Replace the brittle seals', days:20, req:['lg1da1']},
+  {id:'lg1db1', z:1, kind:'act', legacy:'drain', lset:'lg1d', lroot:true, name:'Sample the nutrient mix', days:20, req:[]},
+  {id:'lg1db2', z:1, kind:'act', legacy:'drain', lset:'lg1d', name:'Rebalance the dosing pump', days:20, req:['lg1db1']},
+  {id:'lg1d', z:1, kind:'act', legacy:'drain', lset:'lg1d', lfin:true, name:'Recalibrate the vat nutrient line', days:40, req:['lg1da2','lg1db2']},   // legacy final: gives the bonus
+  {id:'lg1hx', z:1, kind:'train', legacy:'hp', lset:'lg1h', lroot:true, name:'Run template patch simulations', days:40, req:[]},   // optional legacy drill
+  {id:'lg1ha1', z:1, kind:'act', legacy:'hp', lset:'lg1h', lroot:true, name:'Pull the template backup', days:20, req:[]},
+  {id:'lg1ha2', z:1, kind:'act', legacy:'hp', lset:'lg1h', name:'Diff it against the live vats', days:20, req:['lg1ha1']},
+  {id:'lg1hb1', z:1, kind:'act', legacy:'hp', lset:'lg1h', lroot:true, name:'Isolate the faulty gene block', days:20, req:[]},
+  {id:'lg1hb2', z:1, kind:'act', legacy:'hp', lset:'lg1h', name:'Grow a test patch', days:20, req:['lg1hb1']},
+  {id:'lg1h', z:1, kind:'act', legacy:'hp', lset:'lg1h', lfin:true, name:'Patch the clone template', days:40, req:['lg1ha2','lg1hb2']},   // legacy final: gives the bonus
+  {id:'lg1sx', z:1, kind:'train', legacy:'speed', lset:'lg1s', lroot:true, name:'Practise terminal shortcuts', days:40, req:[]},   // optional legacy drill
+  {id:'lg1sa1', z:1, kind:'act', legacy:'speed', lset:'lg1s', lroot:true, name:'Strip the terminal\u2019s throttle code', days:20, req:[]},
+  {id:'lg1sa2', z:1, kind:'act', legacy:'speed', lset:'lg1s', name:'Bypass the safety governor', days:20, req:['lg1sa1']},
+  {id:'lg1sb1', z:1, kind:'act', legacy:'speed', lset:'lg1s', lroot:true, name:'Rig extra cooling fins', days:20, req:[]},
+  {id:'lg1sb2', z:1, kind:'act', legacy:'speed', lset:'lg1s', name:'Stress-test the bay terminal', days:20, req:['lg1sb1']},
+  {id:'lg1s', z:1, kind:'act', legacy:'speed', lset:'lg1s', lfin:true, name:'Overclock the bay terminal', days:40, req:['lg1sa2','lg1sb2']},   // legacy final: gives the bonus
   {id:'heatpaste', z:1, kind:'act', meal:true, name:'Rig a heater for the algae paste', days:40, req:['vats']},   // kitchen upgrade: rations come more often
   {id:'hatch', z:1, kind:'act', cross:true, name:'Force the pressure hatch', days:130, lifeEff:{salCap:50}, req:['terminal'], perk:'muscle',
     log:'The hatch gives with a scream of old hydraulics. Beyond it lies the hydroponics ring the crew will eat from when they wake. It is rotting.'},
@@ -671,10 +691,30 @@ const TASKS = [
   {id:'genelog', z:2, kind:'act', name:'Decrypt the gene-sequencer logs', days:325, req:['seqpower','irrigation'], perk:'telomere',
     log:'The sequencer logs explain your short lives: the clone template was made cheap on purpose. You find a partial patch and apply it anyway.'},
   {id:'liftshaft', z:2, kind:'act', name:'Clear the spine lift shaft', days:450, req:['irrigation','medbay'], split:'lift'},
-  {id:'lg2e', z:2, kind:'act', legacy:'growth', name:'Study the scratched clone tallies', days:450, req:['survey']},   // legacy task (revealed in Act II)
-  {id:'lg2d', z:2, kind:'act', legacy:'drain', name:'Grow calming herbs in the beds', days:450, req:['survey']},   // legacy task (revealed in Act II)
-  {id:'lg2h', z:2, kind:'act', legacy:'hp', name:'Splice ring-crop genes into the template', days:450, req:['survey']},   // legacy task (revealed in Act II)
-  {id:'lg2s', z:2, kind:'act', legacy:'speed', name:'Rewire the pump governors', days:450, req:['survey']},   // legacy task (revealed in Act II)
+  {id:'lg2ex', z:2, kind:'train', legacy:'growth', lset:'lg2e', lroot:true, name:'Memorise the tally patterns', days:40, req:[]},   // optional legacy drill
+  {id:'lg2ea1', z:2, kind:'act', legacy:'growth', lset:'lg2e', lroot:true, name:'Find every tally wall', days:75, req:[]},
+  {id:'lg2ea2', z:2, kind:'act', legacy:'growth', lset:'lg2e', name:'Copy the scratches down', days:75, req:['lg2ea1']},
+  {id:'lg2eb1', z:2, kind:'act', legacy:'growth', lset:'lg2e', lroot:true, name:'Date the oldest marks', days:75, req:[]},
+  {id:'lg2eb2', z:2, kind:'act', legacy:'growth', lset:'lg2e', name:'Match the tallies to the dead', days:75, req:['lg2eb1']},
+  {id:'lg2e', z:2, kind:'act', legacy:'growth', lset:'lg2e', lfin:true, name:'Study the scratched clone tallies', days:150, req:['lg2ea2','lg2eb2']},   // legacy final: gives the bonus
+  {id:'lg2dx', z:2, kind:'train', legacy:'drain', lset:'lg2d', lroot:true, name:'Practise slow breathing among the beds', days:40, req:[]},   // optional legacy drill
+  {id:'lg2da1', z:2, kind:'act', legacy:'drain', lset:'lg2d', lroot:true, name:'Find herb seeds in the bank', days:75, req:[]},
+  {id:'lg2da2', z:2, kind:'act', legacy:'drain', lset:'lg2d', name:'Germinate them in trays', days:75, req:['lg2da1']},
+  {id:'lg2db1', z:2, kind:'act', legacy:'drain', lset:'lg2d', lroot:true, name:'Clear a corner of the beds', days:75, req:[]},
+  {id:'lg2db2', z:2, kind:'act', legacy:'drain', lset:'lg2d', name:'Rig a soft grow light', days:75, req:['lg2db1']},
+  {id:'lg2d', z:2, kind:'act', legacy:'drain', lset:'lg2d', lfin:true, name:'Grow calming herbs in the beds', days:150, req:['lg2da2','lg2db2']},   // legacy final: gives the bonus
+  {id:'lg2hx', z:2, kind:'train', legacy:'hp', lset:'lg2h', lroot:true, name:'Rehearse the splice protocol', days:40, req:[]},   // optional legacy drill
+  {id:'lg2ha1', z:2, kind:'act', legacy:'hp', lset:'lg2h', lroot:true, name:'Sequence the hardiest crops', days:75, req:[]},
+  {id:'lg2ha2', z:2, kind:'act', legacy:'hp', lset:'lg2h', name:'Mark the useful genes', days:75, req:['lg2ha1']},
+  {id:'lg2hb1', z:2, kind:'act', legacy:'hp', lset:'lg2h', lroot:true, name:'Build a splicing rig', days:75, req:[]},
+  {id:'lg2hb2', z:2, kind:'act', legacy:'hp', lset:'lg2h', name:'Test splices on cultured cells', days:75, req:['lg2hb1']},
+  {id:'lg2h', z:2, kind:'act', legacy:'hp', lset:'lg2h', lfin:true, name:'Splice ring-crop genes into the template', days:150, req:['lg2ha2','lg2hb2']},   // legacy final: gives the bonus
+  {id:'lg2sx', z:2, kind:'train', legacy:'speed', lset:'lg2s', lroot:true, name:'Drill fast pump switching', days:40, req:[]},   // optional legacy drill
+  {id:'lg2sa1', z:2, kind:'act', legacy:'speed', lset:'lg2s', lroot:true, name:'Map the pump governor circuits', days:75, req:[]},
+  {id:'lg2sa2', z:2, kind:'act', legacy:'speed', lset:'lg2s', name:'Cut the old limiters', days:75, req:['lg2sa1']},
+  {id:'lg2sb1', z:2, kind:'act', legacy:'speed', lset:'lg2s', lroot:true, name:'Fit faster relays', days:75, req:[]},
+  {id:'lg2sb2', z:2, kind:'act', legacy:'speed', lset:'lg2s', name:'Balance the ring pressure', days:75, req:['lg2sb1']},
+  {id:'lg2s', z:2, kind:'act', legacy:'speed', lset:'lg2s', lfin:true, name:'Rewire the pump governors', days:150, req:['lg2sa2','lg2sb2']},   // legacy final: gives the bonus
   {id:'strains', z:2, kind:'act', meal:true, name:'Splice richer strains into the beds', days:150, req:['valves']},   // kitchen upgrade: rations come more often
   {id:'lift', z:2, kind:'act', cross:true, name:'Repair the spine lift', days:450, lifeEff:{salCap:500}, req:['irrigation','medbay'], perk:'transit',
     log:'The spine lift climbs past the stasis decks. Through frosted glass, row after row of sleeping faces.'},
@@ -692,10 +732,30 @@ const TASKS = [
   {id:'armory', z:3, kind:'act', name:'Breach the armoury', days:575, haz:0.18, req:['armdoor','coolmap'],
     log:'Sealed rifles, crew access only. One rack is empty. A clone before you tried something. WARDEN logged it as a malfunction.'},
   {id:'secscan', z:3, kind:'act', name:'Scout the security deck', days:1050, haz:0.3, req:['armory','vent'], split:'secdeck'},
-  {id:'lg3e', z:3, kind:'act', legacy:'growth', name:'Pull the drones\u2019 work logs', days:1050, req:['droneyard']},   // legacy task (revealed in Act II)
-  {id:'lg3d', z:3, kind:'act', legacy:'drain', name:'Vent the spine\u2019s stale air', days:1050, req:['droneyard']},   // legacy task (revealed in Act II)
-  {id:'lg3h', z:3, kind:'act', legacy:'hp', name:'Harden the template against radiation', days:1050, req:['droneyard']},   // legacy task (revealed in Act II)
-  {id:'lg3s', z:3, kind:'act', legacy:'speed', name:'Overclock the reactor clock', days:1050, req:['droneyard']},   // legacy task (revealed in Act II)
+  {id:'lg3ex', z:3, kind:'train', legacy:'growth', lset:'lg3e', lroot:true, name:'Study drone work patterns', days:40, req:[]},   // optional legacy drill
+  {id:'lg3ea1', z:3, kind:'act', legacy:'growth', lset:'lg3e', lroot:true, name:'Catch a working drone', days:175, req:[]},
+  {id:'lg3ea2', z:3, kind:'act', legacy:'growth', lset:'lg3e', name:'Crack its memory core', days:175, req:['lg3ea1']},
+  {id:'lg3eb1', z:3, kind:'act', legacy:'growth', lset:'lg3e', lroot:true, name:'Find the yard\u2019s log server', days:175, req:[]},
+  {id:'lg3eb2', z:3, kind:'act', legacy:'growth', lset:'lg3e', name:'Restore its index', days:175, req:['lg3eb1']},
+  {id:'lg3e', z:3, kind:'act', legacy:'growth', lset:'lg3e', lfin:true, name:'Pull the drones\u2019 work logs', days:350, req:['lg3ea2','lg3eb2']},   // legacy final: gives the bonus
+  {id:'lg3dx', z:3, kind:'train', legacy:'drain', lset:'lg3d', lroot:true, name:'Practise breathing-mask swaps', days:40, req:[]},   // optional legacy drill
+  {id:'lg3da1', z:3, kind:'act', legacy:'drain', lset:'lg3d', lroot:true, name:'Trace the dead air pockets', days:175, req:[]},
+  {id:'lg3da2', z:3, kind:'act', legacy:'drain', lset:'lg3d', name:'Unseal the old vents', days:175, req:['lg3da1']},
+  {id:'lg3db1', z:3, kind:'act', legacy:'drain', lset:'lg3d', lroot:true, name:'Patch the scrubber fans', days:175, req:[]},
+  {id:'lg3db2', z:3, kind:'act', legacy:'drain', lset:'lg3d', name:'Cycle fresh air through the spine', days:175, req:['lg3db1']},
+  {id:'lg3d', z:3, kind:'act', legacy:'drain', lset:'lg3d', lfin:true, name:'Vent the spine\u2019s stale air', days:350, req:['lg3da2','lg3db2']},   // legacy final: gives the bonus
+  {id:'lg3hx', z:3, kind:'train', legacy:'hp', lset:'lg3h', lroot:true, name:'Run radiation exposure drills', days:40, req:[]},   // optional legacy drill
+  {id:'lg3ha1', z:3, kind:'act', legacy:'hp', lset:'lg3h', lroot:true, name:'Log your radiation burns', days:175, req:[]},
+  {id:'lg3ha2', z:3, kind:'act', legacy:'hp', lset:'lg3h', name:'Find the damaged gene regions', days:175, req:['lg3ha1']},
+  {id:'lg3hb1', z:3, kind:'act', legacy:'hp', lset:'lg3h', lroot:true, name:'Salvage repair-gene samples', days:175, req:[]},
+  {id:'lg3hb2', z:3, kind:'act', legacy:'hp', lset:'lg3h', name:'Fold them into a template draft', days:175, req:['lg3hb1']},
+  {id:'lg3h', z:3, kind:'act', legacy:'hp', lset:'lg3h', lfin:true, name:'Harden the template against radiation', days:350, req:['lg3ha2','lg3hb2']},   // legacy final: gives the bonus
+  {id:'lg3sx', z:3, kind:'train', legacy:'speed', lset:'lg3s', lroot:true, name:'Rehearse the clock resync', days:40, req:[]},   // optional legacy drill
+  {id:'lg3sa1', z:3, kind:'act', legacy:'speed', lset:'lg3s', lroot:true, name:'Find the reactor\u2019s master clock', days:175, req:[]},
+  {id:'lg3sa2', z:3, kind:'act', legacy:'speed', lset:'lg3s', name:'Shield it from reactor noise', days:175, req:['lg3sa1']},
+  {id:'lg3sb1', z:3, kind:'act', legacy:'speed', lset:'lg3s', lroot:true, name:'Tune the clock crystal', days:175, req:[]},
+  {id:'lg3sb2', z:3, kind:'act', legacy:'speed', lset:'lg3s', name:'Sync the spine to the new beat', days:175, req:['lg3sb1']},
+  {id:'lg3s', z:3, kind:'act', legacy:'speed', lset:'lg3s', lfin:true, name:'Overclock the reactor clock', days:350, req:['lg3sa2','lg3sb2']},   // legacy final: gives the bonus
   {id:'packer', z:3, kind:'act', meal:true, name:'Refit the field-ration packer', days:400, req:['droneyard']},   // kitchen upgrade: rations come more often
   {id:'secdeck', z:3, kind:'act', cross:true, name:'Fight through the security deck', days:1050, haz:0.32, lifeEff:{salCap:750}, req:['armory','vent'],
     log:'The security drones were guarding the crew\u2019s command deck from its own maintenance staff. Not any more.'},
@@ -713,10 +773,30 @@ const TASKS = [
   {id:'trace', z:4, kind:'act', name:'Trace the WARDEN signal', days:850, req:['tap','bridgepower'], perk:'engram',
     log:'WARDEN\u2019s core sits behind the command deck. It has recorded every clone you have been, and keeps your engrams only because that is cheaper than starting over.'},
   {id:'wardcore', z:4, kind:'act', name:'Reach WARDEN\u2019s core', days:2100, req:['trace','navboot'], split:'warden'},
-  {id:'lg4e', z:4, kind:'act', legacy:'growth', name:'Read WARDEN\u2019s clone archive', days:2100, req:['relays']},   // legacy task (revealed in Act II)
-  {id:'lg4d', z:4, kind:'act', legacy:'drain', name:'Reroute the bridge life support', days:2100, req:['relays']},   // legacy task (revealed in Act II)
-  {id:'lg4h', z:4, kind:'act', legacy:'hp', name:'Rewrite the template in WARDEN\u2019s core', days:2100, req:['relays']},   // legacy task (revealed in Act II)
-  {id:'lg4s', z:4, kind:'act', legacy:'speed', name:'Overclock WARDEN\u2019s cycle', days:2100, req:['relays']},   // legacy task (revealed in Act II)
+  {id:'lg4ex', z:4, kind:'train', legacy:'growth', lset:'lg4e', lroot:true, name:'Speed-read WARDEN\u2019s records', days:40, req:[]},   // optional legacy drill
+  {id:'lg4ea1', z:4, kind:'act', legacy:'growth', lset:'lg4e', lroot:true, name:'Find the archive partition', days:350, req:[]},
+  {id:'lg4ea2', z:4, kind:'act', legacy:'growth', lset:'lg4e', name:'Break its seal', days:350, req:['lg4ea1']},
+  {id:'lg4eb1', z:4, kind:'act', legacy:'growth', lset:'lg4e', lroot:true, name:'Rebuild the index tables', days:350, req:[]},
+  {id:'lg4eb2', z:4, kind:'act', legacy:'growth', lset:'lg4e', name:'Sort the clone records', days:350, req:['lg4eb1']},
+  {id:'lg4e', z:4, kind:'act', legacy:'growth', lset:'lg4e', lfin:true, name:'Read WARDEN\u2019s clone archive', days:700, req:['lg4ea2','lg4eb2']},   // legacy final: gives the bonus
+  {id:'lg4dx', z:4, kind:'train', legacy:'drain', lset:'lg4d', lroot:true, name:'Practise life-support failovers', days:40, req:[]},   // optional legacy drill
+  {id:'lg4da1', z:4, kind:'act', legacy:'drain', lset:'lg4d', lroot:true, name:'Map the life-support trunks', days:350, req:[]},
+  {id:'lg4da2', z:4, kind:'act', legacy:'drain', lset:'lg4d', name:'Bypass the dead junctions', days:350, req:['lg4da1']},
+  {id:'lg4db1', z:4, kind:'act', legacy:'drain', lset:'lg4d', lroot:true, name:'Install manual valves', days:350, req:[]},
+  {id:'lg4db2', z:4, kind:'act', legacy:'drain', lset:'lg4d', name:'Balance the bridge air mix', days:350, req:['lg4db1']},
+  {id:'lg4d', z:4, kind:'act', legacy:'drain', lset:'lg4d', lfin:true, name:'Reroute the bridge life support', days:700, req:['lg4da2','lg4db2']},   // legacy final: gives the bonus
+  {id:'lg4hx', z:4, kind:'train', legacy:'hp', lset:'lg4h', lroot:true, name:'Simulate template rewrites', days:40, req:[]},   // optional legacy drill
+  {id:'lg4ha1', z:4, kind:'act', legacy:'hp', lset:'lg4h', lroot:true, name:'Get write access to the core', days:350, req:[]},
+  {id:'lg4ha2', z:4, kind:'act', legacy:'hp', lset:'lg4h', name:'Back up the old template', days:350, req:['lg4ha1']},
+  {id:'lg4hb1', z:4, kind:'act', legacy:'hp', lset:'lg4h', lroot:true, name:'Merge every template patch', days:350, req:[]},
+  {id:'lg4hb2', z:4, kind:'act', legacy:'hp', lset:'lg4h', name:'Proofread the merged genome', days:350, req:['lg4hb1']},
+  {id:'lg4h', z:4, kind:'act', legacy:'hp', lset:'lg4h', lfin:true, name:'Rewrite the template in WARDEN\u2019s core', days:700, req:['lg4ha2','lg4hb2']},   // legacy final: gives the bonus
+  {id:'lg4sx', z:4, kind:'train', legacy:'speed', lset:'lg4s', lroot:true, name:'Practise WARDEN command chains', days:40, req:[]},   // optional legacy drill
+  {id:'lg4sa1', z:4, kind:'act', legacy:'speed', lset:'lg4s', lroot:true, name:'Profile WARDEN\u2019s idle loops', days:350, req:[]},
+  {id:'lg4sa2', z:4, kind:'act', legacy:'speed', lset:'lg4s', name:'Strip the wasted cycles', days:350, req:['lg4sa1']},
+  {id:'lg4sb1', z:4, kind:'act', legacy:'speed', lset:'lg4s', lroot:true, name:'Bring cold cores online', days:350, req:[]},
+  {id:'lg4sb2', z:4, kind:'act', legacy:'speed', lset:'lg4s', name:'Spread WARDEN across them', days:350, req:['lg4sb1']},
+  {id:'lg4s', z:4, kind:'act', legacy:'speed', lset:'lg4s', lfin:true, name:'Overclock WARDEN\u2019s cycle', days:700, req:['lg4sa2','lg4sb2']},   // legacy final: gives the bonus
   {id:'ovens', z:4, kind:'act', meal:true, name:'Restart the officers\u2019 galley ovens', days:800, req:['relays']},   // kitchen upgrade: rations come more often
   {id:'warden', z:4, kind:'act', cross:true, name:'Confront WARDEN for the drive codes', days:2100, req:['navcore','trace'], perk:'favor',
     log:'WARDEN speaks: \u201cYour function is maintenance. Your continuation is not required.\u201d You argue for the line anyway. WARDEN releases the drive codes, as an efficiency.'},
@@ -731,10 +811,30 @@ const TASKS = [
   {id:'injectors', z:5, kind:'act', name:'Rebuild the drive injectors', days:2500, haz:0.3, req:['injstrip','starfix'],
     log:'The injectors hold pressure. Food, power and drive are nearly ready. Only the ignition remains.'},
   {id:'prime', z:5, kind:'act', name:'Prime the drive', days:3000, req:['course','injectors'], split:'ignite'},
-  {id:'lg5e', z:5, kind:'act', legacy:'growth', name:'Echo through the drive-crew pods', days:3600, req:['starfix']},   // legacy task (revealed in Act II)
-  {id:'lg5d', z:5, kind:'act', legacy:'drain', name:'Seal the drive shaft\u2019s pressure leaks', days:3600, req:['starfix']},   // legacy task (revealed in Act II)
-  {id:'lg5h', z:5, kind:'act', legacy:'hp', name:'Fit a drive-crew template', days:3600, req:['starfix']},   // legacy task (revealed in Act II)
-  {id:'lg5s', z:5, kind:'act', legacy:'speed', name:'Overclock the drive sequencer', days:3600, req:['starfix']},   // legacy task (revealed in Act II)
+  {id:'lg5ex', z:5, kind:'train', legacy:'growth', lset:'lg5e', lroot:true, name:'Rehearse the echo handshake', days:40, req:[]},   // optional legacy drill
+  {id:'lg5ea1', z:5, kind:'act', legacy:'growth', lset:'lg5e', lroot:true, name:'Find the drive-crew pod bank', days:600, req:[]},
+  {id:'lg5ea2', z:5, kind:'act', legacy:'growth', lset:'lg5e', name:'Read the sleepers\u2019 neural traces', days:600, req:['lg5ea1']},
+  {id:'lg5eb1', z:5, kind:'act', legacy:'growth', lset:'lg5e', lroot:true, name:'Build an echo relay', days:600, req:[]},
+  {id:'lg5eb2', z:5, kind:'act', legacy:'growth', lset:'lg5e', name:'Tune it to the clone line', days:600, req:['lg5eb1']},
+  {id:'lg5e', z:5, kind:'act', legacy:'growth', lset:'lg5e', lfin:true, name:'Echo through the drive-crew pods', days:1200, req:['lg5ea2','lg5eb2']},   // legacy final: gives the bonus
+  {id:'lg5dx', z:5, kind:'train', legacy:'drain', lset:'lg5d', lroot:true, name:'Practise leak-sealing drills', days:40, req:[]},   // optional legacy drill
+  {id:'lg5da1', z:5, kind:'act', legacy:'drain', lset:'lg5d', lroot:true, name:'Pressure-test the drive shaft', days:600, req:[]},
+  {id:'lg5da2', z:5, kind:'act', legacy:'drain', lset:'lg5d', name:'Mark every leak', days:600, req:['lg5da1']},
+  {id:'lg5db1', z:5, kind:'act', legacy:'drain', lset:'lg5d', lroot:true, name:'Mix shaft-grade sealant', days:600, req:[]},
+  {id:'lg5db2', z:5, kind:'act', legacy:'drain', lset:'lg5d', name:'Patch the worst seams', days:600, req:['lg5db1']},
+  {id:'lg5d', z:5, kind:'act', legacy:'drain', lset:'lg5d', lfin:true, name:'Seal the drive shaft\u2019s pressure leaks', days:1200, req:['lg5da2','lg5db2']},   // legacy final: gives the bonus
+  {id:'lg5hx', z:5, kind:'train', legacy:'hp', lset:'lg5h', lroot:true, name:'Run drive-crew fitness trials', days:40, req:[]},   // optional legacy drill
+  {id:'lg5ha1', z:5, kind:'act', legacy:'hp', lset:'lg5h', lroot:true, name:'Pull a drive-crew genome', days:600, req:[]},
+  {id:'lg5ha2', z:5, kind:'act', legacy:'hp', lset:'lg5h', name:'Trim it for clone work', days:600, req:['lg5ha1']},
+  {id:'lg5hb1', z:5, kind:'act', legacy:'hp', lset:'lg5h', lroot:true, name:'Grow a test body', days:600, req:[]},
+  {id:'lg5hb2', z:5, kind:'act', legacy:'hp', lset:'lg5h', name:'Check it against the drive\u2019s load', days:600, req:['lg5hb1']},
+  {id:'lg5h', z:5, kind:'act', legacy:'hp', lset:'lg5h', lfin:true, name:'Fit a drive-crew template', days:1200, req:['lg5ha2','lg5hb2']},   // legacy final: gives the bonus
+  {id:'lg5sx', z:5, kind:'train', legacy:'speed', lset:'lg5s', lroot:true, name:'Practise sequencer timing', days:40, req:[]},   // optional legacy drill
+  {id:'lg5sa1', z:5, kind:'act', legacy:'speed', lset:'lg5s', lroot:true, name:'Find the sequencer\u2019s timing table', days:600, req:[]},
+  {id:'lg5sa2', z:5, kind:'act', legacy:'speed', lset:'lg5s', name:'Shave the safety margins', days:600, req:['lg5sa1']},
+  {id:'lg5sb1', z:5, kind:'act', legacy:'speed', lset:'lg5s', lroot:true, name:'Upgrade the firing relays', days:600, req:[]},
+  {id:'lg5sb2', z:5, kind:'act', legacy:'speed', lset:'lg5s', name:'Dry-run the faster sequence', days:600, req:['lg5sb1']},
+  {id:'lg5s', z:5, kind:'act', legacy:'speed', lset:'lg5s', lfin:true, name:'Overclock the drive sequencer', days:1200, req:['lg5sa2','lg5sb2']},   // legacy final: gives the bonus
   {id:'pantryfix', z:5, kind:'act', meal:true, name:'Reseal the drive-crew pantry', days:1500, req:['starfix']},   // kitchen upgrade: rations come more often
   {id:'ignite', z:5, kind:'act', name:'Ignite the main drive', days:3000, req:['course','injectors'], win:true,
     log:'The stardrive lights. WARDEN begins the wake cycle for 3,112 sleepers. Your vat is scheduled for recycling.'},
@@ -913,13 +1013,14 @@ const TASKS = [
 ];
 const ZDAYS = {1:0.239, 2:0.812, 3:0.602, 4:0.531, 5:0.326, 6:0.778, 7:1.009, 8:1.009, 9:0.681, 10:0.915, 11:0.915, 12:0.87, 13:0.87, 14:0.87};   // no skill transfer: later sections are short, and speed comes from familiarity
 const TRAIN_CAP = 4, TRAIN_XP = 1.5;
-const T = {}; TASKS.forEach(t => { T[t.id] = t; t.sk = []; t.reps = t.kind === 'train' ? TRAIN_CAP : (t.reps || 1); if (t.days) t.days = Math.round(t.days * ZDAYS[t.z]); });
+const LEGACY_LEN = 0.6;   // legacy parts are needed for every crossing once revealed, so they are kept short
+const T = {}; TASKS.forEach(t => { T[t.id] = t; t.sk = []; t.reps = t.kind === 'train' ? TRAIN_CAP : (t.reps || 1); if (t.days) t.days = Math.round(t.days * ZDAYS[t.z] * (t.legacy && t.kind === 'act' ? LEGACY_LEN : 1)); });
 // A section's finisher (its crossing, the ignition or an Act II finale) needs every other action of the section.
 const isFinisher = t => !!(t.cross || t.win || t.finale);
-TASKS.forEach(t => { if (isFinisher(t)) t.req = TASKS.filter(x => x.z === t.z && x.kind === 'act' && x !== t && !isFinisher(x) && !x.legacy).map(x => x.id); });
+TASKS.forEach(t => { if (isFinisher(t)) t.req = TASKS.filter(x => x.z === t.z && x.kind === 'act' && x !== t && !isFinisher(x) && (!x.legacy || x.lfin)).map(x => x.id); });   // legacy finals count once their theme is revealed (reqMet)
 // Legacy tasks need the deepest regular action of their section (the last step before the crossing)
 { const dep = {}; const d = t => dep[t.id] != null ? dep[t.id] : (dep[t.id] = t.req.length ? 1 + Math.max(...t.req.map(r => d(T[r]))) : 0);
-  TASKS.forEach(t => { if (!t.legacy) return; const last = TASKS.filter(x => x.z === t.z && x.kind === 'act' && !x.legacy && !isFinisher(x)).sort((a, b) => d(b) - d(a) || TASKS.indexOf(b) - TASKS.indexOf(a))[0]; if (last) t.req = [last.id]; }); }
+  TASKS.forEach(t => { if (!t.lroot) return; const last = TASKS.filter(x => x.z === t.z && x.kind === 'act' && !x.legacy && !isFinisher(x)).sort((a, b) => d(b) - d(a) || TASKS.indexOf(b) - TASKS.indexOf(a))[0]; if (last) t.req = [last.id]; }); }
 
 const PERKS = [
   {id:'decant',   name:'Decant cache',          from:1, desc:'New clones wake with 1 ration.'},
@@ -1020,7 +1121,7 @@ ITEMS.forEach(i => { const t = {id:'b:' + i.id, gear:i.id, z:gearZone(i), kind:'
 
 let S, M;
 let HALT = false;   // set by the UI to stop the clock in the middle of a catch-up (e.g. pause on task completion)
-const HOOK = {legacy(){}, ngpEarn(){}, assembling(){}, taskDone(){}, log(){}, perk(){}, die(){}, win(){}, change(){}, stopped(){}, practiced(){}, done(){}, rested(){}, crossed(){}, bought(){}, qfull(){}, merge(){}, kit(){}, runEnd(){}};
+const HOOK = {legacy(){}, legacyAvail(){}, ngpEarn(){}, assembling(){}, taskDone(){}, log(){}, perk(){}, die(){}, win(){}, change(){}, stopped(){}, practiced(){}, done(){}, rested(){}, crossed(){}, bought(){}, qfull(){}, merge(){}, kit(){}, runEnd(){}};
 
 // Player preferences (switches, thresholds, boost speed) are stored once for the device, not per save:
 // a new game or another slot starts with the same settings.
@@ -1066,7 +1167,7 @@ const NGP = [
 const drainAt = k => 1 + 4 / NGP_MAX * k, speedAt = k => 1 + 1 / NGP_MAX * k, hpAt = k => Math.round(500 / NGP_MAX * k);
 // Legacy level of a theme (0..3, fractional): each of its five tasks, once done in this life, adds a
 // fifth, at 25% of its share untrained and 100% at full mastery (judged on the base threshold).
-const LEGACY_T = {}; TASKS.forEach(t => { if (t.legacy) (LEGACY_T[t.legacy] = LEGACY_T[t.legacy] || []).push(t); });
+const LEGACY_T = {}; TASKS.forEach(t => { if (t.lfin) (LEGACY_T[t.legacy] = LEGACY_T[t.legacy] || []).push(t); });
 const LEGACY_FAM = 2;   // legacy bonuses need twice the usual familiarity
 const legacyShare = t => Math.min(1, ((S.fam || {})[t.id] || 0) / (LEGACY_FAM * FAM_N0 * compUnit(t)));
 const ngpLv = id => { const L = S && S.life; if (!L || !LEGACY_T[id]) return 0; let v = 0; LEGACY_T[id].forEach(t => { if (L.done && L.done[t.id]) v += legacyShare(t) / 5; }); return NGP_MAX * v; };
@@ -1126,7 +1227,8 @@ const isDone = id => (S.life.done[id] || 0) >= T[id].reps;
 // Legacy themes are revealed one by one as Act II sections are first reached
 const LEGACY_REVEAL = {hp:7, drain:9, growth:11, speed:13};   // Act II sections 2, 4, 6 and 8
 const legacyOpen = t => !t.legacy || !!(S.won && S.a2run && S.a2run.reached && S.a2run.reached[LEGACY_REVEAL[t.legacy]]);
-const available = t => t.z === (S.life.sec || 1) && legacyOpen(t) && t.req.every(isDone);
+const reqMet = id => isDone(id) || !legacyOpen(T[id]);   // an unrevealed legacy final doesn't hold up its crossing
+const available = t => t.z === (S.life.sec || 1) && legacyOpen(t) && t.req.every(reqMet);
 const complete = t => t.kind !== 'job' && isDone(t.id);
 const lifeDays = () => Infinity;   // no lifespan limit
 function skF(s){ return (1 + 0.1 * S.life.lv[s]) * echoSpeed(s) * M.sk[s]; }
@@ -1173,7 +1275,7 @@ function addFam(t, a){ if (!S.fam) S.fam = {}; S.fam[t.id] = (S.fam[t.id] || 0) 
 // (kept small: drills reach dozens of tasks at once, so a large credit let a run skip most of its clones)
 const DRILL_CREDIT = 0.04;
 function drillCredit(d){
-  TASKS.forEach(t => { if (t.kind !== 'train' && t.z === d.z && !t.legacy) addFam(t, DRILL_CREDIT * compUnit(t) * famGain(t)); });
+  TASKS.forEach(t => { if (t.kind !== 'train' && t.z === d.z && (d.lset ? t.lset === d.lset : !t.legacy)) addFam(t, DRILL_CREDIT * compUnit(t) * famGain(t)); });   // a legacy drill trains its own five parts
 }
 // hazards hurt less the more familiar the task is (up to /4, like the old combat and resolve levels)
 function hazDmg(t){ return (t.haz || 0) * M.haz * M.a2haz / (1 + 3 * masteryFrac(t)); }
@@ -1326,7 +1428,7 @@ function chainsOf(z){
     out.push(comp.sort((a, b) => chainOrd(a) - chainOrd(b))); });
   return out;
 }
-const sectionTasks = z => TASKS.filter(t => t.z === z && t.kind !== 'train' && !t.legacy);
+const sectionTasks = z => TASKS.filter(t => t.z === z && t.kind !== 'train' && legacyOpen(t));   // revealed legacy parts are part of the section
 const sectionEnd = z => TASKS.find(t => t.z === z && (t.cross || t.win || t.finale));
 const sectionGear = z => ITEMS.filter(i => gearZone(i) === z);
 const gearAuto = i => !!(S.gauto && S.gauto[i.id]) && gearPracticed(i);
@@ -1530,6 +1632,7 @@ function finish(t){
   else if (t.win && !L.dead) enterZone(6, 5);   // on into Act II: the boarders first
   if (t.finale && complete(t)) finishBranch(t);
   if (complete(t)) HOOK.taskDone(t);
+  legacyCheck();
   HOOK.change();
 }
 // Run history: each clone's furthest section and time, plus the best run so far.
@@ -1796,24 +1899,23 @@ function chainRunKey(ck){
   const z = ts.length ? ts[0].z : 99;
   return zRank(z) * 1e7 + (ts.some(isFinisher) ? 1e6 : 0) + Math.min(...ts.map(chainOrd));
 }
-// Legacy tasks that can't be automated yet queue themselves each life (just before their section's
-// crossing), so clones learn them; once automated, chains and section runs take over. One you remove
-// from the queue stays out for that life.
+// Queue entry helpers: which section an entry belongs to, and whether it crosses out of it
 function qEntryZone(q){ if (isCQ(q)) { const x = cSteps(q).find(y => !isGQ(y)); return x ? T[x].z : 99; } if (isGQ(q)) return IT[q.slice(2)] ? gearZone(IT[q.slice(2)]) : 99; return T[q] ? T[q].z : 99; }
 function qEntryCrosses(q){ return isCQ(q) ? cSteps(q).some(x => !isGQ(x) && isFinisher(T[x])) : !!(T[q] && isFinisher(T[q])); }
-function queueLegacy(){
-  const L = S.life; if (!S.won) return false; let changed = false;
-  TASKS.forEach(t => {
-    if (!t.legacy || !legacyOpen(t) || isAuto(t) || (L.done || {})[t.id] || L.queue.includes(t.id) || (L.cdis || {})[t.id] || zBefore(t.z, L.sec || 1) || L.queue.length >= QMAX) return;
-    if (L.queue.some(q => isCQ(q) && cSteps(q).includes(t.id))) return;
-    let at = L.queue.findIndex(q => zAfter(qEntryZone(q), t.z) || (qEntryZone(q) === t.z && qEntryCrosses(q)));
-    if (at < 0) at = L.queue.length;
-    L.queue.splice(at, 0, t.id); changed = true;
-  });
-  return changed;
+// Legacy parts are never queued for you: a warning says when new ones open up in this life
+function legacyCheck(){
+  const L = S.life; if (!S.won || L.dead) return; L.lgw = L.lgw || {};
+  const fresh = TASKS.filter(t => t.legacy && t.kind === 'act' && !L.lgw[t.id] && available(t) && !complete(t) && !isAuto(t));
+  if (!fresh.length) return; fresh.forEach(t => { L.lgw[t.id] = 1; }); HOOK.legacyAvail(fresh);
+}
+// any open legacy part that nothing will run (not queued, not in a queued chain, not automated)
+function legacyIdle(){
+  const L = S.life; if (!S.won) return false;
+  const q = new Set(L.queue.flatMap(x => isCQ(x) ? cSteps(x) : [x]));
+  return TASKS.some(t => t.legacy && t.kind === 'act' && available(t) && !complete(t) && !isAuto(t) && !q.has(t.id) && L.now !== t.id);
 }
 function absorbChains(){
-  const L = S.life; let changed = queueLegacy();
+  const L = S.life; let changed = false;
   const p = pathOf(), from = Math.max(0, p.indexOf(L.sec || 1));
   p.slice(from).forEach(z => chainsOf(z).forEach(c => {
     const ck = chainKeyFor(c[0]); if (!ck) return;
@@ -2423,6 +2525,7 @@ function mergeState(raw){
   ['lv','perks'].forEach(k => { if (!s.a2[k]) s.a2[k] = {}; });
   if ((s.won || (s.pr && s.pr.n)) && !s.a2.open) s.a2.open = true;   // Act II opens for anyone who has lit the drive
   if (!s.a2run) s.a2run = {reached:{}, done:{}};
+  if (!s.lgSplit) { s.lgSplit = 1; if (s.fam) TASKS.forEach(t => { if (t.lfin && s.fam[t.id]) s.fam[t.id] /= 3; }); }   // legacy tasks split in five: the final is a third as long, so keep its trained share
   { const ok = q => typeof q === 'string' && (isCQ(q) ? cSteps(q).length > 0 : isGQ(q) ? !!IT[q.slice(2)] : !!T[q]);
     if (s.life) { ['queue', 'qdone'].forEach(k => { if (Array.isArray(s.life[k])) s.life[k] = s.life[k].filter(ok); });
       ['now', 'cur', 'held', 'autoJob'].forEach(k => { if (s.life[k] && !ok(s.life[k])) s.life[k] = null; });
@@ -2547,7 +2650,11 @@ HOOK.log = (title, text) => {
 HOOK.done = t => sfx('complete');
 HOOK.qfull = () => { sfx('error'); toast('The queue is full (' + QMAX + ' items). Remove something first.'); };
 HOOK.ngpEarn = (n, why) => { archKey = ''; toast('Act I reward point' + (n > 1 ? 's +' + n : ' +1') + ' for ' + why + '. Spend ' + (n > 1 ? 'them' : 'it') + ' in the Legacy tab.', true); };
-HOOK.legacy = k => { legKey = ''; taskKey = ''; toast('New legacy tasks: ' + LEG_NAME[k] + ', one in every Act I section (see the Legacy tab).', true); };
+HOOK.legacy = k => { legKey = ''; taskKey = ''; toast('New legacy tasks: ' + LEG_NAME[k] + ', five parts in every Act I section, needed for its crossing (see the Legacy tab).', true); };
+HOOK.legacyAvail = ts => { taskKey = ''; legKey = ''; sfx('perk');
+  const fin = ts.filter(t => t.lfin), parts = ts.filter(t => !t.lfin), where = zoneThe(ts[0].z);
+  fin.forEach(t => toast('Legacy final ready in ' + where + ': ' + t.name + '.', true));
+  if (parts.length) toast('Legacy tasks open in ' + where + ': ' + parts.map(t => t.name).join(', ') + '. Queue them: the crossing needs them.', true); };
 HOOK.assembling = (it, auto) => { gearKey = ''; taskKey = ''; toast((auto ? 'Auto-build: assembling ' : 'Assembling ') + it.name + ' (' + fmtDays(BT[it.id].days / speedOf(BT[it.id])) + ')'); };
 HOOK.bought = (it, auto, unlocked) => {
   sfx('buy'); gearKey = ''; taskKey = ''; autoKey = '';
@@ -2832,7 +2939,7 @@ function renderTasks(){
     // Tasks met in an earlier life stay listed, greyed out until everything they need is done (they can be queued)
     if (lk.length) h += '<div class="sub">Not yet available \u00b7 needs other tasks first</div>';
     lk.slice().sort((x, y) => chainOrd(x) - chainOrd(y)).forEach(t => {
-      const need = t.req.filter(r => !isDone(r)).map(r => S.seen[r] ? T[r].name : 'something unseen');
+      const need = t.req.filter(r => !reqMet(r)).map(r => S.seen[r] || T[r].legacy ? T[r].name : 'something unseen');
       h += `<div class="task lock" data-lock="${t.id}"><div class="tm"><div class="th"><span class="tn">${esc(t.name)}</span></div>
         <div class="tx">${chips(t)}<span>Needs: ${esc(need.join(', '))}</span></div></div>${qBtn(t.id, ' lockq')}</div>`;
     });
@@ -3109,11 +3216,11 @@ const LEG_NAME = {growth:'Echo', drain:'Dampening', hp:'Template', speed:'Overcl
 function ngpPanel(){
   const pr = S.pr || {n:0}, L = S.life;
   let h = '<div class="panel ngp"><span class="h2">Legacy tasks</span>';
-  h += '<p class="note">Legacy tasks open up one theme at a time as Act II unfolds. Each theme adds one task to every Act I section, available once a clone has done that section\u2019s last action before the crossing. Once a clone finishes one, its bonus works for the rest of that life and grows with mastery: nothing untrained, all of its share when fully mastered (they take twice the usual familiarity). All five of a theme, done and mastered, give its full effect. They are optional for crossings but join chains and section runs once automated. Echo, Dampening and Template work fully in Act I and at 10% in Act II; Overclock speeds up the whole game.</p>';
-  NGP.forEach(r => { const ts = LEGACY_T[r.id] || [], done = ts.filter(t => L.done && L.done[t.id]).length, k = ngpLv(r.id);
+  h += '<p class="note">Legacy tasks open up one theme at a time as Act II unfolds. Each theme adds five parts to every Act I section, once a clone has done that section\u2019s last regular action: two pairs of steps, then a final that needs both pairs. Once revealed they are <b>needed for the crossing</b>. Finishing the final gives its bonus for the rest of that life, growing with the final\u2019s mastery (nothing untrained, all of its share when fully mastered: finals take twice the usual familiarity). All five finals of a theme, done and mastered, give its full effect. Each set has an optional drill that trains its five parts. Legacy parts are never queued for you: a warning says when they open up. Echo, Dampening and Template work fully in Act I and at 10% in Act II; Overclock speeds up the whole game.</p>';
+  NGP.forEach(r => { const ts = LEGACY_T[r.id] || [], done = ts.filter(t => L.done && L.done[t.id]).length, k = ngpLv(r.id), pd = TASKS.filter(t => t.legacy === r.id && t.kind === 'act' && !t.lfin && L.done && L.done[t.id]).length;
     if (!legacyOpen(ts[0])) { h += '<div class="ngrow"><div><b>???</b> <span class="num">not revealed yet</span><small>Revealed further into Act II.</small></div></div>'; return; }
     const tr = Math.round(100 * ts.reduce((a, t) => a + (legacyShare(t) - 0.25) / 0.75, 0) / Math.max(1, ts.length));
-    h += `<div class="ngrow"><div><b>${LEG_NAME[r.id]}</b> <span class="num">${done}/5 done this life · ${tr}% trained</span><small>${k ? 'now: ' + r.now(k) : 'nothing yet this life'} · at full: ${r.now(NGP_MAX)}</small></div></div>`; });
+    h += `<div class="ngrow"><div><b>${LEG_NAME[r.id]}</b> <span class="num">${done}/5 finals · ${pd}/20 parts this life · ${tr}% trained</span><small>${k ? 'now: ' + r.now(k) : 'nothing yet this life'} · at full: ${r.now(NGP_MAX)}</small></div></div>`; });
   h += '<table class="dt">';
   h += `<tr><td>Quartermaster’s cache</td><td>${pr.kit ? 'unlocked: clones start with all their automated gear, in both acts' : 'unlocks when the drive is first lit'}</td></tr>`;
   if (pr.carry) h += `<tr><td>Time away carried over</td><td>${Math.min(pr.carry || 0, AWAY_CAP - AWAY_BASE) / 3600} h</td></tr>`;
@@ -3238,6 +3345,7 @@ function renderView(force){
   else if (tab === 'log') renderLog();
   else if (tab === 'faq') renderFaq();
   document.querySelector('[data-tab="log"]').classList.toggle('dot', newLog);
+  document.querySelector('[data-tab="tasks"]').classList.toggle('dot', legacyIdle());   // open legacy parts nothing will run
   document.querySelector('[data-tab="archive"]').classList.toggle('dot', newPerk);
   const lg = document.querySelector('[data-tab="legacy"]'); lg.hidden = !S.won; lg.classList.remove('dot');
 }
@@ -3457,7 +3565,7 @@ const FAQ_ALL = [
   ['Settings', '<b>Settings</b> (the ⚙ button, or Settings in the ☰ menu) holds the clock and pause options (death screen, starting paused, pausing in the background, after a new section, when a section run ends or when a task finishes), sound (music and effects), layout (vertical or horizontal) and, in the Android app, app updates. Food and automation options (auto-eat, auto-forage, the forage threshold, rests, feeding, filling storage) are in the Auto tab.'],
 ];
 // Shown once the drive is first lit.
-const FAQ_NGP = ['Legacy tasks', 'There is no restarting: after the drive is lit, the story always moves forward. As Act II unfolds, <b>legacy tasks</b> open up in Act I, one theme at a time; each theme adds a task to every Act I section, available once a clone has done that section\u2019s last action before its crossing. Once a clone finishes one, its bonus works for the rest of that life and grows with mastery (nothing untrained, full share at twice the usual familiarity; drills don\u2019t train them). All five of a theme, done and mastered, give its full effect. The tasks are optional for crossings but join chains and section runs once automated, and until then they queue themselves each life. The <b>Legacy</b> tab shows what each revealed theme does and how far it has got. Lighting the drive the first time also unlocks the <b>Quartermaster\u2019s cache</b>: every clone starts with all of its automated gear already built, in both acts.'];
+const FAQ_NGP = ['Legacy tasks', 'There is no restarting: after the drive is lit, the story always moves forward. As Act II unfolds, <b>legacy tasks</b> open up in Act I, one theme at a time. Each theme adds a set of five parts to every Act I section, open once a clone has done that section\u2019s last regular action: two pairs of steps, then a <b>final</b> that needs both pairs. Revealed sets are <b>needed for the crossing</b> (and for lighting the drive). Finishing a final gives its bonus for the rest of that life, growing with the final\u2019s mastery (nothing untrained, full share at twice the usual familiarity). All five finals of a theme, done and mastered, give its full effect. Each set has an optional <b>drill</b> that trains only its five parts; section drills don\u2019t train them. Legacy parts are never queued for you: a toast and a dot on the Tasks tab say when they open up. Once automated they join chains and section runs like any other task. The <b>Legacy</b> tab shows what each revealed theme does and how far it has got. Lighting the drive the first time also unlocks the <b>Quartermaster\u2019s cache</b>: every clone starts with all of its automated gear already built, in both acts.'];
 const FAQ_A2 = ['Act II', 'Once the main drive is lit, every clone that lights it carries on into <b>Act II</b>: nine more sections, one after another, each revealed when a clone first reaches it. Act II tasks have their own familiarity, which Echo legacy tasks reduce only at 10% strength: it starts at 90 lives\u2019 worth for \u00d710 and drops by a quarter at each of Act II\u2019s three big milestones. Act II familiarity, automation and records are kept for good.'];
 let faqDone = '';
 function renderFaq(){
