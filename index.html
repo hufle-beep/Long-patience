@@ -502,7 +502,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
 
 <script id="logic">
 /* ===== Game data and rules (no DOM) ===== */
-const BUILD = '2026-11-04 · rations only';   // shown in the main menu, to tell which version is loaded
+const BUILD = '2026-11-04 · jobs not automated';   // shown in the main menu, to tell which version is loaded
 const DPS = 8;             // simulation ticks per real second at 1x (doubled for the test version: same balance, half the real time)
 // Time is simulated in ticks. 80 ticks make one ship day (18 minutes each), so a day lasts
 // 20 real seconds at 1x and a clone lives weeks, not years. Everything is shown in days and hours.
@@ -1439,7 +1439,7 @@ const AUTO_LIVES = 10, JOB_PRAC_BATCHES = 10;
 function practiced(t){ return (S.prac[t.id] || 0) >= autoNeed(t); }
 // Automation switches itself on when a task is unlocked, unless you switched it off before
 function addPractice(t, n){ const b = S.prac[t.id] || 0, need = autoNeed(t); S.prac[t.id] = b + (n || 1); if (b < need && S.prac[t.id] >= need) { if (S.auto[t.id] !== false) S.auto[t.id] = true; HOOK.practiced(t); } }
-function isAuto(t){ return !!S.auto[t.id] && practiced(t); }
+function isAuto(t){ return t.kind !== 'job' && !!S.auto[t.id] && practiced(t); }   // jobs aren't automated: auto-forage, gear and the crossing top-up run them
 function storeRatio(t){ return t.prod && t.prod.rations ? (S.life.food[jobFood(t)] || 0) / M.fcap[jobFood(t)] : t.prod && t.prod.salvage ? S.life.salvage / M.salCap : 0; }
 // No priorities: automated tasks run in chain order, which follows the ship's requirements (a task
 // after the ones it needs; ties in ship order).
@@ -1461,7 +1461,7 @@ function chainsOf(z){
     out.push(comp.sort((a, b) => chainOrd(a) - chainOrd(b))); });
   return out;
 }
-const sectionTasks = z => TASKS.filter(t => t.z === z && t.kind !== 'train' && legacyOpen(t));   // revealed legacy parts are part of the section
+const sectionTasks = z => TASKS.filter(t => t.z === z && t.kind !== 'train' && t.kind !== 'job' && legacyOpen(t));   // revealed legacy parts are part of the section
 const sectionEnd = z => TASKS.find(t => t.z === z && (t.cross || t.win || t.finale));
 const sectionGear = z => ITEMS.filter(i => gearZone(i) === z);
 const gearAuto = i => !!(S.gauto && S.gauto[i.id]) && gearPracticed(i);
@@ -1504,11 +1504,13 @@ function endRun(L, why){ if (!L.chainRun) return; const from = L.runFrom || L.se
 const FILL_RESUME = 0.85;
 function fillJob(){
   const L = S.life;
-  for (const res of ['rations', 'salvage']) {
+  for (const res of wearsHere() ? ['rations', 'salvage'] : ['rations']) {   // before a crossing: food always; parts too in Act II (Act I salvage is gathered for gear)
     let best = null, br = 0;
+    // top up to what the clone needs, not to full: food to the auto-forage stop level, parts to the auto-scavenge one
+    const need = res === 'rations' ? Math.min(M.fcap.ration, M.fcap.ration * 2 * (S.set.foodPct || 40) / 100) : Math.min(M.salCap, 2 * Math.min(M.salCap * 0.5, partsPerDay() * (S.set.partsDays || 2) + shopNeed()));
     for (const t of TASKS) if (t.kind === 'job' && t.prod && t.prod[res] && available(t) && !jobFull(t)) {
-      const ratio = res === 'rations' ? (L.food[jobFood(t)] || 0) / M.fcap[jobFood(t)] : L.salvage / M.salCap;
-      if (L.fillOn !== t.id && ratio >= FILL_RESUME) continue;   // close enough to full: no top-up yet
+      const have = res === 'rations' ? (L.food[jobFood(t)] || 0) : L.salvage, ratio = need > 0 ? have / need : 1;
+      if (ratio >= 1 || (L.fillOn !== t.id && ratio >= FILL_RESUME)) continue;   // enough already (or close enough: no top-up yet)
       const r = t.prod[res] * speedOf(t) * (res === 'rations' ? foodQ(jobFood(t)) : 1); if (r > br) { br = r; best = t; }
     }
     if (best) { L.fillOn = best.id; return best; }
@@ -1539,7 +1541,7 @@ function pendingGearJob(){
 }
 // A crossing (queued or automated) stops just short of finishing while there is still something to
 // do in this section. Tapping the crossing yourself ("do it now") skips the wait.
-function crossPending(t){ return S.life.crossNow !== t.id && (pendingActs().length || pendingGearJob() || (S.set.fillCross && fillJob()) || pendingRest()); }
+function crossPending(t){ return S.life.crossNow !== t.id && (pendingActs().length || pendingGearJob() || (fillJob()) || pendingRest()); }
 // Section-end hold: when a crossing reaches its threshold with work left, it stays in the queue
 // marked as held (L.held), and at its place in the queue the missing items run in priority order.
 // Anything you put above it in the queue runs first. Once nothing is left, it completes.
@@ -1570,13 +1572,13 @@ function holdList(){
   const g = ITEMS.filter(it => S.gauto && S.gauto[it.id] && gearPracticed(it) && !L.owned[it.id] && !assembling(it.id) && isDone(it.req) && it.cost <= M.salCap)
     .sort((a, b) => ITEMS.indexOf(a) - ITEMS.indexOf(b))[0];
   if (g && pendingGearJob()) out.push('build ' + g.name);
-  if (S.set.fillCross && fillJob()) out.push('refill storage');
+  if (fillJob()) out.push('refill storage');
   const r = pendingRest(); if (r) out.push(r.name);
   return out;
 }
 function holdTask(t){
   if (!crossHeld(t)) return null;
-  return pendingActs()[0] || pendingGearJob() || (S.set.fillCross ? fillJob() : null) || pendingRest() || null;
+  return pendingActs()[0] || pendingGearJob() || fillJob() || pendingRest() || null;
 }
 function crossHeld(t){ return (S.life.prog[t.id] || 0) >= t.days - CROSS_HOLD - 1e-9 && !!crossPending(t); }
 // Gear automation: a design built in AUTO_LIVES different lives can be built automatically.
@@ -1615,7 +1617,7 @@ function feedJob(){
   const L = S.life;
   if (!S.set.autoFeed) { L.feeding = false; return null; }
   let job = null, br = 0;
-  for (const t of TASKS) if (t.kind === 'job' && t.prod && t.prod.rations && isAuto(t) && available(t) && !jobFull(t)) {
+  for (const t of TASKS) if (t.kind === 'job' && t.prod && t.prod.rations && available(t) && !jobFull(t)) {
     const r = t.prod.rations * speedOf(t) * foodQ(jobFood(t)); if (r > br) { br = r; job = t; }
   }
   if (!job) { L.feeding = false; return null; }
@@ -2888,7 +2890,7 @@ function secRunHtml(z){
   return `<div class="secrun dim"><span>Section chain: ${g.ok}/${g.n} parts automated at \u00d7${SECTION_F} (gear: automated). ${S.set.autoRun ? ' It starts by itself once ready.' : ''} Details in the Auto tab.</span><button class="btn" disabled>\u25b6 Run section</button></div>`;   // always shown above the queue
 }
 function autoBtn(t){
-  if (!practiced(t)) return '';
+  if (!practiced(t) || t.kind === 'job') return '';
   const on = !!S.auto[t.id];
   return `<button class="ta${on ? ' on' : ''}" data-auto="${t.id}" aria-pressed="${on}" aria-label="Automate ${esc(t.name)}">AUTO</button>` +
 ''; 
@@ -3008,7 +3010,7 @@ function renderTasks(){
           <button class="tm" data-do="${t.id}"><div class="tf"></div>
             <div class="th"><span class="tn">${esc(t.name)}</span><span class="te num" data-r="${res}"></span></div>
             <div class="tx">${chips(t)}${t.haz ? '<span class="haz">▲ hazard</span>' : ''}${!t.prod ? '<span>no output</span>' : '<span class="tt num"></span>'}<span class="pr num"></span></div>
-          </button><div class="side">${tqBtn(t)}${autoBtn(t)}</div></div>` + prioPick(t);
+          </button></div>`;   // jobs: no queue or automation buttons (auto-forage, gear and crossings run them)
       });
     }
     if (rests.length) {
@@ -3097,7 +3099,7 @@ function updateTasks(){
       if (r.rp) r.rp.textContent = (L.done[t.id] || 0) + '/' + t.reps;
     } else {
       jobBar(r.f, t, sp);
-      if (r.pr) r.pr.textContent = masteryTxt(t) + (practiced(t) ? '' : ' \u00b7 auto ' + (S.prac[t.id] || 0) + '/' + autoNeed(t));
+      if (r.pr) r.pr.textContent = masteryTxt(t) + (practiced(t) || t.kind === 'job' ? '' : ' \u00b7 auto ' + (S.prac[t.id] || 0) + '/' + autoNeed(t));
       if (t.prod) {
         const res = t.prod.rations ? 'rations' : 'salvage';
         const batch = t.prod[res] * JOB_CYCLE;
@@ -3623,15 +3625,15 @@ function pauseSettingsHtml(){
 }
 function renderAuto(){
   const L = S.life;
-  const list = TASKS.filter(t => practiced(t));
+  const list = TASKS.filter(t => practiced(t) && t.kind !== 'job');   // jobs aren't automated
   const glist = ITEMS.filter(gearPracticed);
   const key = JSON.stringify(secFold) + (S.life.sec || 1) + list.map(t => t.id + (S.auto[t.id] ? '*' : '') + (masteryF(t) >= SECTION_F ? 5 : masteryF(t) >= LINK_F ? 2 : 1)).join() + '|' + glist.map(i => i.id + (S.gauto[i.id] ? '*' : '')).join() + '|' + (S.life.chainRun ? 'R' : '') + '|' + L.sec + '|' + S.gen + '|' + !!S.set.fillCross + !!S.set.autoFeed + '|' + restAt() + '|' + (S.set.deathScreen !== false) + (S.set.deathPause !== false) + !!S.set.startPaused + !!S.set.bgPause + !!S.set.pauseCross + decantUnlocked() + (S.stats.deaths || 0);
   if (key === autoKey) return; autoKey = key;
-  let h = `<div class="panel"><span class="h2">Automation</span><p class="note">Tasks finished often enough can run by themselves (${autoScale() < 1 ? 'this run needs ' + Math.round(autoScale() * 100) + '% of' : ''} 10 lives' worth: an action 10 times, a training session 40 times, a job ${AUTO_LIVES * JOB_UNIT} batches), and gear built in ${AUTO_LIVES} lives can be built automatically (in ship order; the clone saves up for the next one). Switch them on here. They run in chain order: each after the tasks it needs. Linked tasks form chains, and a fully chained section can be run with one click. Automated tasks run ahead of your queue (automated jobs when their store drops below the forage threshold); automated crossings wait until the queue is done. Rests fire on their own at strain ×${restAt()}, and also just before an automated crossing if the section\u2019s rest is still unused.</p>
+  let h = `<div class="panel"><span class="h2">Automation</span><p class="note">Tasks finished often enough can run by themselves (${autoScale() < 1 ? 'this run needs ' + Math.round(autoScale() * 100) + '% of' : ''} 10 lives' worth: an action 10 times, a training session 40 times, a job ${AUTO_LIVES * JOB_UNIT} batches), and gear built in ${AUTO_LIVES} lives can be built automatically (in ship order; the clone saves up for the next one). Switch them on here. They run in chain order: each after the tasks it needs. Linked tasks form chains, and a fully chained section can be run with one click. Automated tasks run ahead of your queue; automated crossings wait until the queue is done. Rests fire on their own at strain ×${restAt()}, and also just before an automated crossing if the section\u2019s rest is still unused.</p>
     ${foodSettingsHtml()}${partsSettingsHtml()}
     <div class="fld"><label for="rest-at">Automated rests fire at strain \u00d7</label><div class="pctin"><input type="text" id="rest-at" inputmode="decimal" autocomplete="off" value="${restAt()}"><span>Rests also fire just before an automated crossing if still unused.</span></div></div>
-    <div class="row"><p>Feed when needed<small>Automated food jobs step in when food runs low, or when health is low and meals can still heal faster than strain drains it. They refill to what is needed, then the interrupted task carries on.</small></p><button class="tog${S.set.autoFeed ? ' on' : ''}" data-set="autoFeed" aria-label="Feed when needed" aria-pressed="${!!S.set.autoFeed}"></button></div>
-    <div class="row"><p>Fill storage before moving on<small>A queued or automated crossing stops just before it finishes and steps out of the queue while the section is wrapped up: unfinished automated actions and drills (in chain order), affordable automated gear, refilling ration and salvage storage, and the unused automated rest. Then it returns to the front of the queue and completes. The queue shows what is left and a button to skip it; tapping a crossing yourself also goes at once.</small></p><button class="tog${S.set.fillCross ? ' on' : ''}" data-set="fillCross" aria-label="Fill storage before moving on" aria-pressed="${!!S.set.fillCross}"></button></div></div>`;
+    <div class="row"><p>Feed when needed<small>Food jobs step in when food runs low, or when health is low and meals can still heal faster than strain drains it. They refill to what is needed, then the interrupted task carries on.</small></p><button class="tog${S.set.autoFeed ? ' on' : ''}" data-set="autoFeed" aria-label="Feed when needed" aria-pressed="${!!S.set.autoFeed}"></button></div>
+</div>`;
   if (!list.length && !glist.length) {
     h += `<p class="note">Nothing unlocked yet. Finish an action 10 times (a multi-rep action 10 times its reps), a training session 40 times, or work a job for ${AUTO_LIVES * JOB_UNIT} batches, and it will appear here. Gear counts once built in ${AUTO_LIVES} different lives.</p>`;
   }
@@ -3696,7 +3698,7 @@ const FAQ_ALL = [
   ['What are sections?', 'The ship is split into five sections. A <b>red</b> action leads to the next one, and the way back is sealed for that clone, so finish what you need first (records, the rest, training, gear). Each new clone starts back in the Vat Bay.'],
   ['What is gear?', 'Gear is built from salvage (called spare parts in Act II: the same store) and lasts for one clone. Each section has designs to build. Building one pays its salvage up front, then the clone spends time <b>assembling</b> it (bigger designs take longer, from a moment for a toolkit to half a minute or so of in-game time for the largest); assembly comes before other work and gets faster with familiarity. The gear works once it is assembled. Salvage storage is limited; opening up more of the ship raises it.'],
   ['What is familiarity?', 'There are no skills: each task gets faster on its own the more of it your clones have done. Familiarity counts work in completions, including attempts a clone died in the middle of, and is kept between clones. Speed rises smoothly from ×1 to ×10 once you have done enough of a task: in a first run, 90 lives’ worth of it (90 finishes of an action, 1800 batches of a job). Each level of the Act I reward <b>Deep echo</b> lowers that for Act I tasks by about 30%. Familiar tasks also hurt less (hazard damage up to ÷4), and a familiar food job lets its food be eaten more often. <b>Drills</b> spread familiarity to every task in their section. The Speed tab lists every task.'],
-  ['How does automation work?', 'Every completion counts: finish an action 10 times (a multi-rep action 10 times its reps), a training session 40 times or a rest 10 times, work a job for 200 batches, or build a design in 10 lives, and its automation <b>switches on by itself</b>. For Act I tasks these counts shrink along with the familiarity threshold (Deep echo), never below one; tap <b>AUTO</b> (or its switch in the Auto tab) to turn it off, and it stays off. Automated tasks run by themselves <b>ahead of your queue</b>, in chain order (each after the tasks it needs). Automated tasks <b>link into chains</b> when one requires the other and both are at least ×2 familiar. When every action, crossing, job and rest of a section is automated and ×5 familiar, and all its gear designs are automated, the whole section becomes <b>one chain</b>: press <b>▶ Run section</b> (above the queue in the Tasks tab) and the clone works through everything, builds the gear, fills its stores and crosses. The run is pinned at the top of the queue and the queue\u2019s leftovers for its sections are cleared. Pressing it also turns on <b>Always run sections once ready</b> (Auto tab): from then on a run starts by itself whenever the section you are in is ready. Stop turns that off again. Ready sections next to each other link across their crossings into one run (<b>▶ Run 3 sections</b>), up to the end of the act; a run that dies starts again with the next clone. The option <b>Pause when a section run ends instead</b> keeps a run going through its crossings and pauses once it is over. A chain picks its next step itself each time: gear first, then kitchen upgrades, then the actions and drills in the order they depend on each other, then rests and storage-filling jobs, and the crossing last. When a chain forms or grows, it <b>queues itself</b>, including the chains of sections still ahead, and chain entries are kept in the order they will run: section by section, and within a section the chain that starts earliest first, with the crossing\u2019s chain last, and anything of it you had queued separately is dropped from the queue. If you remove a chain from the queue, it stays out for the rest of that clone\u2019s life. Work done as part of a chain (a queued chain or a section run) builds <b>chain flow</b>, which makes chained steps up to five times as fast; it is kept for good. An automated food job steps in when its store drops below the forage threshold and fills it up. An automated <b>salvage</b> job only gathers what gear needs: the next auto-built or queued design that is found and not built yet; it does not top the store up to full (except while filling up before a crossing). Automated <b>crossings</b> are the exception: they wait until your queue is done. A task you tap runs before everything. The <b>Auto</b> tab lists everything unlocked and has extra options: feeding when needed, filling storage before moving on, the strain level for automatic rests, the death screen and starting paused.'],
+  ['How does automation work?', 'Every completion counts: finish an action 10 times (a multi-rep action 10 times its reps), a training session 40 times or a rest 10 times, or build a design in 10 lives, and its automation <b>switches on by itself</b>. For Act I tasks these counts shrink along with the familiarity threshold (Deep echo), never below one; tap <b>AUTO</b> (or its switch in the Auto tab) to turn it off, and it stays off. Automated tasks run by themselves <b>ahead of your queue</b>, in chain order (each after the tasks it needs). Automated tasks <b>link into chains</b> when one requires the other and both are at least ×2 familiar. When every action, crossing and rest of a section is automated and ×5 familiar, and all its gear designs are automated, the whole section becomes <b>one chain</b>: press <b>▶ Run section</b> (above the queue in the Tasks tab) and the clone works through everything, builds the gear, fills its stores and crosses. The run is pinned at the top of the queue and the queue\u2019s leftovers for its sections are cleared. Pressing it also turns on <b>Always run sections once ready</b> (Auto tab): from then on a run starts by itself whenever the section you are in is ready. Stop turns that off again. Ready sections next to each other link across their crossings into one run (<b>▶ Run 3 sections</b>), up to the end of the act; a run that dies starts again with the next clone. The option <b>Pause when a section run ends instead</b> keeps a run going through its crossings and pauses once it is over. A chain picks its next step itself each time: gear first, then kitchen upgrades, then the actions and drills in the order they depend on each other, then rests and storage-filling jobs, and the crossing last. When a chain forms or grows, it <b>queues itself</b>, including the chains of sections still ahead, and chain entries are kept in the order they will run: section by section, and within a section the chain that starts earliest first, with the crossing\u2019s chain last, and anything of it you had queued separately is dropped from the queue. If you remove a chain from the queue, it stays out for the rest of that clone\u2019s life. Work done as part of a chain (a queued chain or a section run) builds <b>chain flow</b>, which makes chained steps up to five times as fast; it is kept for good. Jobs are never automated: auto-forage keeps the food up, queued and automated gear work the salvage jobs, and every crossing tops the stores up before the clone moves on. An automated <b>salvage</b> job only gathers what gear needs: the next auto-built or queued design that is found and not built yet; it does not top the store up to full (except while filling up before a crossing). Automated <b>crossings</b> are the exception: they wait until your queue is done. A task you tap runs before everything. The <b>Auto</b> tab lists everything unlocked and has extra options: feeding when needed, filling storage before moving on, the strain level for automatic rests, the death screen and starting paused.'],
   ['What happens at a crossing with automation?', 'A queued or automated crossing stops just before it finishes and waits while the clone finishes automated actions and training, builds affordable automated gear, refills storage (if that option is on) and uses the section’s rest. Tap a crossing yourself to go at once.'],
   ['Pause, background and speed', 'Progress is saved on this device only (this browser or the app); use <b>Save files</b> in the main menu (\u2630) to back it up or move it, and <b>Restart</b> next to the slot there to start this slot over. Pause with the button at the top or the space bar. The game keeps running in a background tab and catches up when you return, then shows what happened while you were away. At most 8 hours of background time is played out; each <b>Stasis watch</b> record adds 8 hours (you get one the first time you finish each Act I section). Time while the game is fully closed does not count. The <b>speed menu</b> (\u00bb) at the top appears once Act I has been cleared: \u00d72 then, and \u00d75 once Act II has been cleared. It is a flat speed-up of real time, kept on this device for every save.'],
   ['Save management', 'The game saves itself every few seconds on this device. <b>Save Management</b> in the \u2630 menu holds: the three <b>save slots</b> (load one, copy your current game into another as a save state with \u201cSave here\u201d, or delete one); <b>Restart</b>, next to the slot you are playing, which starts that slot over; and <b>Save files and transfer</b>: export a save file, import one, copy the save as text to move it between devices, or share it to the game\u2019s GitHub folder and load shared saves from there.'],
