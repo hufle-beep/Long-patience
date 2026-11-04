@@ -296,6 +296,7 @@ input[type=range]{width:100%;accent-color:var(--amber)}
 #tabs button{position:relative;padding:12px 0 13px;font-family:var(--f-disp);font-size:12px;letter-spacing:0;text-transform:uppercase;color:var(--dim);font-weight:600}
 #tabs button.on{color:var(--amber)}
 #tabs button.on::before{content:"";position:absolute;top:-1px;left:10%;right:10%;height:2px;background:var(--amber)}
+.fnew{font-family:var(--f-mono);font-size:10.5px;color:var(--bg);background:var(--cyan);border-radius:3px;padding:0 5px;margin-left:6px;vertical-align:middle}
 #tabs button.dot::after{content:"";position:absolute;top:9px;right:18%;width:6px;height:6px;border-radius:50%;background:var(--cyan)}
 
 /* modal + toast */
@@ -487,7 +488,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
 // Renamed from Long Patience: move this device's old storage keys to the new 'selene.' names once
 try { const old = []; for (let n = 0; n < localStorage.length; n++) old.push(localStorage.key(n)); old.forEach(k => { if (k && k.indexOf('long-patience.') === 0) { const nk = 'selene.' + k.slice(14); if (localStorage.getItem(nk) == null) localStorage.setItem(nk, localStorage.getItem(k)); localStorage.removeItem(k); } }); } catch(e) {}
 /* ===== Game data and rules (no DOM) ===== */
-const BUILD = '2026-11-04 · test speeds';   // shown in the main menu, to tell which version is loaded
+const BUILD = '2026-11-04 · FAQ unfolds, reset';   // shown in the main menu, to tell which version is loaded
 const DPS = 8;             // simulation ticks per real second at 1x (doubled for the test version: same balance, half the real time)
 // Time is simulated in ticks. 80 ticks make one day unit (18 minutes each), so a day lasts
 // 20 real seconds at 1x and Players only ever see in-game time and real time, never days.
@@ -2373,8 +2374,9 @@ function deathSave(){
   if (!S) return;
   try { localStorage.setItem(slotKey(deathKey(slot)), JSON.stringify(S)); } catch(e) {}
 }
+let wiping = false;   // set while a reset clears storage, so nothing writes it back before the reload
 function save(){
-  if (!S) return;
+  if (!S || wiping) return;
   try { S.saved = Date.now(); localStorage.setItem(slotKey(slot), JSON.stringify(S)); localStorage.setItem(ACTIVE_KEY, slot); } catch(e) {}
   savePrefs();
 }
@@ -2430,7 +2432,7 @@ async function parseSaveAny(txt){
 function parseSaveText(txt){
   txt = (txt || '').trim(); let raw = null;
   try { raw = JSON.parse(txt.startsWith('{') ? txt : b64dec(txt)); } catch(e) {}
-  return raw && raw.life ? raw : null;
+  return raw && (raw.life || (raw.seleneAllSaves && raw.slots)) ? raw : null;
 }
 document.addEventListener('change', e => {
   if (e.target.id === 'share-name') { try { localStorage.setItem(SHARE_KEY, e.target.value.trim()); } catch(err) {} return; }
@@ -2444,6 +2446,11 @@ document.addEventListener('change', e => {
 window.onAndroidExport = (ok, msg) => toast(ok ? 'Saved ' + msg : 'Export failed: ' + msg);
 
 function applyLoaded(raw, from){
+  if (raw.seleneAllSaves) {   // a file with every slot: restore them all, after a warning
+    const ks = Object.keys(raw.slots || {});
+    return askOverwrite('Restore all saves from this file?', 'It holds ' + ks.length + ' save' + (ks.length === 1 ? '' : 's') + ' (' + ks.map(k => /^d/.test(k) ? 'death save ' + k.slice(1) : 'slot ' + k).join(', ') + '). Each one replaces the save in the same slot on this device; other slots are kept.',
+      [['Restore them', 'warn', () => { save(); wiping = true; try { ks.forEach(k => localStorage.setItem(slotKey(k), JSON.stringify(raw.slots[k]))); localStorage.setItem(ACTIVE_KEY, raw.active && raw.slots[raw.active] ? raw.active : ks.find(k => !/^d/.test(k)) || ks[0]); } catch(e) {} location.reload(); }]], 'saves');
+  }
   S = mergeState(raw); M = mods(); pinChains();
   taskKey = ''; gearKey = ''; archKey = ''; logKey = '';
   paused = false; hideModal(); S.intro = true; save();
@@ -2697,13 +2704,13 @@ const nameIn = () => { const el = $('#ow-name'); return el ? cleanName(el.value)
 const slotDesc = r => (r && r.name ? '\u201c' + r.name + '\u201d, ' : '') + slotInfo(r);
 // Overwrite warning: a panel that says what will be lost, with the choices and Cancel.
 let owActs = {};
-function askOverwrite(title, body, choices, back, name){
+function askOverwrite(title, body, choices, back, name){   // back: a menu view name, or a function for Cancel
   owActs = {};
   let h = '<h2>' + esc(title) + '</h2>' + (body ? '<p class="owarn">\u26a0 ' + esc(body) + '</p>' : '');
   if (name != null) h += `<label class="owname"><span class="lbl">Save name (optional)</span><input id="ow-name" type="text" maxlength="${NAME_MAX}" value="${esc(name)}" placeholder="No name: shown as the slot number" autocomplete="off"></label>`;
   h += '<div class="mbtns">';
   choices.forEach(([label, cls, fn], n) => { owActs['c' + n] = fn; h += `<button class="btn ${cls}" data-ow="c${n}">${esc(label)}</button>`; });
-  owActs.x = () => showMenu(back || 'saves');
+  owActs.x = () => typeof back === 'function' ? back() : showMenu(back || 'saves');
   h += '<button class="btn" data-ow="x">Cancel</button></div>';
   showModal(h);
 }
@@ -3446,6 +3453,7 @@ function renderView(force){
   document.querySelector('[data-tab="log"]').classList.toggle('dot', newLog);
   document.querySelector('[data-tab="tasks"]').classList.toggle('dot', legacyIdle());   // open legacy parts nothing will run
   document.querySelector('[data-tab="archive"]').classList.toggle('dot', newPerk);
+  faqCheck(); document.querySelector('[data-tab="faq"]').classList.toggle('dot', tab !== 'faq' && faqNew());
   const lg = document.querySelector('[data-tab="legacy"]'); lg.hidden = !S.won; lg.classList.remove('dot');
 }
 // Legacy tab: what the line of clones has earned for good (Act I rewards, legacy tasks)
@@ -3655,16 +3663,16 @@ function renderAuto(){
 const FAQ_ALL = [
   ['Selene and the Root-Kin', 'The Root-Kin of Earth grow their technology: tools, cities, vehicles and ships come from specialised trees, hardened with magic. It is a highly advanced techno-magical civilisation, and everything in it is organic. There are no nation states left, but the local cultures are kept alive. One World Government has ruled for thousands of years: a democracy with slight meritocratic elements. <b>Selene</b> is one of their colony ships: a long, swept hull of living wood with crescent wings, grown around the <b>Hearth Tree</b>, which is her drive, her mind (WARDEN) and her garden at once. Root-Kin ships ride the ambient magic that saturates the universe, close to the speed of light, inside magical ward-shields and under artificial gravity, and can turn on any axis without strain. That is why, halfway there, Selene has to <b>flip</b> and brake for the rest of the voyage. Seedlings like K-7 are disposable drones of WARDEN and the Hearth Tree, grown for a single task and given just enough autonomy to carry it out.'],
   ['What is the goal?', 'Restore Selene so WARDEN can wake the sleeping crew. All of Act I happens inside the Hearth Tree, her drive, mind and garden at once: the sap flow that powers her in the Taproot Galleries, WARDEN\u2019s mind and the star-charts in the Heartwood, the food gardens in the Canopy Gardens, and the Hearthfire in the Ember Crown. Act I ends when you kindle the Hearth Tree. One seedling cannot do it all; it takes many lives (around 50 with very good play).'],
-  ['How do I start?', 'Tap a task to work on it right away. Climb out of the seed pod first, then tap the pod bay power bus for sap cells and strip wall panels for deadwood. Time only moves while your seedling is working: with nothing to do, the clock stops, so you can always read and plan.'],
+  ['How do I start?', 'Tap a task to work on it right away. Climb out of the seed pod first, then tap the vault\u2019s sap line for sap cells and strip dead bark panels for deadwood. Time only moves while your seedling is working: with nothing to do, the clock stops, so you can always read and plan.'],
   ['What are jobs, actions and training?', '<b>Jobs</b> repeat and make sap cells or deadwood in batches; they stop when that storage is full. <b>Actions</b> are one-off tasks that unlock things and move the story on. Each needs certain earlier actions, and a section\u2019s last action (its crossing) needs every other action of that section. Tasks you have met before stay listed, greyed out, until what they need is done; you can still queue them. <b>Drills</b> each add a little familiarity to every task in their section, up to 4 sessions per life.'],
   ['How does the queue work?', 'Tapping a task runs it right away, ahead of the queue (a job runs until its store is full); it is not added to the queue. Tapping a gear card works the same way: it is built right away, after gathering the deadwood (grafts in Act II) it still needs. <b>+</b> adds a task to the end of the queue; drag it or use the arrows to move it up. You can queue the same task several times at different places: tap + again for another copy. A task queued once runs until it is done; with several copies, each copy covers one repetition (one training session, one rep, or one fill of a store). The queue holds up to 100 items. Drag an item by the handle on its left to move it, or use the arrows; ✕ removes it. Queued jobs run until their storage is full. You can queue things you have seen before even if they are not available yet; they wait their turn. Gear can be queued too, with the <b>+</b> on its card (gear is listed in each section of the Tasks tab): the seedling works the best deadwood job until it can afford the design, then builds it. Five presets save and load whole queues, and <b>Keep queue between seedlings</b> gives each new seedling the queue you planned, minus anything that is automated and switched on.'],
   ['Energy and sap cells', 'Seedlings are biomechanical: as long as they have energy, the body is sustained. The <b>Energy</b> bar drains all the time; each recharge uses one <b>sap cell</b> and puts energy back. <b>Every recharge restores the same amount</b>; what changes is how often the seedling can recharge. Sap cells are carried up to the seedling\u2019s <b>storage capacity</b>, which grows as the seedling gets deeper into the ship (5 in the Seedling Vaults, up to 90 in the Ember Crown, in steps of 5), plus gear and records. Each section has a <b>charging station</b> job, but it only opens partway into the section and holds a limited <b>reserve</b> per seedling life; when it is drained, the seedling has to cross or run down. Every crossing also costs a share of the cells carried, more the further into the ship you go, so a seedling always arrives living on what it brought. At first a seedling can recharge every 5 seconds of in-game time. Each section has one <b>charger upgrade</b> action that shortens the wait between recharges for the rest of that life, down to about 2 seconds, and adds half again to that section\u2019s station reserve; each seedling has to fix them again. Recharges are always whole, and the seedling only recharges when it needs to: when a whole recharge fits under full energy, or sooner once energy is down to half. At full energy no cell is used. With no cells left at all, the seedling runs down. The Hive Ship\u2019s only charging comes late, so arrive charged.'],
   ['What carries over when a seedling dies?', '<b>Familiarity</b> is kept: every task stays as fast as your seedlings have made it (see the Mastery tab). Every 10 seconds of in-game time a seedling survives is analysed afterwards, run and memory alike, and becomes an <b>efficiency patch</b>: later seedlings drain their energy a little more slowly, up to \u00f71.6. <b>Archive records</b> found by finishing certain actions are permanent upgrades. Gear, sap cells, deadwood and progress through the ship reset.'],
-  ['What are sections?', 'The ship is split into five sections. A <b>red</b> action leads to the next one, and the way back is sealed for that seedling, so finish what you need first (records, the rest, training, gear). Each new seedling starts back in the Seedling Vaults.'],
+  ['What are sections?', 'The ship is split into five sections. A <b>red</b> action leads to the next one, and the way back is sealed for that seedling, so finish what you need first (records, training, gear). Each new seedling starts back in the Seedling Vaults.'],
   ['What is gear?', 'Gear is built from deadwood (called grafts in Act II: the same store) and lasts for one seedling. Each section has designs to build. Building one pays its deadwood up front, then the seedling spends time <b>assembling</b> it (bigger designs take longer, from a moment for a toolkit to half a minute or so of in-game time for the largest); assembly comes before other work and gets faster with familiarity. The gear works once it is assembled. Deadwood storage is limited; opening up more of the ship raises it.'],
   ['What is familiarity?', 'There are no skills: each task gets faster on its own the more of it your seedlings have done. Familiarity counts work in completions, including attempts a seedling died in the middle of, and is kept between seedlings. Speed rises smoothly from ×1 to ×10 once you have done enough of a task: in a first run, 90 lives’ worth of it (90 finishes of an action, 1800 batches of a job). Each level of the <b>Echo</b> legacy theme lowers that for Act I tasks. Familiar tasks also hurt less (hazard damage up to ÷4), and a familiar charging station charges faster. <b>Drills</b> spread familiarity to every task in their section. The Mastery tab lists every task.'],
   ['How does automation work?', 'Every completion counts: finish an action 10 times (a multi-rep action 10 times its reps), or a training session 40 times, or build a design in 10 lives, and its automation <b>switches on by itself</b>. For Act I tasks these counts shrink along with the familiarity threshold (Echo legacy), never below one; tap <b>AUTO</b> (or its switch in the Auto tab) to turn it off, and it stays off. Automated tasks run by themselves <b>ahead of your queue</b>, in chain order (each after the tasks it needs). Automated tasks <b>link into chains</b> when one requires the other and both are at least ×2 familiar. When every action and crossing of a section is automated and ×5 familiar, and all its gear designs are automated, the whole section becomes <b>one chain</b>: press <b>▶ Run section</b> (above the queue in the Tasks tab) and the seedling works through everything, builds the gear, fills its stores and crosses. The run is pinned at the top of the queue and the queue\u2019s leftovers for its sections are cleared. Pressing it also turns on <b>Always run sections once ready</b> (Auto tab): from then on a run starts by itself whenever the section you are in is ready. Stop turns that off again. Ready sections next to each other link across their crossings into one run (<b>▶ Run 3 sections</b>), up to the end of the act; a run that dies starts again with the next seedling. The option <b>Pause when a section run ends instead</b> keeps a run going through its crossings and pauses once it is over. A chain picks its next step itself each time: gear first, then charger upgrades, then the actions and drills in the order they depend on each other, and the crossing last. When a chain forms or grows, it <b>queues itself</b>, including the chains of sections still ahead, and chain entries are kept in the order they will run: section by section, and within a section the chain that starts earliest first, with the crossing\u2019s chain last, and anything of it you had queued separately is dropped from the queue. If you remove a chain from the queue, it stays out for the rest of that seedling\u2019s life. Work done as part of a chain (a queued chain or a section run) builds <b>chain flow</b>, which makes chained steps up to five times as fast; it is kept for good. Jobs are never automated: auto-forage keeps the charge up, queued and automated gear work the deadwood jobs, and every crossing tops the stores up before the seedling moves on. An automated <b>deadwood</b> job only gathers what gear needs: the next auto-built or queued design that is found and not built yet; it does not top the store up to full (except while filling up before a crossing). Automated <b>crossings</b> are the exception: they wait until your queue is done. A task you tap runs before everything. The <b>Auto</b> tab lists everything unlocked and has extra options: charging when needed, the death screen and starting paused.'],
-  ['What happens at a crossing with automation?', 'A queued or automated crossing stops just before it finishes and waits while the seedling finishes automated actions and training, builds affordable automated gear, refills storage (if that option is on) and uses the section’s rest. Tap a crossing yourself to go at once.'],
+  ['What happens at a crossing with automation?', 'A queued or automated crossing stops just before it finishes and waits while the seedling finishes automated actions and training, builds affordable automated gear and refills storage (if that option is on). Tap a crossing yourself to go at once.'],
   ['Pause, saving and speed', 'Progress is saved on this device only (this browser or the app); use <b>Save files</b> in the main menu (\u2630) to back it up or move it, and <b>Restart</b> next to the slot there to start this slot over. Pause with the button at the top or the space bar. The game only runs while it is on screen: in another app, a background tab or closed, the clock stops and carries on where it left off. Each <b>Stasis watch</b> record (one for leaving each section the first time) tunes the seedlings\u2019 stasis: energy drains a little slower, more with each one, up to \u221250% in all. The <b>speed menu</b> (\u00bb) at the top appears once Act I has been cleared: \u00d72 then, and \u00d75 once Act II has been cleared. It is a flat speed-up of real time, kept on this device for every save.'],
   ['Save management', 'The game saves itself every few seconds on this device. <b>Save Management</b> in the \u2630 menu holds: the five <b>save slots</b> (give each a name when you start a new game or save into it, or with <b>Rename</b>; load one, copy your current game into another as a save state with \u201cSave here\u201d, or delete one); under each used slot, its <b>death save</b>, written automatically at every death in that slot (load it to go back to that death; playing it never changes the regular slot. If it is too far gone, load the regular slot again from there, which deletes that death save. Deleting or starting over a slot removes its death save too); <b>Restart</b>, next to the slot you are playing, which starts that slot over; and <b>Save files and transfer</b>: export a save file, import one, copy the save as text to move it between devices, or share it to the game\u2019s GitHub folder and load shared saves from there.'],
   ['Settings', '<b>Settings</b> (the ⚙ button, or Settings in the ☰ menu) holds the clock and pause options (death screen, starting paused, after a new section, when a section run ends or when a task finishes), sound (music and effects), layout (vertical or horizontal) and, in the Android app, app updates. Energy and automation options (auto-recharge, auto-charge, the charge threshold, charging when needed) are in the Auto tab.'],
@@ -3672,15 +3680,56 @@ const FAQ_ALL = [
 // Shown once the drive is first lit.
 const FAQ_NGP = ['Legacy tasks', 'There is no restarting: after the Hearth Tree is kindled, the story always moves forward. As Act II unfolds, <b>legacy tasks</b> open up in Act I, one theme at a time. Each theme adds a set of five parts to every Act I section, open once a seedling has done that section\u2019s last regular action: two pairs of steps, then a <b>final</b> that needs both pairs. Revealed sets are <b>needed for the crossing</b> (and for kindling the Hearth Tree). Finishing a final gives its bonus for the rest of that life, growing with the final\u2019s mastery (nothing untrained, full share at twice the usual familiarity). All five finals of a theme, done and mastered, give its full effect. Each set has an optional <b>drill</b> that trains only its five parts; section drills don\u2019t train them. Legacy parts are never queued for you: a toast and a dot on the Tasks tab say when they open up. Once automated they join chains and section runs like any other task. The <b>Legacy</b> tab shows what each revealed theme does and how far it has got. Kindling the Hearth Tree the first time also unlocks the <b>Quartermaster\u2019s cache</b>: every seedling starts with all of its automated gear already built, in both acts.'];
 const FAQ_WEAR = ['Ship wear and grafts', 'In Act II Selene wears out as your seedlings work: a little in the Boarders, more over the Long Watch, most during Arrival. Every point of wear adds 8% to the energy drain. <b>Deadwood</b> doubles as <b>grafts</b>: a <b>repair</b> takes off 1.5 wear for a fixed number of grafts (more in later sections), then needs a cooldown, like a recharge. <b>Auto-repair</b> does this for you; the <b>Repair</b> button under Grafts does it by hand. Graft jobs are to grafts what charging stations are to energy: <b>Auto-scavenge</b> works the best one when grafts run low. Each Act II section has a <b>workshop</b> action that makes repairs come more often; it costs three repairs\u2019 worth of grafts when work on it starts. Run out of grafts and the wear keeps climbing until the seedling is worn down with her.'];
-const FAQ_A2 = ['Act II', 'Once the main drive is lit, every seedling that lights it carries on into <b>Act II</b>: nine more sections, one after another, each revealed when a seedling first reaches it. Act II tasks have their own familiarity, which Echo legacy tasks reduce only at 10% strength: it starts at 90 lives\u2019 worth for \u00d710 and drops by a quarter at each of Act II\u2019s three big milestones. Act II familiarity, automation and records are kept for good.'];
+const FAQ_A2 = ['Act II', 'Once the Hearth Tree is kindled, every seedling that kindles it carries on into <b>Act II</b>: nine more sections, one after another, each revealed when a seedling first reaches it. Act II tasks have their own familiarity, which Echo legacy tasks reduce only at 10% strength: it starts at 90 lives\u2019 worth for \u00d710 and drops by a quarter at each of Act II\u2019s three big milestones. Act II familiarity, automation and records are kept for good.'];
 let faqDone = '';
-function renderFaq(){
-  const k = String(!!(S.won || (S.pr && S.pr.n))) + !!(S.a2 && S.a2.open);
-  if (faqDone === k) return; faqDone = k;
-  const FAQ = FAQ_ALL.concat(S.won ? [FAQ_NGP] : [], S.a2 && S.a2.open ? [FAQ_A2, FAQ_WEAR] : []);
-  $('#v-faq').innerHTML = '<div class="panel"><span class="h2">FAQ</span><p class="note">How Selene: Tidelocked works. Tap a question to open it.</p></div><div class="faq">' +
-    FAQ.map(([q, a], i) => `<details${i < 2 ? ' open' : ''}><summary>${q}</summary><p>${a}</p></details>`).join('') + '</div>';
+// The FAQ unfolds as the game does. Unlocks are kept on the device (not in a save), so a new game keeps them;
+// loading a save also unlocks whatever that save has reached. 'new' marks entries not opened yet.
+const FAQ_KEY = 'selene.faq.v1';
+const FAQ_GATE = {'Selene and the Root-Kin':'start', 'What is the goal?':'start', 'How do I start?':'start', 'What are jobs, actions and training?':'start',
+  'Energy and sap cells':'start', 'Pause, saving and speed':'start', 'How does the queue work?':'queue',
+  'What carries over when a seedling dies?':'death', 'What is familiarity?':'death', 'Save management':'death', 'Settings':'death',
+  'What is gear?':'gear', 'What are sections?':'sections', 'How does automation work?':'auto', 'What happens at a crossing with automation?':'auto',
+  'Legacy tasks':'won', 'Act II':'a2', 'Ship wear and grafts':'a2'};
+const FAQ_TEST = {
+  start: () => true,
+  queue: () => S.life.queue.length > 0 || (S.life.qdone || []).length > 0 || S.gen > 1,
+  death: () => (S.stats.deaths || 0) > 0,
+  gear: () => ITEMS.some(i => (S.ever || {})[i.req] || isDone(i.req)) || Object.keys(S.gprac || {}).length > 0,
+  sections: () => (S.life.sec || 1) > 1 || Object.keys(S.life.visited || {}).length > 1 || !!(S.firstAt && S.firstAt[2]),
+  auto: () => TASKS.some(t => t.kind !== 'job' && practiced(t)) || ITEMS.some(gearPracticed),
+  won: () => !!S.won,
+  a2: () => !!(S.a2 && S.a2.open),
+};
+let faqState = null, faqCheckT = 0;
+function faqLoad(){
+  if (faqState) return faqState;
+  let st = null; try { st = JSON.parse(localStorage.getItem(FAQ_KEY) || 'null'); } catch(e) {}
+  faqState = st && st.u ? st : {u:{start:1}, seen:{}, fresh:!st};
+  return faqState;
 }
+function faqSave(){ try { localStorage.setItem(FAQ_KEY, JSON.stringify({u:faqState.u, seen:faqState.seen})); } catch(e) {} }
+const faqAll = () => FAQ_ALL.concat([FAQ_NGP, FAQ_A2, FAQ_WEAR]);
+function faqCheck(force){
+  if (!S || (!force && Date.now() - faqCheckT < 2000)) return; faqCheckT = Date.now();
+  const st = faqLoad(); let changed = false;
+  for (const k in FAQ_TEST) if (!st.u[k] && FAQ_TEST[k]()) { st.u[k] = 1; changed = true; }
+  if (st.fresh) { faqAll().forEach(([q]) => { if (st.u[FAQ_GATE[q] || 'start']) st.seen[q] = 1; }); st.fresh = false; changed = true; }   // first run of this feature: nothing already unlocked counts as new
+  faqAll().forEach(([q]) => { if ((FAQ_GATE[q] || 'start') === 'start' && !st.seen[q]) { st.seen[q] = 1; changed = true; } });
+  if (changed) { faqSave(); faqDone = ''; }
+}
+const faqNew = () => { const st = faqLoad(); return faqAll().some(([q]) => st.u[FAQ_GATE[q] || 'start'] && !st.seen[q]); };
+function renderFaq(){
+  faqCheck(true);
+  const st = faqLoad(), k = JSON.stringify(st.u) + Object.keys(st.seen).length;
+  if (faqDone === k) return; faqDone = k;
+  const list = faqAll().filter(([q]) => st.u[FAQ_GATE[q] || 'start']);
+  const firstNew = list.findIndex(([q]) => !st.seen[q]);
+  $('#v-faq').innerHTML = '<div class="panel"><span class="h2">FAQ</span><p class="note">How Selene: Tidelocked works. Tap a question to open it. New questions appear as you get further.</p></div><div class="faq">' +
+    list.map(([q, a], i) => `<details data-faq="${esc(q)}"${i === firstNew ? ' open' : ''}><summary>${q}${st.seen[q] ? '' : ' <span class="fnew">new</span>'}</summary><p>${a}</p></details>`).join('') + '</div>';
+  if (firstNew >= 0) faqSeen(list[firstNew][0], true);
+}
+function faqSeen(q, keepTag){ const st = faqLoad(); if (st.seen[q]) return; st.seen[q] = 1; faqSave(); if (!keepTag) faqDone = ''; }
+document.addEventListener('toggle', e => { const d = e.target; if (d && d.dataset && d.dataset.faq && d.open) { faqSeen(d.dataset.faq, true); const t = d.querySelector('.fnew'); if (t) t.remove(); } }, true);
 
 /* ----- modals ----- */
 function showModal(h){ $('#mbox').innerHTML = h; $('#modal').hidden = false; }
@@ -3754,6 +3803,7 @@ document.addEventListener('click', e => {
     if (d.menu === 'continue') return startGame();
   }
   if (d.ow) { const f = owActs[d.ow]; owActs = {}; if (f) f(); return; }
+  if (d.reset) return askReset(d.reset);
   if (d.newin) {
     const i = +d.newin, r = readSlot(i);
     const go = () => {
@@ -4058,8 +4108,52 @@ function updatePanel(){
 }
 function showSettings(from){
   settingsFrom = from; paused = true;
-  showModal(`<h2>Settings</h2><div class="panel set mpanel"><span class="h2">Clock and pauses</span>${pauseSettingsHtml()}</div>${soundPanel().replace('panel set', 'panel set mpanel')}${displayPanel('mpanel')}${updatePanel().replace('panel set', 'panel set mpanel')}
+  showModal(`<h2>Settings</h2><div class="panel set mpanel"><span class="h2">Clock and pauses</span>${pauseSettingsHtml()}</div>${soundPanel().replace('panel set', 'panel set mpanel')}${displayPanel('mpanel')}${updatePanel().replace('panel set', 'panel set mpanel')}${resetPanel()}
     <button class="btn pri" data-settingsclose>${from === 'menu' ? 'Back to menu' : 'Close'}</button>`);
+}
+// Reset: like a fresh install. 'soft' keeps the save slots; 'full' clears everything the game keeps on this device.
+const SOFT_KEYS = ['selene.prefs.v1', 'selene.audio.v1', 'selene.speeds.v1', 'selene.faq.v1', 'selene.layout.v1', 'selene.sharename.v1', 'selene.update.v1'];
+function resetPanel(){
+  return `<div class="panel set mpanel rpanel"><span class="h2">Reset</span>
+    <p class="note">Start over as if the game were newly installed on this device. Shared saves on GitHub and exported files are never touched.${TEST_ALL_SPEEDS ? ' In this test version every game speed stays open either way.' : ''}</p>
+    <button class="btn" data-reset="soft">Reset settings and unlocks, keep saves</button>
+    <button class="btn warn" data-reset="full">Reset everything (fresh install)</button></div>`;
+}
+function wipeAndReload(keys){
+  wiping = true;
+  try {
+    const all = []; for (let n = 0; n < localStorage.length; n++) all.push(localStorage.key(n));
+    all.forEach(k => { if (k && (keys ? keys.includes(k) : (k.indexOf('selene.') === 0 || k.indexOf('long-patience.') === 0))) localStorage.removeItem(k); });
+    sessionStorage.clear();
+  } catch(e) {}
+  location.reload();
+}
+// Every save slot and death save in one file (restored by importing it like any save file)
+function allSaves(){
+  const slots = {};
+  for (let i = 1; i <= SLOTS; i++) { const r = readSlot(i), d = readSlot('d' + i); if (r) slots[i] = r; if (d) slots['d' + i] = d; }
+  return {seleneAllSaves:1, saved:Date.now(), active:String(slot), slots};
+}
+function exportAll(){
+  save();
+  const json = JSON.stringify(allSaves()), name = 'selene-tidelocked-all-saves-' + new Date().toISOString().slice(0, 10) + '.json';
+  if (window.AndroidBridge && AndroidBridge.exportFile) { AndroidBridge.exportFile(name, json); return; }
+  try {
+    const blob = new Blob([json], {type:'application/json'}), a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click();
+    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+    toast('Saved ' + name);
+  } catch(e) { toast('This browser can’t save files.'); }
+}
+function askReset(kind){
+  const back = () => showSettings(settingsFrom);
+  if (kind === 'soft') return askOverwrite('Reset settings and unlocks?', 'Settings, sound, layout, the share name, app-update options, unlocked game speeds and unlocked FAQ entries go back to a fresh install. Your save slots and death saves are kept. The game reloads.',
+    [['Reset settings and unlocks', 'warn', () => { save(); wipeAndReload(SOFT_KEYS); }]], back);
+  const n = Object.keys(allSaves().slots).length;
+  askOverwrite('Reset everything?', 'This erases everything the game keeps on this device: ' + n + ' save' + (n === 1 ? '' : 's') + ' (slots and death saves), all settings and all unlocks, as if the game had just been installed. Export your saves first if you may want them back. This can’t be undone.',
+    [['Export all saves first', '', () => { exportAll(); askReset('full'); }],
+     ['Erase everything', 'warn', () => askOverwrite('Last check: erase everything?', 'All ' + n + ' save' + (n === 1 ? '' : 's') + ' and all settings on this device will be gone. The game restarts like a fresh install.',
+       [['Yes, erase everything', 'warn', () => wipeAndReload(null)]], back)]], back);
 }
 function refreshSettings(){ if (settingsFrom && !$('#modal').hidden && document.getElementById('upd-st')) showSettings(settingsFrom); }
 function boot(data){

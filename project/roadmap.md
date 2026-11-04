@@ -6,6 +6,9 @@ Last updated: 2026-11-04. Update in every push.
 1. **Section 2 retune: Taproot Galleries.** Waiting for the owner's playtest save (completionist style; seedling count is the target). Then: read the save, propose options for section 2's knobs only, wait for approval, freeze on the owner's word. Then sections 3-14 one by one.
 2. **Story beats and flavour texts** from the owner: announced, not sent yet. Map each to a place (log entries, intro, FAQ, records) and propose before building.
 
+## Decided
+- **No iOS app** (owner, 2026-11-04): share the web link instead; iPhones play it in Safari. Don't propose a home-screen web app or a TestFlight build again unless the owner asks.
+
 ## Waiting on the owner
 - **Repo rename:** the owner renames hufle-beep/Long-patience and tells us the new name. Then update `GH_REPO`, `APK_URL`, the update-check URL, the README links, and later the APK file name (only once installed apps carry a build that knows the new name).
 - **Hosting:**
@@ -19,6 +22,7 @@ Last updated: 2026-11-04. Update in every push.
 - Re-check every section freeze and the Act I/Act II totals.
 
 ## Ideas noted (not approved)
+- **Chain names (owner, 2026-11-04, later):** generate an own name for every possible combination of chained tasks (shown on chain cards instead of the list of step names). Propose naming scheme first.
 - Cap long "opens:" lists on task buttons further, if the owner wants (currently 3 names + "+N more").
 
 ## Parked: Act III (do not build or decide until the owner reopens it)

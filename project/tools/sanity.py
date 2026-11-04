@@ -3,7 +3,7 @@ from playwright.sync_api import sync_playwright
 URL='file:///home/claude/long-patience/index.html'
 up=gzip.decompress(base64.b64decode(open('/home/claude/long-patience/saves/hufle2-2026-11-04-1241-clone10.txt').read()[5:].strip())).decode()
 snaps={'taproot(old keys)':up,'contested':open('snap7.json').read(),'turnover':open('snap12.json').read()}
-BAD=re.compile(r"\b(undefined|NaN|null|[Cc]lones?|[Ss]alvage|[Dd]ecant\w*|Vat Bay|Hydroponics|Engineering Spine|Command Deck|Main Drive|reactor|stardrive|the The)\b")
+BAD=re.compile(r"\b(undefined|NaN|null|[Cc]lones?|[Ss]alvage|[Dd]ecant\w*|Vat Bay|Hydroponics|Engineering Spine|Command Deck|Main Drive|reactor|stardrive|the The|pod bay|power bus|wall panels|main drive|drive is lit|lights it|section.s rest)\b")
 errs=[]; problems=[]
 with sync_playwright() as p:
     b=p.chromium.launch()

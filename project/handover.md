@@ -74,6 +74,8 @@ Play: https://hufle-beep.github.io/Long-patience/ · Android APK: release `andro
   - On first launch, `long-patience.*` keys are moved to `selene.*` once (top of the logic script).
   - Preferences are device-wide: `selene.prefs.v1` (`PREF_KEYS`).
   - `mergeState()` migrates old saves.
+- **FAQ:** unfolds with progress. `FAQ_GATE` maps each entry to an unlock (`start`, `queue`, `death`, `gear`, `sections`, `auto`, `won`, `a2`); `FAQ_TEST` checks them about every 2 s. Unlocks and opened entries are kept on the device (`selene.faq.v1`), never in a save, so a new game keeps them; loading a save unlocks what it reached. The tab gets a dot and entries a "new" tag until opened.
+- **Reset** (bottom of Settings): "Reset settings and unlocks, keep saves" clears `SOFT_KEYS`; "Reset everything" clears every `selene.*` / `long-patience.*` key after two warnings and an "Export all saves first" option (`exportAll()`: one file with every slot and death save; importing it restores them all). `wiping` stops saves being written back before the reload. In the test version every speed stays open.
 - **Palette:** "Amber resin" brown base (`--bg #1a140c`, `--panel #241b10`, `--panel2 #2e2316`, `--line #4a3920`, `--fg #f2e6c9`, `--dim #b39b6c`). The bright accents are unchanged. The Android `colors.xml` and WebView background match.
 - **Fonts:** Saira Condensed, IBM Plex Sans and IBM Plex Mono from Google Fonts. The cloud workspace cannot load them, so its screenshots use fallback fonts.
 
@@ -101,6 +103,7 @@ The tools:
   It must print `page errors: none` and `text problems: none`.
 - `python3 shots.py`: screenshots of every screen to `/home/claude/shots`, at device scale 2.
 - `pw161.py`: test speed switch (x5 open, no unlock written).
+- `pw162.py`: FAQ unfolding, both resets, export-all and restore-all.
 - `pw151/152/153/158/159/160.py`: Playwright checks (header and pause, stasis, death saves, save names, compact cards, storage migration). Each must print `errors []`.
 - `oneoff/`: the scripts that did the Hearth Tree reskin, cleanup and comment rewording (history and reference only).
 

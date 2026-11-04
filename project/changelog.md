@@ -2,7 +2,8 @@
 
 Every commit, newest first (from git history; Android build numbers are GitHub Actions run numbers). Generated before each push.
 
-- 2026-11-04 22:18 · Test speed switch: x1/x2/x5 open from the start (test version only)
+- 2026-11-04 22:40 · FAQ unfolds with progress (unlocks kept on the device); Reset in Settings (settings and unlocks, or everything); export and restore all saves; FAQ wording fixes
+- 2026-11-04 22:17 · `8c63e56` · Test version: every game speed open from the start (TEST_ALL_SPEEDS, off for the final version); docs updated
 - 2026-11-04 21:51 · `10c323a` · Restore points doc: commits before the workflow change can't carry tags
 - 2026-11-04 21:49 · `10d77dc` · Restore points: a workflow keeps tags on the newest 5 commits; docs updated (also republishes the web version)
 - 2026-11-04 21:42 · `b12d331` · Restore points: record the project-docs commit
