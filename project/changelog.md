@@ -2,7 +2,8 @@
 
 Every commit, newest first (from git history; Android build numbers are GitHub Actions run numbers). Generated before each push.
 
-- 2026-11-05 01:25 · Fix: queued and automated crossings fill deadwood (grafts in Act II) to full carry again before moving on (base design; Act I had lost it), skipped when out of sap cells with energy under the charge threshold; FAQ wording
+- 2026-11-05 01:40 · Stronger drills: each session adds 0.1 of a completion's familiarity to every task in its section (was 0.04); the drill card shows the gain per session; familiarity on task cards has one decimal
+- 2026-11-05 01:25 · `a3e3259` · Fix: queued and automated crossings fill deadwood (grafts in Act II) to full carry again before moving on (base design; Act I had lost it), skipped when out of sap cells with energy under the charge threshold; FAQ wording
 - 2026-11-05 01:10 · `9bacd4f` · Taproot Galleries frozen (owner's completionist run: 14 seedlings); docs only
 - 2026-11-05 01:00 · `edb1d3f` · Meteor shower Stage 3: voyage clock (each section header shows its year and share of the 480-year voyage), timeline texts (Heartwood chronometer, intro, kindling screen, halfway, flip, drop out of relativistic speed), FAQ "Selene's voyage" (opens with Act II); FAQ "Act II" says ten sections
 - 2026-11-05 00:45 · `af19a30` · Meteor shower Stage 2: Act II reordered (the long watch with Turnover first, then the Boarders with the new section The Mending and its finale Rekindle the Hearthfire, then Arrival); progression values by route; legacy reveals by route position and kept in the save; win screen and logs fit the new order; Act II bot reports the new parts

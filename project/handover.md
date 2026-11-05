@@ -1,6 +1,6 @@
 # Handover: Selene: Tidelocked
 
-Last updated: 2026-11-05 01:25 (build "crossing fill"). Crossings fill deadwood to full carry again (base design); the owner replays the whole game from the start to see if a retune is needed. Meteor shower redesign complete (Stages 1-3 built). Seedling Vaults and Taproot Galleries FROZEN. Next: the Shattered Bark retune from the owner's playtest save (playtest-notes.md, roadmap.md). Update this file in every push.
+Last updated: 2026-11-05 01:40 (build "stronger drills"). Drills give 2.5x more familiarity, and show it. Crossings fill deadwood to full carry again (base design); the owner replays the whole game from the start to see if a retune is needed. Meteor shower redesign complete (Stages 1-3 built). Seedling Vaults and Taproot Galleries FROZEN. Next: the Shattered Bark retune from the owner's playtest save (playtest-notes.md, roadmap.md). Update this file in every push.
 
 ## 1. What the game is
 An incremental "clone-loop" game in one HTML file (like Increlution/Incremortal). You are K-7, a **seedling** (disposable drone of WARDEN and the Hearth Tree) aboard **Selene**, a living-wood colony ship of the Root-Kin of Earth. Each seedling works tasks until its energy runs out; familiarity, records and automation carry over to the next one.
@@ -56,7 +56,7 @@ Play: https://hufle-beep.github.io/Long-patience/ · Android APK: release `andro
 - **Crossing hold and fill:** `holdCross`/`crossHeld` (`CROSS_HOLD`) stop a queued or automated crossing just short of finishing while `pendingActs`, `pendingGearJob` or `fillJob` has work. `fillJob` tops sap cells to the auto-charge stop level, then deadwood/grafts to full carry (`M.salCap`), both acts; skipped for deadwood while under 1 sap cell and energy under the charge threshold (`foodPct` of max energy). `FILL_RESUME 0.85`. The bots queue their crossings, so they do go through the hold and the fill.
 - **Familiarity (Mastery tab):**
   - Stored in `S.fam[id]`. Speed is 1 + 9 x min(1, fam/famNeed) (`MASTER_MIN 0.1`).
-  - Drills (`kind:'train'`, `TRAIN_CAP 4`) spread familiarity across a section.
+  - Drills (`kind:'train'`, `TRAIN_CAP 4`) spread familiarity across a section: each session adds `DRILL_CREDIT` (0.1 since 2026-11-05, was 0.04) of a completion to every regular task there (`drillCredit`); legacy drills train their own set. With the usual x1.5 familiarity records that is about 0.17% per session, 1.3% for a life of both drills. The drill card shows the live per-session gain; familiarity on cards has one decimal (`pctTxt1`).
   - Chain flow `flowMul()` speeds up chained work.
 - **Automation (Auto tab):**
   - A task is automatable after 10 lives' worth (`AUTO_LIVES`, `S.prac`); gear after being built in 10 lives (`S.gprac`, `gearNeed`). Jobs are never automated.
@@ -88,7 +88,7 @@ Play: https://hufle-beep.github.io/Long-patience/ · Android APK: release `andro
 - **Fonts:** Saira Condensed, IBM Plex Sans and IBM Plex Mono from Google Fonts. The cloud workspace cannot load them, so its screenshots use fallback fonts.
 
 ## 4. Balance state (details in playtest-notes.md)
-- Lean bot (build "crossing fill", current): Act I 5.40 h, 65 seedlings; Act II 7.30 h (long watch 3.98, Boarders 2.29, Arrival 1.03). Completionist: 10 / 15 / 12 for the first three sections.
+- Lean bot (build "stronger drills", current; it skips drills, so same as "crossing fill"): Act I 5.40 h, 65 seedlings; Act II 7.30 h (long watch 3.98, Boarders 2.29, Arrival 1.03). Completionist: 9 / 14 / 11 for the first three sections (was 10 / 15 / 12 with drill credit 0.04).
 - Lean bot (build "Act II reordered"): Act I 5.70 h in-game, 79 seedlings (Shattered Bark 21 of them, untuned); Act II 8.69 h (long watch 4.89, Boarders 2.41, Arrival 1.39), 53 deaths. Build "the Shattered Bark" had Act II 7.72 h in the old order. Before the new section: Act I 4.50 h / 63, Act II 7.45 h.
 - Section 1 (Seedling Vaults) is **FROZEN**: completionist clears at seedling 10; the owner cleared it with 9.
 - Section 2 (Taproot Galleries) is **FROZEN** (2026-11-05): the owner cleared it completionist with 14 seedlings (bot 16).

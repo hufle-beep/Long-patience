@@ -1362,9 +1362,10 @@ function masteryFracOf(t, c){ return Math.max(0, Math.min(1, c / famNeed(t))); }
 function masteryF(t){ return 1 + (1 / MASTER_MIN - 1) * masteryFrac(t); }
 // Compact progress for cards: familiarity toward x10 (violet) / automation (green); exact numbers live on the Mastery and Auto tabs
 function pctTxt(fr){ return Math.floor(Math.max(0, Math.min(1, fr)) * 100) + '%'; }
+function pctTxt1(fr){ return (Math.floor(Math.max(0, Math.min(1, fr)) * 1000) / 10).toFixed(1) + '%'; }   // familiarity: one decimal, so drill gains show
 function progHtml(t, autoFr){
   const fr = masteryFrac(t);
-  const fam = fr >= 1 ? '<span class="pfam">\u00d7' + Math.round(1 / MASTER_MIN) + '</span>' : '<span class="pfam">' + pctTxt(fr) + '</span>';
+  const fam = fr >= 1 ? '<span class="pfam">\u00d7' + Math.round(1 / MASTER_MIN) + '</span>' : '<span class="pfam">' + pctTxt1(fr) + '</span>';
   return fam + (autoFr == null || autoFr >= 1 ? '' : ' / <span class="paut">' + pctTxt(autoFr) + '</span>');
 }
 const autoFrac = t => t.kind === 'job' ? null : Math.min(1, (S.prac[t.id] || 0) / autoNeed(t));
@@ -1374,7 +1375,7 @@ function famGain(t){ return M.xp * ((M.zxp && M.zxp[t.z]) || 1) * (isA2(t.z) ? M
 function addFam(t, a){ if (!S.fam) S.fam = {}; S.fam[t.id] = (S.fam[t.id] || 0) + a; }
 // Drills: each session adds DRILL_CREDIT of a life's worth to every other task of its section
 // (kept small: drills reach dozens of tasks at once, so a large credit let a run skip most of its seedlings)
-const DRILL_CREDIT = 0.04;
+const DRILL_CREDIT = 0.1;
 function drillCredit(d){
   TASKS.forEach(t => { if (t.kind !== 'train' && t.z === d.z && (d.lset ? t.lset === d.lset : !t.legacy)) addFam(t, DRILL_CREDIT * compUnit(t) * famGain(t)); });   // a legacy drill trains its own five parts
 }
@@ -2930,7 +2931,12 @@ function toast(msg, gold){
 function effectHtml(t, full){
   if (!(S.ever || {})[t.id]) return '<span class="eff">?</span>';
   const b = rewardBits(t);
-  if (t.kind === 'train') b.push('+familiarity to every task in ' + zoneThe(t.z));
+  if (t.kind === 'train') {
+    // what one session adds to each task it trains (the same share for every one of them)
+    const x = TASKS.find(u => u.kind !== 'train' && u.z === t.z && (t.lset ? u.lset === t.lset : !u.legacy));
+    const g = x ? DRILL_CREDIT * compUnit(x) * famGain(x) / famNeed(x) : 0;
+    b.push('+' + (100 * g).toFixed(2) + '% familiarity per session to every ' + (t.lset ? 'part of its set' : 'task in ' + zoneThe(t.z)));
+  }
   const opens = TASKS.filter(x => x.kind !== 'build' && (x.req || []).includes(t.id) && (!x.legacy || legacyOpen(x))).map(x => x.kind === 'job' ? 'charging station' : x.name)
     .concat(ITEMS.filter(i => i.req === t.id).map(i => i.name));
   const op = [...new Set(opens)], cap = 3;   // buttons show a few; the Mastery tab lists them all

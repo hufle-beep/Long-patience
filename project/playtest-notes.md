@@ -65,6 +65,8 @@ Seedlings = seedlings that first reached the next section minus those that first
 | 13 | The Tessaly System (Arrival) | 0.756 | 2.54 | 30 | 15 | 41% | 3 | |
 | 14 | Tessaly Orbit | 0.756 | 2.60 | 35 | 10 | 44% | 2 | |
 
+Drill credit (2026-11-05, build "stronger drills"): 0.04 -> **0.1** of a completion per session to every task of the section (owner: drills gave no visible familiarity). Completionist bot Seedling Vaults / Taproot / Shattered Bark: 0.04 -> 10 / 15 / 12; 0.1 -> **9 / 14 / 11**; 0.2 (tested only) -> 8 / 13 / 10. Lean bot skips drills: unchanged.
+
 Lean bot totals:
 - Build "crossing fill" (2026-11-05, current): Act I **5.40 h, 65 seedlings** (Seedling Vaults 4, Taproot 23, Shattered Bark 14, Heartwood 9, Canopy 9, Ember Crown 6); Act II **7.30 h** (long watch 3.98, Boarders 2.29, Arrival 1.03). Completionist: Seedling Vaults 10, Taproot 15, Shattered Bark 12. The bots queue their crossings, so they do use the hold: arriving with full deadwood starts each section's gear at once.
 - Build "Act II reordered" (2026-11-05): Act I 5.70 h, 79 seedlings (unchanged); Act II **8.69 h** (long watch 4.89, Boarders 2.41, Arrival 1.39), 53 deaths (unchanged). The long watch now comes first, before any Act II part is finished (each finished part lowers the Act II familiarity threshold) and with Storage optimization and Dampening revealed early, so it takes most of the time; Boarders and Arrival got faster.
