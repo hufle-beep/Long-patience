@@ -23,14 +23,14 @@ Ideas only unless the licence allows reuse. Nothing here is approved until the o
 Immortality Idle is the closest match to Selene (repeating schedule, ageing and death, permanent "aptitude" from each life's gains, stamina exhaustion).
 
 Best value first (combined):
-1. **Preset triggers** (Immortality Idle, `checkTriggers()` / `loopChangeTriggers` in `activity.service.ts`): an ordered list of "when X reaches N, load preset Y", each firing at most once per life, the first one on every new life. For Selene: "new seedling: load *Opening*; on reaching the Shattered Bark: load *Hull*; energy above 40%: load *Drills*". Builds on the named presets.
+1. **Preset triggers** (BUILT, chunk A) (Immortality Idle, `checkTriggers()` / `loopChangeTriggers` in `activity.service.ts`): an ordered list of "when X reaches N, load preset Y", each firing at most once per life, the first one on every new life. For Selene: "new seedling: load *Opening*; on reaching the Shattered Bark: load *Hull*; energy above 40%: load *Drills*". Builds on the named presets.
 2. **Per-goal ETA with a "won't make it this life" warning** (Progress Knight Quest, `updateRequiredRows()` / `findNextRequirement()`): one row per category for the next unlock, with progress and an in-game/real ETA, red when it won't happen this life. For Selene: in each section header, "next automation: 7/10 completions, about 3 seedlings". The forecast could supply "this life".
 3. **Charging fallback instead of failing** (Immortality Idle `autoRestUnlocked`): when the next row can't run, detour to a charging station and say why. Partly what auto-forage already does; the forecast now shows the effect.
 4. **Life summary at death** (Immortality Idle `life-summary/`): cause, then each permanent gain (familiarity per task, records, automation progress), a tip, and "show every life". Selene's death screen could list what carried over.
 5. **This life vs all lives statistics** (Immortality Idle `statistics-panel/`): time per task this seedling and in total; "in-game time per real minute".
 6. **Record column and pending bar** (PKQ): this seedling's count next to the best ever; a lighter "banked when this seedling ends" fill on familiarity.
-7. **Pause before death** (Immortality Idle `pauseBeforeDeath`): pause once shortly before the forecast death, to squeeze in last actions. Easy now that the forecast exists.
-8. **Locked entries stay in the queue, greyed out** with a separate player "skip" flag (Immortality Idle `disabled` vs `userDisabled`); Enable all / Disable all.
+7. **Pause before death** (BUILT, chunk A) (Immortality Idle `pauseBeforeDeath`): pause once shortly before the forecast death, to squeeze in last actions. Easy now that the forecast exists.
+8. **Locked entries stay in the queue, greyed out** with a separate player "skip" flag (skip and Enable all / Disable all BUILT, chunk A) (Immortality Idle `disabled` vs `userDisabled`); Enable all / Disable all.
 9. **Do once now** (one tick, schedule untouched), **x10 / x100 repeat steps** (long-press on mobile), **turbo bars** (bar shown full when a level takes under 0.4 s; Selene already does this for jobs), **safe import** (validate keys, stop loops, write, reload), **keybinds** (Space pauses; arrows switch tabs).
 10. Original Progress Knight's **auto-learn** (train the lowest-level skill not excluded by a tick box; Unlicense, code reusable): a "spread familiarity" mode for drills.
 
