@@ -277,6 +277,8 @@ button.zh.zhb{margin:14px 0 6px}
 .task.job:not(.on) .tm .tf{opacity:.45}
 /* Live bars move by transform (no layout) and glide between the 10 Hz redraws */
 #b-hp,.now .nf,.tm .tf{width:100%;transform-origin:0 50%;transform:scaleX(0);transition:transform .1s linear}
+.tgt{display:block;font-family:var(--f-mono);font-size:11px;color:var(--dim);margin-top:2px}.tgt.met{color:var(--amber)}
+.rn .rstar{fill:var(--amber);font-size:13px}
 .skbd{font-size:11px;color:var(--dim);margin-top:3px}
 .histq{display:block;margin-top:4px;font-size:11px;padding:3px 7px;border:1px solid var(--line);border-radius:4px;color:var(--amber);background:var(--panel2)}
 .tf.fast,.nf.fast{width:100%!important;transform:none!important;opacity:.75;background:linear-gradient(90deg,var(--amber-soft),var(--amber-fill),var(--amber-soft))!important}
@@ -554,7 +556,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
 // Renamed from Long Patience: move this device's old storage keys to the new 'selene.' names once
 try { const old = []; for (let n = 0; n < localStorage.length; n++) old.push(localStorage.key(n)); old.forEach(k => { if (k && k.indexOf('long-patience.') === 0) { const nk = 'selene.' + k.slice(14); if (localStorage.getItem(nk) == null) localStorage.setItem(nk, localStorage.getItem(k)); localStorage.removeItem(k); } }); } catch(e) {}
 /* ===== Game data and rules (no DOM) ===== */
-const BUILD = '2026-11-05 · queue history';   // shown in the main menu, to tell which version is loaded
+const BUILD = '2026-11-05 · section targets';   // shown in the main menu, to tell which version is loaded
 const DPS = 8;             // simulation ticks per real second at 1x (doubled for the test version: same balance, half the real time)
 // Time is simulated in ticks. 80 ticks make one day unit (18 minutes each), so a day lasts
 // 20 real seconds at 1x and Players only ever see in-game time and real time, never days.
@@ -1835,8 +1837,35 @@ function bestClone(g, fin){
 // Run totals: total in-game ticks and real seconds played in this run when any seedling first reached a section ('lit': the drive)
 function runTotal(k){
   if (!S.firstAt) S.firstAt = {};
-  if (!S.firstAt[k]) S.firstAt[k] = {d:(S.stats.daysLived || 0) + S.life.day, r:S.stats.played || 0};
+  if (!S.firstAt[k]) S.firstAt[k] = {d:(S.stats.daysLived || 0) + S.life.day, r:S.stats.played || 0, g:S.gen};
 }
+// Section targets: how many seedlings a completionist first clear of each section should take (badge only).
+// Frozen sections use the owner's counts; the others the bots' (see playtest-notes.md). Update with each freeze.
+// Act I: owner (Vaults 9, Taproot 14), completionist bot (Shattered Bark 11, Heartwood 6, Canopy 7, Ember Crown 4); Act II: lean bot.
+const TARGETS = {1:9, 2:14, 15:11, 3:6, 4:7, 5:4, 9:2, 10:5, 11:8, 12:6, 6:1, 7:3, 8:4, 16:1, 13:2, 14:1};
+// The seedling that first reached section key k (a section id, or 'lit' for the kindling): stored since build
+// "section targets"; for older saves read from the run history (its last 50 seedlings) or the living seedling.
+function firstGen(k){
+  const f = (S.firstAt || {})[k]; if (f && f.g) return f.g;
+  const L = S.life, i = ACT1.indexOf(k) - 1, ki = k === 'lit' ? ACT1.length - 1 : i;
+  if (k === 1) return 1;
+  const h0 = S.hist || [], whole = S.gen === 1 || h0.some(x => x.g === 1), h = whole ? h0 : [];   // a trimmed history can't say who was first
+  if (!whole) return null;
+  if (ki >= 0 || k === 'lit') { const e = h.filter(x => x.fin && x.fin[ki]).sort((a, b) => a.g - b.g)[0]; if (e) return e.g; return (k === 'lit' ? L.wonAt : (L.secAt || {})[k]) ? S.gen : null; }
+  const p = ACT2R.indexOf(k); if (p < 0) return null;
+  const e = h.filter(x => x.z && ACT2R.indexOf(x.z) >= p).sort((a, b) => a.g - b.g)[0]; if (e) return e.g;
+  return (L.secAt || {})[k] || L.sec === k ? S.gen : null;
+}
+// The key that marks section z as cleared: arriving in the next section, or the kindling after the Ember Crown
+const clearKey = z => { const i = ACT1.indexOf(z); if (i >= 0) return i < ACT1.length - 1 ? ACT1[i + 1] : 'lit'; const j = ACT2R.indexOf(z); return j >= 0 && j < ACT2R.length - 1 ? ACT2R[j + 1] : null; };
+// Seedlings a section took: the seedling that first cleared it minus the one that first reached it (0 for the first section)
+function secUsed(z){
+  const k = clearKey(z); if (!k || !(S.firstAt || {})[k]) return null;
+  const a = z === ACT1[0] ? 0 : firstGen(z), b = firstGen(k);
+  return a == null || b == null ? null : b - a;
+}
+// Seedlings so far in the section the seedling is in (what a crossing now would count)
+function secSoFar(z){ const a = z === ACT1[0] ? 0 : firstGen(z); return a == null ? null : S.gen - a; }
 // Older saves: rebuild the Act I run totals from the seedling history when it is complete (it keeps the last 50 seedlings)
 function rebuildTotals(s){
   const h = (s.hist || []).slice().sort((a, b) => a.g - b.g); s.firstAt = {};
@@ -3377,7 +3406,7 @@ HOOK.bought = (it, auto, unlocked) => {
   if (unlocked) logEvt('auto', it.name + ' (gear)');
   if (unlocked) toast('Automated: ' + it.name + (S.gauto[it.id] ? ' is now built automatically (switch it off with AUTO).' : ' can now be built automatically.'), true);
 };
-HOOK.crossed = z => { sfx('cross'); taskKey = ''; mapKey = ''; setTimeout(save, 0); toast('You enter ' + zoneThe(z) + '. The way back is sealed.', true);
+HOOK.crossed = z => { sfx('cross'); taskKey = ''; mapKey = ''; setTimeout(save, 0); tgtCheck(z); toast('You enter ' + zoneThe(z) + '. The way back is sealed.', true);
   if (S.set.pauseRunEnd && S.life.chainRun) return;   // a section run is going on: pause when it ends instead
   if (S.set.pauseCross) { S.set.paused = true; toast('Paused on entering ' + zoneThe(z) + '. Press Resume to carry on.'); } };
 HOOK.taskDone = t => { if (!S.set.pauseDone || S.life.dead) return;
@@ -3390,6 +3419,15 @@ HOOK.runEnd = (from, to, why) => { taskKey = ''; autoKey = '';
   if (S.set.pauseRunEnd) { S.set.paused = true; toast(msg + ' Paused; press Resume to carry on.', true); }
   else toast(msg); };
 // Log events for the Records and Automation filters (kept in the save, newest 100; counted from build "publishing set")
+// Section targets: when the seedling moves on, judge the section it left (once per section and save)
+function tgtCheck(z){
+  const p = ROUTE[ROUTE.indexOf(z) - 1]; if (p == null || !TARGETS[p]) return;
+  if (!S.tgts || typeof S.tgts !== 'object') S.tgts = {};
+  if (S.tgts[p]) return;
+  const n = secUsed(p); if (n == null) return;
+  S.tgts[p] = n;
+  if (n <= TARGETS[p]) { logEvt('rec', '\u2605 ' + ZN(p).name + ': cleared in ' + n + ' seedling' + (n === 1 ? '' : 's') + ' (target ' + TARGETS[p] + ')'); toast('\u2605 ' + ZN(p).name + ' cleared within its target: ' + n + ' of ' + TARGETS[p] + ' seedlings.', true); }
+}
 function logEvt(k, t){ const L = S.life; (S.evlog = S.evlog || []).push({k, g:S.gen, a:+(L.day / TPD).toFixed(1), t}); if (S.evlog.length > 100) S.evlog.shift(); logKey = ''; }
 HOOK.perk = p => { logEvt('rec', p.name); sfx('perk'); toast('Archive record: ' + p.name, true); if (tab !== 'archive') newPerk = true; archKey = ''; };
 HOOK.change = () => { taskKey = ''; gearKey = ''; if (S && S.life) pinChains(); };
@@ -3869,7 +3907,7 @@ function renderTasks(){
     let nHid = 0;
     const lst = a => { const v = a.filter(t => !tHidden(t) || showH); nHid += a.filter(tHidden).length; return v.sort((x, y) => (fv[y.id] ? 1 : 0) - (fv[x.id] ? 1 : 0)); };
     jobs = lst(jobs); acts = lst(acts); trains = lst(trains); lk = lst(lk.slice().sort((x, y) => chainOrd(x) - chainOrd(y)));
-    h += `<section class="zone"><header class="zh"><h2>${zIco(z)}${z.name}</h2><span>${z.sub}</span><span class="yr">${voyTxt(z)}</span><span class="nxa" id="nxa">${nextAutoHtml(z.id)}</span>${cleared ? `<em>${cleared} done</em>` : ''}</header>`;
+    h += `<section class="zone"><header class="zh"><h2>${zIco(z)}${z.name}</h2><span>${z.sub}</span><span class="yr">${voyTxt(z)}</span>${tgtHtml(z.id)}<span class="nxa" id="nxa">${nextAutoHtml(z.id)}</span>${cleared ? `<em>${cleared} done</em>` : ''}</header>`;
     if (zchains.length) {
       h += '<div class="sub">Chains \u00b7 linked tasks work as one, faster with chain flow</div>';
       zchains.forEach(k => { h += chainCard(k); });
@@ -4580,7 +4618,7 @@ function routeHtml(){
       const lines = k ? wrap2(Z.name, 19) : ['?'];
       nodes += `<g class="rn ${st}"${k ? ` data-routez="${z}" role="button" tabindex="0" aria-label="${esc(Z.name)}"` : ' aria-label="Not reached yet"'} transform="translate(${pos.x} ${pos.y})"><rect width="${CW}" height="${NHr}" rx="6"/>` +
         (k ? `<svg x="7" y="${NHr / 2 - 9}" width="18" height="18" viewBox="0 0 512 512" class="rni"><path d="${GI['z' + z] || ''}"/></svg>` : '') +
-        lines.map((l, j) => `<text x="${k ? 31 : CW / 2}" y="${(lines.length === 1 ? NHr / 2 + 4 : NHr / 2 - 3) + j * 13}"${k ? '' : ' text-anchor="middle"'}>${esc(l)}</text>`).join('') + '</g>';
+        lines.map((l, j) => `<text x="${k ? 31 : CW / 2}" y="${(lines.length === 1 ? NHr / 2 + 4 : NHr / 2 - 3) + j * 13}"${k ? '' : ' text-anchor="middle"'}>${esc(l)}</text>`).join('') + (k && tgtMet(z) ? `<text class="rstar" x="${CW - 8}" y="13" text-anchor="end">\u2605<title>Cleared within its target</title></text>` : '') + '</g>';
     });
     y += Math.ceil(list.length / 2) * (NHr + GY) + 4;
   });
@@ -4589,7 +4627,15 @@ function routeHtml(){
 function routeInfo(z){
   const Z = ZN(z); if (!Z || !routeKnown(z)) return;
   const i = ROUTE.indexOf(z), cost = i > 0 ? ' \u00b7 crossing in costs ' + Math.round(crossCost(z) * 100) + '% of the sap cells carried' : '';
-  toast(Z.name + ' (' + Z.sub + ') \u00b7 ' + voyTxt(Z) + cost + ' \u00b7 danger \u00d7' + danger(z).toFixed(2));
+  const t = TARGETS[z], u = secUsed(z);
+  toast(Z.name + ' (' + Z.sub + ') \u00b7 ' + voyTxt(Z) + cost + ' \u00b7 danger \u00d7' + danger(z).toFixed(2) + (t ? ' \u00b7 target ' + t + ' seedlings' + (u != null ? ', cleared in ' + u + (u <= t ? ' \u2605' : '') : '') : ''));
+}
+// Section target line: cleared in N (a star within the target), or what a crossing now would count
+const tgtMet = z => { const u = secUsed(z); return u != null && TARGETS[z] && u <= TARGETS[z]; };
+function tgtHtml(z){
+  const t = TARGETS[z]; if (!t) return '';
+  const u = secUsed(z), now = z === (S.life.sec || 1) ? secSoFar(z) : null;
+  return `<span class="tgt${u != null && u <= t ? ' met' : ''}" title="Target: clear this section, everything done, within ${t} seedlings (a badge only)">Target ${t} seedlings${u != null ? ' \u00b7 cleared in ' + u + (u <= t ? ' \u2605' : '') : now != null ? ' \u00b7 now ' + now : ''}</span>`;
 }
 // Map sections fold: tap a header to fold or open it. By default a section folds once every action in it has
 // been done at least once (fully mapped), except the section the seedling is in. Choices are kept on the device

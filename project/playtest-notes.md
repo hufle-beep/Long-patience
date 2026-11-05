@@ -40,6 +40,9 @@ Goal: retune one section at a time from the user's playtests, then **freeze** it
 - **Act II bot**: `node sim16c.js AB` (runs the whole game through Arrival; prints death causes and Boarders / Long Watch / Arrival hours). Without `AB` it stops after Boarders. `simsnap.js` (STOPZ, STOPT, OUT) writes a save snapshot once a section is reached, for screenshots.
 - **Sanity check** (sanity.py): data duplicates, a long in-page run on a fresh game, an old-key save and two Act II saves, every tab and pop-up, and a scan for leftover old words.
 
+### Section targets (in the game since build "section targets", 2026-11-05; badge only)
+`TARGETS` in index.html: Seedling Vaults 9 and Taproot Galleries 14 (owner, frozen); Shattered Bark 11, Heartwood 6, Canopy Gardens 7, Ember Crown 4 (completionist bot, build "queue history"); Act II from the lean bot (no completionist Act II bot): Long Current 2, Drift 5, Long Dark 8, Turnover 6, Bark Breach 1, Contested Boughs 3, Hive Ship 4, Mending 1, Tessaly System 2, Tessaly Orbit 1. Counted as the seedling that first reached the next section minus the one that first reached this one (0 for the Vaults). **Update a section's target when it is frozen.**
+
 ### Per-section knobs
 ZDAYS (section length; internal name), drill lengths, danger (drain and hazards), cell storage (STORE_CAP), station reserve (stationMax: RESERVE_K x section length, min 10 (Seedling Vaults 15); Act II x0.5), crossing cost into the section, which action opens the station, records/gear placed there.
 
