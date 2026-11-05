@@ -57,6 +57,24 @@ Avoid: very high automation thresholds; automation that fails silently; offline 
 
 Sources: [Increlution on Steam](https://store.steampowered.com/app/1593350), [Your Chronicle on Steam](https://store.steampowered.com/app/1546320), [ITRTG wiki](https://itrtg.wiki.gg/wiki/New_Players_Guide), [Terraformental on galaxy.click](https://galaxy.click/play/490), [Terraformental on itch.io](https://sh4dowsand.itch.io/terraformental).
 
-## Still to study (rounds)
-- Round 2: Antimatter Dimensions (MIT: saves, automation UI, mobile release); Trimps (GPL, ideas only: automation).
-- Round 3: The Modding Tree (MIT, for Act III later); ZzFX/ZzFXM (MIT, sound); game-icons.net (CC BY 3.0, needs a credit line).
+## Rounds 2 and 3 (2026-11-05): Antimatter Dimensions, Trimps; The Modding Tree, ZzFX/ZzFXM, game-icons.net
+Licences checked in the repos: Antimatter Dimensions MIT (IvarK/AntimatterDimensionsSourceCode); Trimps GPL v2 or later (Trimps/Trimps.github.io; ideas only); The Modding Tree MIT (Acamaeda/The-Modding-Tree; its `drawTreeBranch` says it was taken from Antimatter Dimensions, so don't copy it); ZzFX MIT (KilledByAPixel/ZzFX), ZzFXM MIT (keithclark/ZzFXM); game-icons.net CC BY 3.0 per author (credit "Icons made by {author}. Available on https://game-icons.net", reachable from a menu, with the licence link; a few authors are CC0).
+
+Owner's picks (2026-11-05 08:36): **all green and yellow except challenges**, built in five chunks: 1 save safety (BUILT, build "save safety"), 2 sound, 3 triggers and FAQ, 4 map and icons, 5 before-publishing set.
+
+Ranked (🟢 worth it now · 🟡 maybe later · 🔴 not worth it · ⚪ already in the game):
+- 🟢 **Rolling backups per slot** (AD `storage.js` `AutoBackupSlots`, `saveToReserveSlot`): 5 min / 30 min / 2 h of play, plus one just before a slot is replaced. BUILT (chunk 1).
+- 🟢 **Never save broken numbers** (AD `checkPlayerObject`, TMT `NaNcheck`). BUILT (chunk 1).
+- 🟢 **Fix tips when pasting a queue** (AD automator errors with a tip, unlock-aware): "did you mean", "locked: opens after". BUILT (chunk 1).
+- 🟢 **Sounds for crossing, sprout, gear built, low energy** (ZzFX generator only, on the game's own audio context; prebuilt; about 1.3 KB). Chunk 2.
+- 🟢 **Average row on the run history** (AD past-runs `averageRun`). BUILT (chunk 1).
+- 🟡 **Fuller trigger table** (Trimps Map at Zone: on/off, from/through, every N, priority). Chunk 3.
+- 🟡 **FAQ search, open on the current tab, a hotkey table listed in the FAQ** (AD h2p, `hotkeys.js`; TMT hotkeys as data). Chunk 3.
+- 🟡 **Route overview on the Map tab** (TMT tree as a 2-D array with ghost nodes; unreached sections hidden). Chunk 4.
+- 🟡 **Icons from game-icons.net plus a Credits page** (Lorc, Delapouite, Skoll...; keep icons under ~2 KB). Chunk 4.
+- 🟡 **Welcome-back recap** (AD catch-up modal), **Log filter chips** (Trimps message filters), **screen-reader announcements** (Trimps `screenReaderAssert`), **pause all automation** (AD global autobuyer toggle). Chunk 5.
+- 🟡 Challenges (TMT): not picked (Act III is parked).
+- 🔴 AD's Automator language (scripting creep), ZzFXM music (pre-renders tens of MB, loses the live mood filter), bundling Vue / TMT's framework, A/B rule-set swaps (presets cover it), a news ticker, offline backups, per-task ratio caps.
+- ⚪ Named slots, a save prefix (`LPZ1:`), import summary, tab dots, toasts, FAQ unfolding with progress, overwrite panels, the Map tab, preset triggers, life summary, run history.
+
+Avoid (seen there): lossy editor conversions (AD text to blocks drops lines with errors), a second copy of every setting per act (Trimps U2), explanations behind a Shift key, magic-number settings, UIs built from huge HTML strings, oversized flavour systems, offline-progress machinery, caps shown only by hiding a button, scripting creep.

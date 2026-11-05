@@ -229,6 +229,8 @@ button.zh.zhb{margin:14px 0 6px}
 .qh .qhb button.qundo{color:var(--cyan);border:1px solid var(--cyan-soft);border-radius:4px;padding:5px 10px;font-size:12.5px;margin-right:6px}
 #qtext{width:100%;box-sizing:border-box;min-height:12em;font-family:var(--f-mono);font-size:12px;background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:4px;padding:8px}
 .qtxn{color:var(--dim);font-size:13px}
+.pastes{margin:8px 0 12px;padding-left:18px;font-size:14px}.pastes li{margin:5px 0}.pastes b{color:var(--fg)}
+.dt tr.havg td{border-top:1px solid var(--line);color:var(--dim);font-style:italic}
 .task.nev .tn::after{content:'\2022 new';color:var(--yellow);font-size:10px;letter-spacing:.04em;margin-left:6px;vertical-align:2px;font-family:var(--f-mono)}
 .qkeep p{font-size:12px}
 .lockq{visibility:visible!important}
@@ -531,7 +533,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
 // Renamed from Long Patience: move this device's old storage keys to the new 'selene.' names once
 try { const old = []; for (let n = 0; n < localStorage.length; n++) old.push(localStorage.key(n)); old.forEach(k => { if (k && k.indexOf('long-patience.') === 0) { const nk = 'selene.' + k.slice(14); if (localStorage.getItem(nk) == null) localStorage.setItem(nk, localStorage.getItem(k)); localStorage.removeItem(k); } }); } catch(e) {}
 /* ===== Game data and rules (no DOM) ===== */
-const BUILD = '2026-11-05 · one drill per section';   // shown in the main menu, to tell which version is loaded
+const BUILD = '2026-11-05 · save safety';   // shown in the main menu, to tell which version is loaded
 const DPS = 8;             // simulation ticks per real second at 1x (doubled for the test version: same balance, half the real time)
 // Time is simulated in ticks. 80 ticks make one day unit (18 minutes each), so a day lasts
 // 20 real seconds at 1x and Players only ever see in-game time and real time, never days.
@@ -2675,15 +2677,85 @@ try {
   const a = localStorage.getItem(ACTIVE_KEY) || '';
   slot = /^d[1-5]$/.test(a) ? a : Math.min(SLOTS, Math.max(1, +a || 1));
 } catch(e) {}
+// Broken numbers: NaN or Infinity anywhere in a save (JSON would quietly turn them into null). Up to 5 paths.
+function badNums(o, p = '', out = []){
+  if (out.length >= 5) return out;
+  if (typeof o === 'number') { if (!isFinite(o)) out.push(p || '(save)'); }
+  else if (o && typeof o === 'object') for (const k in o) { badNums(o[k], p ? p + '.' + k : k, out); if (out.length >= 5) break; }
+  return out;
+}
+let badWarned = false;   // one toast per session about a broken save that was not written
+function saveOk(){
+  const bad = badNums(S); if (!bad.length) return true;
+  if (!badWarned) { badWarned = true; toast('Not saved: the game has broken numbers (' + bad.slice(0, 3).join(', ') + '). Your last good save is kept. Please report this.'); }
+  return false;
+}
 function deathSave(){
-  if (!S) return;
+  if (!S || !saveOk()) return;
   try { localStorage.setItem(slotKey(deathKey(slot)), JSON.stringify(S)); } catch(e) {}
 }
 let wiping = false;   // set while a reset clears storage, so nothing writes it back before the reload
 function save(){
-  if (!S || wiping) return;
+  if (!S || wiping || !saveOk()) return;
   try { S.saved = Date.now(); localStorage.setItem(slotKey(slot), JSON.stringify(S)); localStorage.setItem(ACTIVE_KEY, slot); } catch(e) {}
   savePrefs();
+  bkTick();
+}
+/* ----- rolling backups: four per slot, packed ('LPZ1:'), in selene.bk.<slot> -----
+   m5 / m30 / h2 are rewritten after 5 min / 30 min / 2 h of play in that save; 'pre' is written just before
+   anything replaces or deletes the slot (load, import, restore, restart, new game, save over, delete). */
+const BK_KINDS = [['m5', 300, 'Every 5 minutes of play'], ['m30', 1800, 'Every 30 minutes of play'], ['h2', 7200, 'Every 2 hours of play'], ['pre', 0, 'Before it was replaced']];
+const bkKey = s => 'selene.bk.' + s;
+function readBk(s){ try { const b = JSON.parse(localStorage.getItem(bkKey(s)) || '{}'); return b && typeof b === 'object' ? b : {}; } catch(e) { return {}; } }
+let bkBusy = 0, bkChain = Promise.resolve();
+// Pack a copy now (the JSON is taken at once, so the state can change right after) and store it.
+// Writes run one after another, so two backups of one slot never overwrite each other's entry.
+function writeBk(s, raw, kind, note){
+  if (!raw || !raw.life || wiping || badNums(raw).length) return Promise.resolve(false);
+  const json = JSON.stringify(raw), info = slotDesc(raw), pl = (raw.stats && raw.stats.played) || 0;
+  bkBusy++;
+  const done = bkChain.then(() => packSave(json)).then(p => {
+    if (wiping) return false;
+    const b = readBk(s); b[kind] = {t:Date.now(), pl, info, note:note || '', p:p || json};
+    try { localStorage.setItem(bkKey(s), JSON.stringify(b)); return true; } catch(e) { return false; }
+  }, () => false).then(ok => { bkBusy--; return ok; });
+  bkChain = done; return done;
+}
+// Backups of what a slot holds right now, before it is replaced (the playing slot: the live game)
+function bkBefore(s, note){ const raw = s === slot ? S : readSlot(s); return raw ? writeBk(s, raw, 'pre', note) : Promise.resolve(false); }
+function bkTick(){
+  if (bkBusy || !S || !S.life) return;
+  const pl = (S.stats && S.stats.played) || 0, b = readBk(slot);
+  for (const [k, iv] of BK_KINDS) {
+    if (!iv) continue;
+    const e = b[k], last = e && e.pl <= pl ? e.pl : 0;   // a newer game in this slot starts its own count
+    if (!e || pl - last >= iv) writeBk(slot, S, k);
+  }
+}
+async function bkRead(e){ try { return e && e.p ? await parseSaveAny(e.p) : null; } catch(err) { return null; } }
+const agoTxt = t => { const m = Math.round((Date.now() - t) / 60000); return m < 1 ? 'just now' : m < 60 ? m + ' min ago' : m < 1440 ? Math.round(m / 60) + ' h ago' : Math.round(m / 1440) + ' d ago'; };
+function bkPanel(s){
+  owActs = {};
+  const b = readBk(s), list = BK_KINDS.filter(([k]) => b[k]);
+  let h = '<h2>Backups of ' + esc(slotLabel(s)) + '</h2><p class="d">Kept automatically on this device. Restoring one replaces what ' + esc(slotLabel(s)) + ' holds now; that is backed up first, as “Before it was replaced”.</p>';
+  if (!list.length) h += '<p class="note">No backups yet. The first one is written within a few seconds of play.</p>';
+  h += '<div class="slots">' + list.map(([k, , label], n) => {
+    const e = b[k]; owActs['c' + n] = () => bkRestore(s, k);
+    return `<div class="slot"><b>${esc(label)}${e.note ? ' · ' + esc(e.note) : ''}</b><span>${esc(e.info)} · backed up ${agoTxt(e.t)}</span><div class="btns"><button class="btn" data-ow="c${n}">Restore</button></div></div>`;
+  }).join('') + '</div>';
+  owActs.x = () => showMenu('saves'); h += '<div class="mbtns"><button class="btn" data-ow="x">Back</button></div>';
+  showModal(h);
+}
+async function bkRestore(s, kind){
+  const raw = await bkRead(readBk(s)[kind]), bad = raw ? saveProblem(raw) : 'backup unreadable';
+  if (bad) { sfx('error'); toast('That backup can’t be restored: ' + bad + '.'); return; }
+  const cur = s === slot ? S : readSlot(s);
+  askOverwrite('Restore this backup?', (cur ? slotLabel(s) + ' (' + slotDesc(cur) + ') is backed up first, then ' : '') + 'replaced by the backup (' + slotDesc(raw) + ').',
+    [['Restore', 'warn', async () => {
+      if (cur) await writeBk(s, cur, 'pre', 'before restoring a backup');
+      if (s === slot) { S = mergeState(raw); M = mods(); pinChains(); resetViews(); save(); toast('Backup restored: seedling ' + S.gen); startGame(); }
+      else { try { localStorage.setItem(slotKey(s), JSON.stringify(raw)); toast('Backup restored into ' + slotLabel(s)); } catch(e) { toast('Couldn’t restore: browser storage is full or blocked.'); } showMenu('saves'); }
+    }]], () => bkPanel(s));
 }
 function readSlot(i){
   try { const r = localStorage.getItem(slotKey(i)); return r ? JSON.parse(r) : null; } catch(e) { return null; }
@@ -2753,8 +2825,8 @@ window.onAndroidExport = (ok, msg) => toast(ok ? 'Saved ' + msg : 'Export failed
 function applyLoaded(raw, from){
   if (raw.seleneAllSaves) {   // a file with every slot: restore them all, after a warning
     const ks = Object.keys(raw.slots || {});
-    return askOverwrite('Restore all saves from this file?', 'It holds ' + ks.length + ' save' + (ks.length === 1 ? '' : 's') + ' (' + ks.map(k => /^d/.test(k) ? 'death save ' + k.slice(1) : 'slot ' + k).join(', ') + '). Each one replaces the save in the same slot on this device; other slots are kept.',
-      [['Restore them', 'warn', () => { save(); wiping = true; try { ks.forEach(k => localStorage.setItem(slotKey(k), JSON.stringify(raw.slots[k]))); localStorage.setItem(ACTIVE_KEY, raw.active && raw.slots[raw.active] ? raw.active : ks.find(k => !/^d/.test(k)) || ks[0]); } catch(e) {} location.reload(); }]], 'saves');
+    return askOverwrite('Restore all saves from this file?', 'It holds ' + ks.length + ' save' + (ks.length === 1 ? '' : 's') + ' (' + ks.map(k => /^d/.test(k) ? 'death save ' + k.slice(1) : 'slot ' + k).join(', ') + ')' + (Object.keys(raw.backups || {}).length ? ' and their backups' : '') + '. Each one replaces the save in the same slot on this device (what it held now is backed up first); other slots are kept.',
+      [['Restore them', 'warn', async () => { save(); await Promise.all(ks.map(k => bkBefore(/^d/.test(k) ? k : +k, 'before restoring all saves'))); wiping = true; try { ks.forEach(k => localStorage.setItem(slotKey(k), JSON.stringify(raw.slots[k]))); Object.keys(raw.backups || {}).forEach(k => { const cur = readBk(k); Object.assign(cur, raw.backups[k], cur.pre ? {pre:cur.pre} : {}); localStorage.setItem(bkKey(k), JSON.stringify(cur)); }); localStorage.setItem(ACTIVE_KEY, raw.active && raw.slots[raw.active] ? raw.active : ks.find(k => !/^d/.test(k)) || ks[0]); } catch(e) {} location.reload(); }]], 'saves');
   }
   // a single save: check it, show what it holds, and load it only once confirmed
   const bad = saveProblem(raw);
@@ -2770,10 +2842,12 @@ function saveProblem(raw){
   if (!(raw.gen >= 1)) return 'no seedling number';
   if (raw.life.sec != null && !ZN(raw.life.sec)) return 'unknown section ' + raw.life.sec;
   if (raw.life.queue != null && !Array.isArray(raw.life.queue)) return 'damaged queue';
-  try { mergeState(JSON.parse(JSON.stringify(raw))); } catch(e) { return 'damaged data'; }
+  let m; try { m = mergeState(JSON.parse(JSON.stringify(raw))); } catch(e) { return 'damaged data'; }
+  const bad = badNums(m); if (bad.length) return 'broken numbers in ' + bad.slice(0, 3).join(', ');
   return '';
 }
 function loadChecked(raw, from){
+  bkBefore(slot, 'before an import');
   S = mergeState(raw); M = mods(); pinChains();
   taskKey = ''; gearKey = ''; archKey = ''; logKey = '';
   paused = false; hideModal(); S.intro = true; save();
@@ -3019,18 +3093,20 @@ function showMenu(view){
       if (!act && r) h += fromD ? `<button class="btn" data-loadslot="${i}" data-leaved="1">Load slot ${i} (leave the death save)</button>` : `<button class="btn" data-loadslot="${i}">Load</button>`;
       if (!act && cur2) h += `<button class="btn" data-saveto="${i}">${fromD ? 'Copy this death save into slot ' + i : r ? 'Save over' : 'Save here'}</button>`;
       if (!act && r) h += `<button class="btn warn" data-delslot="${i}">Delete</button>`;
+      if (Object.keys(readBk(i)).length) h += `<button class="btn" data-bkslot="${i}">Backups</button>`;
       if (act) h += '<span class="ghst">Saves automatically every few seconds.</span><button class="btn warn" data-askreset="">Restart</button>';
       h += '</div>';
       const dk = 'd' + i, dr = readSlot(dk), dact = slot === dk;
       if (dr || dact) {
         h += `<div class="slot dslot${dact ? ' act' : ''}"><b>\u21b3 Death save${dr && dr.name ? ' of \u201c' + esc(dr.name) + '\u201d' : ''} \u00b7 linked to slot ${i}${dact ? ' \u00b7 playing' : ''}</b><span>${esc(slotInfo(dr))}</span><div class="btns">`;
         if (!dact && dr) h += `<button class="btn" data-loadslot="${dk}">Load</button><button class="btn warn" data-delslot="${dk}">Delete</button>`;
+        if (Object.keys(readBk(dk)).length) h += `<button class="btn" data-bkslot="${dk}">Backups</button>`;
         if (dact) h += `<span class="ghst">Playing from the last death of slot ${i}. Too far gone? Load slot ${i} above to go back (this death save is then deleted).</span>`;
         h += '</div></div>';
       }
       h += '</div>';
     }
-    h += '</div><button class="btn" data-saves="msaves">Save files and transfer: export, import, copy as text</button><p class="d">\u201cSave here\u201d copies your current game into another slot as a save state. You keep playing in your current slot; load the copy later to go back to that moment. Each slot also keeps a <b>death save</b>, written at every death: load it to go back to that death screen. Playing it never changes the regular slot.</p>';
+    h += '</div><button class="btn" data-saves="msaves">Save files and transfer: export, import, copy as text</button><p class="d">\u201cSave here\u201d copies your current game into another slot as a save state. You keep playing in your current slot; load the copy later to go back to that moment. Each slot also keeps a <b>death save</b>, written at every death: load it to go back to that death screen. Playing it never changes the regular slot. <b>Backups</b> are kept by themselves: after 5 minutes, 30 minutes and 2 hours of play, and just before a slot is replaced or deleted.</p>';
     h += '<button class="btn" data-menu="back">Back</button>';
   } else {
     h += '<div class="mbtns">';
@@ -3268,19 +3344,46 @@ function qUndoNow(){
 const qText = () => S.life.queue.map((id, i) => (i + 1) + '. ' + (isCQ(id) ? 'Chain: ' + cSteps(id).map(stepName).join(' \u2192 ') : qName(id))).join('\n');
 function qParse(txt){
   const key = x => x.toLowerCase().replace(/[\u2018\u2019`]/g, "'");   // curly or straight apostrophes alike
-  const byName = {}; TASKS.forEach(t => { if (t.kind !== 'build') byName[key(t.name)] = t.id; }); ITEMS.forEach(i => { byName[key('Build ' + i.name)] = 'g:' + i.id; });
-  for (let i = 0; i < QPRESETS; i++) { byName[key('Load preset: preset ' + (i + 1))] = 'p:' + i; if (qpName(i)) byName[key('Load preset: ' + qpName(i))] = 'p:' + i; }
-  const ids = [], bad = []; let chains = 0;
+  const byName = {}, shown = {}; const add = (n, id) => { byName[key(n)] = id; shown[key(n)] = n; };
+  TASKS.forEach(t => { if (t.kind !== 'build') add(t.name, t.id); }); ITEMS.forEach(i => add('Build ' + i.name, 'g:' + i.id));
+  for (let i = 0; i < QPRESETS; i++) { add('Load preset: preset ' + (i + 1), 'p:' + i); if (qpName(i)) add('Load preset: ' + qpName(i), 'p:' + i); }
+  const ids = [], bad = [], near = {}; let chains = 0;
   String(txt || '').split(/\r?\n/).forEach(line => {
     const n = line.replace(/^\s*(\d+[.)]|[-*\u2022])\s*/, '').replace(/\s+/g, ' ').trim(); if (!n) return;
     if (/^chain:/i.test(n)) { chains++; return; }   // chains queue themselves once their tasks are linked
-    const id = byName[key(n)]; if (id) ids.push(id); else bad.push(n);
+    const id = byName[key(n)]; if (id) ids.push(id); else { bad.push(n); const c = closeName(key(n), Object.keys(byName)); if (c) near[n] = shown[c]; }
   });
-  return {ids, bad, chains};
+  return {ids, bad, chains, near};
 }
-function qTextPanel(){
+// The closest known name to a mistyped one: a name containing it (or contained in it), else the smallest edit distance
+// within about a third of its length; '' when nothing is close
+function closeName(n, names){
+  if (n.length >= 4) { const sub = names.filter(x => x.includes(n) || n.includes(x)); if (sub.length) return sub.sort((a, b) => Math.abs(a.length - n.length) - Math.abs(b.length - n.length))[0]; }
+  let best = '', bd = Infinity;
+  for (const x of names) {
+    if (Math.abs(x.length - n.length) >= bd) continue;
+    let prev = Array.from({length:x.length + 1}, (_, j) => j);
+    for (let i = 1; i <= n.length; i++) { const cur = [i]; for (let j = 1; j <= x.length; j++) cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (n[i - 1] === x[j - 1] ? 0 : 1)); prev = cur; }
+    if (prev[x.length] < bd) { bd = prev[x.length]; best = x; }
+  }
+  return bd <= Math.max(2, Math.round(n.length / 3)) ? best : '';
+}
+// Why a pasted entry won't run now: '' when it can run, else a short reason for the paste report
+function qPasteWhy(id){
+  const L = S.life;
+  if (isPQ(id)) return '';
+  if (isGQ(id)) { const it = qItem(id); return L.owned[it.id] ? 'already built' : !isDone(it.req) ? 'locked: opens after ' + T[it.req].name : ''; }
+  const t = T[id]; if (!t) return '';
+  if (t.kind !== 'job' && complete(t)) return 'already done by this seedling';
+  if (zBefore(t.z, L.sec || 1)) return 'left behind (' + zoneThe(t.z) + ')';
+  if (zAfter(t.z, L.sec || 1)) return 'queued; waits for ' + zoneThe(t.z);
+  const miss = (t.req || []).filter(r => !reqMet(r));
+  return miss.length ? 'queued; locked: opens after ' + miss.slice(0, 2).map(r => T[r] ? T[r].name : r).join(' and ') + (miss.length > 2 ? ' (+' + (miss.length - 2) + ' more)' : '') : '';
+}
+let lastPaste = '';
+function qTextPanel(t){
   owActs = {};
-  const L = S.life, txt = qText();
+  const L = S.life, txt = typeof t === 'string' ? t : qText();
   let h = '<h2>Queue as text</h2><p class="qtxn">One entry per line, by name. Copy it to keep or share a plan; paste a list to queue it. Chains are left out when pasting: they queue themselves once their tasks are linked.</p>';
   h += `<textarea id="qtext" rows="10" spellcheck="false" placeholder="Paste task names here, one per line">${esc(txt)}</textarea><div class="mbtns">`;
   const acts = [['Copy', 'pri', () => { const v = $('#qtext').value; qTextPanel(); const ta = $('#qtext'); ta.value = v;   // the panel stays open
@@ -3292,17 +3395,32 @@ function qTextPanel(){
   showModal(h);
 }
 function qPaste(replace){
-  const L = S.life, ta = $('#qtext'), r = qParse(ta ? ta.value : ''); hideModal();
+  const L = S.life, ta = $('#qtext'); lastPaste = ta ? ta.value : ''; const r = qParse(lastPaste); hideModal();
   if (L.dead) return;
   const live = r.ids.filter(qLive);
-  if (!live.length) { toast('Nothing to queue: ' + (r.bad.length ? 'unknown names (' + r.bad.slice(0, 3).join(', ') + ')' : 'every entry is done or behind this seedling') + '.'); return; }
+  if (!live.length) { pasteReport('Nothing was queued.', r, 0); return; }
   qSnap(replace ? 'Replace the queue' : 'Add text to the queue');
   if (replace) { L.queue = []; L.qdone = []; L.held = null; }
   let n = 0; for (const id of live) { if (L.queue.length >= QMAX) break; L.queue.push(id); n++; }
   pinChains();
   const skip = r.ids.length - n + r.bad.length;
-  toast((replace ? 'Queue replaced: ' : 'Queued from text: ') + n + ' entr' + (n === 1 ? 'y' : 'ies') + (skip ? '; skipped ' + skip + (r.bad.length ? ' (unknown: ' + r.bad.slice(0, 3).join(', ') + (r.bad.length > 3 ? '\u2026' : '') + ')' : ' (done, behind or queue full)') : '') + (r.chains ? '; chains queue themselves' : '') + '.');
+  const head = (replace ? 'Queue replaced: ' : 'Queued from text: ') + n + ' entr' + (n === 1 ? 'y' : 'ies') + (r.chains ? '; chains queue themselves' : '') + '.';
   taskKey = ''; gearKey = ''; renderView();
+  pasteReport(head, r, live.length - n);
+}
+// After a paste: a toast when every line went in cleanly, else a short report with a fix tip per line
+function pasteReport(head, r, full){
+  const notes = [];
+  r.bad.forEach(n => notes.push([n, r.near[n] ? 'unknown name. Did you mean \u201c' + r.near[n] + '\u201d?' : 'unknown name: check the spelling on the task card.']));
+  const seen = {};
+  r.ids.forEach(id => { if (seen[id]) return; seen[id] = 1; const w = qPasteWhy(id); if (w) notes.push([qName(id), w]); });
+  if (full > 0) notes.push(['', full + ' entr' + (full === 1 ? 'y' : 'ies') + ' left out: the queue is full (' + QMAX + ').']);
+  if (!notes.length) { toast(head); return; }
+  owActs = {};
+  let h = '<h2>Pasted queue</h2><p class="d">' + esc(head) + '</p><ul class="pastes">' + notes.slice(0, 12).map(([n, w]) => '<li>' + (n ? '<b>' + esc(n) + '</b>: ' : '') + esc(w) + '</li>').join('') + (notes.length > 12 ? '<li>\u2026and ' + (notes.length - 12) + ' more.</li>' : '') + '</ul>';
+  owActs.c0 = () => qTextPanel(lastPaste); owActs.x = hideModal;
+  h += '<div class="mbtns"><button class="btn" data-ow="c0">Back to the text</button><button class="btn pri" data-ow="x">OK</button></div>';
+  showModal(h);
 }
 const qpName = i => ((S.qpnames || [])[i] || '');
 function qpNamePanel(i){
@@ -3967,6 +4085,15 @@ function statsGrid(){
     <div><b>${S.won ? 'Seedling ' + S.winGen : 'Not yet'}</b><span>Hearth Tree kindled</span></div></div>`;
   return h;
 }
+// Average row under the recent seedlings: mean life length (in-game and real) and the section reached most often
+function histAvg(hist, histName, gameT, realT){
+  if (hist.length < 2) return '';
+  const n = hist.length, cnt = {};
+  hist.forEach(e => { const k = histName(e); cnt[k] = (cnt[k] || 0) + 1; });
+  const top = Object.keys(cnt).sort((a, b) => cnt[b] - cnt[a])[0];
+  const d = hist.reduce((a, e) => a + (e.d || 0), 0) / n, r = hist.reduce((a, e) => a + (e.r || 0), 0) / n;
+  return `<tr class="havg"><td>Average<small>${n} seedlings</small></td><td>${esc(top)}<small>most often (${cnt[top]}/${n})</small></td><td>${gameT(fmtDays(d))}</td><td>${realT(r)}</td></tr>`;
+}
 function renderLog(){
   const key = Math.floor((S.stats.played || 0) / 60) + '|' + [S.stats.bestDays, Math.floor(S.vit || 0), TASKS.filter(t => masteryFrac(t) >= 1).length, S.winGen].join() + '|' + S.log.length + '|' + (S.log.length ? S.log[S.log.length-1].t : '') + '|' + (S.hist ? S.hist.length : 0) + '|' + JSON.stringify(S.bestSec || 0) + JSON.stringify(S.bestAll || 0) + '|' + histAll + logTables + '|' + S.gen + '|' + JSON.stringify(S.best || {});
   if (key === logKey) return; logKey = key;
@@ -3987,7 +4114,7 @@ function renderLog(){
   if (logTables) {
   if (allH.length > 5) h += `<button class="btn histm" data-histall>${histAll ? 'Show last 5' : 'Show all ' + allH.length}</button>`;
   if (!hist.length) h += '<p class="note">No seedling has died yet. Each seedling\u2019s furthest section and time will appear here.</p>';
-  else h += `<div class="rtab"><table class="dt"><thead><tr><th>Seedling</th><th>Furthest</th><th><span class="tgm">In-game</span></th><th><span class="trl">Real</span></th></tr></thead><tbody>${hist.map(e => `<tr title="${esc(e.cause)}"><td>${e.g}</td><td>${histName(e)}</td><td>${gameT(fmtDays(e.d))}</td><td>${realT(e.r)}</td></tr>`).join('')}</tbody></table></div>`;
+  else h += `<div class="rtab"><table class="dt"><thead><tr><th>Seedling</th><th>Furthest</th><th><span class="tgm">In-game</span></th><th><span class="trl">Real</span></th></tr></thead><tbody>${hist.map(e => `<tr title="${esc(e.cause)}"><td>${e.g}</td><td>${histName(e)}</td><td>${gameT(fmtDays(e.d))}</td><td>${realT(e.r)}</td></tr>`).join('')}${histAvg(hist, histName, gameT, realT)}</tbody></table></div>`;
   const FA = S.firstAt || {};
   const totRow = keys => keys.some(k => FA[k]) ? `<tr class="ftbest fttot"><td>Run total<small>played to get there</small></td>${keys.map(k => { const f = FA[k]; return `<td>${f ? gameT(fmtDays(f.d)) + '<small>' + realT(f.r) + '</small>' : '\u2014'}</td>`; }).join('')}</tr>` : '';
   if (hist.length) {
@@ -4252,7 +4379,7 @@ const FAQ_ALL = [
   ['What is the goal?', 'Restore Selene so WARDEN can wake the sleeping crew. All of Act I happens inside the Hearth Tree, her drive, mind and garden at once: the sap flow that powers her in the Taproot Galleries, the meteor wounds in her hull in the Shattered Bark, WARDEN\u2019s mind and the star-charts in the Heartwood, the food gardens in the Canopy Gardens, and the Hearthfire in the Ember Crown. Act I ends when you kindle the Hearth Tree. One seedling cannot do it all; it takes many lives (around 50 with very good play).'],
   ['How do I start?', 'Tap a task to work on it right away. Climb out of the seed pod first, then tap the vault\u2019s sap line for sap cells and strip dead bark panels for deadwood. Time only moves while your seedling is working: with nothing to do, the clock stops, so you can always read and plan.'],
   ['What are jobs, actions and training?', '<b>Jobs</b> repeat and make sap cells or deadwood in batches; they stop when that storage is full. <b>Actions</b> are one-off tasks that unlock things and move the story on. Each needs certain earlier actions, and a section\u2019s last action (its crossing) needs every other action of that section. Tasks you have met before stay listed, greyed out, until what they need is done; you can still queue them. <b>Drills</b> each add a little familiarity to every task in their section, up to 4 sessions per life. Small icons by a task\u2019s name show what it holds from the start: a <b>star</b> for a record not found yet, a <b>cog</b> for a gear design it opens, an <b>arrow</b> for a crossing. Its effects show once a seedling has finished it, grouped by how long they last: <b>This seedling</b> (storage, recharges, deadwood per minute: gone at death) and <b>Kept</b> (records, familiarity from drills). <b>Edit list</b> (above the section) lets you star tasks, which puts them at the top of their section, or hide them: hidden tasks fold into one line at the bottom (tap it to show them) and still run when queued, automated or chained. Crossings and chain cards can\u2019t be hidden. Both are kept in the save.'],
-  ['How does the queue work?', 'Tapping a task runs it right away, ahead of the queue (a job runs until its store is full); it is not added to the queue. Tapping a gear card works the same way: it is built right away, after gathering the deadwood (grafts in Act II) it still needs. <b>+</b> adds a task to the end of the queue; drag it or use the arrows to move it up. You can queue the same task several times at different places: tap + again for another copy. A task queued once runs until it is done; with several copies, each copy covers one repetition (one training session, one rep, or one fill of a store). The queue holds up to 100 items. Drag an item by the handle on its left to move it, or use the arrows; ✕ removes it. Queued jobs run until their storage is full. You can queue things you have seen before even if they are not available yet; they wait their turn. Gear can be queued too, with the <b>+</b> on its card (gear is listed in each section of the Tasks tab): the seedling works the best deadwood job until it can afford the design, then builds it. Five presets save and load whole queues (tap a preset\u2019s number to name it), <b>Copy / paste</b> turns the queue into plain text and back, and <b>Undo</b> takes back the last change to the queue. Tap a row\u2019s name to <b>skip</b> it: it stays in the queue but doesn\u2019t run until you tap it again. Press and hold <b>+</b> on a drill or a task with several reps to queue one copy per repetition still to do. <b>Least familiar</b> sorts the queue so the weakest tasks run first (chains stay on top). <b>Triggers</b> load a preset by themselves when a new seedling sprouts or when it enters a section you choose (each rule once per seedling). <b>Keep queue between seedlings</b> gives each new seedling the queue you planned, minus anything that is automated and switched on. <b>The forecast:</b> the game plays your seedling\u2019s life forward with the same rules (queue, automation, recharges, crossings), so each queue row shows the energy left when it is done and when that will be; rows the seedling won\u2019t reach turn red, and <b>Dies here</b> marks the row where it dies. The Outlook line gives the forecast death and its cause; a setting can pause the game once, just before it. When the forecast death comes from energy or wear and a setting that is off or low (Auto-recharge, Auto-charge, the charge threshold, Charge when needed, and in Act II Auto-scavenge and Auto-repair) would make the seedling live clearly longer, the Outlook line names it and how much time it adds. <b>Clear queue</b> keeps the row the seedling is working on. <b>+ Row</b> by a preset adds a queue row that loads it: once every row above it is done (or skipped), the preset replaces that row and everything below it. Each preset loads this way once per seedling; the row goes along when the queue carries over to the next seedling. A dot marked <b>new</b> on a task means no seedling has finished it yet.'],
+  ['How does the queue work?', 'Tapping a task runs it right away, ahead of the queue (a job runs until its store is full); it is not added to the queue. Tapping a gear card works the same way: it is built right away, after gathering the deadwood (grafts in Act II) it still needs. <b>+</b> adds a task to the end of the queue; drag it or use the arrows to move it up. You can queue the same task several times at different places: tap + again for another copy. A task queued once runs until it is done; with several copies, each copy covers one repetition (one training session, one rep, or one fill of a store). The queue holds up to 100 items. Drag an item by the handle on its left to move it, or use the arrows; ✕ removes it. Queued jobs run until their storage is full. You can queue things you have seen before even if they are not available yet; they wait their turn. Gear can be queued too, with the <b>+</b> on its card (gear is listed in each section of the Tasks tab): the seedling works the best deadwood job until it can afford the design, then builds it. Five presets save and load whole queues (tap a preset\u2019s number to name it), <b>Copy / paste</b> turns the queue into plain text and back (a pasted line that isn\u2019t a known name gets a \u201cdid you mean\u201d tip, and one that can\u2019t run yet says why), and <b>Undo</b> takes back the last change to the queue. Tap a row\u2019s name to <b>skip</b> it: it stays in the queue but doesn\u2019t run until you tap it again. Press and hold <b>+</b> on a drill or a task with several reps to queue one copy per repetition still to do. <b>Least familiar</b> sorts the queue so the weakest tasks run first (chains stay on top). <b>Triggers</b> load a preset by themselves when a new seedling sprouts or when it enters a section you choose (each rule once per seedling). <b>Keep queue between seedlings</b> gives each new seedling the queue you planned, minus anything that is automated and switched on. <b>The forecast:</b> the game plays your seedling\u2019s life forward with the same rules (queue, automation, recharges, crossings), so each queue row shows the energy left when it is done and when that will be; rows the seedling won\u2019t reach turn red, and <b>Dies here</b> marks the row where it dies. The Outlook line gives the forecast death and its cause; a setting can pause the game once, just before it. When the forecast death comes from energy or wear and a setting that is off or low (Auto-recharge, Auto-charge, the charge threshold, Charge when needed, and in Act II Auto-scavenge and Auto-repair) would make the seedling live clearly longer, the Outlook line names it and how much time it adds. <b>Clear queue</b> keeps the row the seedling is working on. <b>+ Row</b> by a preset adds a queue row that loads it: once every row above it is done (or skipped), the preset replaces that row and everything below it. Each preset loads this way once per seedling; the row goes along when the queue carries over to the next seedling. A dot marked <b>new</b> on a task means no seedling has finished it yet.'],
   ['Energy and sap cells', 'Seedlings are biomechanical: as long as they have energy, the body is sustained. The <b>Energy</b> bar drains all the time; each recharge uses one <b>sap cell</b> and puts energy back. <b>Every recharge restores the same amount</b>; what changes is how often the seedling can recharge. Sap cells are carried up to the seedling\u2019s <b>storage capacity</b>, which grows as the seedling gets deeper into the ship (5 in the Seedling Vaults, up to 90 in the Ember Crown, in steps of 5), plus gear and records. Each section has a <b>charging station</b> job, but it only opens partway into the section and holds a limited <b>reserve</b> per seedling life; when it is drained, the seedling has to cross or run down. Every crossing also costs a share of the cells carried, more the further into the ship you go, so a seedling always arrives living on what it brought. At first a seedling can recharge every 5 seconds of in-game time. Each section has one <b>charger upgrade</b> action that shortens the wait between recharges for the rest of that life, down to about 2 seconds, and adds half again to that section\u2019s station reserve; each seedling has to fix them again. Recharges are always whole, and the seedling only recharges when it needs to: when a whole recharge fits under full energy, or sooner once energy is down to half. At full energy no cell is used. With no cells left at all, the seedling runs down. The Hive Ship\u2019s only charging comes late, so arrive charged.'],
   ['What carries over when a seedling dies?', '<b>Familiarity</b> is kept: every task stays as fast as your seedlings have made it (see the Mastery tab). Every 10 seconds of in-game time a seedling survives is analysed afterwards, run and memory alike, and becomes an <b>efficiency patch</b>: later seedlings drain their energy a little more slowly, up to \u00f71.6. <b>Archive records</b> found by finishing certain actions are permanent upgrades. Gear, sap cells, deadwood and progress through the ship reset.'],
   ['What are sections?', 'Act I is split into six sections. A <b>red</b> action leads to the next one, and the way back is sealed for that seedling, so finish what you need first (records, training, gear). Each new seedling starts back in the Seedling Vaults.'],
@@ -4261,7 +4388,7 @@ const FAQ_ALL = [
   ['How does automation work?', 'Every completion counts: finish an action 10 times (a multi-rep action 10 times its reps), or a training session 40 times, or build a design in 10 lives, and its automation <b>switches on by itself</b>. For Act I tasks these counts shrink along with the familiarity threshold (Echo legacy), never below one; tap <b>AUTO</b> (or its switch in the Auto tab) to turn it off, and it stays off. Automated tasks run by themselves <b>ahead of your queue</b>, in chain order (each after the tasks it needs). Automated tasks <b>link into chains</b> when one requires the other and both are at least ×2 familiar. When every action and crossing of a section is automated and ×5 familiar, and all its gear designs are automated, the whole section becomes <b>one chain</b>: press <b>▶ Run section</b> (above the queue in the Tasks tab) and the seedling works through everything, builds the gear, fills its stores and crosses. The run is pinned at the top of the queue and the queue\u2019s leftovers for its sections are cleared. Pressing it also turns on <b>Always run sections once ready</b> (Auto tab): from then on a run starts by itself whenever the section you are in is ready. Stop turns that off again. Ready sections next to each other link across their crossings into one run (<b>▶ Run 3 sections</b>), up to the end of the act; a run that dies starts again with the next seedling. The option <b>Pause when a section run ends instead</b> keeps a run going through its crossings and pauses once it is over. A chain picks its next step itself each time: gear first, then charger upgrades, then the actions and drills in the order they depend on each other, and the crossing last. When a chain forms or grows, it <b>queues itself</b>, including the chains of sections still ahead, and chain entries are kept in the order they will run: section by section, and within a section the chain that starts earliest first, with the crossing\u2019s chain last, and anything of it you had queued separately is dropped from the queue. If you remove a chain from the queue, it stays out for the rest of that seedling\u2019s life. Work done as part of a chain (a queued chain or a section run) builds <b>chain flow</b>, which makes chained steps up to five times as fast; it is kept for good. Jobs are never automated: auto-forage keeps the charge up, queued gear works the deadwood jobs, and every queued or automated crossing tops the sap cells up and fills deadwood to full carry before the seedling moves on. <b>Automated gear gathers its own deadwood</b> during the life: the next automated design that is found, not built and fits in storage; it gathers only what that design costs and does not top the store up to full (except while filling up before a crossing). Automated <b>crossings</b> are the exception: they wait until your queue is done. A task you tap runs before everything. The <b>Auto</b> tab lists everything unlocked and has extra options: charging when needed, the death screen and starting paused. Each section\u2019s header names its <b>next automation</b>: the task closest to it, its completions, and whether this seedling gets there (from the forecast) or about how many more seedlings it takes. The death screen sums up each life: familiarity gained, records found, tasks that became automatable and the closest ones; the Mastery tab shows the in-game time spent on each task by this seedling and by all of them (counted from build \u201cqueue summaries\u201d).'],
   ['What happens at a crossing with automation?', 'A queued or automated crossing stops just before it finishes and waits while the seedling finishes automated actions and training, builds affordable automated gear and tops sap cells up and fills deadwood (grafts in Act II) to full carry, unless the seedling is out of cells and low on energy. Tap a crossing yourself to go at once.'],
   ['Pause, saving and speed', 'Progress is saved on this device only (this browser or the app); use <b>Save files</b> in the main menu (\u2630) to back it up or move it, and <b>Restart</b> next to the slot there to start this slot over. Pause with the button at the top or the space bar. The game only runs while it is on screen: in another app, a background tab or closed, the clock stops and carries on where it left off. Each <b>Stasis watch</b> record (one for leaving each section the first time) tunes the seedlings\u2019 stasis: energy drains a little slower, more with each one, up to \u221250% in all. The <b>speed menu</b> (\u00bb) at the top appears once Act I has been cleared: \u00d72 then, and \u00d75 once Act II has been cleared. It is a flat speed-up of real time, kept on this device for every save.'],
-  ['Save management', 'The game saves itself every few seconds on this device. <b>Save Management</b> in the \u2630 menu holds: the five <b>save slots</b> (give each a name when you start a new game or save into it, or with <b>Rename</b>; load one, copy your current game into another as a save state with \u201cSave here\u201d, or delete one); under each used slot, its <b>death save</b>, written automatically at every death in that slot (load it to go back to that death; playing it never changes the regular slot. If it is too far gone, load the regular slot again from there, which deletes that death save. Deleting or starting over a slot removes its death save too); <b>Restart</b>, next to the slot you are playing, which starts that slot over; and <b>Save files and transfer</b>: export a save file, import one, copy the save as text to move it between devices, or share it to the game\u2019s GitHub folder and load shared saves from there.'],
+  ['Save management', 'The game saves itself every few seconds on this device. <b>Save Management</b> in the \u2630 menu holds: the five <b>save slots</b> (give each a name when you start a new game or save into it, or with <b>Rename</b>; load one, copy your current game into another as a save state with \u201cSave here\u201d, or delete one); under each used slot, its <b>death save</b>, written automatically at every death in that slot (load it to go back to that death; playing it never changes the regular slot. If it is too far gone, load the regular slot again from there, which deletes that death save. Deleting or starting over a slot removes its death save too); <b>Backups</b> under each slot, kept by themselves after 5 minutes, 30 minutes and 2 hours of play and just before a slot is replaced or deleted (tap Restore to bring one back; what the slot held is backed up first; \u201cExport all saves\u201d takes them along); <b>Restart</b>, next to the slot you are playing, which starts that slot over; and <b>Save files and transfer</b>: export a save file, import one, copy the save as text to move it between devices, or share it to the game\u2019s GitHub folder and load shared saves from there. A game that holds a broken number is never saved over your last good save: a message says so instead.'],
   ['Settings', '<b>Settings</b> (the ⚙ button, or Settings in the ☰ menu) holds the clock and pause options (death screen, starting paused, after a new section, when a section run ends or when a task finishes), sound (music and effects), layout (vertical or horizontal) and, in the Android app, app updates. Energy and automation options (auto-recharge, auto-charge, the charge threshold, charging when needed) are in the Auto tab.'],
 ];
 // Shown once the drive is first lit.
@@ -4407,11 +4534,12 @@ document.addEventListener('click', e => {
   }
   if (d.ow) { const f = owActs[d.ow]; owActs = {}; if (f) f(); return; }
   if (d.reset) return askReset(d.reset);
+  if (d.bkslot) return bkPanel(/^d[1-5]$/.test(d.bkslot) ? d.bkslot : +d.bkslot);
   if (d.newin) {
     const i = +d.newin, r = readSlot(i);
     const go = () => {
       const nm = nameIn();
-      save();
+      save(); if (r) { bkBefore(i, 'before a new game'); if (readSlot('d' + i)) bkBefore('d' + i, 'before a new game'); }
       slot = i; S = defaultState(); M = mods(); S.life.hp = M.maxHp; if (nm) S.name = nm; resetViews(); save();
       try { localStorage.removeItem(slotKey('d' + i)); } catch(e) {}   // the old game's death save goes with it
       toast('New game in slot ' + i);
@@ -4424,7 +4552,7 @@ document.addEventListener('click', e => {
   if (d.loadslot) {
     const i = /^d[1-5]$/.test(d.loadslot) ? d.loadslot : +d.loadslot, r = readSlot(i); if (!r) return;
     const load = drop => {
-      save(); slot = i; S = mergeState(r); M = mods(); resetViews(); save();
+      save(); if (drop) bkBefore('d' + i, 'before it was overwritten'); slot = i; S = mergeState(r); M = mods(); resetViews(); save();
       if (drop) try { localStorage.removeItem(slotKey('d' + i)); } catch(e) {}
       toast(drop ? 'Back in slot ' + i + '; its death save was overwritten' : 'Loaded ' + slotLabel(i));
       startGame();
@@ -4439,6 +4567,7 @@ document.addEventListener('click', e => {
     const go = () => {
       const nm = nameIn();
       save();
+      if (r) bkBefore(i, 'before Save over');
       const copy = JSON.parse(JSON.stringify(S)); if (nm) copy.name = nm; else delete copy.name;
       try { localStorage.setItem(slotKey(i), JSON.stringify(copy)); toast('Saved to slot ' + i + (nm ? ': ' + nm : '')); } catch(e) { toast('Couldn’t save: browser storage is full or blocked.'); }
       showMenu('saves');
@@ -4462,6 +4591,7 @@ document.addEventListener('click', e => {
   if (d.delslot) {
     const i = /^d[1-5]$/.test(d.delslot) ? d.delslot : +d.delslot;
     const go = () => {
+      bkBefore(i, 'before it was deleted'); if (!isDeathSlot(i) && readSlot('d' + i)) bkBefore('d' + i, 'before it was deleted');
       try { localStorage.removeItem(slotKey(i)); if (!isDeathSlot(i)) localStorage.removeItem(slotKey('d' + i)); } catch(e) {}
       toast(isDeathSlot(i) ? 'Death save of slot ' + baseSlot(i) + ' deleted' : 'Slot ' + i + ' and its death save deleted');
       showMenu('saves');
@@ -4474,6 +4604,7 @@ document.addEventListener('click', e => {
     save();
     return askOverwrite('Restart ' + slotLabel(slot) + '?', 'Your current game (' + slotDesc(S) + ')' + (!isDeathSlot(slot) && readSlot('d' + slot) ? ' and its death save' : '') + ' will be overwritten by a fresh start. This can’t be undone.',
       [['Restart', 'warn', () => {
+        bkBefore(slot, 'before a restart'); if (!isDeathSlot(slot) && readSlot('d' + slot)) bkBefore('d' + slot, 'before a restart');
         hideModal(); S = defaultState(); M = mods(); S.life.hp = M.maxHp; resetViews(); save();
         if (!isDeathSlot(slot)) try { localStorage.removeItem(slotKey('d' + slot)); } catch(e) {}
         setTab('tasks'); showIntro();
@@ -4768,8 +4899,12 @@ function wipeAndReload(keys){
 // Every save slot and death save in one file (restored by importing it like any save file)
 function allSaves(){
   const slots = {};
-  for (let i = 1; i <= SLOTS; i++) { const r = readSlot(i), d = readSlot('d' + i); if (r) slots[i] = r; if (d) slots['d' + i] = d; }
-  return {seleneAllSaves:1, saved:Date.now(), active:String(slot), slots};
+  const backups = {};
+  for (let i = 1; i <= SLOTS; i++) {
+    const r = readSlot(i), d = readSlot('d' + i); if (r) slots[i] = r; if (d) slots['d' + i] = d;
+    [i, 'd' + i].forEach(k => { const b = readBk(k); if (Object.keys(b).length) backups[k] = b; });
+  }
+  return {seleneAllSaves:1, saved:Date.now(), active:String(slot), slots, backups};
 }
 function exportAll(){
   save();
