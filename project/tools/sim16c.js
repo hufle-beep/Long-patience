@@ -19,7 +19,7 @@ for(let life=0;life<400&&!done;life++){
     let bj=null,bs=0;TASKS.forEach(t=>{if(t.kind==='job'&&t.prod&&t.prod.salvage&&available(t)&&!jobFull(t)){const r=t.prod.salvage*speedOf(t)*(t.upkeep&&L.shipWear>2?3:1);if(r>bs){bs=r;bj=t}}});
     if(!bj) bj=pickFood();
     L.job=bj?bj.id:null;
-    ITEMS.forEach(i=>{if(typeof BT==="object"){buyItem(i.id,false);}else if(isDone(i.req)&&!L.owned[i.id]&&L.salvage>=i.cost){L.salvage-=i.cost;L.owned[i.id]=true;M=mods();}});
+    ITEMS.forEach(i=>buyItem(i.id,false));   // builds at once when affordable
     if(won&&!S.branch){ S.branch=BR==='B'?'B':'A'; if(BR==='AB') S.merge=true; winGen=S.gen; winDays=(S.stats.daysLived+L.day)/TPD; if(L.sec===5&&complete(T.ignite)) enterZone(9,5); }
     const z=L.sec; if(!first[z])first[z]=S.gen;
     if(!globalThis.T6&&L.sec===6){globalThis.T6=(S.stats.daysLived+L.day)/TPD;} if(!globalThis.T9&&isA2(L.sec)){globalThis.T9=(S.stats.daysLived+L.day)/TPD;} /* T9: Act II start (the long watch), T6: the Boarders start */ const d0=L.day; const spd=ngpSpeed(); advance(20); const dd=L.day-d0; globalThis.RT=(globalThis.RT||0)+dd/(DPS*spd); if(isA2(L.sec)&&!globalThis.RA)globalThis.RA=globalThis.RT; if(L.sec===6&&!globalThis.RB)globalThis.RB=globalThis.RT; if(L.sec===13&&!globalThis.RC)globalThis.RC=globalThis.RT; /* Act II route: long watch (RA..RB), Boarders (RB..RC), Arrival (RC..end) */ globalThis.LV=[ngpLv('growth'),ngpLv('drain'),ngpLv('hp'),ngpLv('speed'),ngpLv('wear')].map(x=>x.toFixed(2)).join('/'); if(L.day===d0&&!L.dead){ if(!L.queue.length&&!L.job){L.job=pickFood()?pickFood().id:'algae'} advance(20); if(L.day===d0) die('stuck'); }

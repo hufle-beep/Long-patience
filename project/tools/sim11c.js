@@ -24,7 +24,7 @@ for(let life=0;life<250&&!won;life++){
     let bj=null,bs=0;TASKS.forEach(t=>{if(t.kind==='job'&&t.prod&&t.prod.salvage&&available(t)&&!jobFull(t)){const r=t.prod.salvage*speedOf(t);if(r>bs){bs=r;bj=t}}});
     if(!bj) bj=pickFood();
     L.job=bj?bj.id:null;
-    ITEMS.forEach(i=>{if(typeof BT==="object"){buyItem(i.id,false);}else if(isDone(i.req)&&!L.owned[i.id]&&L.salvage>=i.cost){L.salvage-=i.cost;L.owned[i.id]=true;M=mods();}});
+    ITEMS.forEach(i=>buyItem(i.id,false));   // builds at once when affordable
     const z=L.sec||1; if(!first[z])first[z]=S.gen; /* section reached (by id; the route is pathOf()) */
     const d0=L.day; advance(20); if(L.day===d0&&!L.dead){ if(!L.queue.length&&!L.job){L.job='algae'} advance(20); if(L.day===d0) die('stuck'); }
   }

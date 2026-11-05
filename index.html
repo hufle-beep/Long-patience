@@ -550,7 +550,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
 // Renamed from Long Patience: move this device's old storage keys to the new 'selene.' names once
 try { const old = []; for (let n = 0; n < localStorage.length; n++) old.push(localStorage.key(n)); old.forEach(k => { if (k && k.indexOf('long-patience.') === 0) { const nk = 'selene.' + k.slice(14); if (localStorage.getItem(nk) == null) localStorage.setItem(nk, localStorage.getItem(k)); localStorage.removeItem(k); } }); } catch(e) {}
 /* ===== Game data and rules (no DOM) ===== */
-const BUILD = '2026-11-05 · one upgrade';   // shown in the main menu, to tell which version is loaded
+const BUILD = '2026-11-05 · gear built when paid';   // shown in the main menu, to tell which version is loaded
 const DPS = 8;             // simulation ticks per real second at 1x (doubled for the test version: same balance, half the real time)
 // Time is simulated in ticks. 80 ticks make one day unit (18 minutes each), so a day lasts
 // 20 real seconds at 1x and Players only ever see in-game time and real time, never days.
@@ -1205,53 +1205,47 @@ const ITEMS = [
   {id:'chitinarm',  name:'Borer-chitin armour',      cost:5,   req:'crawlers',   desc:'+10 energy (additional cells), hazard damage −30%', eff:{maxHp:10, haz:0.7}},
   {id:'doser',      name:'Sap-pump charge regulator',   cost:10,   req:'irrigation', desc:'The sap pump chargers work twice as fast', eff:{fspd:{hydro:2}}},
   {id:'lace',       name:'Mycelial lace',        cost:15,  req:'medbay',     desc:'+30% familiarity from all work', eff:{xp:1.3}},
-  {id:'stims',      name:'Sap stim injector',      cost:25,  req:'lift',       desc:'All work 15% faster', eff:{spd:1.15}},
-  {id:'crate',      name:'Lacquered cell case',    cost:30,  req:'lift',       desc:'+20 cell storage capacity', eff:{fcap:20}},
-  {id:'mendkit',    name:'Bark-mender\u2019s kit', cost:20,  req:'scars',      desc:'Work in the Shattered Bark 25% faster', eff:{zsp:{GZ:1.25}}},
-  {id:'resinsuit',  name:'Resin pressure suit',    cost:30,  req:'resinseal',  desc:'+10 energy (additional cells), hazard damage \u221220%', eff:{maxHp:10, haz:0.8}},
-  {id:'rifle',      name:'Thornwood rifle',      cost:40,  req:'armory',     desc:'Work in the Heartwood 50% faster, hazard damage \u221220%', eff:{zsp:{GZ:1.5}, haz:0.8}},
-  {id:'cryo',       name:'Resin cryo-sleeve',        cost:70,  req:'vent',       desc:'Recharges come 15% more often, +10 energy (additional cells)', eff:{pace:1.15, maxHp:10}},
-  {id:'visor',      name:'Pollen visor',          cost:110, req:'bridgepower',desc:'Work in the Canopy Gardens 30% faster', eff:{zsp:{GZ:1.3}}},
-  {id:'medkit',     name:'Canopy medkit', cost:60,  req:'secdeck',    desc:'+10 energy (additional cells), recharges come 10% more often', eff:{maxHp:10, pace:1.1}},
-  {id:'warmer',     name:'Docking charger booster',      cost:90,  req:'bridgepower',desc:'+10 cell storage capacity, recharges come 20% more often', eff:{fcap:10, fq:1.2}},
-  {id:'exo',        name:'Living exo-frame',          cost:175, req:'navcore',    desc:'Work in the Canopy Gardens 30% faster, +15 energy (additional cells)', eff:{zsp:{GZ:1.3}, maxHp:15}},
-  {id:'hardsuit',   name:'Crown-crew barkplate', cost:120, req:'warden',     desc:'+10 energy (additional cells), hazard damage \u221230%', eff:{maxHp:10, haz:0.7}},
-  {id:'seals',      name:'Cell bank seals', cost:100, req:'warden',    desc:'+15 cell storage capacity, the crown crew\u2019s cell bank charges 50% faster', eff:{fcap:15, fspd:{pantry:1.5}}},
-  {id:'sealkit',    name:'Bark-patch kit',     cost:90,  req:'seal6',      desc:'+30 energy (additional cells), hazard damage \u221215%', eff:{maxHp:30, haz:0.85}},
-  {id:'carbine',    name:'Thornwood carbine',   cost:150, req:'racks',      desc:'Work in the Bark Breach 40% faster, hazard damage \u221220%', eff:{zsp:{GZ:1.4}, haz:0.8}},
-  {id:'turret',     name:'Deployable thorn-turret',  cost:250, req:'traps',      desc:'Hazard damage \u221230%', eff:{haz:0.7}},
-  {id:'medpack',    name:'Field medpack',      cost:200, req:'medb',       desc:'+30 energy (additional cells), recharges come 10% more often', eff:{maxHp:30, pace:1.1}},
-  {id:'mendframe',  name:'Mender\u2019s lattice-frame', cost:260, req:'tally', desc:'Work in The Mending 30% faster', eff:{zsp:{GZ:1.3}}},
-  {id:'cutter',     name:'Ember cutter',      cost:300, req:'umbilical',  desc:'Work in the Hive Ship 30% faster', eff:{zsp:{GZ:1.3}}},
-  {id:'upkit',      name:'Grafter’s toolkit',     cost:150, req:'patch',      desc:'Ship wear builds 30% slower, work in the Long Current 20% faster, +30 energy (additional cells)', eff:{wear:0.7, zsp:{GZ:1.2}, maxHp:30}},
-  {id:'sprinkler',  name:'Sap-line splitter',     cost:180, req:'recal',      desc:'+10 cell storage capacity, the cruise sap line charges 50% faster', eff:{fcap:10, fspd:{beds:1.5}}},
-  {id:'gyro',       name:'Balance-root trimmer',       cost:250, req:'drift',      desc:'Work in the Drift 40% faster, +30 energy (additional cells)', eff:{zsp:{GZ:1.4}, maxHp:30}},
-  {id:'podcoils',   name:'Pod warming vines',   cost:220, req:'nursepods',  desc:'Work in the Long Dark 30% faster, +40 energy (additional cells)', eff:{zsp:{GZ:1.3}, maxHp:40}},
-  {id:'vaultseal2', name:'Reserve sap-cell racks',        cost:240, req:'vaultseal',  desc:'+20 cell storage capacity', eff:{fcap:20}},
-  {id:'gelcouch',   name:'Acceleration couch', cost:260, req:'flip',       desc:'Hazard damage \u221220%', eff:{haz:0.8}},
-  {id:'dustvisor',  name:'Ward-shield controls', cost:260, req:'shieldrig', desc:'Work in Turnover 30% faster', eff:{zsp:{GZ:1.3}}},
-  {id:'scanarray',  name:'Deep-sense bloom',    cost:280, req:'giant',      desc:'Work in the Tessaly System 30% faster', eff:{zsp:{GZ:1.3}}},
-  {id:'radcloak',   name:'Ward cloak',    cost:300, req:'radharden',  desc:'Hazard damage \u221230%', eff:{haz:0.7}},
-  {id:'beacon',     name:'Orbital beacon',     cost:300, req:'chartsurf',  desc:'All work 15% faster', eff:{spd:1.15}},
-  {id:'thrusters',  name:'Station-keeping vanes', cost:320, req:'insert', desc:'Work in Tessaly Orbit 30% faster', eff:{zsp:{GZ:1.3}}},
-  {id:'diagrig',    name:'Ember-duct diagnostic rig', cost:160, req:'course', desc:'Work in the Ember Crown 25% faster', eff:{zsp:{GZ:1.25}}},
+  {id:'stims',      name:'Sap stim injector',      cost:26,  req:'lift',       desc:'All work 15% faster', eff:{spd:1.15}},
+  {id:'crate',      name:'Lacquered cell case',    cost:31,  req:'lift',       desc:'+20 cell storage capacity', eff:{fcap:20}},
+  {id:'mendkit',    name:'Bark-mender\u2019s kit', cost:21,  req:'scars',      desc:'Work in the Shattered Bark 25% faster', eff:{zsp:{GZ:1.25}}},
+  {id:'resinsuit',  name:'Resin pressure suit',    cost:31,  req:'resinseal',  desc:'+10 energy (additional cells), hazard damage \u221220%', eff:{maxHp:10, haz:0.8}},
+  {id:'rifle',      name:'Thornwood rifle',      cost:43,  req:'armory',     desc:'Work in the Heartwood 50% faster, hazard damage \u221220%', eff:{zsp:{GZ:1.5}, haz:0.8}},
+  {id:'cryo',       name:'Resin cryo-sleeve',        cost:74,  req:'vent',       desc:'Recharges come 15% more often, +10 energy (additional cells)', eff:{pace:1.15, maxHp:10}},
+  {id:'visor',      name:'Pollen visor',          cost:121, req:'bridgepower',desc:'Work in the Canopy Gardens 30% faster', eff:{zsp:{GZ:1.3}}},
+  {id:'medkit',     name:'Canopy medkit', cost:67,  req:'secdeck',    desc:'+10 energy (additional cells), recharges come 10% more often', eff:{maxHp:10, pace:1.1}},
+  {id:'warmer',     name:'Docking charger booster',      cost:100,  req:'bridgepower',desc:'+10 cell storage capacity, recharges come 20% more often', eff:{fcap:10, fq:1.2}},
+  {id:'exo',        name:'Living exo-frame',          cost:192, req:'navcore',    desc:'Work in the Canopy Gardens 30% faster, +15 energy (additional cells)', eff:{zsp:{GZ:1.3}, maxHp:15}},
+  {id:'hardsuit',   name:'Crown-crew barkplate', cost:134, req:'warden',     desc:'+10 energy (additional cells), hazard damage \u221230%', eff:{maxHp:10, haz:0.7}},
+  {id:'seals',      name:'Cell bank seals', cost:112, req:'warden',    desc:'+15 cell storage capacity, the crown crew\u2019s cell bank charges 50% faster', eff:{fcap:15, fspd:{pantry:1.5}}},
+  {id:'sealkit',    name:'Bark-patch kit',     cost:103,  req:'seal6',      desc:'+30 energy (additional cells), hazard damage \u221215%', eff:{maxHp:30, haz:0.85}},
+  {id:'carbine',    name:'Thornwood carbine',   cost:170, req:'racks',      desc:'Work in the Bark Breach 40% faster, hazard damage \u221220%', eff:{zsp:{GZ:1.4}, haz:0.8}},
+  {id:'turret',     name:'Deployable thorn-turret',  cost:289, req:'traps',      desc:'Hazard damage \u221230%', eff:{haz:0.7}},
+  {id:'medpack',    name:'Field medpack',      cost:232, req:'medb',       desc:'+30 energy (additional cells), recharges come 10% more often', eff:{maxHp:30, pace:1.1}},
+  {id:'mendframe',  name:'Mender\u2019s lattice-frame', cost:311, req:'tally', desc:'Work in The Mending 30% faster', eff:{zsp:{GZ:1.3}}},
+  {id:'cutter',     name:'Ember cutter',      cost:354, req:'umbilical',  desc:'Work in the Hive Ship 30% faster', eff:{zsp:{GZ:1.3}}},
+  {id:'upkit',      name:'Grafter’s toolkit',     cost:170, req:'patch',      desc:'Ship wear builds 30% slower, work in the Long Current 20% faster, +30 energy (additional cells)', eff:{wear:0.7, zsp:{GZ:1.2}, maxHp:30}},
+  {id:'sprinkler',  name:'Sap-line splitter',     cost:204, req:'recal',      desc:'+10 cell storage capacity, the cruise sap line charges 50% faster', eff:{fcap:10, fspd:{beds:1.5}}},
+  {id:'gyro',       name:'Balance-root trimmer',       cost:289, req:'drift',      desc:'Work in the Drift 40% faster, +30 energy (additional cells)', eff:{zsp:{GZ:1.4}, maxHp:30}},
+  {id:'podcoils',   name:'Pod warming vines',   cost:262, req:'nursepods',  desc:'Work in the Long Dark 30% faster, +40 energy (additional cells)', eff:{zsp:{GZ:1.3}, maxHp:40}},
+  {id:'vaultseal2', name:'Reserve sap-cell racks',        cost:285, req:'vaultseal',  desc:'+20 cell storage capacity', eff:{fcap:20}},
+  {id:'gelcouch',   name:'Acceleration couch', cost:311, req:'flip',       desc:'Hazard damage \u221220%', eff:{haz:0.8}},
+  {id:'dustvisor',  name:'Ward-shield controls', cost:311, req:'shieldrig', desc:'Work in Turnover 30% faster', eff:{zsp:{GZ:1.3}}},
+  {id:'scanarray',  name:'Deep-sense bloom',    cost:337, req:'giant',      desc:'Work in the Tessaly System 30% faster', eff:{zsp:{GZ:1.3}}},
+  {id:'radcloak',   name:'Ward cloak',    cost:360, req:'radharden',  desc:'Hazard damage \u221230%', eff:{haz:0.7}},
+  {id:'beacon',     name:'Orbital beacon',     cost:360, req:'chartsurf',  desc:'All work 15% faster', eff:{spd:1.15}},
+  {id:'thrusters',  name:'Station-keeping vanes', cost:383, req:'insert', desc:'Work in Tessaly Orbit 30% faster', eff:{zsp:{GZ:1.3}}},
+  {id:'diagrig',    name:'Ember-duct diagnostic rig', cost:178, req:'course', desc:'Work in the Ember Crown 25% faster', eff:{zsp:{GZ:1.25}}},
 ];
 const IT = {}; ITEMS.forEach(i => IT[i.id] = i);
-// Assembly: gear costs its deadwood up front (paid when assembly starts) and then takes time to put
-// together, more for bigger designs: BUILD_K x cost^BUILD_P ticks at base speed. Each design has a
-// hidden assembly task ('b:' + id) that runs like an action and gets faster with familiarity.
-const BUILD_K = 0.5, BUILD_P = 0.8;
-const BT = {};   // item id -> its assembly task
-const assembling = id => !!(S && S.life && S.life.assem && S.life.assem.includes(id));
 // A design's section: where it becomes buildable. Designs unlocked by a crossing belong to the section it leads into.
 const gearZone = i => T[i.req].cross ? (T[i.req].to || nextZone(T[i.req].z)) : T[i.req].z;
 ITEMS.forEach(i => { if (i.eff && i.eff.zsp && i.eff.zsp.GZ) i.eff.zsp = {[gearZone(i)]: i.eff.zsp.GZ}; });
-ITEMS.forEach(i => { const t = {id:'b:' + i.id, gear:i.id, z:gearZone(i), kind:'build', name:'Assemble: ' + i.name, days:Math.max(2, Math.round(BUILD_K * Math.pow(i.cost * 10, BUILD_P))), reps:1, req:[], sk:[]};
-  T[t.id] = t; BT[i.id] = t; });   // section gear: speeds up its own section
+// Gear is built the moment it is paid for (build "gear built when paid"). The costs above include the assembly
+// time designs used to take, as the deadwood the section's best deadwood job makes in that time (rounded down).
 
 let S, M;
 let HALT = false;   // set by the UI to stop the clock in the middle of a catch-up (e.g. pause on task completion)
-const HOOK = {presetRow(){}, legacy(){}, legacyAvail(){}, autoRun(){}, assembling(){}, taskDone(){}, log(){}, perk(){}, die(){}, win(){}, change(){}, stopped(){}, practiced(){}, done(){}, crossed(){}, bought(){}, qfull(){}, kit(){}, runEnd(){}, trig(){}};
+const HOOK = {presetRow(){}, legacy(){}, legacyAvail(){}, autoRun(){}, taskDone(){}, log(){}, perk(){}, die(){}, win(){}, change(){}, stopped(){}, practiced(){}, done(){}, crossed(){}, bought(){}, qfull(){}, kit(){}, runEnd(){}, trig(){}};
 
 // Player preferences (switches, thresholds, boost speed) are stored once for the device, not per save:
 // a new game or another slot starts with the same settings.
@@ -1436,9 +1430,9 @@ function active(ex){
     if (next) { if (ok(next)) { L.viaChain = true; return next; } }
     else if (cSteps(L.now).every(x => cStepDone(L.now, x))) { if (L.cjd) Object.keys(L.cjd).forEach(k => { if (k.startsWith(L.now + '#')) delete L.cjd[k]; }); L.now = null; HOOK.change(); }
   }
-  if (L.now && isGQ(L.now)) {   // a gear card you tapped: gather deadwood until it can be paid, then it assembles
+  if (L.now && isGQ(L.now)) {   // a gear card you tapped: gather deadwood until it can be paid, then it is built
     const it = IT[L.now.slice(2)];
-    if (!it || L.owned[it.id] || assembling(it.id) || !isDone(it.req) || it.cost > M.salCap) { L.now = null; HOOK.change(); }
+    if (!it || L.owned[it.id] || !isDone(it.req) || it.cost > M.salCap) { L.now = null; HOOK.change(); }
     else if (L.salvage >= it.cost) { buyItem(it.id, false); L.now = null; HOOK.change(); }
     else { const j = bestSalvageJob(ok); if (j) return j; }
   }
@@ -1463,8 +1457,6 @@ function active(ex){
   if (ok(feed)) return feed;
   const scav = scavJob();   // grafts for the ship, like foraging
   if (ok(scav)) return scav;
-  // Gear paid for is assembled before anything else (after food )
-  if (L.assem && L.assem.length) { const bt = BT[L.assem[0]]; if (bt && ok(bt)) return bt; }
   const held = heldStep();
   if (ok(held)) return held;
   // One-click section run: everything in the section in chain order, then the crossing (no waiting).
@@ -1510,7 +1502,7 @@ function active(ex){
     }
     if (isGQ(id)) {
       const it = qItem(id);
-      if (!it || L.owned[it.id] || assembling(it.id)) { qConsume(id); HOOK.change(); continue; }
+      if (!it || L.owned[it.id]) { qConsume(id); HOOK.change(); continue; }
       if (!isDone(it.req) || it.cost > M.salCap) continue;   // not found yet in this life, or storage too small
       if (L.salvage >= it.cost) { buyItem(it.id, false); qConsume(id); HOOK.change(); continue; }
       const job = bestSalvageJob(ok);
@@ -1651,7 +1643,7 @@ function pendingActs(){
 function pendingGearJob(){
   const L = S.life;
   if (!S.gauto) return null;
-  const want = ITEMS.filter(it => gearAuto(it) && !L.owned[it.id] && !assembling(it.id) && isDone(it.req) && it.cost <= M.salCap)
+  const want = ITEMS.filter(it => gearAuto(it) && !L.owned[it.id] && isDone(it.req) && it.cost <= M.salCap)
     .sort((a, b) => ITEMS.indexOf(a) - ITEMS.indexOf(b))[0];
   if (!want || L.salvage >= want.cost) return null;
   let job = null, br = 0;
@@ -1690,7 +1682,7 @@ function skipHold(){
 function holdList(){
   const L = S.life; if (!L.held) return [];
   const out = pendingActs().map(t => t.name);
-  const g = ITEMS.filter(it => gearAuto(it) && !L.owned[it.id] && !assembling(it.id) && isDone(it.req) && it.cost <= M.salCap)
+  const g = ITEMS.filter(it => gearAuto(it) && !L.owned[it.id] && isDone(it.req) && it.cost <= M.salCap)
     .sort((a, b) => ITEMS.indexOf(a) - ITEMS.indexOf(b))[0];
   if (g && pendingGearJob()) out.push('build ' + g.name);
   if (fillJob()) out.push('refill storage');
@@ -1706,26 +1698,24 @@ function crossHeld(t){ return (S.life.prog[t.id] || 0) >= t.days - CROSS_HOLD - 
 const gearPracticed = it => ((S.gprac || {})[it.id] || 0) >= gearNeed(it);
 function buyItem(id, auto){
   const L = S.life, it = IT[id];
-  if (!it || L.owned[id] || assembling(id) || !isDone(it.req) || L.salvage < it.cost) return false;
-  L.salvage -= it.cost;   // paid up front; the seedling then assembles it (see BT)
-  (L.assem = L.assem || []).push(id); L.assemAuto = L.assemAuto || {}; L.assemAuto[id] = !!auto;
-  HOOK.assembling(it, auto);
+  if (!it || L.owned[id] || !isDone(it.req) || L.salvage < it.cost) return false;
+  L.salvage -= it.cost; gearBuilt(id, auto);   // built at once
   return true;
 }
-// An assembly is finished: the gear works from now on
-function gearBuilt(id){
+// A design is built: the gear works from now on
+function gearBuilt(id, auto){
   const L = S.life, it = IT[id];
-  L.assem = (L.assem || []).filter(x => x !== id); L.owned[id] = true; M = mods();
+  L.owned[id] = true; M = mods();
   if (it.eff.maxHp) L.hp += it.eff.maxHp;
   if (!S.gprac) S.gprac = {};
   S.gprac[id] = (S.gprac[id] || 0) + 1;
   if (S.gprac[id] === gearNeed(it) && S.gauto[id] !== false) S.gauto[id] = true;   // on by default once unlocked
-  HOOK.bought(it, !!(L.assemAuto || {})[id], S.gprac[id] === gearNeed(it));
+  HOOK.bought(it, !!auto, S.gprac[id] === gearNeed(it));
 }
 function autoBuy(){
   if (!S.gauto) return;
   const L = S.life;
-  const c = ITEMS.filter(it => gearAuto(it) && !L.owned[it.id] && !assembling(it.id) && isDone(it.req) && it.cost <= M.salCap)
+  const c = ITEMS.filter(it => gearAuto(it) && !L.owned[it.id] && isDone(it.req) && it.cost <= M.salCap)
     .sort((a, b) => ITEMS.indexOf(a) - ITEMS.indexOf(b));
   if (c.length && L.salvage >= c[0].cost) buyItem(c[0].id, true);
 }
@@ -1762,7 +1752,6 @@ function finish(t){
   L.done[t.id] = (L.done[t.id] || 0) + 1;
   if (!S.ever) S.ever = {};
   S.ever[t.id] = 1;
-  if (t.kind === 'build') { L.done[t.id] = 0; gearBuilt(t.gear); HOOK.taskDone(t); HOOK.change(); return; }
   if (t.kind === 'train') {
     drillCredit(t);
     if (complete(t)) qConsumeAll(t.id); else qConsumeRep(t.id);
@@ -2069,12 +2058,12 @@ function fcMake(){
   if (FC.rows.every(r => FC.skip[r.id])) { FC.qDay = L.day; FC.qHp = L.hp; }
   return FC;
 }
-// Does queue entry id cover the task being worked (cur)? Gear entries cover their deadwood gathering and assembly.
+// Does queue entry id cover the task being worked (cur)? Gear entries cover their deadwood gathering.
 function fcCover(id, cur){
   if (!cur) return false;
   if (id === cur || (isCQ(id) && cSteps(id).includes(cur))) return true;
   const gs = isCQ(id) ? cSteps(id).filter(isGQ) : isGQ(id) ? [id] : [];
-  return gs.some(g => cur === 'b:' + g.slice(2) || salvageJob(T[cur]));
+  return gs.some(() => salvageJob(T[cur]));
 }
 // The queue entry the seedling is working on right now (a held crossing, or the row covering the current task), if any
 function qCurEntry(){
@@ -2087,7 +2076,7 @@ function fcState(id){
   const L = S.life;
   if (isPQ(id)) return 'done';
   if (isCQ(id)) return cSteps(id).every(x => cStepDone(id, x)) ? 'done' : 'left';
-  if (isGQ(id)) return L.owned[id.slice(2)] || assembling(id.slice(2)) ? 'done' : 'left';
+  if (isGQ(id)) return L.owned[id.slice(2)] ? 'done' : 'left';
   const t = T[id]; return !t ? 'left' : t.kind === 'job' || complete(t) || (L.done[id] || 0) > 0 ? 'done' : 'left';
 }
 function fcRows(f){
@@ -2201,10 +2190,8 @@ function taskLeft(t){
 }
 function gearLeft(it){
   const L = S.life; if (L.owned[it.id]) return 0;
-  const bt = BT[it.id], build = (bt.days - (L.prog[bt.id] || 0)) / speedOf(bt);
-  if (assembling(it.id)) return build;
-  const need = Math.max(0, it.cost - L.salvage); if (!need) return build;
-  const j = bestSalvageJob(); return (j ? need / (j.prod.salvage * speedOf(j)) : 0) + build;
+  const need = Math.max(0, it.cost - L.salvage); if (!need) return 0;
+  const j = bestSalvageJob(); return j ? need / (j.prod.salvage * speedOf(j)) : 0;
 }
 function plannedTicks(){
   const L = S.life; let tot = 0;
@@ -2231,8 +2218,7 @@ function chainNext(id, ok){
       const it = IT[x.slice(2)];
       if (!isDone(it.req) || it.cost > M.salCap) return;
       rank = 0;
-      if (assembling(it.id)) run = () => BT[it.id];
-      else if (L.salvage >= it.cost) run = () => { buyItem(it.id, false); return BT[it.id]; };
+      if (L.salvage >= it.cost) run = () => { buyItem(it.id, false); return chainNext(id, ok); };   // built at once; carry on with the next step
       else { const job = bestSalvageJob(ok); if (!job) return; run = () => job; }
     } else {
       const t = T[x];
@@ -2303,7 +2289,7 @@ function chainedIds(){
 // design (in the queue or a queued chain) that is found, not built yet and fits in storage. Deadwood
 // jobs in a queued chain gather only up to this; they don't top the store up to full (crossings excepted).
 function salvageNeed(){
-  const L = S.life, fits = it => it && !L.owned[it.id] && !assembling(it.id) && isDone(it.req) && it.cost <= M.salCap;
+  const L = S.life, fits = it => it && !L.owned[it.id] && isDone(it.req) && it.cost <= M.salCap;
   let need = 0;
   ITEMS.forEach(it => { if (gearAuto(it) && fits(it)) need = need || it.cost; });
   for (const id of L.queue) {
@@ -3275,6 +3261,12 @@ function mergeState(raw){
       if (((s.prac || {})[t.id] || 0) >= old && ((s.fam || {})[t.id] || 0) < autoFam(t)) (s.fam = s.fam || {})[t.id] = autoFam(t); }); } finally { S = keep; }
   }
   s.av = 2;
+  if (s.life && Array.isArray(s.life.assem)) {   // gear is built when paid (build "gear built when paid"): finish anything mid-assembly
+    s.life.owned = s.life.owned || {}; s.gprac = s.gprac || {};
+    s.life.assem.forEach(id => { if (IT[id] && !s.life.owned[id]) { s.life.owned[id] = true; s.gprac[id] = (s.gprac[id] || 0) + 1; } });
+    delete s.life.assem; delete s.life.assemAuto;
+  }
+  if (s.life && typeof s.life.now === 'string' && s.life.now.startsWith('b:')) s.life.now = null;
   if (!raw.rv && s.life) s.life.rations = (s.life.rations || 0) / 2;
   if ((raw.rv || 0) < 3) {   // v3: cells x0.4, deadwood x0.25
     if (s.life) { s.life.rations = (s.life.rations || 0) * 0.4; s.life.salvage = (s.life.salvage || 0) * 0.25; }
@@ -3422,7 +3414,6 @@ HOOK.legacyAvail = ts => { taskKey = ''; legKey = ''; sfx('perk');
   const fin = ts.filter(t => t.lfin), parts = ts.filter(t => !t.lfin), where = zoneThe(ts[0].z);
   fin.forEach(t => toast('Legacy final ready in ' + where + ': ' + t.name + '.', true));
   if (parts.length) toast('Legacy tasks open in ' + where + ': ' + parts.map(t => t.name).join(', ') + '. Queue them: the crossing needs them.', true); };
-HOOK.assembling = (it, auto) => { gearKey = ''; taskKey = ''; toast((auto ? 'Auto-build: assembling ' : 'Assembling ') + it.name + ' (' + fmtDays(BT[it.id].days / speedOf(BT[it.id])) + ')'); };
 HOOK.bought = (it, auto, unlocked) => {
   sfx('gear'); gearKey = ''; taskKey = ''; autoKey = '';
   toast((auto ? 'Auto-built: ' : 'Built: ') + it.name);
@@ -3499,7 +3490,7 @@ function toast(msg, gold){
 /* ----- task list ----- */
 // What finishing an action does, shown once it has been finished in this save (or always, with TEST_SHOW_EFFECTS); until then just '?'
 const OPENS_CAP = 3;
-const opensOf = t => [...new Set(TASKS.filter(x => x.kind !== 'build' && (x.req || []).includes(t.id) && (!x.legacy || legacyOpen(x))).map(x => x.kind === 'job' ? 'charging station' : x.name)
+const opensOf = t => [...new Set(TASKS.filter(x => (x.req || []).includes(t.id) && (!x.legacy || legacyOpen(x))).map(x => x.kind === 'job' ? 'charging station' : x.name)
   .concat(ITEMS.filter(i => i.req === t.id).map(i => i.name)))];   // what finishing t opens
 function effectHtml(t, full){
   if (!TEST_SHOW_EFFECTS && !(S.ever || {})[t.id]) return '<span class="eff">?</span>';
@@ -3713,6 +3704,7 @@ const BUILD_NOTES = [
   ['one food store', 'Long task names on the Now line no longer push the status panel past a phone screen. The Outlook waits a moment for the forecast instead of showing a rough guess first.'],
   ['automation at practiced', 'A task can be automated as soon as it is Practiced (\u00d72 familiarity), so drills and records now bring automation closer too. Task cards show one progress number (familiarity); the tooltip says when automation opens.'],
   ['one upgrade', 'Act II: each section\u2019s charger upgrade now also makes repairs come more often; the separate workshop actions (and their graft cost) are gone.'],
+  ['gear built when paid', 'Gear is built the moment it is paid for: no assembly step. Most designs cost a little more deadwood instead (the cheapest ones are unchanged).'],
 ];
 const buildKey = () => BUILD.split('\u00b7').pop().trim();
 function newNotes(){   // the notes since this save last opened (records the current build)
@@ -3803,7 +3795,7 @@ const qText = () => S.life.queue.map((id, i) => (i + 1) + '. ' + (isCQ(id) ? 'Ch
 function qParse(txt){
   const key = x => x.toLowerCase().replace(/[\u2018\u2019`]/g, "'");   // curly or straight apostrophes alike
   const byName = {}, shown = {}; const add = (n, id) => { byName[key(n)] = id; shown[key(n)] = n; };
-  TASKS.forEach(t => { if (t.kind !== 'build') add(t.name, t.id); }); ITEMS.forEach(i => add('Build ' + i.name, 'g:' + i.id));
+  TASKS.forEach(t => add(t.name, t.id)); ITEMS.forEach(i => add('Build ' + i.name, 'g:' + i.id));
   for (let i = 0; i < QPRESETS; i++) { add('Load preset: preset ' + (i + 1), 'p:' + i); if (qpName(i)) add('Load preset: ' + qpName(i), 'p:' + i); }
   const ids = [], bad = [], near = {}; let chains = 0;
   String(txt || '').split(/\r?\n/).forEach(line => {
@@ -4087,9 +4079,8 @@ document.addEventListener('pointercancel', qDragEnd);
 let tkSig = '', tkFullT = 0;
 function tkQuickSig(){
   const L = S.life; let ds = 0; for (const k in L.done) ds += L.done[k];
-  let ga = 0; if (L.queue.some(isGQ) || ITEMS.some(i => assembling(i.id))) ITEMS.forEach(i => { ga += Math.floor((L.prog['b:' + i.id] || 0) / BT[i.id].days * 20); });
   return [uiN, S.gen, L.sec, L.cur, L.now, L.job, L.held, !!L.chainRun, L.dead, L.queue.length, L.queue[0], L.queue[L.queue.length - 1], (L.qdone || []).length, ds,
-    Object.keys(L.owned).length, ga, L.queue.some(isGQ) ? Math.floor(L.salvage) : '', Object.keys(S.perks).length, editList].join('|');
+    Object.keys(L.owned).length, L.queue.some(isGQ) ? Math.floor(L.salvage) : '', Object.keys(S.perks).length, editList].join('|');
 }
 function renderTasks(){
   if (qDrag) return;   // don't rebuild the list under the finger
@@ -4104,7 +4095,7 @@ function renderTasks(){
     if (av && !complete(t)) vis.push(t.id);
     else if (!av && S.seen[t.id] && legacyOpen(t)) locked.push(t.id);
   });
-  const key = vis.join() + '|' + JSON.stringify(S.fav || {}) + JSON.stringify(S.hide || {}) + editList + JSON.stringify(showHid) + '|' + locked.join() + '|' + [...chainedIds()].join() + JSON.stringify(cOpen) + JSON.stringify(qOpen) + JSON.stringify(L.cjd || {}) + L.queue.filter(isCQ).map(id => cSteps(id).filter(x => cStepDone(id, x)).length).join() + (L.now || '') + (L.chainRun ? 'R' : '') + runSpan(L.sec || 1).join('') + JSON.stringify(sectionGate(L.sec || 1)) + ITEMS.filter(i => isDone(i.req)).map(i => i.id + (L.owned[i.id] ? 'o' : assembling(i.id) ? 'a' + Math.floor((L.prog['b:' + i.id] || 0) / BT[i.id].days * 20) : L.salvage >= i.cost ? 'y' : 'n') + (gearAuto(i) ? '*' : '') + ((S.gprac || {})[i.id] || 0)).join() + '|' + L.queue.join() + (L.queue.some(isGQ) ? Math.floor(L.salvage) + '/' + M.salCap + Object.keys(L.owned).join() : '') + '|' + L.job + '|' + Object.keys(S.perks).join() + '|' + S.gen + '|' + L.sec + '|' + (L.held || '') + holdList().join() + '|' + JSON.stringify(S.qpresets) + (L.qdone || []).length + (S.set.keepQueue !== false) + '|' + TASKS.filter(t => practiced(t)).map(t => t.id + (S.auto[t.id] ? '*' : '')).join() + '|' + JSON.stringify(L.qskip || {}) + JSON.stringify(S.qtrig || []) + '|' + !!(qUndo && qUndo.gen === S.gen) + JSON.stringify(S.qpnames || []);
+  const key = vis.join() + '|' + JSON.stringify(S.fav || {}) + JSON.stringify(S.hide || {}) + editList + JSON.stringify(showHid) + '|' + locked.join() + '|' + [...chainedIds()].join() + JSON.stringify(cOpen) + JSON.stringify(qOpen) + JSON.stringify(L.cjd || {}) + L.queue.filter(isCQ).map(id => cSteps(id).filter(x => cStepDone(id, x)).length).join() + (L.now || '') + (L.chainRun ? 'R' : '') + runSpan(L.sec || 1).join('') + JSON.stringify(sectionGate(L.sec || 1)) + ITEMS.filter(i => isDone(i.req)).map(i => i.id + (L.owned[i.id] ? 'o' : L.salvage >= i.cost ? 'y' : 'n') + (gearAuto(i) ? '*' : '') + ((S.gprac || {})[i.id] || 0)).join() + '|' + L.queue.join() + (L.queue.some(isGQ) ? Math.floor(L.salvage) + '/' + M.salCap + Object.keys(L.owned).join() : '') + '|' + L.job + '|' + Object.keys(S.perks).join() + '|' + S.gen + '|' + L.sec + '|' + (L.held || '') + holdList().join() + '|' + JSON.stringify(S.qpresets) + (L.qdone || []).length + (S.set.keepQueue !== false) + '|' + TASKS.filter(t => practiced(t)).map(t => t.id + (S.auto[t.id] ? '*' : '')).join() + '|' + JSON.stringify(L.qskip || {}) + JSON.stringify(S.qtrig || []) + '|' + !!(qUndo && qUndo.gen === S.gen) + JSON.stringify(S.qpnames || []);
   const gk = JSON.stringify(sectionGate(L.sec || 1)) + runSpan(L.sec || 1).join() + !!L.chainRun + '|' + vis.map(id => (S.ever || {})[id] ? 'e' : '').join() + '|' + ITEMS.map(i => (gearKnown(i) ? 'k' : '') + (gearPracticed(i) ? 'p' : '')).join();   // familiarity and auto % update in place (updateTasks), so they never rebuild the list
   if (key + gk === taskKey) return;
   taskKey = key + gk;
@@ -4250,7 +4241,7 @@ function updateTasks(){
     setT(r.fl, 'flow \u00d7' + fm.toFixed(2));
     r.el.classList.toggle('on', L.viaChain && cSteps(r.k).includes(L.cur));
   });
-  gRefs.forEach(r => setH(r.pp, progHtml(BT[r.i.id], gearAutoFrac(r.i))));   // gear familiarity / auto %, in place
+  gRefs.forEach(r => setH(r.pp, gearProgHtml(r.i)));   // gear automation %, in place
   refs.forEach(r => {
     const t = r.t, on = L.cur === t.id;
     if (r.pp) setH(r.pp, progHtml(t));   // familiarity %, in place (no list rebuild)
@@ -4309,8 +4300,8 @@ function renderSpeed(){
 }
 let lastHg = '', planT = 0, lastQEta = '';   // the queue box is rebuilt on changes: it starts from the last estimate, so nothing blinks
 // A gear card can be tapped (like a task) when the design is found, fits the storage and isn't built yet
-const gearTap = i => { const L = S.life; return !L.dead && !L.owned[i.id] && !assembling(i.id) && isDone(i.req) && i.cost <= M.salCap; };
-// Projected build time on gear cards: gathering the missing deadwood (best deadwood job here) plus assembly
+const gearTap = i => { const L = S.life; return !L.dead && !L.owned[i.id] && isDone(i.req) && i.cost <= M.salCap; };
+// Projected build time on gear cards: gathering the missing deadwood (best deadwood job here)
 let getaT = 0;
 function updateGearEta(){
   if (performance.now() - getaT < 400) return; getaT = performance.now();
@@ -4322,7 +4313,7 @@ function updateGearEta(){
       if (!isDone(it.req)) h = '';
       else if (it.cost > M.salCap) h = 'needs bigger ' + w + ' storage';
       else if (need > 0 && !bestSalvageJob()) h = 'needs ' + fmt(need) + ' more ' + w + ' \u00b7 no ' + w + ' job here';
-      else h = (assembling(it.id) ? 'done in \u2248 ' : 'built in \u2248 ') + bothH(gearLeft(it)) + (need > 0 && !assembling(it.id) ? ' <small>(gathering ' + fmt(need) + ' ' + w + ' + assembly)</small>' : ' <small>(assembly)</small>');
+      else h = need > 0 ? 'built in \u2248 ' + bothH(gearLeft(it)) + ' <small>(gathering ' + fmt(need) + ' ' + w + ')</small>' : 'can be built now';
     }
     setH(el, h); });
 }
@@ -4522,7 +4513,7 @@ function updateHud(){
   now.classList.toggle('forage', !!(cur && L.foraging && !blip));
   if (!cur || cur.kind !== 'job') $('#n-fill').classList.remove('fast');
   $('#n-eta').classList.remove('over');
-  const gWait = !cur && !L.dead && !S.set.paused ? L.queue.map(qItem).find((it, i) => isGQ(L.queue[i]) && it && !L.owned[it.id] && !assembling(it.id) && isDone(it.req) && L.salvage < it.cost) : null;
+  const gWait = !cur && !L.dead && !S.set.paused ? L.queue.map(qItem).find((it, i) => isGQ(L.queue[i]) && it && !L.owned[it.id] && isDone(it.req) && L.salvage < it.cost) : null;
   if (gWait) { setT($('#n-name'), 'Waiting: ' + gWait.name + ' needs ' + fmt(gWait.cost) + ' ' + salW() + (bestSalvageJob() ? '' : ' (no ' + salW() + ' job here yet)')); setT($('#n-eta'), ''); }
   else if (L.dead) { setT($('#n-name'), 'Seedling terminated'); setT($('#n-eta'), ''); setW($('#n-fill'), '0'); }
   else if (S.set.paused) { setT($('#n-name'), 'Paused' + (cur ? ': ' + cur.name : '')); setT($('#n-eta'), 'tap Resume'); }
@@ -4602,11 +4593,6 @@ function renderSkills(){
     ts.forEach(t => { const fr = masteryFrac(t);
       h += `<div class="sk fam"><div class="skh"><h3>${esc(t.name)}</h3><b>\u00d7${fmt(masteryF(t))}</b></div><div class="bar xp"><i style="width:${(fr * 100).toFixed(1)}%"></i></div>
         <div class="skm num"><span></span><span>${fmt((S.fam || {})[t.id] || 0)}/${fmt(famNeed(t))}${t.kind === 'job' ? ' batches' : ''}</span></div>${speedBdHtml(t)}${(S.tt || {})[t.id] ? `<div class="sktm num">Time spent: this seedling ${clkG((L.tt || {})[t.id] || 0)} \u00b7 all seedlings ${clkG(S.tt[t.id])}</div>` : ''}${t.kind === 'job' ? '' : '<div class="skeff">' + (effectHtml(t, true) || '<span class="eff">no effect</span>') + '</div>'}</div>`; });
-    const gs = ITEMS.filter(i => gearZone(i) === z.id && ((S.ever || {})[i.req] || gearKnown(i)));
-    if (gs.length) h += '<div class="sub asub">Gear</div>';
-    gs.forEach(i => { const bt = BT[i.id], fr = masteryFrac(bt);
-      h += `<div class="sk fam"><div class="skh"><h3>${esc(i.name)}</h3><b>\u00d7${fmt(masteryF(bt))}</b></div><div class="bar xp"><i style="width:${(fr * 100).toFixed(1)}%"></i></div>
-        <div class="skm num"><span>build speed</span><span>${fmt((S.fam || {})[bt.id] || 0)}/${fmt(famNeed(bt))}</span></div><div class="skeff">${gearDesc(i)}</div></div>`; });
     return h; });
   $('#v-skills').innerHTML = h;
 }
@@ -4631,14 +4617,15 @@ function qBtn(id, extra){
 // Buildable (shown in yellow): found in this life, not built yet, and it fits in deadwood storage,
 // so gathering deadwood is all that is left to start it
 // A gear's effect is a mystery until it has been built once in this save
-const gearKnown = i => !!((S.ever || {})['b:' + i.id] || (S.gprac || {})[i.id]);
+const gearKnown = i => !!((S.ever || {})['b:' + i.id] || (S.gprac || {})[i.id]);   // 'b:' ids: built in an older build (assembly tasks)
+const gearProgHtml = i => gearPracticed(i) ? '' : '<span class="paut">auto ' + pctTxt(gearAutoFrac(i)) + '</span>';
 const gearDesc = i => gearKnown(i) ? esc(i.desc) : '<span class="eff">?</span>';
-const gearReady = i => { const L = S.life; return isDone(i.req) && !L.owned[i.id] && !assembling(i.id) && i.cost <= M.salCap; };
+const gearReady = i => { const L = S.life; return isDone(i.req) && !L.owned[i.id] && i.cost <= M.salCap; };
 function gearRow(i){
   const L = S.life, pr = gearPracticed(i), on = !!(S.gauto && S.gauto[i.id]);
-  const st = '<span class="pp">' + progHtml(BT[i.id], gearAutoFrac(i)) + '</span>' + (pr ? ' \u00b7 ' + (on ? 'built automatically when affordable' : 'can be automated') : '');
+  const st = '<span class="pp">' + gearProgHtml(i) + '</span>' + (pr ? ' \u00b7 ' + (on ? 'built automatically when affordable' : 'can be automated') : '');
   return `<div class="item gitem"><button class="gtm" data-gdo="${i.id}" ${gearTap(i) ? '' : 'disabled'}><h3${gearReady(i) ? ' class="gready"' : ''}>${esc(i.name)}</h3><p>${gearDesc(i)}</p><p class="num">${st}</p><p class="num geta" data-g="${i.id}"></p></button>` +
-    (L.owned[i.id] ? '<span class="owned">Built</span>' : assembling(i.id) ? `<span class="owned">Assembling ${Math.floor((L.prog['b:' + i.id] || 0) / BT[i.id].days * 100)}%</span>` : `<span class="gcost num">${fmt(i.cost)} ${salW(gearZone(i))}${i.cost > M.salCap ? '<br><small>needs storage</small>' : ''}</span>${gqBtn(i)}`) +
+    (L.owned[i.id] ? '<span class="owned">Built</span>' : `<span class="gcost num">${fmt(i.cost)} ${salW(gearZone(i))}${i.cost > M.salCap ? '<br><small>needs storage</small>' : ''}</span>${gqBtn(i)}`) +
     (pr ? `<button class="ta${on ? ' on' : ''}" data-gauto="${i.id}" aria-pressed="${on}" aria-label="Build ${esc(i.name)} automatically">AUTO</button>` : '') +
     (editList ? `<button class="tpn${(S.pins || []).includes('g:' + i.id) ? ' on' : ''}" data-tpin="g:${i.id}" aria-pressed="${(S.pins || []).includes('g:' + i.id)}" aria-label="Pin ${esc(i.name)}">Pin</button>` : '') + '</div>';
 }
@@ -4646,7 +4633,7 @@ function renderGear(){
   const L = S.life;
   const av = ITEMS.filter(i => isDone(i.req));
   const known = ITEMS.filter(i => !isDone(i.req) && ((S.gprac || {})[i.id] || 0) > 0 && !zBefore(gearZone(i), L.sec || 1));
-  const key = M.salCap + '|' + L.queue.filter(isGQ).join() + '|' + known.map(i => i.id).join() + '|' + av.map(i => i.id + (L.owned[i.id] ? 'o' : assembling(i.id) ? 'a' + Math.floor((L.prog['b:' + i.id] || 0) / BT[i.id].days * 20) : (L.salvage >= i.cost ? 'y' : 'n')) + ((S.gprac || {})[i.id] || 0) + (S.gauto && S.gauto[i.id] ? '*' : '')).join();
+  const key = M.salCap + '|' + L.queue.filter(isGQ).join() + '|' + known.map(i => i.id).join() + '|' + av.map(i => i.id + (L.owned[i.id] ? 'o' : (L.salvage >= i.cost ? 'y' : 'n')) + ((S.gprac || {})[i.id] || 0) + (S.gauto && S.gauto[i.id] ? '*' : '')).join();
   if (key === gearKey) return; gearKey = key;
   let h = '<div class="panel"><span class="h2">Fabricator</span><p class="note">' + (salW() === 'grafts' ? 'Gear is grown from grafts and lasts for this seedling only. New designs appear as you explore. Graft storage is limited; opening up more of the ship raises it.' : 'Gear is built from deadwood and lasts for this seedling only. New designs appear as you explore. Deadwood storage is limited; opening up more of the ship raises it.') + '</p></div><div>';
   if (!av.length) h += '<p class="note">Nothing to build yet. Climb out of the seed pod first.</p>';
@@ -4655,7 +4642,7 @@ function renderGear(){
     const z = gearZone(i);
     if (z !== lastZ) { lastZ = z; h += `<div class="sub" style="margin-top:12px">${ZN(z).name}</div>`; }
     h += `<div class="item"><button class="gtm" data-gdo="${i.id}" ${gearTap(i) ? '' : 'disabled'}><h3${gearReady(i) ? ' class="gready"' : ''}>${esc(i.name)}</h3><p>${esc(i.desc)}</p><p class="num geta" data-g="${i.id}"></p><p class="num">${gearPracticed(i) ? (S.gauto && S.gauto[i.id] ? 'Built automatically' : 'Automation available in the Auto tab') : 'Built in ' + ((S.gprac || {})[i.id] || 0) + '/' + AUTO_LIVES + ' lives'}</p></button>` +
-      (L.owned[i.id] ? '<span class="owned">Built</span>' : assembling(i.id) ? `<span class="owned">Assembling ${Math.floor((L.prog['b:' + i.id] || 0) / BT[i.id].days * 100)}%</span>` : `<span class="gcost num">${fmt(i.cost)} ${salW(gearZone(i))}${i.cost > M.salCap ? '<br><small>needs storage</small>' : ''}</span>${gqBtn(i)}`) + '</div>';
+      (L.owned[i.id] ? '<span class="owned">Built</span>' : `<span class="gcost num">${fmt(i.cost)} ${salW(gearZone(i))}${i.cost > M.salCap ? '<br><small>needs storage</small>' : ''}</span>${gqBtn(i)}`) + '</div>';
   });
   if (known.length) {
     h += '<div class="sub" style="margin-top:12px">Known designs, not found yet in this life</div>';
@@ -4972,7 +4959,7 @@ function tgtHtml(z){
 // been done at least once (fully mapped), except the section the seedling is in. Choices are kept on the device
 // (selene.mapfold.v1: id -> 'o' open / 'c' closed, overriding the default).
 const MAPFOLD_KEY = 'selene.mapfold.v1';
-const mapAll = z => TASKS.filter(t => t.kind !== 'job' && t.kind !== 'build' && !(t.legacy && t.kind === 'train') && t.z === z && legacyOpen(t));   // optional legacy drills don't count
+const mapAll = z => TASKS.filter(t => t.kind !== 'job' && !(t.legacy && t.kind === 'train') && t.z === z && legacyOpen(t));   // optional legacy drills don't count
 const mapFull = z => { const ev = S.ever || {}, a = mapAll(z); return a.length > 0 && a.every(t => ev[t.id]); };
 try { const old = JSON.parse(localStorage.getItem(MAPFOLD_KEY) || '{}') || {}; let n = 0; for (const z in old) if (!(('mp:' + z) in secFold)) { secFold['mp:' + z] = old[z]; n++; } if (n) localStorage.setItem(SECFOLD_KEY, JSON.stringify(secFold)); localStorage.removeItem(MAPFOLD_KEY); } catch(e) {}   // Map folds now share selene.secfold.v1
 function renderMap(){
@@ -5180,7 +5167,7 @@ const FAQ_ALL = [
   ['Energy and sap cells', 'Seedlings are biomechanical: as long as they have energy, the body is sustained. The <b>Energy</b> bar drains all the time; each recharge uses one <b>sap cell</b> and puts energy back. <b>Every recharge restores the same amount</b>; what changes is how often the seedling can recharge. Sap cells are carried up to the seedling\u2019s <b>storage capacity</b>, which grows as the seedling gets deeper into the ship (5 in the Seedling Vaults, up to 90 in the Ember Crown, in steps of 5), plus gear and records. Each section has a <b>charging station</b> job, but it only opens partway into the section and holds a limited <b>reserve</b> per seedling life; when it is drained, the seedling has to cross or run down. Every crossing also costs a share of the cells carried, more the further into the ship you go, so a seedling always arrives living on what it brought. At first a seedling can recharge every 5 seconds of in-game time. Each section has one <b>charger upgrade</b> action that shortens the wait between recharges for the rest of that life, down to about 2 seconds, and adds half again to that section\u2019s station reserve; each seedling has to fix them again. Recharges are always whole, and the seedling only recharges when it needs to: when a whole recharge fits under full energy, or sooner once energy is down to half. At full energy no cell is used. With no cells left at all, the seedling runs down. The Hive Ship\u2019s only charging comes late, so arrive charged.'],
   ['What carries over when a seedling dies?', '<b>Familiarity</b> is kept: every task stays as fast as your seedlings have made it (see the Mastery tab). Every 10 seconds of in-game time a seedling survives is analysed afterwards, run and memory alike, and becomes an <b>efficiency patch</b>: later seedlings drain their energy a little more slowly, up to \u00f71.6. <b>Archive records</b> found by finishing certain actions are permanent upgrades. Gear, sap cells, deadwood and progress through the ship reset.'],
   ['What are sections?', 'Act I is split into six sections. The <b>Route</b> at the top of the Map tab shows them all in order (sections no seedling has reached show as ?); tap one for its year, crossing cost and danger. Below it, tap a section\u2019s name to fold or open it. The Map, Auto, Mastery, Archive and the Ship log fold the same way: sections behind the seedling start folded, the one it is in and those ahead start open, and once an act is done its sections sit together under one act header. What you open or fold is kept on this device. A <b>red</b> action leads to the next one, and the way back is sealed for that seedling, so finish what you need first (records, training, gear). Each new seedling starts back in the Seedling Vaults.'],
-  ['What is gear?', 'Gear is built from deadwood (called grafts in Act II: the same store) and lasts for one seedling. Each section has designs to build. Building one pays its deadwood up front, then the seedling spends time <b>assembling</b> it (bigger designs take longer, from a moment for a toolkit to half a minute or so of in-game time for the largest); assembly comes before other work and gets faster with familiarity. The gear works once it is assembled. Deadwood storage is limited; opening up more of the ship raises it.'],
+  ['What is gear?', 'Gear is built from deadwood (called grafts in Act II: the same store) and lasts for one seedling. Each section has designs to build. Building one pays its deadwood and the gear works at once. Deadwood storage is limited; opening up more of the ship raises it.'],
   ['What is familiarity?', 'There are no skills: each task gets faster on its own the more of it your seedlings have done. Familiarity counts work in completions, including attempts a seedling died in the middle of, and is kept between seedlings. Speed rises smoothly from ×1 to ×10 once you have done enough of a task: in a first run, 90 lives’ worth of it (90 finishes of an action, 1800 batches of a job). Each level of the <b>Echo</b> legacy theme lowers that for Act I tasks. Familiar tasks also hurt less (hazard damage up to ÷4), and a familiar charging station charges faster. <b>Drills</b> spread familiarity to every task in their section. The Mastery tab lists every task. Familiarity has named steps: <b>Practiced</b> at \u00d72 (tasks can be linked), <b>Skilled</b> at \u00d75 (one-tap section runs) and <b>Mastered</b> at \u00d710. A task card shows the time familiarity saves on each completion (in green), and its tooltip says how many completions to the next step and how far automation is.'],
   ['How does automation work?', 'A task becomes automatable once it is <b>Practiced</b> (\u00d72 familiarity: about 10 lives\u2019 worth of it, less with drills, records and the Echo legacy), and a gear design once it was built in 10 lives; its automation <b>switches on by itself</b> (jobs are never automated); tap <b>AUTO</b> (or its switch in the Auto tab) to turn it off, and it stays off. Automated tasks run by themselves <b>ahead of your queue</b>, in chain order (each after the tasks it needs). Automated tasks <b>link into chains</b> when one requires the other and both are at least ×2 familiar. When every action and crossing of a section is automated and ×5 familiar, and all its gear designs are automated, the whole section becomes <b>one chain</b>: press <b>▶ Run section</b> (above the queue in the Tasks tab) and the seedling works through everything, builds the gear, fills its stores and crosses. The run is pinned at the top of the queue and the queue\u2019s leftovers for its sections are cleared. Pressing it also turns on <b>Always run sections once ready</b> (Auto tab): from then on a run starts by itself whenever the section you are in is ready. Stop turns that off again. Ready sections next to each other link across their crossings into one run (<b>▶ Run 3 sections</b>), up to the end of the act; a run that dies starts again with the next seedling. The option <b>Pause when a section run ends instead</b> keeps a run going through its crossings and pauses once it is over. A chain picks its next step itself each time: gear first, then charger upgrades, then the actions and drills in the order they depend on each other, and the crossing last. When a chain forms or grows, it <b>queues itself</b>, including the chains of sections still ahead, and chain entries are kept in the order they will run: section by section, and within a section the chain that starts earliest first, with the crossing\u2019s chain last, and anything of it you had queued separately is dropped from the queue. If you remove a chain from the queue, it stays out for the rest of that seedling\u2019s life. Work done as part of a chain (a queued chain or a section run) builds <b>chain flow</b>, which makes chained steps up to five times as fast; it is kept for good. Jobs are never automated: auto-forage keeps the charge up, queued gear works the deadwood jobs, and every queued or automated crossing tops the sap cells up and fills deadwood to full carry before the seedling moves on. <b>Automated gear gathers its own deadwood</b> during the life: the next automated design that is found, not built and fits in storage; it gathers only what that design costs and does not top the store up to full (except while filling up before a crossing). Automated <b>crossings</b> are the exception: they wait until your queue is done. A task you tap runs before everything. The <b>Auto</b> tab lists everything unlocked and has extra options: charging when needed, the death screen and starting paused. Each section\u2019s header names its <b>next automation</b>: the task closest to it, its completions, and whether this seedling gets there (from the forecast) or about how many more seedlings it takes. The death screen sums up each life: familiarity gained, records found, tasks that became automatable and the closest ones; the Mastery tab shows the in-game time spent on each task by this seedling and by all of them (counted from build \u201cqueue summaries\u201d). The <b>gears switch</b> next to Pause (shown once something is automated) pauses all automation at once: automated tasks, auto-built gear and section runs wait, while the queue, tapped tasks and auto-charge keep working. Tap it again to resume. Each section on the Auto tab has <b>All on</b> and <b>All off</b> for everything automatable there.'],
   ['What happens at a crossing with automation?', 'A queued or automated crossing stops just before it finishes and waits while the seedling finishes automated actions and training, builds affordable automated gear and tops sap cells up and fills deadwood (grafts in Act II) to full carry, unless the seedling is out of cells and low on energy. Tap a crossing yourself to go at once.'],
@@ -5548,7 +5535,7 @@ document.addEventListener('click', e => {
   if (d.qprow != null) { qSnap('Add a preset row'); if (qAdd('p:' + d.qprow)) toast('Queued: Load preset ' + (+d.qprow + 1) + (qpName(+d.qprow) ? ' (' + qpName(+d.qprow) + ')' : '') + '. It loads once every row above it is done.'); taskKey = ''; renderView(); return; }
   if ('qtrig' in d) { qTrigPanel(); return; }
   if ('qsortfam' in d) {   // the weakest tasks first (chains stay pinned on top; gear by its build familiarity; ties keep their order)
-    const fam = id => isGQ(id) ? (IT[id.slice(2)] ? masteryFrac(BT[id.slice(2)]) : 1) : T[id] ? masteryFrac(T[id]) : 1;
+    const fam = id => isGQ(id) ? (IT[id.slice(2)] ? gearAutoFrac(IT[id.slice(2)]) : 1) : T[id] ? masteryFrac(T[id]) : 1;
     const pin = L.queue.filter(isCQ), rest = L.queue.filter(q => !isCQ(q)).map((id, k) => ({id, k, f:fam(id)}));
     if (rest.filter(x => !isPQ(x.id)).length < 2) { toast('Nothing to sort.'); return; }
     // preset rows stay where they are: the rows between them are sorted on their own

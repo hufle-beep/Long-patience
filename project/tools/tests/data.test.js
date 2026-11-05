@@ -80,3 +80,15 @@ test('every record is found by some task, and every non-legacy task can be seen'
   for (const p of G.PERKS) if (p.by && !G.T[p.by]) bad.push('record ' + p.id + ': its task ' + p.by + ' does not exist');
   assert.deepStrictEqual(bad, []);
 });
+
+test('every gear design fits the deadwood storage its section can reach', () => {
+  // build "gear built when paid" raised costs: a design costing more than the most storage a seedling can have in its
+  // section (every record, everything done up to and in it, all gear owned) could never be built
+  const R = new Function(logicSrc() + `
+    const cap = {};
+    ROUTE.forEach((z, k) => { S = defaultState(); S.won = k >= ACT1.length; S.life.sec = z; PERKS.forEach(p => S.perks[p.id] = true);
+      const upto = ROUTE.slice(0, k + 1); TASKS.forEach(t => { if (upto.includes(t.z)) S.life.done[t.id] = t.reps || 1; });
+      ITEMS.forEach(i => { if (upto.includes(gearZone(i))) S.life.owned[i.id] = true; }); M = mods(); cap[z] = M.salCap; });
+    return ITEMS.filter(i => i.cost > cap[gearZone(i)]).map(i => i.id + ' costs ' + i.cost + ', storage reaches ' + cap[gearZone(i)]);`)();
+  assert.deepStrictEqual(R, []);
+});
