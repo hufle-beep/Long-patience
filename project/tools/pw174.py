@@ -21,7 +21,7 @@ with sync_playwright() as p:
     if s!=[1,'string','ok',False]: errs.append('save lacks fmt/checksum or S keeps ck: %s' % s)
     good=pg.evaluate("()=>localStorage.getItem('selene.slot.1')")
     fn=pg.evaluate("()=>saveFileName()"); print('file name', fn)
-    if not re.match(r'^selene-slot1-seedling\d+-\d{4}-\d\d-\d\d-\d{4}-save-checks\.json$', fn): errs.append('file name: '+fn)
+    if not re.match(r'^selene-slot1-seedling\d+-\d{4}-\d\d-\d\d-\d{4}-[a-z0-9-]+\.json$', fn): errs.append('file name: '+fn)
     # an export carries a checksum that checks out after parsing the pretty file
     ex=pg.evaluate("()=>{ const t=JSON.stringify(JSON.parse(saveJson(S)),null,1); return ckCheck(JSON.parse(t)); }")
     if ex!='ok': errs.append('exported checksum does not check out: '+ex)

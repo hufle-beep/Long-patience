@@ -277,6 +277,8 @@ button.zh.zhb{margin:14px 0 6px}
 .task.job:not(.on) .tm .tf{opacity:.45}
 /* Live bars move by transform (no layout) and glide between the 10 Hz redraws */
 #b-hp,.now .nf,.tm .tf{width:100%;transform-origin:0 50%;transform:scaleX(0);transition:transform .1s linear}
+.skbd{font-size:11px;color:var(--dim);margin-top:3px}
+.histq{display:block;margin-top:4px;font-size:11px;padding:3px 7px;border:1px solid var(--line);border-radius:4px;color:var(--amber);background:var(--panel2)}
 .tf.fast,.nf.fast{width:100%!important;transform:none!important;opacity:.75;background:linear-gradient(90deg,var(--amber-soft),var(--amber-fill),var(--amber-soft))!important}
 .task.fb .tn::after{content:" · fallback";color:var(--faint);font-size:11px;font-weight:400}
 .tq{flex:0 0 44px;border:1px solid var(--line);border-radius:5px;font-family:var(--f-mono);font-size:18px;color:var(--dim)}
@@ -552,7 +554,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
 // Renamed from Long Patience: move this device's old storage keys to the new 'selene.' names once
 try { const old = []; for (let n = 0; n < localStorage.length; n++) old.push(localStorage.key(n)); old.forEach(k => { if (k && k.indexOf('long-patience.') === 0) { const nk = 'selene.' + k.slice(14); if (localStorage.getItem(nk) == null) localStorage.setItem(nk, localStorage.getItem(k)); localStorage.removeItem(k); } }); } catch(e) {}
 /* ===== Game data and rules (no DOM) ===== */
-const BUILD = '2026-11-05 · save checks';   // shown in the main menu, to tell which version is loaded
+const BUILD = '2026-11-05 · queue history';   // shown in the main menu, to tell which version is loaded
 const DPS = 8;             // simulation ticks per real second at 1x (doubled for the test version: same balance, half the real time)
 // Time is simulated in ticks. 80 ticks make one day unit (18 minutes each), so a day lasts
 // 20 real seconds at 1x and Players only ever see in-game time and real time, never days.
@@ -1283,7 +1285,7 @@ const HOOK = {presetRow(){}, repaired(){}, legacy(){}, legacyAvail(){}, autoRun(
 // Player preferences (switches, thresholds, boost speed) are stored once for the device, not per save:
 // a new game or another slot starts with the same settings.
 const PREF_KEY = 'selene.prefs.v1';
-const PREF_KEYS = ['speed','autoRun','autoRepair','autoScav','partsDays','autoFood','autoEat','foodPct','keepQueue','deathScreen','deathPause','startPaused','pauseCross','pauseRunEnd','pauseDone','replay','fillCross','autoFeed','deathQueue','pauseDeath'];
+const PREF_KEYS = ['speed','autoRun','autoRepair','autoScav','partsDays','autoFood','autoEat','foodPct','keepQueue','deathScreen','deathPause','startPaused','pauseCross','pauseRunEnd','pauseDone','replay','fillCross','autoFeed','deathQueue','pauseDeath','pauseQueue'];
 function loadPrefs(){ try { const p = JSON.parse(localStorage.getItem(PREF_KEY) || '{}'); const o = {}; PREF_KEYS.forEach(k => { if (p[k] !== undefined) o[k] = p[k]; }); return o; } catch(e) { return {}; } }
 function savePrefs(){ try { if (!S || !S.set) return; const o = {}; PREF_KEYS.forEach(k => { if (S.set[k] !== undefined) o[k] = S.set[k]; }); localStorage.setItem(PREF_KEY, JSON.stringify(o)); } catch(e) {} }
 function newLife(s){
@@ -1297,7 +1299,7 @@ function newLife(s){
 }
 function defaultState(){
   const s = {v:1, tv:3, fav:{}, hide:{}, qpresets:[[], [], [], [], []], gprac:{}, gauto:{}, gprio:{}, ev:2, rv:4, sv:2, pv:3, vv:3, gen:1, prio:{}, fam:{}, ever:{}, prac:{}, auto:{}, echo:{}, perks:{}, seen:{}, logged:{}, log:[], lastOrder:[], lastJob:null,
-    set:Object.assign({speed:1, autoFood:true, autoEat:true, foodDays:2, foodPct:40, keepQueue:true, autoRun:false, autoRepair:true, autoScav:true, partsDays:2, deathScreen:true, deathPause:true, startPaused:false, pauseCross:false, pauseRunEnd:false, pauseDone:false, replay:true, fillCross:false, autoFeed:false, deathQueue:false, pauseDeath:false}, loadPrefs()),
+    set:Object.assign({speed:1, autoFood:true, autoEat:true, foodDays:2, foodPct:40, keepQueue:true, autoRun:false, autoRepair:true, autoScav:true, partsDays:2, deathScreen:true, deathPause:true, startPaused:false, pauseCross:false, pauseRunEnd:false, pauseDone:false, replay:true, fillCross:false, autoFeed:false, deathQueue:false, pauseDeath:false, pauseQueue:false}, loadPrefs()),
     stats:{bestAge:0, deaths:0, daysLived:0, played:0}, a2:{open:false, hon:0, lv:{}, perks:{}, fin:0}, branch:null, merge:null, a2run:{reached:{}, done:{}}, pr:{n:0, pts:0, growth:0, drain:0, hp:0, speed:0, carry:0, runs:[]}, won:false, winGen:0, bank:0, saved:Date.now(), intro:false};
   s.life = newLife(s);
   return s;
@@ -1899,6 +1901,8 @@ function die(cause){
   // when each section was finished: arriving in the next one, or kindling the Hearth Tree for the last
   const fin = ACT1.map((z, i) => { const a = i < ACT1.length - 1 ? (L.secAt || {})[ACT1[i + 1]] : L.wonAt; return a ? [+(a.d / TPD).toFixed(2), Math.round(a.r)] : null; });
   S.hist.push({g:S.gen, sec:L.wonAt ? ACT1.length + 1 : act1No(L.sec || 1), z:L.sec || 1, lit:!!L.wonAt, prog:progOf(L), d:L.day, r:L.real || 0, cause, fin});
+  if (L.q0 && L.q0.length) S.hist[S.hist.length - 1].q = L.q0.slice();
+  if (S.hist.length > 10) delete S.hist[S.hist.length - 11].q;   // starting queues: the last 10 seedlings only
   bestFin(S.gen, fin);
   bestClone(S.gen, fin);
   if (S.hist.length > 50) S.hist.shift();
@@ -2038,7 +2042,8 @@ let FC = null;
 function fcStart(){ return FC = fcMake(); }
 function fcMake(){
   const L = S.life;
-  const FC = {s:JSON.parse(JSON.stringify(S)), m:null, cc:null, gen:S.gen, q:L.queue.slice(), qs:'', day0:L.day,
+  let done0 = 0; for (const k in L.done) done0 += L.done[k];
+  const FC = {s:JSON.parse(JSON.stringify(S)), m:null, cc:null, gen:S.gen, q:L.queue.slice(), qs:'', day0:L.day, done0,
     rows:L.queue.map(id => ({id, st:null, day:0, hp:0})), skip:Object.assign({}, L.qskip || {}), lastCur:L.cur, end:null, endDay:0, cause:'', dieRow:-1, dieHere:false, qDay:null, qHp:0};
   if (FC.rows.every(r => FC.skip[r.id])) { FC.qDay = L.day; FC.qHp = L.hp; }
   return FC;
@@ -2407,6 +2412,7 @@ function decant(){
   S.life.queue = keep.slice(); S.life.qdone = [];
   if (prev.qskip) { const sk = {}; for (const k in prev.qskip) if (prev.qskip[k] && keep.includes(k)) sk[k] = 1; S.life.qskip = sk; }
   qTriggers('new');   // preset triggers: 'when a new seedling sprouts'
+  S.life.q0 = S.life.queue.filter(id => !isCQ(id)).slice(0, QMAX);   // its starting queue, kept in the run history (Log)
   // Engram recorder: the task the last seedling died working on starts up to a quarter done (never more than it had)
   if (S.perks.engram && S.engramT && T[S.engramT.id]) { const t = T[S.engramT.id]; S.life.prog[t.id] = Math.min(S.engramT.p, ENGRAM_SHARE * t.days); }
   // A multi-section run in progress starts again with the new seedling, from its first section, if that section is ready
@@ -4108,8 +4114,17 @@ function updateQueueFc(){
   });
 }
 let lowWarn = 0;   // the seedling that already heard the low-energy warning
+// Pause when the queue is finished: the last own row was worked off (qdone grew), not cleared by hand
+let qFin = null;
+function qFinCheck(){
+  const L = S.life, n = L.queue.filter(id => !isCQ(id) && !isPQ(id) && !qAutomated(id) && !(L.qskip || {})[id]).length, d = (L.qdone || []).length;
+  const was = qFin && qFin.g === S.gen ? qFin : null; qFin = {g:S.gen, n, d};
+  if (!was || !S.set.pauseQueue || L.dead || S.set.paused || n > 0 || was.n === 0 || d <= was.d) return;
+  S.set.paused = true; renderSpeed(); save(); sfx('complete');
+  toast('Queue finished: paused. Press Resume to carry on.', true);
+}
 function updateHud(){
-  updateGearEta();
+  updateGearEta(); qFinCheck();
   if (S.storyQ && S.storyQ.length) showStory();
   const L = S.life;
   const hg = 'Seedling ' + S.gen + (ngpLv('speed') ? ' <span class="hng">\u00d7' + ngpSpeed().toFixed(1) + '</span>' : '');
@@ -4140,7 +4155,7 @@ function updateHud(){
         const n = fc.rows.filter(r => !fc.skip[r.id]).length, k = fc.rows.filter(r => r.st === 'done').length, all = fc.qDay != null;
         lastQEta = all ? '\u2248 ' + bothH(Math.max(0, fc.qDay - L.day)) : k + '/' + n + ' this life';
         if (qe) { setH(qe, lastQEta); qe.classList.toggle('over', !all); setTi(qe, all ? '' : 'The seedling won\u2019t get through the whole queue'); }
-        setH(pe, all ? 'Queue done in ' + bothH(Math.max(0, fc.qDay - L.day)) + ' with ' + Math.round(fc.qHp) + ' energy left' : 'Queue: ' + k + ' of ' + n + ' rows this life');
+        setH(pe, (all ? 'Queue done in ' + bothH(Math.max(0, fc.qDay - L.day)) + ' with ' + Math.round(fc.qHp) + ' energy left' : 'Queue: ' + k + ' of ' + n + ' rows this life') + fcRateTxt(fc));
         pe.classList.toggle('over', !all);
       } else {
         const pt = plannedTicks();
@@ -4221,6 +4236,14 @@ function updateHud(){
   audioMood(L.dead ? 0 : L.hp / M.maxHp, paused || !!S.set.paused);
 }
 
+// The forecast life's pace: task completions (each repeat or drill session) per real minute at the current speed,
+// to compare plans and presets. Shown once the forecast covers at least 10 s in-game.
+function fcRateTxt(fc){
+  const span = (fc.end === 'cap' ? FC_MAX + fc.day0 : fc.endDay) - fc.day0; if (!(span >= TPD) || fc.done0 == null) return '';
+  let d1 = 0; const dn = fc.s.life.done || {}; for (const k in dn) d1 += dn[k];
+  const n = Math.max(0, d1 - fc.done0), mins = realSecs(span) / 60; if (!(mins > 0)) return '';
+  return ' \u00b7 about ' + (n / mins >= 10 ? Math.round(n / mins) : (n / mins).toFixed(1)) + ' tasks per real minute';
+}
 // Why the seedling is doing what it does, when that isn't obvious (charging, gathering grafts)
 function nowWhy(cur, blip){
   const L = S.life; if (!cur || blip) return '';
@@ -4246,7 +4269,7 @@ function renderSkills(){
     if (fz) return;
     ts.forEach(t => { const fr = masteryFrac(t);
       h += `<div class="sk fam"><div class="skh"><h3>${esc(t.name)}</h3><b>\u00d7${fmt(masteryF(t))}</b></div><div class="bar xp"><i style="width:${(fr * 100).toFixed(1)}%"></i></div>
-        <div class="skm num"><span>${chips(t)}</span><span>${fmt((S.fam || {})[t.id] || 0)}/${fmt(famNeed(t))}${t.kind === 'job' ? ' batches' : ''}</span></div>${(S.tt || {})[t.id] ? `<div class="sktm num">Time spent: this seedling ${clkG((L.tt || {})[t.id] || 0)} \u00b7 all seedlings ${clkG(S.tt[t.id])}</div>` : ''}${t.kind === 'job' ? '' : '<div class="skeff">' + (effectHtml(t, true) || '<span class="eff">no effect</span>') + '</div>'}</div>`; });
+        <div class="skm num"><span>${chips(t)}</span><span>${fmt((S.fam || {})[t.id] || 0)}/${fmt(famNeed(t))}${t.kind === 'job' ? ' batches' : ''}</span></div>${speedBdHtml(t)}${(S.tt || {})[t.id] ? `<div class="sktm num">Time spent: this seedling ${clkG((L.tt || {})[t.id] || 0)} \u00b7 all seedlings ${clkG(S.tt[t.id])}</div>` : ''}${t.kind === 'job' ? '' : '<div class="skeff">' + (effectHtml(t, true) || '<span class="eff">no effect</span>') + '</div>'}</div>`; });
     const gs = ITEMS.filter(i => gearZone(i) === z.id && ((S.ever || {})[i.req] || gearKnown(i)));
     if (gs.length) h += '<div class="sub asub">Gear</div>';
     gs.forEach(i => { const bt = BT[i.id], fr = masteryFrac(bt);
@@ -4254,6 +4277,14 @@ function renderSkills(){
         <div class="skm num"><span>build speed</span><span>${fmt((S.fam || {})[bt.id] || 0)}/${fmt(famNeed(bt))}</span></div><div class="skeff">${gearDesc(i)}</div></div>`; });
   });
   $('#v-skills').innerHTML = h;
+}
+// What a task's working speed is made of (the same factors as speedOf, plus chain flow when it is linked)
+function speedBdHtml(t){
+  const f = [['familiarity', masteryF(t)], ['this section', tagF(t)], ['all work', M.spd]];
+  if (t.prod && t.prod.rations) f.push(['charging', M.foodSpd * ((M.fspd && M.fspd[t.id]) || 1)]);
+  const linked = chainedIds().has(t.id); if (linked) f.push(['chain flow', flowMul()]);
+  const tot = speedOf(t) * (linked ? flowMul() : 1), x = v => '\u00d7' + (v >= 10 ? v.toFixed(1) : v.toFixed(2));
+  return `<div class="skbd num" title="Familiarity grows with work and drills; records and gear give the section and all-work factors">Speed ${x(tot)} = ${f.map(([k, v]) => k + ' ' + x(v)).join(' \u00b7 ')}</div>`;
 }
 function gqBtn(i){ return qBtn('g:' + i.id, ' gqb'); }
 // a task card queues its whole chain when the task is linked into one
@@ -4397,6 +4428,13 @@ function statsGrid(){
   return h;
 }
 // Average row under the recent seedlings: mean life length (in-game and real) and the section reached most often
+// Consecutive seedlings that died in the same section of the same cause share one row (display only)
+function histGroups(hist, histName){
+  const out = [];
+  hist.forEach(e => { const g = out[out.length - 1], k = histName(e) + '|' + String(e.cause || '').toLowerCase();
+    if (g && g.k === k) g.push(e); else { const n = [e]; n.k = k; out.push(n); } });
+  return out;
+}
 function histAvg(hist, histName, gameT, realT){
   if (hist.length < 2) return '';
   const n = hist.length, cnt = {};
@@ -4427,7 +4465,10 @@ function renderLog(){
   if (logTables) {
   if (allH.length > 5) h += `<button class="btn histm" data-histall>${histAll ? 'Show last 5' : 'Show all ' + allH.length}</button>`;
   if (!hist.length) h += '<p class="note">No seedling has died yet. Each seedling\u2019s furthest section and time will appear here.</p>';
-  else h += `<div class="rtab"><table class="dt"><thead><tr><th>Seedling</th><th>Furthest</th><th><span class="tgm">In-game</span></th><th><span class="trl">Real</span></th></tr></thead><tbody>${hist.map(e => `<tr title="${esc(e.cause)}"><td>${e.g}</td><td>${histName(e)}</td><td>${gameT(fmtDays(e.d))}</td><td>${realT(e.r)}</td></tr>`).join('')}${histAvg(hist, histName, gameT, realT)}</tbody></table></div>`;
+  else h += `<div class="rtab"><table class="dt"><thead><tr><th>Seedling</th><th>Furthest</th><th><span class="tgm">In-game</span></th><th><span class="trl">Real</span></th></tr></thead><tbody>${histGroups(hist, histName).map(gr => {
+    const a = gr[gr.length - 1], z = gr[0], n = gr.length, ds = gr.map(e => e.d), rs = gr.map(e => e.r || 0), withQ = gr.find(e => e.q && e.q.length);
+    const rng = (v, f) => { const lo = Math.min(...v), hi = Math.max(...v); return f(lo) === f(hi) ? f(lo) : f(lo) + '\u2013' + f(hi); };
+    return `<tr title="${esc(z.cause)}"><td>${n > 1 ? a.g + '\u2013' + z.g : z.g}${withQ ? `<button class="histq" data-histq="${withQ.g}" title="Put seedling ${withQ.g}\u2019s starting queue in the queue (Undo works)">Load queue</button>` : ''}</td><td>${histName(z)}${n > 1 ? `<small>${n} seedlings${z.cause ? ': ' + esc(z.cause.toLowerCase()) : ''}</small>` : ''}</td><td>${gameT(rng(ds, fmtDays))}</td><td>${n > 1 ? '<span class="trl">' + rng(rs, fmtReal) + '</span>' : realT(z.r)}</td></tr>`; }).join('')}${histAvg(hist, histName, gameT, realT)}</tbody></table></div>`;
   const FA = S.firstAt || {};
   const totRow = keys => keys.some(k => FA[k]) ? `<tr class="ftbest fttot"><td>Run total<small>played to get there</small></td>${keys.map(k => { const f = FA[k]; return `<td>${f ? gameT(fmtDays(f.d)) + '<small>' + realT(f.r) + '</small>' : '\u2014'}</td>`; }).join('')}</tr>` : '';
   if (hist.length) {
@@ -4699,6 +4740,7 @@ function pauseSettingsHtml(){
     <div class="row"><p>Pause when a section run ends instead<small>Overrides the pause above during a section run: a run across several sections keeps going through its crossings, and the clock stops once the run finishes or stops by itself. Your own Stop doesn\u2019t pause.</small></p><button class="tog${S.set.pauseRunEnd ? ' on' : ''}" data-set="pauseRunEnd" aria-label="Pause when a section run ends instead" aria-pressed="${!!S.set.pauseRunEnd}"></button></div>
     <div class="row"><p>Pause just before the forecast death<small>Once per seedling, the clock stops when the forecast says it has 5 s (in-game) left, so you can fit in a last action. The forecast plays out the queue and automation as they stand.</small></p><button class="tog${S.set.pauseDeath ? ' on' : ''}" data-set="pauseDeath" aria-label="Pause just before the forecast death" aria-pressed="${!!S.set.pauseDeath}"></button></div>
     <div class="row"><p>Pause when a task finishes<small>The clock stops whenever a task is done: an action (all its repeats), a rest, a drill once all its sessions for this life are done, or a job once its storage is full. Automated tasks count too.</small></p><button class="tog${S.set.pauseDone ? ' on' : ''}" data-set="pauseDone" aria-label="Pause when a task finishes" aria-pressed="${!!S.set.pauseDone}"></button></div>
+    <div class="row"><p>Pause when the queue is finished<small>The clock stops with a short chime once the seedling has worked through the last queue row you set (automated and skipped rows don\u2019t count). Clearing the queue yourself doesn\u2019t pause.</small></p><button class="tog${S.set.pauseQueue ? ' on' : ''}" data-set="pauseQueue" aria-label="Pause when the queue is finished" aria-pressed="${!!S.set.pauseQueue}"></button></div>
     <div class="row"><p>Start the game paused<small>When you open the game, the clock waits until you press Resume.</small></p><button class="tog${S.set.startPaused ? ' on' : ''}" data-set="startPaused" aria-label="Start the game paused" aria-pressed="${!!S.set.startPaused}"></button></div>
 `;
 }
@@ -5052,7 +5094,14 @@ document.addEventListener('click', e => {
   if ('repair' in d) { const a = repair(); if (a) { sfx('toggle'); toast('Repaired ' + fmt(a) + ' wear.'); } return; }
   if ('eat' in d) { const f = readyFoods()[0], h0 = L.hp; if (f && eat(f)) sfx('eat'), toast('Recharged. +' + fmt(L.hp - h0) + ' energy'); return; }
   if ('exportjson' in d) { exportJson(); return; }
-  if ('exportfile' in d) { exportJson(true); return; }   // Android: the file picker instead of the share sheet
+  if ('exportfile' in d) { exportJson(true); return; }
+  if (d.histq) {   // the Log's recent seedlings: put that seedling's starting queue in the queue
+    const e = (S.hist || []).find(x => x.g === +d.histq); if (!e || !e.q) return;
+    if (S.life.dead) { toast('Sprout the next seedling first.'); return; }
+    qSnap('Load the queue of seedling ' + e.g);
+    const L = S.life; L.qdone = []; L.queue = e.q.filter(id => qItem(id) && qLive(id)).slice(0, QMAX); pinChains(); taskKey = ''; logKey = '';
+    toast('Queue of seedling ' + e.g + ' loaded: ' + L.queue.length + ' rows (Undo is in the queue).'); return;
+  }   // Android: the file picker instead of the share sheet
   if ('ghshare' in d) { shareToGitHub(); return; }
   if ('ghlist' in d) { ghRefresh(); return; }
   if ('copyjson' in d) {
