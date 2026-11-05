@@ -550,7 +550,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
 // Renamed from Long Patience: move this device's old storage keys to the new 'selene.' names once
 try { const old = []; for (let n = 0; n < localStorage.length; n++) old.push(localStorage.key(n)); old.forEach(k => { if (k && k.indexOf('long-patience.') === 0) { const nk = 'selene.' + k.slice(14); if (localStorage.getItem(nk) == null) localStorage.setItem(nk, localStorage.getItem(k)); localStorage.removeItem(k); } }); } catch(e) {}
 /* ===== Game data and rules (no DOM) ===== */
-const BUILD = '2026-11-05 · one food store';   // shown in the main menu, to tell which version is loaded
+const BUILD = '2026-11-05 · automation at practiced';   // shown in the main menu, to tell which version is loaded
 const DPS = 8;             // simulation ticks per real second at 1x (doubled for the test version: same balance, half the real time)
 // Time is simulated in ticks. 80 ticks make one day unit (18 minutes each), so a day lasts
 // 20 real seconds at 1x and Players only ever see in-game time and real time, never days.
@@ -1274,12 +1274,11 @@ function newLife(s){
   const L = {day:0, hp:100, rations:p.decant?3:0, food:{ration:p.decant?3:0}, salvage:0,
     done:{}, prog:{}, cyc:{}, bat:{}, visited:{1:1}, qdone:[], meal:0, sec:1, job:null, queue:[], owned:{}, order:[], foraging:false, cur:null, dead:false, cause:''};
   L.fam0 = Object.assign({}, s.fam || {});   // familiarity at the start of this life, for the death screen
-  L.prac0 = Object.assign({}, s.prac || {});   // automation progress at the start of this life (life summary)
   L.perk0 = Object.keys(s.perks || {}).concat(Object.keys((s.a2 || {}).perks || {}));   // records held at the start of this life
   return L;
 }
 function defaultState(){
-  const s = {v:1, tv:3, fav:{}, hide:{}, qpresets:[[], [], [], [], []], gprac:{}, gauto:{}, ev:2, rv:4, sv:2, pv:3, vv:3, gen:1, fam:{}, ever:{}, prac:{}, auto:{}, echo:{}, perks:{}, seen:{}, logged:{}, log:[], lastOrder:[], lastJob:null,
+  const s = {v:1, tv:3, fav:{}, hide:{}, qpresets:[[], [], [], [], []], gprac:{}, gauto:{}, ev:2, rv:4, sv:2, pv:3, av:2, vv:3, gen:1, fam:{}, ever:{}, prac:{}, auto:{}, echo:{}, perks:{}, seen:{}, logged:{}, log:[], lastOrder:[], lastJob:null,
     set:Object.assign({speed:1, autoFood:true, autoEat:true, foodPct:40, keepQueue:true, autoRun:false, autoRepair:true, autoScav:true, deathScreen:true, deathPause:true, startPaused:false, pauseCross:false, pauseRunEnd:false, pauseDone:false, deathQueue:false, pauseDeath:false, pauseQueue:false, pauseFirst:true, showFormulas:false}, loadPrefs()),
     stats:{bestAge:0, deaths:0, daysLived:0, played:0}, a2:{open:false, hon:0, lv:{}, perks:{}, fin:0}, branch:null, merge:null, a2run:{reached:{}, done:{}}, pr:{n:0, pts:0, growth:0, drain:0, hp:0, speed:0, carry:0, runs:[]}, won:false, winGen:0, bank:0, saved:Date.now(), intro:false};
   s.life = newLife(s);
@@ -1362,8 +1361,7 @@ const complete = t => t.kind !== 'job' && isDone(t.id);
 // Gear and records speed up the work of a whole section
 function tagF(t){ return (M.zsp && M.zsp[t.z]) || 1; }
 function speedOf(t){ return masteryF(t) * tagF(t) * M.spd * (t.prod && t.prod.rations ? M.foodSpd * ((M.fspd && M.fspd[t.id]) || 1) : 1); }
-// Automation still counts real completions: every finished action (each rep), drill session or
-// job batch adds one; a task's "unit" is one life's worth of it, and AUTO_LIVES units unlock it.
+// A task's "unit" is one life's worth of it (compUnit): familiarity thresholds and estimates count in units.
 const MASTER_MIN = 0.1;   // x10 at full familiarity
 const JOB_UNIT = 20;      // about what a life of steady work on a job delivers
 const FAM_N0 = 90, FAM_RUN = 0.75, FAM_ECHO = 0.69;   // threshold in units; x0.75 per finished run; x0.8 per Echo legacy level
@@ -1375,7 +1373,6 @@ function famN0A2(){ const e = Math.pow(FAM_ECHO, ngpLv('growth')); return Math.m
 const FAM_RUN2 = 0.75;
 const famN0Of = t => t && isA2(t.z) ? famN0A2() : famN0();
 const autoScale = t => famN0Of(t) / FAM_N0;
-const autoNeed = t => Math.max(1, Math.ceil(AUTO_LIVES * compUnit(t) * autoScale(t)));
 const gearNeed = it => Math.max(1, Math.ceil(AUTO_LIVES * (it && isA2(gearZone(it)) ? famN0A2() : famN0()) / FAM_N0));
 function famN0(){ const pr = S.pr || {}; return Math.max(1, FAM_N0 * Math.pow(FAM_RUN, pr.n || 0) * Math.pow(FAM_ECHO, ngpLv('growth'))); }
 const famNeed = t => famN0Of(t) * compUnit(t);
@@ -1400,16 +1397,20 @@ function drainParts(){
 // Compact progress for cards: familiarity toward x10 (violet) / automation (green); exact numbers live on the Mastery and Auto tabs
 function pctTxt(fr){ return Math.floor(Math.max(0, Math.min(1, fr)) * 100) + '%'; }
 function pctTxt1(fr){ return (Math.floor(Math.max(0, Math.min(1, fr)) * 1000) / 10).toFixed(1) + '%'; }   // familiarity: one decimal, so drill gains show
-function progHtml(t, autoFr){
+function progHtml(t){
   const fr = masteryFrac(t), sv = fr > 0 ? famSaved(t) : 0;
   const fam = fr >= 1 ? '<span class="pfam">\u00d7' + Math.round(1 / MASTER_MIN) + '</span>' : '<span class="pfam">' + pctTxt1(fr) + '</span>';
-  return fam + (autoFr == null || autoFr >= 1 ? '' : ' / <span class="paut">' + pctTxt(autoFr) + '</span>') + (sv >= DPS ? ' <span class="psv" data-tip="Time familiarity saves on each ' + (t.kind === 'job' ? 'batch' : 'completion') + '">\u2212' + fmtDays(sv) + '</span>' : '');
+  return fam + (sv >= DPS ? ' <span class="psv" data-tip="Time familiarity saves on each ' + (t.kind === 'job' ? 'batch' : 'completion') + '">\u2212' + fmtDays(sv) + '</span>' : '');
 }
-const autoFrac = t => t.kind === 'job' ? null : Math.min(1, (S.prac[t.id] || 0) / autoNeed(t));
+const autoFrac = t => t.kind === 'job' ? null : Math.min(1, ((S.fam || {})[t.id] || 0) / autoFam(t));
 const gearAutoFrac = i => Math.min(1, ((S.gprac || {})[i.id] || 0) / gearNeed(i));
 // Familiarity gain: records and gear can raise it (all tasks, or one section)
 function famGain(t){ return M.xp * ((M.zxp && M.zxp[t.z]) || 1) * (isA2(t.z) ? M.a2fam * (1 + A2_SHARE / 3 * ngpLv('growth')) : 1 + 1 / 3 * ngpLv('growth')); }   // Deep echo: +33% familiarity per level (Act II: +3%)
-function addFam(t, a){ if (!S.fam) S.fam = {}; S.fam[t.id] = (S.fam[t.id] || 0) + a; }
+function addFam(t, a){
+  if (!S.fam) S.fam = {};
+  const b = S.fam[t.id] || 0, need = t.kind === 'job' ? Infinity : autoFam(t); S.fam[t.id] = b + a;
+  if (b < need - 1e-9 && S.fam[t.id] >= need - 1e-9) { if (S.auto[t.id] !== false) S.auto[t.id] = true; HOOK.practiced(t); }   // Practiced: automatable
+}
 // Drills: each session adds a share of a life's worth to every other task of its section (kept small:
 // drills reach dozens of tasks at once, so a large credit let a run skip most of its seedlings).
 // One drill per section since build "one drill per section": it counts double (DRILL_CREDIT_SEC);
@@ -1557,12 +1558,14 @@ function active(ex){
   return null;
 }
 // Practice is counted in lives: an action counts once per life when finished; a job counts once per
-// (Practice is now counted in completions; see compUnit / autoNeed.)
 // can be automated.
 const AUTO_LIVES = 10, JOB_PRAC_BATCHES = 10;
-function practiced(t){ return (S.prac[t.id] || 0) >= autoNeed(t); }
+// Automation: a task (not a job) becomes automatable at Practiced, x2 familiarity (AUTO_F); familiarity is
+// the one progress measure (build "automation at practiced": it used to be a separate count of completions)
+const AUTO_F = 2;
+const autoFam = t => famNeed(t) * (AUTO_F - 1) / (1 / MASTER_MIN - 1);   // familiarity at x2
+function practiced(t){ return ((S.fam || {})[t.id] || 0) >= autoFam(t) - 1e-9; }
 // Automation switches itself on when a task is unlocked, unless you switched it off before
-function addPractice(t, n){ const b = S.prac[t.id] || 0, need = autoNeed(t); S.prac[t.id] = b + (n || 1); if (b < need && S.prac[t.id] >= need) { if (S.auto[t.id] !== false) S.auto[t.id] = true; HOOK.practiced(t); } }
 // "Pause all automation" (S.set.autoPaused, header switch): automated tasks, auto-built gear, section runs and
 // the crossing wrap-up's automated work all wait; the queue, tapped tasks and auto-charge/forage keep working.
 const autoPaused = () => !!(S.set && S.set.autoPaused);
@@ -1769,7 +1772,6 @@ function finish(t){
   L.done[t.id] = (L.done[t.id] || 0) + 1;
   if (!S.ever) S.ever = {};
   S.ever[t.id] = 1;
-  addPractice(t);   // every completion counts toward automation
   if (t.kind === 'build') { L.done[t.id] = 0; gearBuilt(t.gear); HOOK.taskDone(t); HOOK.change(); return; }
   if (t.kind === 'train') {
     drillCredit(t);
@@ -2032,7 +2034,6 @@ function work(t, dt, chained){
       if (n > 0) {
         L.cyc[t.id] -= n;
         const before = L.bat[t.id] || 0; L.bat[t.id] = before + n;
-        addPractice(t, n);   // every batch counts
         if (t.prod) { if (t.prod.rations) { const a = Math.min(t.prod.rations * JOB_CYCLE * n, stationLeft(t.z)); addFood(jobFood(t), a); (L.used = L.used || {})[t.z] = ((L.used || {})[t.z] || 0) + a; } if (t.prod.salvage) L.salvage += t.prod.salvage * JOB_CYCLE * n; }
         if (!wasFull && jobFull(t)) HOOK.taskDone(t);   // a job is done when its storage is full
       }
@@ -3282,6 +3283,12 @@ function mergeState(raw){
   }
   if ((raw.pv || 0) < 3) TASKS.forEach(t => { if (s.prac[t.id] != null) s.prac[t.id] = Math.round(s.prac[t.id] * compUnit(t)); });   // v3: practice in completions
   s.pv = 3;
+  if ((raw.av || 0) < 2 && s.life) {   // automation moved to Practiced (x2 familiarity): what the old completion count had opened stays open
+    const keep = S; S = s;
+    try { TASKS.forEach(t => { if (t.kind === 'job') return; const old = Math.max(1, Math.ceil(AUTO_LIVES * compUnit(t) * autoScale(t)));
+      if (((s.prac || {})[t.id] || 0) >= old && ((s.fam || {})[t.id] || 0) < autoFam(t)) (s.fam = s.fam || {})[t.id] = autoFam(t); }); } finally { S = keep; }
+  }
+  s.av = 2;
   if (!raw.rv && s.life) s.life.rations = (s.life.rations || 0) / 2;
   if ((raw.rv || 0) < 3) {   // v3: cells x0.4, deadwood x0.25
     if (s.life) { s.life.rations = (s.life.rations || 0) * 0.4; s.life.salvage = (s.life.salvage || 0) * 0.25; }
@@ -3640,9 +3647,8 @@ function etaLines(t){
     out.push(nx[1] + ' (\u00d7' + nx[0] + ') in about ' + n + ' completion' + (n > 1 ? 's' : '') + ', ~' + fmtDays(one * n) + ' in-game' + (gameSpeed() > 1 ? ' (' + fmtDays(one * n / gameSpeed()) + ' real)' : ''));
   }
   if (t.kind !== 'job' && !t.legacy) {
-    const have = S.prac[t.id] || 0, need = autoNeed(t);
-    if (have >= need) out.push(S.auto[t.id] !== undefined || isAuto(t) ? 'Automation: ready' : 'Automation: ready (switch it on in the Auto tab)');
-    else { const per = t.kind === 'train' ? TRAIN_CAP : (t.reps || 1), lives = Math.ceil((need - have) / per); out.push('Automation: ' + fmt(have) + ' of ' + need + ', about ' + lives + ' more seedling' + (lives > 1 ? 's' : '') + ' doing it fully'); }
+    if (practiced(t)) out.push(S.auto[t.id] !== undefined || isAuto(t) ? 'Automation: ready' : 'Automation: ready (switch it on in the Auto tab)');
+    else out.push('Automation: opens at Practiced (\u00d7' + AUTO_F + ')');
   }
   return out;
 }
@@ -3719,6 +3725,7 @@ const BUILD_NOTES = [
   ['pop-ups merged', 'One pop-up when you open a save after a while: the welcome-back recap now lists what\u2019s new too. The Log keeps only the first-death and first-crossing hints (the next-step line covers the rest), and the Journal view is gone: the Ship log already reads in order by section.'],
   ['tooltips trimmed', 'Task card tooltips show only what the card doesn\u2019t: familiarity steps, automation progress, time saved and the full list of what a task opens. Tapping a route node shows the same bubble as holding it. Section headers are two lines shorter.'],
   ['one food store', 'Long task names on the Now line no longer push the status panel past a phone screen. The Outlook waits a moment for the forecast instead of showing a rough guess first.'],
+  ['automation at practiced', 'A task can be automated as soon as it is Practiced (\u00d72 familiarity), so drills and records now bring automation closer too. Task cards show one progress number (familiarity); the tooltip says when automation opens.'],
 ];
 const buildKey = () => BUILD.split('\u00b7').pop().trim();
 function newNotes(){   // the notes since this save last opened (records the current build)
@@ -4192,7 +4199,7 @@ function renderTasks(){
         h += `<div class="task act train${(S.ever || {})[t.id] ? '' : ' nev'}${cardCls(t)}" data-id="${t.id}">
           <button class="tm" data-do="${t.id}"><div class="tf"></div>
             <div class="th"><span class="tn">${esc(t.name)}</span><span class="te num"></span></div>
-            <div class="tx"><span class="num rp"></span><span class="num pp">${progHtml(t, autoFrac(t))}</span>${effectHtml(t)}</div>
+            <div class="tx"><span class="num rp"></span><span class="num pp">${progHtml(t)}</span>${effectHtml(t)}</div>
           </button>
           <div class="side">${editList ? edBtns(t) : tqBtn(t) + autoBtn(t)}</div></div>`;
       });
@@ -4204,7 +4211,7 @@ function renderTasks(){
         h += `<div class="task act${t.cross ? ' cross' : ''}${(S.ever || {})[t.id] ? '' : ' nev'}${cardCls(t)}" data-id="${t.id}">
           <button class="tm" data-do="${t.id}"><div class="tf"></div>${t.cross ? `<div class="crossw">Leads to ${esc(zoneThe(t.to || nextZone(t.z)))} \u00b7 no way back</div>` : ''}
             <div class="th"><span class="tn">${esc(t.name)}${tIcons(t)}</span><span class="te num"></span></div>
-            <div class="tx">${t.reps > 1 ? `<span class="num rp"></span>` : ''}${t.haz ? '<span class="haz">▲ hazard</span>' : ''}<span class="num pp">${progHtml(t, autoFrac(t))}</span>${effectHtml(t)}</div>
+            <div class="tx">${t.reps > 1 ? `<span class="num rp"></span>` : ''}${t.haz ? '<span class="haz">▲ hazard</span>' : ''}<span class="num pp">${progHtml(t)}</span>${effectHtml(t)}</div>
           </button>
           <div class="side">${editList ? edBtns(t) : tqBtn(t) + autoBtn(t)}</div></div>`;
       });
@@ -4259,7 +4266,7 @@ function updateTasks(){
   gRefs.forEach(r => setH(r.pp, progHtml(BT[r.i.id], gearAutoFrac(r.i))));   // gear familiarity / auto %, in place
   refs.forEach(r => {
     const t = r.t, on = L.cur === t.id;
-    if (r.pp) setH(r.pp, progHtml(t, autoFrac(t)));   // familiarity / auto %, in place (no list rebuild)
+    if (r.pp) setH(r.pp, progHtml(t));   // familiarity %, in place (no list rebuild)
     r.el.classList.toggle('on', shown.id ? shown.id === t.id : on);
     const sp = speedOf(t);
     if (t.kind !== 'job') {
@@ -4339,14 +4346,13 @@ function nextAuto(z){
   const L = S.life, fc = fcOk() ? fcShow : null;
   const ts = TASKS.filter(t => t.z === z && (t.kind === 'act' || t.kind === 'train') && !t.cross && legacyOpen(t) && !practiced(t) && ((S.seen || {})[t.id] || (S.ever || {})[t.id]));
   if (!ts.length) return null;
-  const fr = t => (S.prac[t.id] || 0) / autoNeed(t);
-  const t = ts.sort((a, b) => fr(b) - fr(a) || chainOrd(a) - chainOrd(b))[0], need = autoNeed(t), have = S.prac[t.id] || 0;
-  const end = fc ? ((fc.s.prac || {})[t.id] || 0) : have, per = t.kind === 'train' ? TRAIN_CAP : (t.reps || 1);
-  return {t, need, have, now:fc && end >= need, more:Math.max(1, Math.ceil((need - Math.max(end, have)) / per)), fc:!!fc};
+  const t = ts.sort((a, b) => autoFrac(b) - autoFrac(a) || chainOrd(a) - chainOrd(b))[0], need = autoFam(t), have = (S.fam || {})[t.id] || 0;
+  const end = fc ? ((fc.s.fam || {})[t.id] || 0) : have, per = (t.kind === 'train' ? TRAIN_CAP : (t.reps || 1)) * famGain(t);   // familiarity one full life of it adds
+  return {t, need, have, now:fc && end >= need - 1e-9, more:Math.max(1, Math.ceil((need - Math.max(end, have)) / Math.max(1e-9, per))), fc:!!fc};
 }
 function nextAutoHtml(z){
   const n = nextAuto(z); if (!n) return '';
-  return 'Next automation: ' + esc(n.t.name) + ', ' + Math.floor(n.have) + '/' + n.need + ' completions \u00b7 ' + (n.now ? '<span class="ok">this seedling</span>' : '<span class="neg">about ' + n.more + ' more seedling' + (n.more > 1 ? 's' : '') + '</span>');
+  return 'Next automation: ' + esc(n.t.name) + ', \u00d7' + fmt(masteryF(n.t)) + ' of \u00d7' + AUTO_F + ' \u00b7 ' + (n.now ? '<span class="ok">this seedling</span>' : '<span class="neg">about ' + n.more + ' more seedling' + (n.more > 1 ? 's' : '') + '</span>');
 }
 let nxaT = 0;
 // Queue forecast (see fcRun): restarted when the plan changes, refreshed every few seconds (the real
@@ -5128,13 +5134,13 @@ function renderAuto(){
   // not yet automatable, but met in this save: shown with what is still needed
   const plist = TASKS.filter(t => !practiced(t) && (t.kind === 'act' || t.kind === 'train') && ((S.ever || {})[t.id] || (S.seen || {})[t.id]) && (!t.legacy || legacyOpen(t)));
   const pglist = ITEMS.filter(i => !gearPracticed(i) && ((S.ever || {})[i.req] || gearKnown(i)));
-  const key = plist.map(t => t.id + (S.prac[t.id] || 0)).join() + '|' + pglist.map(i => i.id + ((S.gprac || {})[i.id] || 0)).join() + '|' + JSON.stringify(secFold) + (S.life.sec || 1) + !!S.won + a2Done() + list.map(t => t.id + (S.auto[t.id] ? '*' : '') + (masteryF(t) >= SECTION_F ? 5 : masteryF(t) >= LINK_F ? 2 : 1)).join() + '|' + glist.map(i => i.id + (S.gauto[i.id] ? '*' : '')).join() + '|' + (S.life.chainRun ? 'R' : '') + '|' + L.sec + '|' + S.gen + '|' + '|' + (S.set.deathScreen !== false) + (S.set.deathPause !== false) + !!S.set.startPaused + !!S.set.pauseCross + decantUnlocked() + (S.stats.deaths || 0);
+  const key = plist.map(t => t.id + Math.floor(autoFrac(t) * 100)).join() + '|' + pglist.map(i => i.id + ((S.gprac || {})[i.id] || 0)).join() + '|' + JSON.stringify(secFold) + (S.life.sec || 1) + !!S.won + a2Done() + list.map(t => t.id + (S.auto[t.id] ? '*' : '') + (masteryF(t) >= SECTION_F ? 5 : masteryF(t) >= LINK_F ? 2 : 1)).join() + '|' + glist.map(i => i.id + (S.gauto[i.id] ? '*' : '')).join() + '|' + (S.life.chainRun ? 'R' : '') + '|' + L.sec + '|' + S.gen + '|' + '|' + (S.set.deathScreen !== false) + (S.set.deathPause !== false) + !!S.set.startPaused + !!S.set.pauseCross + decantUnlocked() + (S.stats.deaths || 0);
   if (key === autoKey) return; autoKey = key;
-  let h = `<div class="panel"><span class="h2">Automation</span><button class="sub secfold aintro" data-secfold="au:intro" aria-expanded="${!!secFold['au:intro']}">${secFold['au:intro'] ? '\u25be' : '\u25b8'} How automation works</button>${secFold['au:intro'] ? `<p class="note">Tasks finished often enough can run by themselves (${autoScale() < 1 ? 'this run needs ' + Math.round(autoScale() * 100) + '% of' : ''} 10 lives' worth: an action 10 times, a training session 40 times), and gear built in ${AUTO_LIVES} lives can be built automatically (in ship order; the seedling saves up for the next one). Switch them on here. They run in chain order: each after the tasks it needs. Linked tasks form chains, and a fully chained section can be run with one click. Automated tasks run ahead of your queue; automated crossings wait until the queue is done.</p>` : ''}
+  let h = `<div class="panel"><span class="h2">Automation</span><button class="sub secfold aintro" data-secfold="au:intro" aria-expanded="${!!secFold['au:intro']}">${secFold['au:intro'] ? '\u25be' : '\u25b8'} How automation works</button>${secFold['au:intro'] ? `<p class="note">A task can run by itself once it is Practiced (\u00d7${AUTO_F} familiarity: about 10 lives' worth of it, less with drills, records and Echo; jobs never), and gear built in ${AUTO_LIVES} lives can be built automatically (in ship order; the seedling saves up for the next one). Switch them on here. They run in chain order: each after the tasks it needs. Linked tasks form chains, and a fully chained section can be run with one click. Automated tasks run ahead of your queue; automated crossings wait until the queue is done.</p>` : ''}
     ${foodSettingsHtml()}${partsSettingsHtml()}
 </div>`;
   if (!list.length && !glist.length && !plist.length && !pglist.length) {
-    h += `<p class="note">Nothing unlocked yet. Finish an action 10 times (a multi-rep action 10 times its reps), a training session 40 times, or work a job for ${AUTO_LIVES * JOB_UNIT} batches, and it will appear here. Gear counts once built in ${AUTO_LIVES} different lives.</p>`;
+    h += `<p class="note">Nothing unlocked yet. A task appears here once it is Practiced (\u00d7${AUTO_F} familiarity); drills help. Gear counts once built in ${AUTO_LIVES} different lives.</p>`;
   }
   h += foldActs('au', zid => list.some(t => t.z === zid) || glist.some(i => gearZone(i) === zid) || plist.some(t => t.z === zid) || pglist.some(i => gearZone(i) === zid), (z, fz) => { let h = '';
     const zl = list.filter(t => t.z === z.id), gl = glist.filter(i => gearZone(i) === z.id), pl = plist.filter(t => t.z === z.id), pg = pglist.filter(i => gearZone(i) === z.id);
@@ -5168,7 +5174,7 @@ function renderAuto(){
       </div>`;
     });
     if (pl.length || pg.length) h += '<div class="sub asub">Not yet automatable</div>';
-    pl.forEach(t => { h += `<div class="arow pend"><div class="an"><b>${esc(t.name)}</b><span>${KIND_LABEL[t.kind]} \u00b7 auto ${S.prac[t.id] || 0}/${autoNeed(t)} ${t.kind === 'train' ? 'sessions' : 'finishes'}</span></div><span class="pp num"><span class="paut">${pctTxt(autoFrac(t))}</span></span></div>`; });
+    pl.forEach(t => { h += `<div class="arow pend"><div class="an"><b>${esc(t.name)}</b><span>${KIND_LABEL[t.kind]} \u00b7 familiarity \u00d7${fmt(masteryF(t))} of \u00d7${AUTO_F}</span></div><span class="pp num"><span class="paut">${pctTxt(autoFrac(t))}</span></span></div>`; });
     pg.forEach(i => { h += `<div class="arow pend"><div class="an"><b>${esc(i.name)}</b><span>Gear \u00b7 built in ${(S.gprac || {})[i.id] || 0}/${gearNeed(i)} lives</span></div><span class="pp num"><span class="paut">${pctTxt(gearAutoFrac(i))}</span></span></div>`; });
     h += '</div></section>';
     return h; });
@@ -5189,7 +5195,7 @@ const FAQ_ALL = [
   ['What are sections?', 'Act I is split into six sections. The <b>Route</b> at the top of the Map tab shows them all in order (sections no seedling has reached show as ?); tap one for its year, crossing cost and danger. Below it, tap a section\u2019s name to fold or open it. The Map, Auto, Mastery, Archive and the Ship log fold the same way: sections behind the seedling start folded, the one it is in and those ahead start open, and once an act is done its sections sit together under one act header. What you open or fold is kept on this device. A <b>red</b> action leads to the next one, and the way back is sealed for that seedling, so finish what you need first (records, training, gear). Each new seedling starts back in the Seedling Vaults.'],
   ['What is gear?', 'Gear is built from deadwood (called grafts in Act II: the same store) and lasts for one seedling. Each section has designs to build. Building one pays its deadwood up front, then the seedling spends time <b>assembling</b> it (bigger designs take longer, from a moment for a toolkit to half a minute or so of in-game time for the largest); assembly comes before other work and gets faster with familiarity. The gear works once it is assembled. Deadwood storage is limited; opening up more of the ship raises it.'],
   ['What is familiarity?', 'There are no skills: each task gets faster on its own the more of it your seedlings have done. Familiarity counts work in completions, including attempts a seedling died in the middle of, and is kept between seedlings. Speed rises smoothly from ×1 to ×10 once you have done enough of a task: in a first run, 90 lives’ worth of it (90 finishes of an action, 1800 batches of a job). Each level of the <b>Echo</b> legacy theme lowers that for Act I tasks. Familiar tasks also hurt less (hazard damage up to ÷4), and a familiar charging station charges faster. <b>Drills</b> spread familiarity to every task in their section. The Mastery tab lists every task. Familiarity has named steps: <b>Practiced</b> at \u00d72 (tasks can be linked), <b>Skilled</b> at \u00d75 (one-tap section runs) and <b>Mastered</b> at \u00d710. A task card shows the time familiarity saves on each completion (in green), and its tooltip says how many completions to the next step and how far automation is.'],
-  ['How does automation work?', 'Every completion counts: finish an action 10 times (a multi-rep action 10 times its reps), or a training session 40 times, or build a design in 10 lives, and its automation <b>switches on by itself</b>. For Act I tasks these counts shrink along with the familiarity threshold (Echo legacy), never below one; tap <b>AUTO</b> (or its switch in the Auto tab) to turn it off, and it stays off. Automated tasks run by themselves <b>ahead of your queue</b>, in chain order (each after the tasks it needs). Automated tasks <b>link into chains</b> when one requires the other and both are at least ×2 familiar. When every action and crossing of a section is automated and ×5 familiar, and all its gear designs are automated, the whole section becomes <b>one chain</b>: press <b>▶ Run section</b> (above the queue in the Tasks tab) and the seedling works through everything, builds the gear, fills its stores and crosses. The run is pinned at the top of the queue and the queue\u2019s leftovers for its sections are cleared. Pressing it also turns on <b>Always run sections once ready</b> (Auto tab): from then on a run starts by itself whenever the section you are in is ready. Stop turns that off again. Ready sections next to each other link across their crossings into one run (<b>▶ Run 3 sections</b>), up to the end of the act; a run that dies starts again with the next seedling. The option <b>Pause when a section run ends instead</b> keeps a run going through its crossings and pauses once it is over. A chain picks its next step itself each time: gear first, then charger upgrades, then the actions and drills in the order they depend on each other, and the crossing last. When a chain forms or grows, it <b>queues itself</b>, including the chains of sections still ahead, and chain entries are kept in the order they will run: section by section, and within a section the chain that starts earliest first, with the crossing\u2019s chain last, and anything of it you had queued separately is dropped from the queue. If you remove a chain from the queue, it stays out for the rest of that seedling\u2019s life. Work done as part of a chain (a queued chain or a section run) builds <b>chain flow</b>, which makes chained steps up to five times as fast; it is kept for good. Jobs are never automated: auto-forage keeps the charge up, queued gear works the deadwood jobs, and every queued or automated crossing tops the sap cells up and fills deadwood to full carry before the seedling moves on. <b>Automated gear gathers its own deadwood</b> during the life: the next automated design that is found, not built and fits in storage; it gathers only what that design costs and does not top the store up to full (except while filling up before a crossing). Automated <b>crossings</b> are the exception: they wait until your queue is done. A task you tap runs before everything. The <b>Auto</b> tab lists everything unlocked and has extra options: charging when needed, the death screen and starting paused. Each section\u2019s header names its <b>next automation</b>: the task closest to it, its completions, and whether this seedling gets there (from the forecast) or about how many more seedlings it takes. The death screen sums up each life: familiarity gained, records found, tasks that became automatable and the closest ones; the Mastery tab shows the in-game time spent on each task by this seedling and by all of them (counted from build \u201cqueue summaries\u201d). The <b>gears switch</b> next to Pause (shown once something is automated) pauses all automation at once: automated tasks, auto-built gear and section runs wait, while the queue, tapped tasks and auto-charge keep working. Tap it again to resume. Each section on the Auto tab has <b>All on</b> and <b>All off</b> for everything automatable there.'],
+  ['How does automation work?', 'A task becomes automatable once it is <b>Practiced</b> (\u00d72 familiarity: about 10 lives\u2019 worth of it, less with drills, records and the Echo legacy), and a gear design once it was built in 10 lives; its automation <b>switches on by itself</b> (jobs are never automated); tap <b>AUTO</b> (or its switch in the Auto tab) to turn it off, and it stays off. Automated tasks run by themselves <b>ahead of your queue</b>, in chain order (each after the tasks it needs). Automated tasks <b>link into chains</b> when one requires the other and both are at least ×2 familiar. When every action and crossing of a section is automated and ×5 familiar, and all its gear designs are automated, the whole section becomes <b>one chain</b>: press <b>▶ Run section</b> (above the queue in the Tasks tab) and the seedling works through everything, builds the gear, fills its stores and crosses. The run is pinned at the top of the queue and the queue\u2019s leftovers for its sections are cleared. Pressing it also turns on <b>Always run sections once ready</b> (Auto tab): from then on a run starts by itself whenever the section you are in is ready. Stop turns that off again. Ready sections next to each other link across their crossings into one run (<b>▶ Run 3 sections</b>), up to the end of the act; a run that dies starts again with the next seedling. The option <b>Pause when a section run ends instead</b> keeps a run going through its crossings and pauses once it is over. A chain picks its next step itself each time: gear first, then charger upgrades, then the actions and drills in the order they depend on each other, and the crossing last. When a chain forms or grows, it <b>queues itself</b>, including the chains of sections still ahead, and chain entries are kept in the order they will run: section by section, and within a section the chain that starts earliest first, with the crossing\u2019s chain last, and anything of it you had queued separately is dropped from the queue. If you remove a chain from the queue, it stays out for the rest of that seedling\u2019s life. Work done as part of a chain (a queued chain or a section run) builds <b>chain flow</b>, which makes chained steps up to five times as fast; it is kept for good. Jobs are never automated: auto-forage keeps the charge up, queued gear works the deadwood jobs, and every queued or automated crossing tops the sap cells up and fills deadwood to full carry before the seedling moves on. <b>Automated gear gathers its own deadwood</b> during the life: the next automated design that is found, not built and fits in storage; it gathers only what that design costs and does not top the store up to full (except while filling up before a crossing). Automated <b>crossings</b> are the exception: they wait until your queue is done. A task you tap runs before everything. The <b>Auto</b> tab lists everything unlocked and has extra options: charging when needed, the death screen and starting paused. Each section\u2019s header names its <b>next automation</b>: the task closest to it, its completions, and whether this seedling gets there (from the forecast) or about how many more seedlings it takes. The death screen sums up each life: familiarity gained, records found, tasks that became automatable and the closest ones; the Mastery tab shows the in-game time spent on each task by this seedling and by all of them (counted from build \u201cqueue summaries\u201d). The <b>gears switch</b> next to Pause (shown once something is automated) pauses all automation at once: automated tasks, auto-built gear and section runs wait, while the queue, tapped tasks and auto-charge keep working. Tap it again to resume. Each section on the Auto tab has <b>All on</b> and <b>All off</b> for everything automatable there.'],
   ['What happens at a crossing with automation?', 'A queued or automated crossing stops just before it finishes and waits while the seedling finishes automated actions and training, builds affordable automated gear and tops sap cells up and fills deadwood (grafts in Act II) to full carry, unless the seedling is out of cells and low on energy. Tap a crossing yourself to go at once.'],
   ['Pause, saving and speed', 'Progress is saved on this device only (this browser or the app); use <b>Save files</b> in the main menu (\u2630) to back it up or move it, and <b>Restart</b> next to the slot there to start this slot over. Pause with the button at the top or the space bar. The game only runs while it is on screen: in another app, a background tab or closed, the clock stops and carries on where it left off. Each <b>Stasis watch</b> record (one for leaving each section the first time) tunes the seedlings\u2019 stasis: energy drains a little slower, more with each one, up to \u221250% in all. The <b>speed menu</b> (\u00bb) at the top appears once Act I has been cleared: \u00d72 then, and \u00d75 once Act II has been cleared. It is a flat speed-up of real time, kept on this device for every save. Opening a save you haven\u2019t played for more than a day shows a short <b>Welcome back</b> recap. The <b>Log</b> tab has filters (Deaths, Records, Automation, Story); records and automation are listed there as they happen. Messages are also read out by screen readers.'],
   ['Save management', 'The game saves itself every few seconds on this device. <b>Save Management</b> in the \u2630 menu holds: the five <b>save slots</b> (give each a name when you start a new game or save into it, or with <b>Rename</b>; load one, copy your current game into another as a save state with \u201cSave here\u201d, or delete one); under each used slot, its <b>death save</b>, written automatically at every death in that slot (load it to go back to that death; playing it never changes the regular slot. If it is too far gone, load the regular slot again from there, which deletes that death save. Deleting or starting over a slot removes its death save too); <b>Backups</b> under each slot, kept by themselves after 5 minutes, 30 minutes and 2 hours of play and just before a slot is replaced or deleted (tap Restore to bring one back; what the slot held is backed up first; \u201cExport all saves\u201d takes them along); <b>Restart</b>, next to the slot you are playing, which starts that slot over; and <b>Save files and transfer</b>: export a save file, import one, copy the save as text to move it between devices, or share it to the game\u2019s GitHub folder and load shared saves from there. A game that holds a broken number is never saved over your last good save: a message says so instead. If the browser refuses to save (storage full or blocked), a message says why and offers the export at once. After an hour of play and a day without an exported save, a note reminds you to export one (turn it off under Save file).'],
@@ -5307,15 +5313,15 @@ function showIntro(){
 }
 // Life summary on the death screen: records found, tasks that became automatable, and the closest automations
 function lifeSummary(L){
-  const had = new Set(L.perk0 || []), p0 = L.prac0 || {};
+  const had = new Set(L.perk0 || []), f0 = L.fam0 || {}, fam = S.fam || {};
   const found = PERKS.filter(p => hasPerk(p) && !had.has(p.id) && L.perk0);
-  const auto = TASKS.filter(t => t.kind !== 'job' && L.prac0 && (p0[t.id] || 0) < autoNeed(t) && practiced(t));
-  const near = !L.prac0 ? [] : TASKS.filter(t => t.kind !== 'job' && !practiced(t) && (S.prac[t.id] || 0) > (p0[t.id] || 0) && legacyOpen(t))
-    .sort((a, b) => (S.prac[b.id] || 0) / autoNeed(b) - (S.prac[a.id] || 0) / autoNeed(a)).slice(0, 3);
+  const auto = TASKS.filter(t => t.kind !== 'job' && L.fam0 && (f0[t.id] || 0) < autoFam(t) - 1e-9 && practiced(t));
+  const near = !L.fam0 ? [] : TASKS.filter(t => t.kind !== 'job' && !practiced(t) && (fam[t.id] || 0) > (f0[t.id] || 0) && legacyOpen(t))
+    .sort((a, b) => autoFrac(b) - autoFrac(a)).slice(0, 3);
   let h = '';
   if (found.length) h += '<p class="d"><b>Records found:</b> ' + found.map(p => esc(p.name)).join(', ') + '</p>';
   if (auto.length) h += '<p class="d"><b>Now automatable:</b> <span class="up">' + auto.map(t => esc(t.name)).join(', ') + '</span></p>';
-  if (near.length) h += '<p class="d"><b>Closest automations:</b> ' + near.map(t => esc(t.name) + ' ' + Math.floor(S.prac[t.id] || 0) + '/' + autoNeed(t)).join(', ') + '</p>';
+  if (near.length) h += '<p class="d"><b>Closest automations:</b> ' + near.map(t => esc(t.name) + ' ' + pctTxt(autoFrac(t))).join(', ') + '</p>';
   return h;
 }
 function showDeath(){

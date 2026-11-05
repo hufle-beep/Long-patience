@@ -43,10 +43,10 @@ with sync_playwright() as p:
     if pc!='': errs.append('pace shown with nothing done: '+pc)
     # Auto intro folds, opens, kept
     pg.evaluate("()=>{ setTab('auto'); }"); pg.wait_for_timeout(300)
-    a=pg.evaluate("()=>[!!document.querySelector('#v-auto [data-secfold=\"au:intro\"]'), document.querySelector('#v-auto').innerText.includes('Tasks finished often enough')]")
+    a=pg.evaluate("()=>[!!document.querySelector('#v-auto [data-secfold=\"au:intro\"]'), document.querySelector('#v-auto').innerText.includes('A task can run by itself once it is Practiced')]")
     if a!=[True,False]: errs.append('Auto intro not folded by default: %s' % a)
     pg.dispatch_event('#v-auto [data-secfold="au:intro"]','click'); pg.wait_for_timeout(300)
-    a2=pg.evaluate("()=>[document.querySelector('#v-auto').innerText.includes('Tasks finished often enough'), localStorage.getItem('selene.secfold.v1')]")
+    a2=pg.evaluate("()=>[document.querySelector('#v-auto').innerText.includes('A task can run by itself once it is Practiced'), localStorage.getItem('selene.secfold.v1')]")
     print('auto intro', a2)
     if not a2[0] or 'au:intro' not in (a2[1] or ''): errs.append('Auto intro did not open or was not kept: %s' % a2)
     b.close()

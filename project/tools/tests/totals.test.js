@@ -2,11 +2,11 @@
 const test = require('node:test'), assert = require('node:assert');
 const {bot} = require('./_game');
 const near = (v, want, tol, what) => assert.ok(Math.abs(v - want) <= tol, `${what}: ${v} (expected ${want} ± ${tol})`);
-test('lean bot: Act I total 5.51 h in-game', () => {
+test('lean bot: Act I total 4.75 h in-game', () => {
   const m = bot('sim11c.js').match(/TOTAL in-game h ([\d.]+)/); assert.ok(m, 'no TOTAL line');
-  near(+m[1], 5.51, 0.02, 'Act I hours');
+  near(+m[1], 4.75, 0.02, 'Act I hours');
 });
-test('Act II bot: long watch 3.96, Boarders 2.08, Arrival 1.04 h', {skip: process.env.QUICK ? 'QUICK=1 skips the 1-minute Act II run' : false}, () => {
+test('Act II bot: long watch 2.87, Boarders 1.75, Arrival 0.71 h', {skip: process.env.QUICK ? 'QUICK=1 skips the 1-minute Act II run' : false}, () => {
   const m = bot('sim16c.js', ['AB']).match(/long watch h ([\d.]+) boarders h ([\d.]+) arrival h ([\d.]+) act2 h ([\d.]+)/); assert.ok(m, 'no Act II line');
-  near(+m[1], 3.96, 0.02, 'long watch'); near(+m[2], 2.08, 0.02, 'Boarders'); near(+m[3], 1.04, 0.02, 'Arrival'); near(+m[4], 7.08, 0.03, 'Act II');
+  near(+m[1], 2.87, 0.02, 'long watch'); near(+m[2], 1.75, 0.02, 'Boarders'); near(+m[3], 0.71, 0.02, 'Arrival'); near(+m[4], 5.33, 0.03, 'Act II');
 });

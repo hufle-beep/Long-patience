@@ -27,7 +27,7 @@ with sync_playwright() as p:
     print('splits', r)
     if r!=[9,True,True,True]: errs.append('splits: %s' % r)
     # Auto: all on / all off for a section
-    r=pg.evaluate("""()=>{ [A5[0],A5[1]].forEach(id=>{ S.prac[id]=autoNeed(T[id]); S.auto[id]=false; }); autoKey=''; setTab('auto'); secFold['au:1']=true; autoKey=''; renderAuto();
+    r=pg.evaluate("""()=>{ [A5[0],A5[1]].forEach(id=>{ S.fam[id]=autoFam(T[id]); S.auto[id]=false; }); autoKey=''; setTab('auto'); secFold['au:1']=true; autoKey=''; renderAuto();
       const on=document.querySelector('[data-aubulk="1:1"]'); if(!on) return 'no button'; on.click(); const a=[S.auto[A5[0]], S.auto[A5[1]]]; document.querySelector('[data-aubulk="1:0"]').click(); return a.concat([S.auto[A5[0]], S.auto[A5[1]]]); }""")
     print('bulk', r)
     if r!=[True,True,False,False]: errs.append('auto bulk: %s' % r)
