@@ -12,7 +12,8 @@ The **Restore points** workflow (`.github/workflows/restore-points.yml`) runs on
 What the recent commits are (newest first):
 | Commit | What it is |
 |---|---|
-| (next) | Tooltips: hover and hold, cards, icons, header, buttons, route |
+| (next) | Folds: Ship log order, section and act folds on five tabs |
+| `c1dadef` | Tooltips: hover and hold, cards, icons, header, buttons, route |
 | `a7c9272` | Clearer buttons: emphasis, compact presets, split warnings |
 | `d9f788a` | Longer Vaults: length factor 2.81 (owner's pick B) |
 | `12bf58c` | Section targets: target per section, star and Log entry |

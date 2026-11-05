@@ -1,32 +1,31 @@
-# Map folds (build "map folds"): fully mapped sections fold by themselves (not the current one, and optional
-# legacy drills don't count); tapping a header folds or opens it; the choice is kept on the device across a reload.
+# Map folds (rewritten for build "folds", the owner's pick M2): Map sections fold like the other tabs: behind the
+# seedling folded, the current one and those ahead open, a finished act folded under its act header; a tap stores
+# 'o' or 'c' in selene.secfold.v1 (device-wide); old Map choices (selene.mapfold.v1) are moved over once.
+# Checks the stored values instead of reloading (headless reloads of a local file sometimes lost the newest writes).
 import json
 from playwright.sync_api import sync_playwright
 errs=[]
 s=json.load(open('/tmp/claude-0/sim/snap7.json'))
-for d in ['drill','reckon','faults','flightsim','zerog']: s['ever'][d]=1
 raw=json.dumps(s)
 with sync_playwright() as p:
     b=p.chromium.launch(); pg=b.new_page(viewport={'width':390,'height':900}); pg.on('pageerror', lambda e: errs.append(str(e)))
-    pg.add_init_script("if(!sessionStorage.getItem('x')){localStorage.clear(); localStorage.setItem('selene.slot.1', %s); localStorage.setItem('selene.active-slot','1'); sessionStorage.setItem('x','1');}" % json.dumps(raw))
+    pg.add_init_script("if(!sessionStorage.getItem('x')){localStorage.clear(); localStorage.setItem('selene.slot.1', %s); localStorage.setItem('selene.active-slot','1'); localStorage.setItem('selene.mapfold.v1', '{\"6\":\"o\"}'); sessionStorage.setItem('x','1');}" % json.dumps(raw))
     pg.goto('file:///home/claude/long-patience/index.html'); pg.wait_for_timeout(900)
-    pg.evaluate("()=>{ hideModal(); paused=true; setTab('map'); }"); pg.wait_for_timeout(200)
-    st=lambda: pg.evaluate("()=>ROUTE.filter(z=>document.querySelector('#v-map [data-mapfold=\"'+z+'\"]')).map(z=>z+(document.querySelector('#v-map .mfold [data-mapfold=\"'+z+'\"]')?'c':'o'))")
+    mig=pg.evaluate("()=>[localStorage.getItem('selene.mapfold.v1'), secFold['mp:6']]")
+    print('migration', mig)
+    if mig!=[None,'o']: errs.append('old Map choices not moved over: %s' % mig)
+    pg.evaluate("()=>{ hideModal(); paused=true; setTab('map'); }"); pg.wait_for_timeout(300)
+    st=lambda: pg.evaluate("()=>[...document.querySelectorAll('#v-map [data-fold]')].map(b=>b.dataset.fold.split(':')[1]+(b.getAttribute('aria-expanded')==='true'?'o':'c'))")
     a=st(); print('default', a, 'current', pg.evaluate("()=>S.life.sec"))
-    if a!=['1c','2c','3c','4c','5c','6o','7o']: errs.append('default folds wrong: '+str(a))
-    pg.dispatch_event('[data-mapfold="2"]', 'click'); pg.dispatch_event('[data-mapfold="6"]', 'click'); pg.wait_for_timeout(200)
-    b2=st(); print('toggled', b2, pg.evaluate("()=>localStorage.getItem('selene.mapfold.v1')"))
-    if b2!=['1c','2o','3c','4c','5c','6c','7o']: errs.append('tap did not fold/open')
-    pg.reload(); pg.wait_for_timeout(900); pg.evaluate("()=>{ hideModal(); paused=true; setTab('map'); }"); pg.wait_for_timeout(200)
-    c=st(); print('after reload', c)
-    if c!=b2: errs.append('folds not kept on the device')
-    pg.dispatch_event('[data-mapfold="2"]', 'click'); pg.wait_for_timeout(100)
-    if '"2"' in (pg.evaluate("()=>localStorage.getItem('selene.mapfold.v1')") or ''): errs.append('back to the default should drop the stored choice')
-    # Auto and Mastery folds are kept on the device too (only opened sections are stored)
-    pg.evaluate("()=>{ setTab('auto'); }"); pg.wait_for_timeout(200)
-    pg.dispatch_event('#v-auto [data-secfold="au:1"]', 'click'); pg.wait_for_timeout(200)
-    pg.reload(); pg.wait_for_timeout(900); pg.evaluate("()=>{ hideModal(); paused=true; setTab('auto'); }"); pg.wait_for_timeout(200)
-    au=pg.evaluate("()=>[localStorage.getItem('selene.secfold.v1'), folded('au', 1), folded('au', 2)]")
-    print('auto folds', au)
-    if au[0]!='{"au:1":true}' or au[1] or not au[2]: errs.append('Auto folds not kept on the device')
-    print('errors', errs); b.close()
+    if a!=['act1c','6o','7o']: errs.append('default folds wrong: '+str(a))   # 6 opened by the moved choice
+    pg.dispatch_event('#v-map [data-fold="mp:act1"]', 'click'); pg.wait_for_timeout(300)
+    b2=st(); print('act I opened', b2)
+    a1=[x for x in b2 if x[:-1] in ('1','2','15','3','4','5')]
+    if b2[0]!='act1o' or len(a1)<5 or any(x[-1]!='c' for x in a1): errs.append('act I did not open with its sections folded: '+str(b2))
+    pg.dispatch_event('#v-map [data-fold="mp:2"]', 'click'); pg.dispatch_event('#v-map [data-fold="mp:6"]', 'click'); pg.wait_for_timeout(300)
+    c=st(); store=pg.evaluate("()=>JSON.parse(localStorage.getItem('selene.secfold.v1'))")
+    print('after taps', c, store)
+    if '2o' not in c or '6c' not in c: errs.append('tap did not fold/open: '+str(c))
+    if store.get('mp:2')!='o' or store.get('mp:6')!='c' or store.get('mp:act1')!='o': errs.append('choices not stored on the device: %s' % store)
+    b.close()
+print('errors', errs)
