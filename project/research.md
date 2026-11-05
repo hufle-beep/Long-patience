@@ -39,6 +39,8 @@ Avoid: sprawl (Immortality Idle is 42k lines), rebirth costs that wipe gear, opa
 ## Round 1c (owner's priority, 2026-11-05): Increlution, Your Chronicle, Idling to Rule the Gods, Terraformental
 All four are closed source (ideas only, from store pages, wikis, patch notes and player threads). Increlution (Gniller, Steam) is Selene's closest relative; Terraformental (Shadowsand, galaxy.click/itch/Steam) is itself inspired by Increlution; Your Chronicle is by Samurai Games (not Hamster-on); ITRTG is by Shugasu.
 
+Owner's picks (2026-11-05 07:54): all greens of the ranked list (forecast warning for starving settings, clear queue keeping the current task, icons on task cards, this-seedling vs kept tags) BUILT in build "forecast hints and icons"; a queue row that loads a preset and favourite/hide filters: chunk 2. Not picked: priority tiers, challenges (maybe after tuning), work-until-familiarity rows, lower thresholds, speed past x10, passive job share, manual crossing hold.
+
 Combined top 8, best value first (status for Selene in brackets):
 1. **Priority tiers for automated tasks** (Increlution: Off/Low/Medium/High; ties top to bottom; a low-health override). Fills gaps without queue edits. [open; Selene removed priorities for chains once, so this needs a design talk]
 2. **Hold a crossing at 99%** / stop a chain before its last step (Increlution, Terraformental). [partly there: automated crossings already wait while work is pending; a manual "hold" toggle is open]
