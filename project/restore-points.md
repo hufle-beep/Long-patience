@@ -12,7 +12,8 @@ The **Restore points** workflow (`.github/workflows/restore-points.yml`) runs on
 What the recent commits are (newest first):
 | Commit | What it is |
 |---|---|
-| (next) | Publishing set: pause all automation, welcome back, Log filters, screen-reader announcements |
+| (next) | Map folds: foldable Map sections, folded by themselves once fully mapped |
+| `b7e6119` | Publishing set: pause all automation, welcome back, Log filters, screen-reader announcements |
 | `f768d3b` | Route overview, game-icons.net icons, Credits |
 | `c7ab1c0` | Trigger table (on/off, through, every n-th seedling, priority) and FAQ (search, tab entry, keyboard shortcuts) |
 | `5a75b97` | Event sounds: crossing, sprout, gear built, low energy (ZzFX generator) |
