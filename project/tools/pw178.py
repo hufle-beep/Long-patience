@@ -18,12 +18,13 @@ with sync_playwright() as p:
     pg.goto('file:///home/claude/long-patience/index.html'); pg.wait_for_timeout(900)
     pg.evaluate("()=>{ hideModal(); paused=true; S.set.paused=true; S.life.queue=[]; taskKey=''; }"); pg.wait_for_timeout(500)
     # mouse hover on a task card
-    hov(pg, '.task[data-id] .tm'); pg.wait_for_timeout(250)
+    aid=pg.evaluate("()=>[...document.querySelectorAll('.task[data-id]')].map(e=>e.dataset.id).find(i=>T[i].kind==='act')")   # an action card (jobs have nothing to add on a fresh game)
+    hov(pg, '.task[data-id="%s"] .tm' % aid); pg.wait_for_timeout(250)
     if pg.evaluate(vis): errs.append('tooltip before the hover delay')
     pg.wait_for_timeout(400)
     t=pg.evaluate(vis); print('card tip', (t or '')[:90].replace('\n',' | '))
-    name=pg.evaluate("()=>T[document.querySelector('.task[data-id]').dataset.id].name")
-    if not t or not t.startswith(name): errs.append('no task tooltip on hover')
+    name=pg.evaluate("()=>T['"+aid+"'].name")
+    if not t or t.startswith(name) or 'Automation' not in t: errs.append('card tooltip should add only what the card lacks (no name, automation line): %r' % t)   # build "tooltips trimmed"
     pg.mouse.move(5, 890); pg.wait_for_timeout(200)
     if pg.evaluate(vis): errs.append('tooltip did not hide when the pointer left')
     # energy line and a title converted to data-tip (no native tooltip left)
@@ -35,7 +36,7 @@ with sync_playwright() as p:
     if hd[0] or not hd[1]: errs.append('title not moved to the game tooltip: %s' % hd)
     pg.mouse.move(5, 890); pg.wait_for_timeout(200)
     # touch hold: bubble, then the tap after it is swallowed
-    sel='.task[data-id] .tm'; pg.evaluate("()=>{ window.__runs=0; document.addEventListener('click', e=>{ if(e.target.closest('[data-do]')) __runs++; }); }")
+    sel='.task[data-id="%s"] .tm' % aid; pg.evaluate("()=>{ window.__runs=0; document.addEventListener('click', e=>{ if(e.target.closest('[data-do]')) __runs++; }); }")
     pg.evaluate(TOUCH, {'sel':sel,'type':'pointerdown'}); pg.wait_for_timeout(650)
     t=pg.evaluate(vis); pg.evaluate(TOUCH, {'sel':sel,'type':'pointerup'}); pg.wait_for_timeout(100)
     print('touch hold', (t or '')[:60].replace('\n',' | '), 'clicks reaching the card', pg.evaluate("()=>__runs"))

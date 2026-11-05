@@ -34,7 +34,7 @@ with sync_playwright() as p:
     pg.evaluate("()=>{ hideModal(); paused=true; setTab('map'); }"); pg.wait_for_timeout(200)
     late=pg.evaluate("()=>({known:document.querySelectorAll('.rmap [data-routez]').length, cur:(document.querySelector('.rmap .rn.cur')||{}).textContent})")
     pg.dispatch_event('[data-routez="16"]', 'click'); pg.wait_for_timeout(200)
-    t=pg.evaluate("()=>document.querySelector('#toasts').innerText")
+    t=pg.evaluate("()=>{ const b=document.querySelector('.tipb'); return b && !b.hidden ? b.textContent : '' }")   # a tap opens the route tooltip (build "tooltips trimmed")
     print('late route', late, t)
     if late['known']!=14 or late['cur']!='The Mending': errs.append('late route wrong')
     if 'Year 478' not in t or 'danger' not in t or 'crossing in costs' not in t: errs.append('route tap info wrong')

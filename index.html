@@ -241,8 +241,6 @@ button.zh.zhb{margin:14px 0 6px}
 .qps .qpb{flex:0 0 auto;flex-wrap:nowrap}
 .qps.qtx{flex:0 0 auto;border-top:0;padding-top:0;gap:5px}
 .qps.qtx .lbl{font-size:11px}
-.zh .nxa{flex-basis:100%;font-size:12px;color:var(--dim)}
-.zh .nxa:empty{display:none}
 .zh .nxa .ok{color:var(--green)}.zh .nxa .neg{color:var(--red-t)}
 .sktm{font-size:11px;color:var(--dim);margin-top:2px}
 .qrow .qtn{width:auto;height:auto;border:0;padding:0;font:inherit;color:inherit;text-align:left;cursor:pointer}
@@ -288,7 +286,7 @@ button.zh.zhb{margin:14px 0 6px}
 .zh{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;border-bottom:1px solid var(--line);padding-bottom:5px}
 .zh h2{margin:0;font-family:var(--f-disp);font-size:19px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;text-wrap:balance}
 .zh span{font-size:12px;color:var(--dim)}
-.zh span.yr{flex-basis:100%;font-size:11px;color:var(--faint)}
+.zh .zmeta{flex-basis:100%;font-size:11px;line-height:1.5;color:var(--dim)}.zh .zmeta>span{font-size:inherit}.zmeta .tgt{display:inline;margin:0;font-family:inherit}.zmeta>:not(:empty)~:not(:empty)::before{content:' \00b7  ';color:var(--faint)}.zmeta:not(:has(>:not(:empty))){display:none}
 .zh em{margin-left:auto;font-style:normal;font-size:11px;color:var(--faint);font-family:var(--f-mono)}
 .sub{font-family:var(--f-disp);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);margin-top:4px}
 .task{display:flex;gap:6px;align-items:stretch}
@@ -597,7 +595,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
 // Renamed from Long Patience: move this device's old storage keys to the new 'selene.' names once
 try { const old = []; for (let n = 0; n < localStorage.length; n++) old.push(localStorage.key(n)); old.forEach(k => { if (k && k.indexOf('long-patience.') === 0) { const nk = 'selene.' + k.slice(14); if (localStorage.getItem(nk) == null) localStorage.setItem(nk, localStorage.getItem(k)); localStorage.removeItem(k); } }); } catch(e) {}
 /* ===== Game data and rules (no DOM) ===== */
-const BUILD = '2026-11-05 · pop-ups merged';   // shown in the main menu, to tell which version is loaded
+const BUILD = '2026-11-05 · tooltips trimmed';   // shown in the main menu, to tell which version is loaded
 const DPS = 8;             // simulation ticks per real second at 1x (doubled for the test version: same balance, half the real time)
 // Time is simulated in ticks. 80 ticks make one day unit (18 minutes each), so a day lasts
 // 20 real seconds at 1x and Players only ever see in-game time and real time, never days.
@@ -3613,6 +3611,9 @@ function toast(msg, gold){
 
 /* ----- task list ----- */
 // What finishing an action does, shown once it has been finished in this save (or always, with TEST_SHOW_EFFECTS); until then just '?'
+const OPENS_CAP = 3;
+const opensOf = t => [...new Set(TASKS.filter(x => x.kind !== 'build' && (x.req || []).includes(t.id) && (!x.legacy || legacyOpen(x))).map(x => x.kind === 'job' ? 'charging station' : x.name)
+  .concat(ITEMS.filter(i => i.req === t.id).map(i => i.name)))];   // what finishing t opens
 function effectHtml(t, full){
   if (!TEST_SHOW_EFFECTS && !(S.ever || {})[t.id]) return '<span class="eff">?</span>';
   const {life, kept, rest} = rewardBits(t);
@@ -3626,9 +3627,7 @@ function effectHtml(t, full){
   if (life.length) b.push('<b class="etag">This seedling:</b> ' + life.join(' \u00b7 '));
   if (kept.length) b.push('<b class="etag">Kept:</b> ' + kept.join(' \u00b7 '));
   b.push(...rest);
-  const opens = TASKS.filter(x => x.kind !== 'build' && (x.req || []).includes(t.id) && (!x.legacy || legacyOpen(x))).map(x => x.kind === 'job' ? 'charging station' : x.name)
-    .concat(ITEMS.filter(i => i.req === t.id).map(i => i.name));
-  const op = [...new Set(opens)], cap = 3;   // buttons show a few; the Mastery tab lists them all
+  const op = opensOf(t), cap = OPENS_CAP;   // cards show a few; the tooltip and the Mastery tab list them all
   if (op.length) b.push('opens: ' + (full || op.length <= cap + 1 ? op.join(', ') : op.slice(0, cap).join(', ') + ' +' + (op.length - cap) + ' more'));
   return b.length ? '<span class="eff">' + b.join(' \u00b7 ') + '</span>' : '';
 }
@@ -3832,6 +3831,7 @@ const BUILD_NOTES = [
   ['runs', 'Best runs: what the seedling that crossed a section did there is kept (up to three per section, pin one to keep it) and can be loaded into the queue; section headers compare your seedling count with your other games on this device; the Auto tab can switch a whole section on or off.'],
   ['settings merged', 'Fewer, clearer settings: Auto-charge now also covers charging when energy runs low (the separate Charge when needed is gone); Settings has one choice for what happens at a death, one for pausing at crossings, and a row of Pause when… chips.'],
   ['pop-ups merged', 'One pop-up when you open a save after a while: the welcome-back recap now lists what\u2019s new too. The Log keeps only the first-death and first-crossing hints (the next-step line covers the rest), and the Journal view is gone: the Ship log already reads in order by section.'],
+  ['tooltips trimmed', 'Task card tooltips show only what the card doesn\u2019t: familiarity steps, automation progress, time saved and the full list of what a task opens. Tapping a route node shows the same bubble as holding it. Section headers are two lines shorter.'],
 ];
 const buildKey = () => BUILD.split('\u00b7').pop().trim();
 function newNotes(){   // the notes since this save last opened (records the current build)
@@ -4064,11 +4064,12 @@ let tipEl = null, tipT = null, tipHideT = null, tipSrc = null, tipTouch = null, 
 const stripTags = s => String(s || '').replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
 function tipText(el){
   if (el.matches('[data-tip]') && el.dataset.tip) return el.dataset.tip;
-  if (el.matches('.task[data-id]') && T[el.dataset.id]) { const t = T[el.dataset.id], fx = stripTags(effectHtml(t, true)), sv = masteryFrac(t) > 0 ? famSaved(t) : 0;
+  if (el.matches('.task[data-id]') && T[el.dataset.id]) { const t = T[el.dataset.id], op = opensOf(t), sv = masteryFrac(t) > 0 ? famSaved(t) : 0;
     const more = etaLines(t); if (sv >= DPS) more.push('Familiarity saves ' + fmtDays(sv) + ' in-game on each ' + (t.kind === 'job' ? 'batch' : 'completion'));
     if (t.cross) more.push('Crossing costs ' + Math.round(crossCost(t.to || nextZone(t.z)) * 100) + '% of the sap cells carried');
     if (fxOn()) more.push('Formula: speed = (1 + 9 \u00d7 familiarity \u00f7 familiarity needed) \u00d7 this section \u00d7 all work; one completion takes its length \u00f7 speed');
-    return t.name + (fx ? '\n' + fx : '') + (more.length ? '\n' + more.join('\n') : ''); }
+    if (op.length > OPENS_CAP + 1 && ((S.ever || {})[t.id] || TEST_SHOW_EFFECTS)) more.push('Opens: ' + op.join(', '));   // the card shows the first few
+    return more.length ? more.join('\n') : ''; }
   if (el.matches('[data-routez]')) return routeInfoTxt(+el.dataset.routez);
   if (el.id === 'tipenergy') { const L = S.life; return 'Energy ' + Math.ceil(L.hp) + ' of ' + M.maxHp + '. When it runs out, the seedling dies. Recharges (sap cells) refill it.\n' + drainTxt(); }
   if (el.id === 'surv') return [$('#s-why'), $('#s-plan')].map(x => x ? x.textContent : '').filter(Boolean).join('\n');
@@ -4282,7 +4283,7 @@ function renderTasks(){
     let nHid = 0;
     const lst = a => { const v = a.filter(t => !tHidden(t) || showH); nHid += a.filter(tHidden).length; return v.sort((x, y) => (fv[y.id] ? 1 : 0) - (fv[x.id] ? 1 : 0)); };
     jobs = lst(jobs); acts = lst(acts); trains = lst(trains); lk = lst(lk.slice().sort((x, y) => chainOrd(x) - chainOrd(y)));
-    h += `<section class="zone"><header class="zh"><h2>${zIco(z)}${z.name}</h2><span>${z.sub}</span><span class="yr">${voyTxt(z)}</span>${tgtHtml(z.id)}<span class="nxa" id="nxa">${nextAutoHtml(z.id)}</span>${cleared ? `<em>${cleared} done</em>` : ''}<div id="nstep" class="tlw"></div><div id="tlnow" class="tlw"></div><div id="pinbar"></div></header>`;
+    h += `<section class="zone"><header class="zh"><h2>${zIco(z)}${z.name}</h2><span>${z.sub} \u00b7 ${voyTxt(z)}</span>${cleared ? `<em>${cleared} done</em>` : ''}<div class="zmeta">${tgtHtml(z.id)}<span class="nxa" id="nxa">${nextAutoHtml(z.id)}</span></div><div id="nstep" class="tlw"></div><div id="tlnow" class="tlw"></div><div id="pinbar"></div></header>`;
     if (zchains.length) {
       h += '<div class="sub">Chains \u00b7 linked tasks work as one, faster with chain flow</div>';
       zchains.forEach(k => { h += chainCard(k); });
@@ -5063,7 +5064,6 @@ function routeHtml(){
   });
   return `<div class="panel rmap"><span class="h2">Route</span><p class="note">Selene\u2019s sections in order. <span class="rk cur">Here now</span> <span class="rk life">reached this life</span> <span class="rk ever">reached before</span>; ? not reached yet. Tap a section for its year, crossing cost and danger.</p><div class="mapwrap"><svg viewBox="0 0 ${W} ${y}" width="100%" role="img" aria-label="Route of Selene\u2019s sections">${edges}${nodes}</svg></div></div>`;
 }
-function routeInfo(z){ const t = routeInfoTxt(z); if (t) toast(t); }
 // What a known section still holds (R27): actions never done, records not found, gear never built, open legacy parts
 function routeLeftTxt(z){
   if (!routeKnown(z)) return '';
@@ -5156,7 +5156,7 @@ function renderMap(){
       </g>`;
     });
     const entry = [...new Set(nodes.flatMap(t => t.req.filter(r => T[r] && T[r].z !== z.id)))].map(r => T[r].name);
-    h += `<section class="zone"><header class="zh"><button class="zhb" data-fold="mp:${z.id}" aria-expanded="true"><h2>\u25be ${zIco(z)}${z.name}</h2></button><span>${z.sub}</span><span class="yr">${voyTxt(z)}</span></header>
+    h += `<section class="zone"><header class="zh"><button class="zhb" data-fold="mp:${z.id}" aria-expanded="true"><h2>\u25be ${zIco(z)}${z.name}</h2></button><span>${z.sub} \u00b7 ${voyTxt(z)}</span></header>
       ${entry.length ? `<p class="note">Reached from: ${esc(entry.join(', '))}</p>` : ''}
       <div class="mapwrap"><svg viewBox="0 0 ${MW} ${H}" width="100%" role="img" aria-label="Map of ${esc(z.name)}">${edges}${boxes}</svg></div></section>`;
     return h; });
@@ -5178,8 +5178,8 @@ function updateMap(){
   document.querySelectorAll('#v-map .me').forEach(e => e.classList.toggle('lit', isDone(e.dataset.from)));
 }
 // Route overview: tap (or Enter on) a known section for its details
-document.addEventListener('click', e => { const g = e.target.closest && e.target.closest('[data-routez]'); if (g) routeInfo(+g.dataset.routez); });
-document.addEventListener('keydown', e => { if (e.key !== 'Enter') return; const g = e.target.closest && e.target.closest('[data-routez]'); if (g) routeInfo(+g.dataset.routez); });
+document.addEventListener('click', e => { const g = e.target.closest && e.target.closest('[data-routez]'); if (g) tipShow(g); });   // a tap shows the route tooltip
+document.addEventListener('keydown', e => { if (e.key !== 'Enter') return; const g = e.target.closest && e.target.closest('[data-routez]'); if (g) tipShow(g); });
 document.addEventListener('click', e => {
   const g = e.target.closest && e.target.closest('[data-mapdo]'); if (!g) return;
   const L = S.life, t = T[g.dataset.mapdo];

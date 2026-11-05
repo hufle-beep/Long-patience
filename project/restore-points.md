@@ -12,7 +12,8 @@ The **Restore points** workflow (`.github/workflows/restore-points.yml`) runs on
 What the recent commits are (newest first):
 | Commit | What it is |
 |---|---|
-| (next) | Pop-ups merged: What's new inside Welcome back; Journal and two hints dropped (cleanup chunk 2) |
+| (next) | Tooltips trimmed: card tooltips without card text, route tap tooltip, compact headers (cleanup chunk 3) |
+| `d95a56a` | Pop-ups merged: What's new inside Welcome back; Journal and two hints dropped (cleanup chunk 2) |
 | `4012298` | Settings merged: one Auto-charge, death and crossing choices, Pause when chips (cleanup chunk 1) |
 | `7b9b8d7` | Docs only: R14 dropped, round 5 closed |
 | `ec79d38` | Round 5 credits: Inspired by adds Terraformental; research.md round 5 |
