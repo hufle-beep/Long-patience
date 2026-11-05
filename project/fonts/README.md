@@ -4,7 +4,7 @@ The game embeds three fonts in `index.html` (`<style id="fonts">`), so it looks 
 
 | In the game | Original | Weights | Copyright |
 |---|---|---|---|
-| Selene Display | Saira Condensed | 500, 600, 700 | 2016 The Saira Project Authors |
+| Selene Display | Saira Condensed | 500, 600 (700 dropped 2026-11-05) | 2016 The Saira Project Authors |
 | Selene Text | IBM Plex Sans | 400, 500, 600 (fixed weights cut from the variable font) | 2017-2019 IBM Corp. |
 | Selene Mono | IBM Plex Mono | 400, 500 | 2017 IBM Corp. |
 

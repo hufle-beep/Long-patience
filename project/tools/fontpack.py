@@ -3,7 +3,7 @@
 
 The game ships trimmed copies of three SIL OFL fonts from github.com/google/fonts,
 renamed because the originals carry Reserved Font Names ("Saira", "Plex"):
-  Selene Display = Saira Condensed 500/600/700   (Omnibus-Type, OFL)
+  Selene Display = Saira Condensed 500/600 (700 dropped 2026-11-05: titles use 600)   (Omnibus-Type, OFL)
   Selene Text    = IBM Plex Sans 400/500/600     (IBM Corp., OFL; fixed weights cut from the variable font)
   Selene Mono    = IBM Plex Mono 400/500         (IBM Corp., OFL)
 Each copy keeps its copyright and licence fields (name IDs 0, 13, 14). Licences: project/fonts/.
@@ -31,7 +31,6 @@ DIRS = ['ofl/sairacondensed', 'ofl/ibmplexsans', 'ofl/ibmplexmono']
 FACES = [
     ('Selene Display', 500, 'ofl/sairacondensed/SairaCondensed-Medium.ttf', None),
     ('Selene Display', 600, 'ofl/sairacondensed/SairaCondensed-SemiBold.ttf', None),
-    ('Selene Display', 700, 'ofl/sairacondensed/SairaCondensed-Bold.ttf', None),
     ('Selene Text', 400, 'ofl/ibmplexsans/IBMPlexSans[wdth,wght].ttf', 400),
     ('Selene Text', 500, 'ofl/ibmplexsans/IBMPlexSans[wdth,wght].ttf', 500),
     ('Selene Text', 600, 'ofl/ibmplexsans/IBMPlexSans[wdth,wght].ttf', 600),
