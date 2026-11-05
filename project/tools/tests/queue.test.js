@@ -8,7 +8,7 @@ const G = new Function(logicSrc() + `
   return {get S(){ return S; }, fresh, acts1, realRun, forecast, fcTries, fcMakeTry, fcRun, fcGain, qCurEntry, step, T, complete, qPresetFire};`)();
 
 test('forecast hint: a starving setting is found, and its copy matches the real run with it on', () => {
-  G.fresh(); const S = G.S; S.set.autoEat = false; S.life.queue = G.acts1();
+  G.fresh(); const S = G.S; S.set.autoEat = false; S.life.queue = G.acts1().slice(0, 3);   // a short queue: charging runs after the work (rule D2)
   const before = JSON.stringify(S), base = G.forecast();
   assert.strictEqual(base.end, 'dead');
   const tries = G.fcTries(base); assert.ok(tries.some(x => x.k === 'autoEat'), 'Auto-recharge is tried');

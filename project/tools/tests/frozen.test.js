@@ -1,9 +1,9 @@
 // Frozen sections must not move: completionist seedling counts (owner-approved values, playtest-notes.md).
 const test = require('node:test'), assert = require('node:assert');
 const {bot, firstBySec} = require('./_game');
-test('completionist bot: Seedling Vaults 9, Taproot Galleries 11, Shattered Bark 9', () => {
+test('completionist bot: Seedling Vaults 11, Taproot Galleries 13, Shattered Bark 9', () => {
   const f = firstBySec(bot('simcomp2.js', [], {UPTO:'3', MAXG:'80'}));
-  assert.strictEqual(f[2], 9, 'Seedling Vaults (since build "two-part legacy"): first seedling in the Taproot');
-  assert.strictEqual(f[15] - f[2], 11, 'Taproot Galleries (FROZEN; since build "two-part legacy"): seedlings used');
-  assert.strictEqual(f[3] - f[15], 9, 'The Shattered Bark: seedlings used (untuned; since build "two-part legacy")');
+  assert.strictEqual(f[2], 11, 'Seedling Vaults (since build "charge after work"): first seedling in the Taproot');
+  assert.strictEqual(f[15] - f[2], 13, 'Taproot Galleries (FROZEN; since build "charge after work"): seedlings used');
+  assert.strictEqual(f[3] - f[15], 9, 'The Shattered Bark: seedlings used (untuned; since build "charge after work")');
 });

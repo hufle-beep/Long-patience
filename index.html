@@ -551,7 +551,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
 // Renamed from Long Patience: move this device's old storage keys to the new 'selene.' names once
 try { const old = []; for (let n = 0; n < localStorage.length; n++) old.push(localStorage.key(n)); old.forEach(k => { if (k && k.indexOf('long-patience.') === 0) { const nk = 'selene.' + k.slice(14); if (localStorage.getItem(nk) == null) localStorage.setItem(nk, localStorage.getItem(k)); localStorage.removeItem(k); } }); } catch(e) {}
 /* ===== Game data and rules (no DOM) ===== */
-const BUILD = '2026-11-05 · gear fixes';   // shown in the main menu, to tell which version is loaded
+const BUILD = '2026-11-05 · charge after work';   // shown in the main menu, to tell which version is loaded
 const DPS = 8;             // simulation ticks per real second at 1x (doubled for the test version: same balance, half the real time)
 // Time is simulated in ticks. 80 ticks make one day unit (18 minutes each), so a day lasts
 // 20 real seconds at 1x and Players only ever see in-game time and real time, never days.
@@ -1333,7 +1333,22 @@ function active(ex, noTop){
   const L = S.life, ok = t => !!t && !(ex && ex.has(t.id));
   // Charging and scavenging only top the seedling up for work still to come: with nothing else to do (no tapped
   // task, live queue row, ready automation, section run or held crossing) time stops instead (owner 2026-11-05).
-  const busy = () => { const k = [L.viaChain, L.autoJob, L.crossNow]; const w = !!active(ex, true); [L.viaChain, L.autoJob, L.crossNow] = k; return w; };
+  let nw;
+  const nextWork = () => { if (nw === undefined) { const k = [L.viaChain, L.autoJob, L.crossNow]; nw = active(ex, true) || null; [L.viaChain, L.autoJob, L.crossNow] = k; } return nw; };
+  const busy = () => !!nextWork();
+  // Charging never runs ahead of work it would starve (rule D2, owner 2026-11-05): Auto-charge and feeding step in only
+  // while the energy left is more than the next work, a tapped task or chain and every queued row (not skipped) need.
+  const chargeOk = () => { const w = nextWork(); if (!w) return false;
+    const z = L.sec || 1, wm = wearMul(), seen = new Set();
+    const cost = t => { if (!t || seen.has(t.id)) return 0; seen.add(t.id);
+      return (t.kind === 'job' ? JOB_CYCLE / Math.max(1e-9, speedOf(t)) : taskLeft(t)) * drainNow(t.haz ? hazDmg(t) : 0, z) * wm; };
+    const gcost = it => { if (!it || seen.has('g:' + it.id)) return 0; seen.add('g:' + it.id); return gearLeft(it) * drainNow(0, z) * wm; };
+    const one = x => isGQ(x) ? gcost(IT[x.slice(2)]) : cost(T[x]);
+    let need = cost(w);
+    if (L.now) { if (isCQ(L.now)) cSteps(L.now).forEach(x => { if (!cStepDone(L.now, x)) need += one(x); }); else need += one(L.now); }
+    L.queue.forEach(id => { if (L.qskip && L.qskip[id]) return; if (isPQ(id)) return;
+      if (isCQ(id)) cSteps(id).forEach(x => { if (!cStepDone(id, x)) need += one(x); }); else need += one(id); });
+    return L.hp > need; };
   qPresetFire();
   // A task you tapped runs at once, ahead of food, automation and the queue, until it is done
   // (a job: until its store is full). It is never placed in the queue.
@@ -1363,11 +1378,11 @@ function active(ex, noTop){
       const f = jobFood(food), cap = M.fcap[f], low = cap * (S.set.foodPct || 40) / 100;
       if (L.rations < low) L.foraging = true;
       if (L.foraging && (L.food[f] || 0) >= Math.min(low * 2, cap - 0.5)) L.foraging = false;
-      if (L.foraging && ok(food) && busy()) return food;
+      if (L.foraging && ok(food) && chargeOk()) return food;
     } else L.foraging = false;   // every food store is full (or there is no charging station here): foraging is over
   } else L.foraging = false;
   const feed = noTop ? null : feedJob();
-  if (ok(feed) && busy()) return feed;
+  if (ok(feed) && chargeOk()) return feed;
   const scav = noTop ? null : scavJob();   // grafts for the ship, like foraging
   if (ok(scav) && busy()) return scav;
   const held = heldStep();
@@ -3663,6 +3678,7 @@ const BUILD_NOTES = [
   ['no idle charging', 'Auto-charge and Auto-scavenge only top a seedling up while it has other work to come back to: with an empty queue and nothing automated to do, time stops instead of burning its life at a charging station.'],
   ['act choices', 'At the end of Act I: move on to Act II, replay Act I (everything kept), or go to the main menu. At the end of Act II: restart the whole game (regular familiarity and automation start over; records, legacy and the death award stay) or the main menu. Saves past their first run are coloured and show their run.'],
   ['gear fixes', 'Gear descriptions show from the start in this test version, and gear cards no longer jump while you gather for them.'],
+  ['charge after work', 'Auto-charge no longer charges ahead of queued work the seedling has the energy for: it only steps in while the energy left is more than the queue needs.'],
 ];
 const buildKey = () => BUILD.split('\u00b7').pop().trim();
 function newNotes(){   // the notes since this save last opened (records the current build)

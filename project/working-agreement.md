@@ -6,7 +6,7 @@ Owner: hufle-beep (GitHub). Repo: hufle-beep/Long-patience (to be renamed by the
 Every change follows this sequence, with no exceptions:
 
 1. **The owner proposes, points something out or reports a problem.**
-2. **Claude analyses it and offers options and its opinion.** No edits yet.
+2. **Claude analyses it and offers options, each with its trade-offs, and ends with a clear recommendation (which option and why).** No edits yet.
 3. **The owner says which option they prefer.**
 4. **Claude confirms back exactly what it will change and waits for the owner's explicit go-ahead.** (When the owner's answer already picks fully specified options and says "build/go/commit and push", that is the go-ahead.)
 5. Only then does Claude build it, and commit and push it.

@@ -13,6 +13,7 @@ The **Restore points** workflow (`.github/workflows/restore-points.yml`) runs on
 What the recent commits are (newest first):
 | Commit | What it is |
 |---|---|
+| (this push) | Charge after work: Auto-charge waits for the queued work it has energy for (rule D2); recommendation in rule 1 |
 | (next) | Tools: parallel check suite (game unchanged) |
 | `b9a308d` | Gear fixes: test-version descriptions, no card jump |
 | `8cf82a1` | Act choices: replay Act I, move on, restart the whole game; coloured saves |

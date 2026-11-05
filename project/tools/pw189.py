@@ -1,6 +1,7 @@
 # Charging serves the work (builds "no idle charging", "work first"; owner playtest 2026-11-05):
 # 1. only "Check the seed pods": no charging on its own, time stops;
-# 2. with work queued, Auto-charge still steps in (the charging rule itself waits for the owner's pick).
+# 2. rule D2 (build "charge after work"): with search, cables, terminal queued at full energy, Auto-charge doesn't run
+#    ahead of the queue: search and cables finish and the terminal starts before any charging.
 # Also: gear descriptions show from the start in the test version; a gear card keeps its height when the list redraws.
 from playwright.sync_api import sync_playwright
 errs=[]
@@ -14,7 +15,8 @@ with sync_playwright() as p:
     a=pg.evaluate(run, [[], 0, 0]); print('idle', a)
     if a['order'] or a['used']>0: errs.append('idle seedling charged on its own: %s' % a)
     c=pg.evaluate(run, [['search','cables','terminal'], 0, 0]); print('work queued', c)
-    if 'algae' not in c['order']: errs.append('Auto-charge no longer steps in while work is queued: %s' % c)
+    if c['order'][:3]!=['search','cables','terminal']: errs.append('energy spent ahead of the queue (search, cables, terminal): %s' % c)
+    if c['used']>0 and c['order'] and c['order'][0]=='algae': errs.append('Auto-charge ran before the queued work: %s' % c)
     # gear descriptions in the test version; the gear card keeps its height across a list redraw
     r=pg.evaluate("""()=>{ S=defaultState(); M=mods(); S.intro=true; S.storyQ=[]; S.life.done.wake=1; setTab('tasks'); taskKey=''; renderView(true);
       const card=()=>document.querySelector('.geta[data-g="toolkit"]').closest('.item'); const h0=card().getBoundingClientRect().height, d0=card().textContent;

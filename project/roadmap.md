@@ -1,6 +1,6 @@
 # Roadmap: Selene: Tidelocked
 
-Last updated: 2026-11-05 19:00 14:20 (build "gear fixes"). Update in every push.
+Last updated: 2026-11-05 (build "charge after work"). Update in every push.
 
 ## Order of work (owner, 2026-11-04)
 1. **Section-by-section playtesting and tuning** (now). Sections 1 and 2 frozen; next the Shattered Bark, then sections 3-14 one by one: the owner plays and uploads a save after each crossing, Claude proposes options for that section's knobs only, the owner freezes it.
@@ -12,7 +12,8 @@ Last updated: 2026-11-05 19:00 14:20 (build "gear fixes"). Update in every push.
 **Owner decision (2026-11-05):** polishing can come before tuning when its gains are immediate.
 
 ## Next up
-- **Playtest fixes (owner 18:06-18:11):** gear effects in the test version and the gear card flicker BUILT. **Charging (owner 18:09: charging ran ahead of the queued task and killed the seedling): waiting on the owner.** "Work first" (charge only when the next task can't be covered and charging pays) doubled the Vaults (completionist 9 -> 18) and was not pushed; alternatives trialled: charge early as now but stop while the next task's energy is still left (Vaults 11, Taproot 11, Shattered Bark 8; Act I 5.73 h).
+- **Charging (owner 18:09): BUILT as rule D2 (build "charge after work", go 20:00):** Auto-charge never charges ahead of queued work the seedling has the energy for. Completionist Vaults 11, Taproot 13 (frozen: the owner judges it on the replay). Next: runs step 2 (run history in the Log), runs step 3 (the sealed record; redraft the 16 beats as placeholders and show them first), then the Shattered Bark replay. Rule 1 now ends every options list with a recommendation (owner 19:39).
+- **Playtest fixes (owner 18:06-18:11):** gear effects in the test version and the gear card flicker BUILT. Charging history: "Work first" (charge only when the next task can't be covered and charging pays) doubled the Vaults (completionist 9 -> 18) and was not pushed; alternatives trialled: charge early as now but stop while the next task's energy is still left (Vaults 11, Taproot 11, Shattered Bark 8; Act I 5.73 h).
 - **Act choices (owner 17:34, go 17:36; parked 17:44, resumed 17:55): BUILT** (choices at the end of Act I and Act II, Act I replay, prestige restart, coloured saves with a run counter). Run bot: run 1 Act I 5.60 h / Act II 11.17 h (103 seedlings), run 2 0.94 / 5.39 h (8), run 3 0.79 / 3.50 h (6). Next: run history in the Log, then the sealed record (16 beats on section ends, from the replays).
 - **Fix (owner playtest 17:44, go 17:46): no idle charging BUILT.** A seedling with nothing to do no longer charges or scavenges on its own. **Parked (owner 17:44):** the act-choices work (stash), to be resumed when the owner says.
 - **Runs (owner 17:04 "the sections should be infinitely repeatable", go 17:08 with Claude's picks): step 1 BUILT** (run loop: ending pop-up, Begin the voyage again, main-menu New run, carry-over rules, run bonus x0.75 with floor, legacy in Act I from run 2, targets on run 1). **Finding:** the run bot plays run 2 and 3 in one seedling and about 13 in-game minutes each; options to the owner before step 2 (run history in the Log) and step 3 (the sealed record).
