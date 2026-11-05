@@ -552,7 +552,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
 // Renamed from Long Patience: move this device's old storage keys to the new 'selene.' names once
 try { const old = []; for (let n = 0; n < localStorage.length; n++) old.push(localStorage.key(n)); old.forEach(k => { if (k && k.indexOf('long-patience.') === 0) { const nk = 'selene.' + k.slice(14); if (localStorage.getItem(nk) == null) localStorage.setItem(nk, localStorage.getItem(k)); localStorage.removeItem(k); } }); } catch(e) {}
 /* ===== Game data and rules (no DOM) ===== */
-const BUILD = '2026-11-05 · quieter audio';   // shown in the main menu, to tell which version is loaded
+const BUILD = '2026-11-05 · save checks';   // shown in the main menu, to tell which version is loaded
 const DPS = 8;             // simulation ticks per real second at 1x (doubled for the test version: same balance, half the real time)
 // Time is simulated in ticks. 80 ticks make one day unit (18 minutes each), so a day lasts
 // 20 real seconds at 1x and Players only ever see in-game time and real time, never days.
@@ -2816,14 +2816,38 @@ function saveOk(){
   if (!badWarned) { badWarned = true; toast('Not saved: the game has broken numbers (' + bad.slice(0, 3).join(', ') + '). Your last good save is kept. Please report this.'); }
   return false;
 }
+// Save format and checksum. SAVE_FMT goes up only when the save layout changes in a way older builds can't read;
+// a save with a higher format is refused. The checksum (FNV-1a of the compact JSON without it) is stored as
+// ck = hash + ':' + saved, so a save rewritten by an older build (new 'saved', stale ck) counts as unchecked.
+const SAVE_FMT = 1;
+function ckHash(str){ let x = 0x811c9dc5; for (let i = 0; i < str.length; i++) { x ^= str.charCodeAt(i); x = Math.imul(x, 0x01000193); } return (x >>> 0).toString(36); }
+function saveJson(o){ const c = Object.assign({}, o); delete c.ck; c.fmt = SAVE_FMT; const s = JSON.stringify(c); return s.slice(0, -1) + ',"ck":"' + ckHash(s) + ':' + (c.saved || 0) + '"}'; }
+function ckCheck(raw){   // 'ok', 'none' (no checksum, or written by a build without them) or 'bad'
+  if (!raw || typeof raw.ck !== 'string') return 'none';
+  const k = raw.ck.split(':'); if (+k[1] !== +(raw.saved || 0)) return 'none';
+  const c = Object.assign({}, raw); delete c.ck; return ckHash(JSON.stringify(c)) === k[0] ? 'ok' : 'bad';
+}
+const tooNew = raw => (raw && raw.fmt || 0) > SAVE_FMT ? 'it was written by a newer version of the game (save format ' + raw.fmt + '); update the game first' : '';
+// Recovery: a stored save that can't be opened safely. Nothing is saved until the player picks what to do.
+let recovering = null;   // {s, txt, why, ckBad}
+function slotText(i){ try { return localStorage.getItem(slotKey(i)); } catch(e) { return null; } }
+function slotCheck(i){
+  const txt = slotText(i); if (!txt) return {s:i, raw:null, txt, why:''};
+  let raw; try { raw = JSON.parse(txt); } catch(e) { return {s:i, raw:null, txt, why:'its text is damaged and can\u2019t be read'}; }
+  let why = tooNew(raw);
+  if (!why) { let m; try { m = mergeState(JSON.parse(JSON.stringify(raw))); } catch(e) { why = 'its data is damaged (' + (e && e.message || 'error') + ')'; }
+    if (!why) { const bad = badNums(m); if (bad.length) why = 'it holds broken numbers (' + bad.slice(0, 3).join(', ') + ')'; } }
+  return {s:i, raw, txt, why, ckBad:!why && ckCheck(raw) === 'bad'};
+}
+function stashDamaged(r){ try { localStorage.setItem('selene.damaged.' + r.s, JSON.stringify({t:Date.now(), why:r.why || 'checksum', txt:r.txt})); } catch(e) {} }
 function deathSave(){
-  if (!S || !saveOk()) return;
-  try { localStorage.setItem(slotKey(deathKey(slot)), JSON.stringify(S)); } catch(e) {}
+  if (!S || recovering || !saveOk()) return;
+  try { localStorage.setItem(slotKey(deathKey(slot)), saveJson(S)); } catch(e) {}
 }
 let wiping = false;   // set while a reset clears storage, so nothing writes it back before the reload
 function save(){
-  if (!S || wiping || !saveOk()) return;
-  try { S.saved = Date.now(); localStorage.setItem(slotKey(slot), JSON.stringify(S)); localStorage.setItem(ACTIVE_KEY, slot); } catch(e) {}
+  if (!S || wiping || recovering || !saveOk()) return;
+  try { S.saved = Date.now(); localStorage.setItem(slotKey(slot), saveJson(S)); localStorage.setItem(ACTIVE_KEY, slot); } catch(e) {}
   savePrefs();
   bkTick();
 }
@@ -2875,14 +2899,31 @@ function bkPanel(s){
 async function bkRestore(s, kind){
   const raw = await bkRead(readBk(s)[kind]), bad = raw ? saveProblem(raw) : 'backup unreadable';
   if (bad) { sfx('error'); toast('That backup can’t be restored: ' + bad + '.'); return; }
-  const cur = s === slot ? S : readSlot(s);
+  const rec = recovering && recovering.s === s, cur = rec ? null : s === slot ? S : readSlot(s);
   askOverwrite('Restore this backup?', (cur ? slotLabel(s) + ' (' + slotDesc(cur) + ') is backed up first, then ' : '') + 'replaced by the backup (' + slotDesc(raw) + ').',
     [['Restore', 'warn', async () => {
       if (cur) await writeBk(s, cur, 'pre', 'before restoring a backup');
+      if (rec) { stashDamaged(recovering); recovering = null; }
       if (s === slot) { S = mergeState(raw); M = mods(); pinChains(); resetViews(); save(); toast('Backup restored: seedling ' + S.gen); startGame(); }
-      else { try { localStorage.setItem(slotKey(s), JSON.stringify(raw)); toast('Backup restored into ' + slotLabel(s)); } catch(e) { toast('Couldn’t restore: browser storage is full or blocked.'); } showMenu('saves'); }
+      else { try { localStorage.setItem(slotKey(s), saveJson(raw)); toast('Backup restored into ' + slotLabel(s)); } catch(e) { toast('Couldn’t restore: browser storage is full or blocked.'); } showMenu('saves'); }
     }]], () => bkPanel(s));
 }
+// The recovery screen for the slot that couldn't be opened (recovering)
+function showRecovery(){
+  const r = recovering; if (!r) return showMenu();
+  paused = true; owActs = {};
+  const lab = slotLabel(r.s), hasBk = Object.keys(readBk(r.s)).length > 0, list = [];
+  let h = '<h2>' + (r.ckBad ? 'This save was changed outside the game' : 'This save can\u2019t be opened') + '</h2><p class="owarn">\u26a0 ' + esc(lab + (r.ckBad ? ': its checksum doesn\u2019t match, so it may be damaged or edited by hand.' : ': ' + r.why + '.')) + ' Nothing has been changed or overwritten.</p>';
+  if (r.ckBad) list.push(['Load it anyway', 'warn', () => { recovering = null; save(); showMenu(); }]);
+  if (r.txt) list.push(['Export the damaged save', '', () => { exportText(damagedName(r.s), r.txt); showRecovery(); }]);
+  if (hasBk) list.push(['Load a backup', '', () => bkPanel(r.s)]);
+  list.push(['Start fresh in this slot', 'warn', () => askOverwrite('Start fresh in ' + lab + '?', 'The damaged save is kept aside on this device; export it first if you want a copy.',
+    [['Start fresh', 'warn', () => { S = defaultState(); M = mods(); S.life.hp = M.maxHp; resetViews(); startGame(); }]], showRecovery)]);
+  list.push(['Other save slots', '', () => showMenu('saves')]);
+  h += '<div class="mbtns">' + list.map(([l, c, fn], n) => { owActs['c' + n] = fn; return `<button class="btn ${c}" data-ow="c${n}">${esc(l)}</button>`; }).join('') + '</div>';
+  showModal(h);
+}
+const damagedName = s => 'selene-slot' + baseSlot(s) + (isDeathSlot(s) ? '-death' : '') + '-damaged-' + fileStamp() + '.txt';
 function readSlot(i){
   try { const r = localStorage.getItem(slotKey(i)); return r ? JSON.parse(r) : null; } catch(e) { return null; }
 }
@@ -2899,17 +2940,25 @@ const b64dec = str => decodeURIComponent(escape(atob(str.replace(/\s/g, ''))));
 try { localStorage.removeItem('selene.github.v1'); localStorage.removeItem('long-patience.github.v1'); } catch(e) {}   // forget any stored GitHub token
 
 /* ----- save file export / import (works in browsers and in the Android app) ----- */
-function saveFileName(){ const nm = (S.name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''); return 'selene-tidelocked-' + (nm || 'slot' + baseSlot(slot)) + (isDeathSlot(slot) ? '-death' : '') + '-seedling' + S.gen + '.json'; }
-function exportJson(){
-  save();
-  const json = JSON.stringify(S, null, 1), name = saveFileName();
-  if (window.AndroidBridge && AndroidBridge.exportFile) { AndroidBridge.exportFile(name, json); return; }
+// File names carry the local time and the build: selene-<name or slotN>[-death]-seedling<N>-<YYYY-MM-DD-HHMM>-<build>.json
+const slug = v => String(v || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+function fileStamp(){ const d = new Date(), p = n => String(n).padStart(2, '0'); return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + '-' + p(d.getHours()) + p(d.getMinutes()) + '-' + slug(BUILD.split('\u00b7').pop()); }
+function saveFileName(){ return 'selene-' + (slug(S.name) || 'slot' + baseSlot(slot)) + (isDeathSlot(slot) ? '-death' : '') + '-seedling' + S.gen + '-' + fileStamp() + '.json'; }
+// Hand a file to the player: the Android app's share sheet (or its file picker: toFile, or an older app), else a download
+function exportText(name, text, toFile){
+  const AB = window.AndroidBridge;
+  if (AB && AB.shareFile && !toFile) { AB.shareFile(name, text); return; }
+  if (AB && AB.exportFile) { AB.exportFile(name, text); return; }
   try {
-    const blob = new Blob([json], {type:'application/json'}), a = document.createElement('a');
+    const blob = new Blob([text], {type:/\.json$/.test(name) ? 'application/json' : 'text/plain'}), a = document.createElement('a');
     a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click();
     setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
     toast('Saved ' + name);
   } catch(e) { toast('This browser can’t save files. Use “Copy as JSON” instead.'); }
+}
+function exportJson(toFile){
+  save();
+  exportText(saveFileName(), JSON.stringify(JSON.parse(saveJson(S)), null, 1), toFile);   // with its checksum, pretty-printed
 }
 // Packed saves: 'LPZ1:' + base64 of the gzipped JSON, about a fifth of the size (used for sharing)
 async function packSave(json){
@@ -2959,14 +3008,17 @@ function applyLoaded(raw, from){
   const bad = saveProblem(raw);
   if (bad) { sfx('error'); toast('That save can\u2019t be loaded: ' + bad + '. Nothing was changed.'); return; }
   const L0 = raw.life, z = ZN(L0.sec || 1);
-  return askOverwrite('Load this save?', 'It replaces the game in ' + slotLabel(slot) + ' (keep a copy with Export first if you need it).',
+  const ask = () => askOverwrite('Load this save?', 'It replaces the game in ' + slotLabel(slot) + ' (keep a copy with Export first if you need it).',
     [['Load ' + (raw.name ? '\u201c' + raw.name + '\u201d' : 'it') + ': seedling ' + raw.gen + ', ' + (z ? z.name : 'section ' + L0.sec) + (L0.dead ? ' (dead)' : ''), 'warn', () => loadChecked(raw, from)]], hideModal);
+  if (ckCheck(raw) === 'bad') return askOverwrite('This save was changed outside the game', 'Its checksum doesn\u2019t match, so it may be damaged or edited by hand.', [['Load anyway', 'warn', ask]], hideModal);
+  return ask();
 }
 // What is wrong with a single save, or '' when it looks loadable
 function saveProblem(raw){
   if (!raw || typeof raw !== 'object') return 'not a save';
   if (!raw.life || typeof raw.life !== 'object') return 'no seedling in it';
   if (!(raw.gen >= 1)) return 'no seedling number';
+  if (tooNew(raw)) return tooNew(raw);
   if (raw.life.sec != null && !ZN(raw.life.sec)) return 'unknown section ' + raw.life.sec;
   if (raw.life.queue != null && !Array.isArray(raw.life.queue)) return 'damaged queue';
   let m; try { m = mergeState(JSON.parse(JSON.stringify(raw))); } catch(e) { return 'damaged data'; }
@@ -3040,7 +3092,7 @@ async function ghLoad(i){
 function savePanel(){
   return `<div class="panel set"><span class="h2">Save file</span>
     <p class="note">Export this slot as a JSON file to keep a backup or send it to another device, and import one to continue from it. Importing replaces the game in the current slot.</p>
-    <div class="btns"><button class="btn pri" data-exportjson>Export save file</button><button class="btn" data-confirm="importfile">Import save file</button></div>
+    <div class="btns"><button class="btn pri" data-exportjson>Export save file</button>${window.AndroidBridge && AndroidBridge.shareFile ? '<button class="btn" data-exportfile>Save to a file</button>' : ''}<button class="btn" data-confirm="importfile">Import save file</button></div>
     <input type="file" id="import-file" accept=".json,application/json,text/plain" hidden>
   </div>
   <div class="panel set"><span class="h2">Save as text</span>
@@ -3184,6 +3236,7 @@ function mergeState(raw){
   if (Array.isArray(L.qdone)) L.qdone = L.qdone.filter(id => qItem(id));
   if (L.job && !T[L.job]) L.job = null;
   if (!Array.isArray(L.order)) L.order = [];
+  delete s.ck;   // the checksum belongs to the stored text, never to the live game
   return s;
 }
 function loadSaved(){
@@ -3198,6 +3251,7 @@ function loadSaved(){
 function resetViews(){ taskKey = ''; archKey = ''; logKey = ''; gearKey = ''; }
 let awayMs = 0;   // how long the save being opened had not been played (set when it is read, before the game saves again)
 function startGame(){
+  if (recovering) { if (recovering.s === slot) stashDamaged(recovering); recovering = null; save(); }
   paused = false; hideModal(); setTab('tasks');
   if (awayMs > 864e5 && S.intro) { const ms = awayMs; awayMs = 0; return showWelcome(ms); }
   awayMs = 0;
@@ -3237,12 +3291,13 @@ function showMenu(view){
     const cur2 = cur;
     h += '<span class="lbl">Save slots</span><div class="slots">';
     for (let i = 1; i <= SLOTS; i++) {
-      const r = readSlot(i), act = i === slot;
-      h += `<div class="slot${act ? ' act' : ''}"><b>Slot ${i}${r && r.name ? ' \u00b7 ' + esc(r.name) : ''}${act ? ' \u00b7 playing' : ''}</b><span>${esc(slotInfo(r))}</span><div class="btns">`;
+      const r = readSlot(i), act = i === slot, dmg = !r && !!slotText(i);
+      h += `<div class="slot${act ? ' act' : ''}"><b>Slot ${i}${r && r.name ? ' \u00b7 ' + esc(r.name) : ''}${act ? ' \u00b7 playing' : ''}</b><span>${dmg ? 'Damaged save: it can\u2019t be read. Export it or restore a backup.' : esc(slotInfo(r))}</span><div class="btns">`;
+      if (dmg) h += `<button class="btn" data-loadslot="${i}">Options</button>`;
       if (r) h += `<button class="btn" data-rename="${i}">Rename</button>`;
       const fromD = slot === 'd' + i;   // playing this slot's own death save
       if (!act && r) h += fromD ? `<button class="btn" data-loadslot="${i}" data-leaved="1">Load slot ${i} (leave the death save)</button>` : `<button class="btn" data-loadslot="${i}">Load</button>`;
-      if (!act && cur2) h += `<button class="btn" data-saveto="${i}">${fromD ? 'Copy this death save into slot ' + i : r ? 'Save over' : 'Save here'}</button>`;
+      if (!act && cur2 && !dmg) h += `<button class="btn" data-saveto="${i}">${fromD ? 'Copy this death save into slot ' + i : r ? 'Save over' : 'Save here'}</button>`;
       if (!act && r) h += `<button class="btn warn" data-delslot="${i}">Delete</button>`;
       if (Object.keys(readBk(i)).length) h += `<button class="btn" data-bkslot="${i}">Backups</button>`;
       if (act) h += '<span class="ghst">Saves automatically every few seconds.</span><button class="btn warn" data-askreset="">Restart</button>';
@@ -3261,7 +3316,8 @@ function showMenu(view){
     h += '<button class="btn" data-menu="back">Back</button>';
   } else {
     h += '<div class="mbtns">';
-    if (cur && cur.life) h += `<button class="btn pri" data-menu="continue">Continue \u00b7 ${slotLabel(slot)}${cur.name ? ' \u00b7 ' + esc(cur.name) : ''}<small>${esc(slotInfo(cur))}</small></button>`;
+    if (recovering && recovering.s === slot) { owActs = {rec:showRecovery}; h += `<button class="btn warn" data-ow="rec">${esc(slotLabel(slot))} can\u2019t be opened: see the options</button>`; }
+    else if (cur && cur.life) h += `<button class="btn pri" data-menu="continue">Continue \u00b7 ${slotLabel(slot)}${cur.name ? ' \u00b7 ' + esc(cur.name) : ''}<small>${esc(slotInfo(cur))}</small></button>`;
     h += '<button class="btn" data-menu="new">New game</button><button class="btn" data-menu="saves">Save Management</button><button class="btn" data-settings="menu">Settings</button></div>';
   }
   showModal(h);
@@ -4920,10 +4976,15 @@ document.addEventListener('click', e => {
       [['Overwrite slot ' + i, 'warn', go]], 'new', '');
   }
   if (d.loadslot) {
-    const i = /^d[1-5]$/.test(d.loadslot) ? d.loadslot : +d.loadslot, r = readSlot(i); if (!r) return;
+    const i = /^d[1-5]$/.test(d.loadslot) ? d.loadslot : +d.loadslot, ck = slotCheck(i), r = ck.why ? null : ck.raw;
+    if (ck.why) return askOverwrite(slotLabel(i) + ' can\u2019t be opened', slotLabel(i) + ': ' + ck.why + '. Nothing has been changed.',
+      [['Export the damaged save', '', () => { exportText(damagedName(i), ck.txt); showMenu('saves'); }]].concat(Object.keys(readBk(i)).length ? [['Load a backup', '', () => bkPanel(i)]] : []), 'saves');
+    if (!r) return;
+    if (ck.ckBad && !d.ckok) return askOverwrite('This save was changed outside the game', slotLabel(i) + ': its checksum doesn\u2019t match, so it may be damaged or edited by hand.',
+      [['Load it anyway', 'warn', () => { const b = document.createElement('button'); b.dataset.loadslot = d.loadslot; if (d.leaved) b.dataset.leaved = d.leaved; b.dataset.ckok = '1'; b.hidden = true; document.body.appendChild(b); b.click(); b.remove(); }]], 'saves');
     const load = drop => {
       awayMs = r.saved ? Date.now() - r.saved : 0;
-      save(); if (drop) bkBefore('d' + i, 'before it was overwritten'); slot = i; S = mergeState(r); M = mods(); resetViews(); save();
+      save(); if (drop) bkBefore('d' + i, 'before it was overwritten'); if (recovering) { if (recovering.s === i) stashDamaged(recovering); recovering = null; } slot = i; S = mergeState(r); M = mods(); resetViews(); save();
       if (drop) try { localStorage.removeItem(slotKey('d' + i)); } catch(e) {}
       toast(drop ? 'Back in slot ' + i + '; its death save was overwritten' : 'Loaded ' + slotLabel(i));
       startGame();
@@ -4940,7 +5001,7 @@ document.addEventListener('click', e => {
       save();
       if (r) bkBefore(i, 'before Save over');
       const copy = JSON.parse(JSON.stringify(S)); if (nm) copy.name = nm; else delete copy.name;
-      try { localStorage.setItem(slotKey(i), JSON.stringify(copy)); toast('Saved to slot ' + i + (nm ? ': ' + nm : '')); } catch(e) { toast('Couldn’t save: browser storage is full or blocked.'); }
+      try { localStorage.setItem(slotKey(i), saveJson(copy)); toast('Saved to slot ' + i + (nm ? ': ' + nm : '')); } catch(e) { toast('Couldn’t save: browser storage is full or blocked.'); }
       showMenu('saves');
     };
     save();
@@ -4991,6 +5052,7 @@ document.addEventListener('click', e => {
   if ('repair' in d) { const a = repair(); if (a) { sfx('toggle'); toast('Repaired ' + fmt(a) + ' wear.'); } return; }
   if ('eat' in d) { const f = readyFoods()[0], h0 = L.hp; if (f && eat(f)) sfx('eat'), toast('Recharged. +' + fmt(L.hp - h0) + ' energy'); return; }
   if ('exportjson' in d) { exportJson(); return; }
+  if ('exportfile' in d) { exportJson(true); return; }   // Android: the file picker instead of the share sheet
   if ('ghshare' in d) { shareToGitHub(); return; }
   if ('ghlist' in d) { ghRefresh(); return; }
   if ('copyjson' in d) {
@@ -5289,8 +5351,8 @@ function allSaves(){
 }
 function exportAll(){
   save();
-  const json = JSON.stringify(allSaves()), name = 'selene-tidelocked-all-saves-' + new Date().toISOString().slice(0, 10) + '.json';
-  if (window.AndroidBridge && AndroidBridge.exportFile) { AndroidBridge.exportFile(name, json); return; }
+  const json = JSON.stringify(allSaves()), name = 'selene-all-saves-' + fileStamp() + '.json';
+  if (window.AndroidBridge && (AndroidBridge.shareFile || AndroidBridge.exportFile)) { exportText(name, json); return; }
   try {
     const blob = new Blob([json], {type:'application/json'}), a = document.createElement('a');
     a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click();
@@ -5312,7 +5374,8 @@ function refreshSettings(){ if (settingsFrom && !$('#modal').hidden && document.
 function boot(data){
   applyLayout();
   if (UPD.auto) setTimeout(() => checkAppUpdate(false), 2500);
-  const raw = (data && data.S) || loadSaved();
+  let raw = data && data.S;
+  if (!raw) { loadSaved(); const c = slotCheck(slot); if (c.why || c.ckBad) recovering = c; raw = c.why ? null : c.raw; }
   awayMs = raw && raw.saved ? Date.now() - raw.saved : 0;
   S = mergeState(raw);
   M = mods();
@@ -5322,7 +5385,7 @@ function boot(data){
   pinChains();
   unlockSpeeds(true);
   setTab('tasks');
-  if (raw) showMenu(); else startGame();
+  if (recovering) showRecovery(); else if (raw) showMenu(); else startGame();
   last = performance.now();
   requestAnimationFrame(frame);
 }

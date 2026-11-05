@@ -12,7 +12,8 @@ The **Restore points** workflow (`.github/workflows/restore-points.yml`) runs on
 What the recent commits are (newest first):
 | Commit | What it is |
 |---|---|
-| (next) | Quieter audio: one reverb, audio sleeps, Android pauseTimers |
+| (next) | Save checks: checksum, format, recovery screen, share export |
+| `70b23d5` | Quieter audio: one reverb, audio sleeps, Android pauseTimers |
 | `c5adfeb` | Lighter redraws: 10 Hz screen, 2 Hz paused, transform bars, autosave 15 s, no 700 face |
 | `5f65d9a` | Credits: full ZzFX MIT text, Plex year, Inspired by; research round 4 |
 | `a39673d` | Effects shown (test switch): task effects visible from the start |

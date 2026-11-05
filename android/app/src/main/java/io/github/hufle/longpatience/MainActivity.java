@@ -1,6 +1,7 @@
 package io.github.hufle.longpatience;
 
 import android.app.Activity;
+import android.content.ClipData;
 import android.content.Intent;
 import android.content.pm.PackageInfo;
 import android.net.Uri;
@@ -120,6 +121,33 @@ public class MainActivity extends Activity {
                     startActivityForResult(i, REQ_EXPORT);
                 } catch (Exception e) {
                     report(false, "no file picker available");
+                }
+            });
+        }
+
+        /** Called from the game's "Export save file" button: hands the file to Android's share sheet. */
+        @JavascriptInterface
+        public void shareFile(final String name, final String content) {
+            runOnUiThread(() -> {
+                try {
+                    File dir = new File(getCacheDir(), "shares");
+                    if (!dir.exists()) dir.mkdirs();
+                    File[] old = dir.listFiles();
+                    if (old != null) for (File f : old) f.delete();   // only the latest shared file is kept
+                    File f = new File(dir, name.replaceAll("[^A-Za-z0-9._-]", "_"));
+                    try (FileOutputStream out = new FileOutputStream(f)) { out.write(content.getBytes(StandardCharsets.UTF_8)); }
+                    Uri uri = FileProvider.getUriForFile(MainActivity.this, getPackageName() + ".files", f);
+                    Intent s = new Intent(Intent.ACTION_SEND);
+                    s.setType(name.endsWith(".json") ? "application/json" : "text/plain");
+                    s.putExtra(Intent.EXTRA_STREAM, uri);
+                    s.putExtra(Intent.EXTRA_SUBJECT, name);
+                    s.setClipData(ClipData.newRawUri(name, uri));
+                    s.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                    Intent c = Intent.createChooser(s, "Share save file");
+                    c.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                    startActivity(c);
+                } catch (Exception e) {
+                    report(false, e.getMessage() == null ? "could not share the file" : e.getMessage());
                 }
             });
         }
