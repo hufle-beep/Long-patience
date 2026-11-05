@@ -4,6 +4,8 @@ A sci-fi incremental game about short lives and long voyages, in the vein of Inc
 
 You are K-7, a seedling: one of the disposable drones that WARDEN and the Hearth Tree grow for a single task. You serve aboard *Selene*, a colony ship grown from living wood by the Root-Kin of Earth and named for the Greek goddess of the Moon. Her 3,112 crew sleep in stasis. Restore her sap flow, WARDEN's mind and her star-charts, her gardens and, last, the Hearthfire, so the crew can be woken. A seedling lasts as long as it is needed; what it learned seeps back through the roots into the next one.
 
+*Made with AI: the game was programmed with the help of AI (Claude by Anthropic). The story and other texts are placeholders for now and will be rewritten.*
+
 ## Play
 
 Open `index.html` in any browser, on a phone or a PC. It is playable at:

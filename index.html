@@ -24,7 +24,7 @@ body{margin:0}
 :root{
   --bg:#1a140c; --panel:#241b10; --panel2:#2e2316; --line:#4a3920; --line2:#6b5532; --fg:#f2e6c9; --dim:#b39b6c; --faint:#786245;   /* Root-Kin palette: heartwood browns, amber resin */
   --amber:#f0a03c; --amber-soft:rgba(240,160,60,.14); --amber-fill:rgba(240,160,60,.22);
-  --cyan:#63c6d4; --cyan-soft:rgba(99,198,212,.16); --red:#e2604f; --green:#7cc47f; --violet:#a98cf0; --sand:#d8c49a; --yellow:#f2d54b;
+  --cyan:#63c6d4; --cyan-soft:rgba(99,198,212,.16); --red:#e2604f; --red-t:#f2866f; --green:#7cc47f; --violet:#a98cf0; --sand:#d8c49a; --yellow:#f2d54b;
   --f-disp:'Selene Display','Arial Narrow',sans-serif;
   --f-body:'Selene Text',system-ui,-apple-system,sans-serif;
   --f-mono:'Selene Mono',ui-monospace,Menlo,monospace;
@@ -49,7 +49,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--amber);outline-
 .ident .htimes span{font-family:var(--f-mono);font-size:13px;letter-spacing:0;text-transform:none}
 .ident .hday{color:var(--cyan)}
 .ident .hday .tgm{color:var(--cyan)}.ident .hday .trl{color:var(--amber)}
-.ident .hleft{color:var(--red)}
+.ident .hleft{color:var(--red-t)}
 .ident b{white-space:nowrap;font-family:var(--f-disp);font-size:22px;font-weight:600;letter-spacing:.04em;color:var(--amber);line-height:1}
 .ident span{font-family:var(--f-disp);font-size:14px;color:var(--dim);letter-spacing:.06em;text-transform:uppercase;white-space:nowrap}
 .spd{display:grid;grid-template-columns:44px 44px 1fr 94px;gap:6px;flex-basis:100%;width:100%;margin-left:0}   /* the speed box is as wide as the two buttons on the left, so Pause sits in the middle */
@@ -83,7 +83,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--amber);outline-
 .res b.full{color:var(--amber)}
 .res>div{flex-wrap:wrap}
 .res small.rt{flex-basis:100%;margin-left:0;color:var(--dim);font-size:11px}
-.res small.rt.neg{color:var(--red)}
+.res small.rt.neg{color:var(--red-t)}
 #t-ratt{white-space:pre-line;overflow-wrap:anywhere}   /* one short line each: cells, station, crossing */
 .foods{flex-basis:100%;display:flex;flex-wrap:wrap;gap:3px 10px;font-size:12.5px;color:var(--fg);font-family:var(--f-mono)}
 .foods em{font-style:normal;color:var(--dim)}
@@ -98,7 +98,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--amber);outline-
 .task.rest .tm{border-style:dashed}
 .task.train .tm{border-style:dotted}
 .mn.train .mb{stroke-dasharray:1 3}
-.surv.warn b,.surv.warn em{color:var(--red)}
+.surv.warn b,.surv.warn em{color:var(--red-t)}
 .tx .tt{color:var(--dim)}
 .gtm{flex:1;min-width:0;text-align:left;background:none;border:0;padding:0;color:inherit;font:inherit;cursor:pointer}
 .gtm:disabled{cursor:default}
@@ -110,7 +110,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--amber);outline-
 .res .fq{display:block;font-size:11px;color:var(--green);font-family:var(--f-mono);font-weight:400;margin-top:2px}
 .res small{font-size:11px;margin-left:auto;white-space:nowrap}
 .res small#t-wear{white-space:normal}
-.pos{color:var(--green)} .neg{color:var(--red)}
+.pos{color:var(--green)} .neg{color:var(--red-t)}
 .ngp{border-color:var(--cyan-soft)}
 .ngp .h2{color:var(--cyan)}
 .bld{margin:-6px 0 10px;font-size:11px;color:var(--faint)}
@@ -142,7 +142,7 @@ main .wrap{display:grid;gap:18px}
 button.secfold{display:block;width:100%;text-align:left;background:none;border:0;padding:0;margin-top:10px;font:inherit;cursor:pointer}
 button.zhb{display:flex;width:100%;align-items:baseline;justify-content:space-between;gap:8px;background:none;border:0;padding:0;margin:0;color:inherit;font:inherit;text-align:left;cursor:pointer}
 button.zh.zhb{margin:14px 0 6px}
-.tgm{color:var(--cyan)}.te.over,#n-eta.over,#q-eta.over{color:var(--red)}.trl{color:var(--amber)}
+.tgm{color:var(--cyan)}.te.over,#n-eta.over,#q-eta.over{color:var(--red-t)}.trl{color:var(--amber)}
 .over .tgm,.over .trl,.hleft .tgm,.hleft .trl{color:inherit}   /* over the clone's time, or remaining time: all red */
 .secrun{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:8px 10px;margin:4px 0 8px;border:1px solid var(--cyan-soft);border-radius:4px;font-size:12.5px;color:var(--fg)}
 .secrun.on{border-color:var(--cyan)}
@@ -169,9 +169,9 @@ button.zh.zhb{margin:14px 0 6px}
 .qrow .qfc{display:block;color:var(--dim);font-size:11px;margin-top:1px}
 .qrow .qfc:empty{display:none}
 .qrow.fnr{border-color:var(--red);background:rgba(226,96,79,.1)}
-.qrow.fnr .qfc{color:var(--red)}
+.qrow.fnr .qfc{color:var(--red-t)}
 .qrow.fdie{border-color:var(--red);border-width:2px}
-.qrow.fdie .qfc{color:var(--red);font-weight:600}
+.qrow.fdie .qfc{color:var(--red-t);font-weight:600}
 .qrow .qn{color:var(--faint);font-family:var(--f-mono);font-size:12px}
 .qrow .qt{flex:1;min-width:0}
 .qrow.cq{border-color:var(--cyan-soft);align-items:flex-start}
@@ -194,7 +194,7 @@ button.zh.zhb{margin:14px 0 6px}
 .qlist.dragmode{user-select:none;-webkit-user-select:none}
 .qh .qhb button{font-size:12px;color:var(--dim);padding:3px 6px}
 .qh .qhb button.qclear{color:var(--fg);border:1px solid var(--line);border-radius:4px;padding:5px 10px;font-size:12.5px}
-.qh .qhb button.qclear:hover{border-color:var(--red);color:var(--red)}
+.qh .qhb button.qclear:hover{border-color:var(--red);color:var(--red-t)}
 .qbody{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:start}
 .qmain{min-width:0;display:grid;gap:6px}
 .qpre{display:grid;gap:6px;padding-left:10px;border-left:1px dashed var(--line)}
@@ -224,7 +224,7 @@ button.zh.zhb{margin:14px 0 6px}
 .qps.qtx .lbl{font-size:11px}
 .zh .nxa{flex-basis:100%;font-size:12px;color:var(--dim)}
 .zh .nxa:empty{display:none}
-.zh .nxa .ok{color:var(--green)}.zh .nxa .neg{color:var(--red)}
+.zh .nxa .ok{color:var(--green)}.zh .nxa .neg{color:var(--red-t)}
 .sktm{font-size:11px;color:var(--dim);margin-top:2px}
 .qrow .qtn{width:auto;height:auto;border:0;padding:0;font:inherit;color:inherit;text-align:left;cursor:pointer}
 .qrow.qskip{opacity:.55;border-style:dashed}
@@ -247,13 +247,13 @@ button.zh.zhb{margin:14px 0 6px}
 .rn[data-routez]{cursor:pointer}.ract{font-family:var(--f-disp);font-size:12px;letter-spacing:.06em;fill:var(--dim);text-transform:uppercase}
 .re{fill:none;stroke-width:2}.re.lit{stroke:var(--cyan)}.re.ever{stroke:var(--sand);opacity:.6}.re.unk{stroke:var(--faint);stroke-dasharray:4 3}
 .rk{white-space:nowrap;padding:0 4px;border:1px solid var(--line);border-radius:3px}.rk.cur{border-color:var(--amber)}.rk.life{border-color:var(--cyan)}.rk.ever{border-color:var(--sand)}
-.spd .apz{display:flex;align-items:center;gap:3px;color:var(--cyan)}.spd .apz .gi{margin:0;width:16px;height:16px}.spd.a5{grid-template-columns:44px 44px 44px 1fr 94px}.spd .apz{padding:0;justify-content:center}.spd .apz.on{color:var(--red);border-color:var(--red);background:none;flex-direction:column;gap:0}.spd .apz.on span{font-size:9px;line-height:1}.spd .apz span{font-size:11px;text-transform:uppercase}
+.spd .apz{display:flex;align-items:center;gap:3px;color:var(--cyan)}.spd .apz .gi{margin:0;width:16px;height:16px}.spd.a5{grid-template-columns:44px 44px 44px 1fr 94px}.spd .apz{padding:0;justify-content:center}.spd .apz.on{color:var(--red-t);border-color:var(--red);background:none;flex-direction:column;gap:0}.spd .apz.on span{font-size:9px;line-height:1}.spd .apz span{font-size:11px;text-transform:uppercase}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap}
 .lchips{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 12px}.lchips button{border:1px solid var(--line);border-radius:14px;padding:5px 12px;font-size:13px;color:var(--dim)}.lchips button.on{color:var(--fg);border-color:var(--amber);background:var(--panel2)}
 .evl{list-style:none;margin:6px 0 0;padding:0}.evl li{padding:5px 0;border-top:1px dashed var(--line);font-size:14px}.evl li span{color:var(--dim);font-size:12.5px}
 .gi{width:1.05em;height:1.05em;fill:currentColor;vertical-align:-.16em;margin-right:.35em;flex:none}
 #tabs button .tic{display:block;width:17px;height:17px;margin:0 auto 3px;opacity:.85}
-.dcause{display:flex;gap:10px;align-items:center}.dcause .dico{width:30px;height:30px;color:var(--red);margin:0}
+.dcause{display:flex;gap:10px;align-items:center}.dcause .dico{width:30px;height:30px;color:var(--red-t);margin:0}
 .faqs{display:grid;gap:4px;margin-top:10px}.faqs input{background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:4px;padding:8px;font:inherit}
 .fkeys{margin:8px 0}.fkeys td{padding:4px 12px 4px 0;text-align:left;font-family:var(--f-body);white-space:nowrap}.fkeys td+td{white-space:normal}kbd{font-family:var(--f-mono);font-size:12px;border:1px solid var(--line);border-radius:3px;padding:1px 5px;background:var(--bg)}
 .pastes{margin:8px 0 12px;padding-left:18px;font-size:14px}.pastes li{margin:5px 0}.pastes b{color:var(--fg)}
@@ -280,7 +280,7 @@ button.zh.zhb{margin:14px 0 6px}
 .tn{font-weight:500;font-size:14.5px;min-width:0}
 .te{font-size:12px;color:var(--dim);white-space:nowrap}
 .tx{display:flex;flex-wrap:wrap;gap:5px 8px;margin-top:5px;align-items:center;font-size:12px;color:var(--dim)}
-.haz{color:var(--red)}
+.haz{color:var(--red-t)}
 .star{color:var(--amber)}
 .task.job .tm{background:var(--panel2)}
 .task.on .tm{border-color:var(--amber)}
@@ -357,7 +357,7 @@ button.zh.zhb{margin:14px 0 6px}
 input[type=range]{width:100%;accent-color:var(--amber)}
 .btn{font-size:13px;padding:9px 12px;border-radius:5px;border:1px solid var(--line);color:var(--fg)}
 .btn:not(.pri):not(.warn){background:var(--panel2);border-color:var(--line2)}
-.btn.warn{border-color:var(--red);color:var(--red)}
+.btn.warn{border-color:var(--red);color:var(--red-t)}
 .btn.pri{background:var(--amber);border-color:var(--amber);color:var(--bg);font-weight:600}
 
 /* log */
@@ -396,6 +396,8 @@ html.mopen,html.mopen body{overflow:hidden;overscroll-behavior:none}
 #toasts{position:fixed;left:0;right:0;bottom:calc(58px + env(safe-area-inset-bottom,0px));z-index:15;display:grid;justify-items:center;gap:6px;pointer-events:none;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
 .toast{background:var(--panel2);border:1px solid var(--line);border-radius:5px;padding:8px 12px;font-size:13px;max-width:420px;animation:tin .2s ease-out}
 .toast.gold{border-color:var(--amber);color:var(--amber)}
+#mbox .mx{position:sticky;top:0;float:right;margin:-6px -6px 4px 8px;width:36px;height:36px;border-radius:50%;border:1px solid var(--line2);background:var(--panel2);color:var(--fg);font-size:16px;line-height:1;z-index:2;cursor:pointer}
+.qrow.qnow{border-color:var(--amber);box-shadow:inset 3px 0 0 var(--amber)}
 #errbar{position:fixed;left:max(8px,env(safe-area-inset-left,0px));right:max(8px,env(safe-area-inset-right,0px));bottom:calc(58px + env(safe-area-inset-bottom,0px));z-index:40;background:var(--panel2);border:1px solid var(--red);border-radius:6px;padding:8px 10px;font-size:13px;max-width:560px;margin:0 auto}
 #errbar p{margin:0 0 6px}#errbar .btns{display:flex;gap:6px;flex-wrap:wrap}
 @keyframes tin{from{transform:translateY(8px);opacity:0}}
@@ -405,7 +407,7 @@ html.mopen,html.mopen body{overflow:hidden;overscroll-behavior:none}
 .fld textarea{min-height:64px;resize:vertical;word-break:break-all}
 .btns{display:flex;gap:8px;flex-wrap:wrap}
 .ghst{font-size:12px;color:var(--dim);min-height:1.4em}
-.ghst.err{color:var(--red)} .ghst.ok{color:var(--green)}
+.ghst.err{color:var(--red-t)} .ghst.ok{color:var(--green)}
 .note a{color:var(--cyan)}
 .menub{font-size:18px;line-height:1;padding:4px 8px 5px;border:1px solid var(--line);border-radius:4px;color:var(--fg);align-self:center}
 .mbtns{display:grid;gap:8px}
@@ -444,7 +446,7 @@ html.mopen,html.mopen body{overflow:hidden;overscroll-behavior:none}
 .me.lit{stroke:var(--amber);opacity:.7}
 .me.dash{stroke-dasharray:4 4}
 .task.cross .tm{border-color:var(--red)}
-.crossw{font-family:var(--f-disp);text-transform:uppercase;letter-spacing:.08em;font-size:11px;color:var(--red);margin-bottom:3px}
+.crossw{font-family:var(--f-disp);text-transform:uppercase;letter-spacing:.08em;font-size:11px;color:var(--red-t);margin-bottom:3px}
 .mn.passed{opacity:.25}
 .alist{display:grid;gap:8px}
 .arow{display:grid;grid-template-columns:1fr auto;gap:8px 12px;align-items:center;padding:10px;border:1px solid var(--line);border-radius:6px;background:var(--panel)}
@@ -530,13 +532,13 @@ tr.pttot td{font-weight:600;color:var(--amber)}
       <div class="ident"><button class="menub" data-menu="open" aria-label="Main menu">☰</button><b>K-7</b><span id="h-gen">Seedling 1</span><span class="htimes"><span id="h-day" class="num hday" title="Elapsed: in-game time this clone has lived, then real time"></span><span id="h-left" class="num hleft" title="Remaining: in-game time this clone has left, then the real time that takes at the current speed"></span></span></div>
       <div class="spd" id="h-spd"></div>
     </div>
-    <div class="meter" id="tipenergy"><span class="lbl" style="min-width:0;text-align:left">Energy</span><div class="bar hp"><i id="b-hp"></i></div><span id="t-hp" class="num"></span></div>
+    <div class="meter" id="tipenergy"><span class="lbl" style="min-width:0;text-align:left">Energy</span><div class="bar hp" role="progressbar" aria-label="Energy" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="b-hp"></i></div><span id="t-hp" class="num"></span></div>
     <div class="surv" id="surv"><span class="lbl">Outlook</span><em id="s-why"></em><span id="s-plan" class="num plan" title="Planned work: the tapped task and everything in the queue, at today&#39;s speeds"></span></div>
     <div class="res">
       <div><span class="lbl">Sap cells</span><span id="t-foods" class="foods"></span><small id="t-ratt" class="rt num"></small><button id="eatb" class="eat num" data-eat data-tip="Use a sap cell to refill energy. Turns yellow when a recharge is ready; Auto-recharge does this by itself.">Recharge</button></div>
       <div><span class="lbl" id="t-sall">Deadwood</span><b id="t-sal" class="num"></b><small id="t-salr" class="num"></small><small id="t-salt" class="rt num"></small><small id="t-wear" class="rt num" hidden></small><button id="repb" data-tip="Spend grafts to take 1.5 wear off Selene (each point of wear adds 8% drain). Turns yellow when a repair is possible; Auto-repair does this by itself." class="eat rep num" data-repair hidden>Repair</button></div>
     </div>
-    <div class="now" id="now"><div class="nf" id="n-fill"></div><span id="n-name"></span><span id="n-eta" class="num"></span></div>
+    <div class="now" id="now" role="progressbar" aria-labelledby="n-name" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="nf" id="n-fill"></div><span id="n-name"></span><span id="n-eta" class="num"></span></div>
   </div>
 </header>
 
@@ -575,7 +577,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
 // Renamed from Long Patience: move this device's old storage keys to the new 'selene.' names once
 try { const old = []; for (let n = 0; n < localStorage.length; n++) old.push(localStorage.key(n)); old.forEach(k => { if (k && k.indexOf('long-patience.') === 0) { const nk = 'selene.' + k.slice(14); if (localStorage.getItem(nk) == null) localStorage.setItem(nk, localStorage.getItem(k)); localStorage.removeItem(k); } }); } catch(e) {}
 /* ===== Game data and rules (no DOM) ===== */
-const BUILD = '2026-11-05 · robustness';   // shown in the main menu, to tell which version is loaded
+const BUILD = '2026-11-05 · phone comfort';   // shown in the main menu, to tell which version is loaded
 const DPS = 8;             // simulation ticks per real second at 1x (doubled for the test version: same balance, half the real time)
 // Time is simulated in ticks. 80 ticks make one day unit (18 minutes each), so a day lasts
 // 20 real seconds at 1x and Players only ever see in-game time and real time, never days.
@@ -2787,7 +2789,8 @@ const bothH = t => isFinite(t) ? clkG(t) + ' \u00b7 ' + clkR(realSecs(t)) : '\u2
 function setH(el, h){ if (el && el._h !== h) { el._h = h; el.innerHTML = h; } }
 // Write only what changed (unchanged writes still cost a style pass and a layout on phones)
 function setT(el, t){ t = String(t); if (el && el.textContent !== t) { el.textContent = t; el._h = undefined; } }   // clears setH's memory: the same element may be written both ways
-function setW(el, w){ w = String(w); if (el && el._w !== w) { el._w = w; el.style.transform = 'scaleX(' + Math.max(0, Math.min(1, (parseFloat(w) || 0) / 100)) + ')'; } }   // live bars (#b-hp, .nf, .tf): w is a width like '42.5%'
+function setW(el, w){ w = String(w); if (el && el._w !== w) { el._w = w; const f = Math.max(0, Math.min(1, (parseFloat(w) || 0) / 100)); el.style.transform = 'scaleX(' + f + ')';
+  const pb = el.parentElement; if (pb && pb.getAttribute('role') === 'progressbar') { const v = String(Math.round(f * 100)); if (pb.getAttribute('aria-valuenow') !== v) pb.setAttribute('aria-valuenow', v); } } }   // live bars (#b-hp, .nf, .tf): w is a width like '42.5%'   // live bars (#b-hp, .nf, .tf): w is a width like '42.5%'
 function setTi(el, t){ if (!el || (el.dataset.tip || '') === t) return; if (t) el.dataset.tip = t; else delete el.dataset.tip; }   // the game's own tooltip (see Tooltips)
 // In-game time this seedling has left at the current hunger and strain (from the HUD's survival forecast)
 let lastSvT = Infinity;
@@ -3605,7 +3608,7 @@ function chainRow(id, i){
   const cur = st.find(x => !cStepDone(id, x));
   const sub = open ? '<ol class="csub">' + st.map(x => { const d = cStepDone(id, x);
     return `<li class="${d ? 'done' : x === cur ? 'cur' : ''}">${d ? '\u2713' : x === cur ? '\u25b8' : '\u00b7'} ${esc(stepName(x))}${!isGQ(x) && T[x].kind === 'job' ? ' <small>fill</small>' : ''}</li>`; }).join('') + '</ol>' : '';
-  return `<li class="qrow cq pin" data-qid="${id}"><span class="qdrag" aria-hidden="true" title="Pinned: chains stay at the top, in section order">\u2022</span><span class="qn">${i + 1}.</span>
+  return `<li class="qrow cq pin" data-qid="${id}"><span class="qdrag" aria-hidden="true" title="Pinned: chains stay at the top, in section order">\u2022</span><span class="qn"><span class="sr">Step </span>${i + 1}.</span>
     <span class="qt"><button class="cqt" data-qopen="${id}" aria-expanded="${open}">${open ? '\u25be' : '\u25b8'} Chain \u00b7 ${esc(stepName(st[0]))}${st.length > 1 ? ' \u2192 \u2026 \u2192 ' + esc(stepName(st[st.length - 1])) : ''}</button> <small>${done}/${st.length} steps${cur ? ' \u00b7 now: ' + esc(stepName(cur)) : ''} \u00b7 flow \u00d7${flowMul().toFixed(2)}</small><small class="qfc" data-qf="${i}"></small>${sub}</span>
     <button data-unqi="${i}" aria-label="Remove chain from queue (it stays out for this seedling)">\u2715</button></li>`;
 }
@@ -3703,7 +3706,7 @@ function tIcons(t){
 // Drag to reorder the queue (mouse and touch): grab the handle at the left of a row.
 // One-step undo for queue edits (adding, removing, moving, clearing, loading a preset, pasting text)
 let qUndo = null;
-function qSnap(label){ const L = S.life; qUndo = {gen:S.gen, label, queue:L.queue.slice(), qdone:(L.qdone || []).slice(), cdis:Object.assign({}, L.cdis || {}), held:L.held || null, skip:Object.assign({}, L.qskip || {})}; }
+function qSnap(label){ qHandT = -1e9; qFollowI = -1; const L = S.life; qUndo = {gen:S.gen, label, queue:L.queue.slice(), qdone:(L.qdone || []).slice(), cdis:Object.assign({}, L.cdis || {}), held:L.held || null, skip:Object.assign({}, L.qskip || {})}; }
 function qUndoNow(){
   const L = S.life, u = qUndo; if (!u || u.gen !== S.gen || L.dead) return false;
   L.queue = u.queue.filter(qLive); L.qdone = u.qdone; L.cdis = u.cdis; L.qskip = u.skip || {}; L.held = u.held && L.queue.includes(u.held) ? u.held : null;
@@ -3852,7 +3855,7 @@ HOOK.trig = (i, r) => { taskKey = ''; toast('Trigger ' + (i + 1) + ': loaded pre
 // never shows), or a computed text (tipText): task cards, the header lines, a few buttons, route nodes.
 // The queue + keeps its long-press (queue every copy), so it shows its tooltip on hover only.
 const TIP_HOVER = 400, TIP_HOLD = 500, TIP_STAY = 4000;
-let tipEl = null, tipT = null, tipHideT = null, tipSrc = null, tipTouch = null, tipSwallow = false;
+let tipEl = null, tipT = null, tipHideT = null, tipSrc = null, tipTouch = null, tipSwallow = false, tipAnchor = null;
 const stripTags = s => String(s || '').replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
 function tipText(el){
   if (el.matches('[data-tip]') && el.dataset.tip) return el.dataset.tip;
@@ -3870,15 +3873,17 @@ function tipFind(target){
 function tipShow(el, x, y){
   const txt = tipText(el); if (!txt) return false;
   if (!tipEl) { tipEl = document.createElement('div'); tipEl.className = 'tipb'; tipEl.setAttribute('role', 'tooltip'); document.body.appendChild(tipEl); }
-  tipEl.textContent = txt; tipEl.hidden = false;
-  const r = el.getBoundingClientRect(), w = tipEl.offsetWidth, hh = tipEl.offsetHeight, vw = innerWidth, vh = innerHeight;
+  tipEl.textContent = txt; tipEl.hidden = false; tipAnchor = el;
+  const r = el.getBoundingClientRect(), w = tipEl.offsetWidth, hh = tipEl.offsetHeight * pageZoom(), vw = innerWidth, vh = innerHeight;
   const cx = x != null ? x : r.left + r.width / 2, top0 = y != null ? y - 14 : r.top;
   let top = top0 - hh - 8; if (top < 8) top = (y != null ? y + 22 : r.bottom + 8); if (top + hh > vh - 8) top = Math.max(8, vh - hh - 8);
-  tipEl.style.left = Math.max(8, Math.min(vw - w - 8, cx - w / 2)) + 'px'; tipEl.style.top = top + 'px';
+  const zf = pageZoom(); tipEl.style.left = Math.max(8, Math.min(vw - w * zf - 8, cx - w * zf / 2)) / zf + 'px'; tipEl.style.top = top / zf + 'px';
   clearTimeout(tipHideT); tipHideT = setTimeout(tipHide, TIP_STAY + txt.length * 30);
   return true;
 }
-function tipHide(){ clearTimeout(tipT); tipT = null; tipSrc = null; if (tipEl) tipEl.hidden = true; }
+function tipHide(){ clearTimeout(tipT); tipT = null; tipSrc = null; tipAnchor = null; if (tipEl) tipEl.hidden = true; }
+// A tooltip whose element was redrawn away (a tab switch, a list rebuild) goes with it (round 5)
+function tipCheck(){ if (tipEl && !tipEl.hidden && tipAnchor && (!tipAnchor.isConnected || tipAnchor.closest('[hidden]'))) tipHide(); }
 document.addEventListener('pointerover', e => {
   if (e.pointerType === 'touch') return;
   const el = tipFind(e.target); if (el === tipSrc) return;
@@ -3914,6 +3919,13 @@ document.addEventListener('pointerdown', e => {
 });
 ['pointerup', 'pointercancel', 'pointerleave'].forEach(k => document.addEventListener(k, () => clearTimeout(lpT)));
 document.addEventListener('click', e => { if (lpDone && e.target.closest && e.target.closest('button[data-q]')) { lpDone = false; e.stopImmediatePropagation(); e.preventDefault(); } }, true);   // the long-press already queued: no extra copy
+// Arrow keys move between the buttons of a chip row or a segmented choice (round 5); the tab keys leave them alone.
+document.addEventListener('keydown', e => {
+  if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+  const g = e.target.closest && e.target.closest('.lchips,.seg'); if (!g) return;
+  const bs = [...g.querySelectorAll('button')], i = bs.indexOf(e.target); if (i < 0) return;
+  e.preventDefault(); bs[(i + (e.key === 'ArrowRight' ? 1 : bs.length - 1)) % bs.length].focus();
+});
 // Tap guard (round 5): a second tap within TAP_GUARD ms on the same button that spends, crosses or confirms is ignored,
 // so a double tap can't build, repair, recharge, cross or confirm twice ("Tap again" needs a real second tap).
 const TAP_GUARD = 400, GUARD_SEL = '[data-gdo],[data-repair],[data-eat],[data-confirm],[data-skiphold],[data-decant],[data-buy]';
@@ -3948,13 +3960,13 @@ document.addEventListener('pointermove', e => {
   if (d.list.scrollHeight > d.list.clientHeight) {
     if (e.clientY < lr.top + 36) d.list.scrollTop -= 10; else if (e.clientY > lr.bottom - 36) d.list.scrollTop += 10;
   }
-  const sc = d.list.scrollTop - d.st0, dy = e.clientY - d.y0 + sc, y = d.mids[d.from] + dy;
+  const zf = pageZoom(), sc = (d.list.scrollTop - d.st0) * zf, dy = e.clientY - d.y0 + sc, y = d.mids[d.from] + dy;   // viewport px (text size zooms the page)
   let to = 0; d.mids.forEach((m, k) => { if (k !== d.from && y > m) to++; });
   d.to = to;
-  d.row.style.transform = `translateY(${dy}px)`;
+  d.row.style.transform = `translateY(${dy / zf}px)`;
   d.rows.forEach((r, k) => { if (r === d.row) return;
     const shift = d.from < d.to && k > d.from && k <= d.to ? -d.h : d.from > d.to && k >= d.to && k < d.from ? d.h : 0;
-    r.style.transform = shift ? `translateY(${shift}px)` : ''; });
+    r.style.transform = shift ? `translateY(${shift / zf}px)` : ''; });
 }, {passive: false});
 function qDragEnd(e){
   const d = qDrag; if (!d || (e && e.pointerId !== d.pid)) return;
@@ -4011,7 +4023,7 @@ function renderTasks(){
       const why = pq ? ((S.qpresets[+id.slice(2)] || []).length ? 'loads once the rows above are done; replaces the rows below' : 'preset is empty: it will just be used up') : g ? (!isDone(it.req) ? 'after: ' + T[it.req].name : it.cost > M.salCap ? 'needs bigger ' + salW() + ' storage' : fmt(Math.min(L.salvage, it.cost)) + '/' + fmt(it.cost) + ' ' + salW() + (L.salvage < it.cost && !bestSalvageJob() ? ' \u00b7 no ' + salW() + ' job here yet' : ''))
         : L.held === id ? 'on hold: wrapping up the section' : !bl ? '' : zAfter(t.z, L.sec) ? 'waits for ' + zoneThe(t.z) : zBefore(t.z, L.sec) ? 'left behind' : 'waiting for its requirements';
       const sk = !!(L.qskip || {})[id];
-      return `<li class="qrow${bl ? ' blocked' : ''}${g ? ' gq' : ''}${pq ? ' pq' : ''}${sk ? ' qskip' : ''}" data-qid="${id}"><span class="qdrag" data-qdrag="${i}" aria-hidden="true" title="Drag to reorder">⠇</span><span class="qn">${i + 1}.</span><span class="qt"><button class="qtn" data-qskip="${i}" aria-pressed="${sk}" aria-label="${sk ? 'Skipped: ' : 'Skip '}${esc(t.name)}" title="${sk ? 'Skipped: tap to run it again' : 'Tap to skip (it stays in the queue)'}">${esc(t.name)}</button>${t.kind === 'job' ? ' <small>until full</small>' : ''}${sk ? ' <small>skipped \u00b7 tap the name to run it</small>' : why ? ` <small>${why}</small>` : ''}<small class="qfc" data-qf="${i}"></small></span>
+      return `<li class="qrow${bl ? ' blocked' : ''}${g ? ' gq' : ''}${pq ? ' pq' : ''}${sk ? ' qskip' : ''}" data-qid="${id}"><span class="qdrag" data-qdrag="${i}" aria-hidden="true" title="Drag to reorder">⠇</span><span class="qn"><span class="sr">Step </span>${i + 1}.</span><span class="qt"><button class="qtn" data-qskip="${i}" aria-pressed="${sk}" aria-label="${sk ? 'Skipped: ' : 'Skip '}${esc(t.name)}" title="${sk ? 'Skipped: tap to run it again' : 'Tap to skip (it stays in the queue)'}">${esc(t.name)}</button>${t.kind === 'job' ? ' <small>until full</small>' : ''}${sk ? ' <small>skipped \u00b7 tap the name to run it</small>' : why ? ` <small>${why}</small>` : ''}<small class="qfc" data-qf="${i}"></small></span>
         <button data-qmove="${i}" data-dir="-1" ${i <= qPinned() ? 'disabled' : ''} aria-label="Move ${esc(t.name)} up">\u2191</button><button data-qmove="${i}" data-dir="1" ${i === L.queue.length - 1 ? 'disabled' : ''} aria-label="Move ${esc(t.name)} down">\u2193</button><button data-unqi="${i}" aria-label="Remove ${esc(t.name)} from queue">\u2715</button></li>`;
     }).join('') + '</ol>';
   } else {
@@ -4269,8 +4281,18 @@ function fcTryTick(ms){
 const fcOk = () => !!(fcShow && fcShow.gen === S.gen && !S.life.dead && fcShow.q.join() === S.life.queue.join());
 const fcCause = c => String(c || '').charAt(0).toLowerCase() + String(c || '').slice(1);
 let qfRefs = [];
+// The queue follows the row being worked on (round 5): it is marked, and a long (scrolling) queue list keeps it in view,
+// unless you scrolled the list yourself; following resumes after the next queue edit or 20 s without touching it.
+let qFollowI = -1, qHandT = -1e9;
+['wheel', 'touchmove', 'pointerdown'].forEach(ev => document.addEventListener(ev, e => { if (e.target.closest && e.target.closest('.qlist')) qHandT = performance.now(); }, {passive:true, capture:true}));
+function qFollow(rowEl){
+  const list = rowEl && rowEl.closest('.qlist'); if (!list || list.scrollHeight <= list.clientHeight + 2) return;
+  const lr = list.getBoundingClientRect(), rr = rowEl.getBoundingClientRect(), top = rr.top - lr.top;
+  if (top < 0 || top + rr.height > lr.height) list.scrollTop += top - Math.max(0, (lr.height - rr.height) / 3);
+}
 function updateQueueFc(){
-  const L = S.life, f = fcOk() ? fcShow : null;
+  const L = S.life, f = fcOk() ? fcShow : null, cur = L.dead ? null : qCurEntry(), ci = cur == null ? -1 : L.queue.indexOf(cur);
+  let curRow = null;
   qfRefs.forEach(el => {
     const i = +el.dataset.qf, r = f && f.rows[i], row = el.closest('.qrow');
     let h = '', nr = false, die = false;
@@ -4283,8 +4305,9 @@ function updateQueueFc(){
       else h = 'beyond the forecast';
     }
     setH(el, h);
-    if (row) { row.classList.toggle('fnr', nr); row.classList.toggle('fdie', die); }
+    if (row) { row.classList.toggle('fnr', nr); row.classList.toggle('fdie', die); const on = i === ci; if (row.classList.contains('qnow') !== on) { row.classList.toggle('qnow', on); if (on) row.setAttribute('aria-current', 'step'); else row.removeAttribute('aria-current'); } if (on) curRow = row; }
   });
+  if (ci !== qFollowI && curRow && performance.now() - qHandT > 20000) { qFollowI = ci; qFollow(curRow); }
 }
 let lowWarn = 0;   // the seedling that already heard the low-energy warning
 // Pause when the queue is finished: the last own row was worked off (qdone grew), not cleared by hand
@@ -4543,11 +4566,20 @@ function applyLayout(){
 }
 try { wideMQ.addEventListener('change', applyLayout); } catch(e) { try { wideMQ.addListener(applyLayout); } catch(e2) {} }
 function setLayout(v){ layoutPref = v; try { localStorage.setItem(LAYOUT_KEY, v); } catch(e) {} applyLayout(); }
+// Text size (round 5): the whole page is zoomed, so every px size and the layout scale together. Kept on the device.
+const TSIZE_KEY = 'selene.textsize.v1', TSIZES = [90, 100, 115, 130];
+function pageZoom(){ return (+document.documentElement.style.zoom || 1); }
+let tsize = 100;
+try { tsize = +localStorage.getItem(TSIZE_KEY) || 100; if (!TSIZES.includes(tsize)) tsize = 100; } catch(e) {}
+function applyTextSize(){ document.documentElement.style.zoom = tsize === 100 ? '' : String(tsize / 100); document.querySelectorAll('[data-tsize]').forEach(b => b.classList.toggle('on', +b.dataset.tsize === tsize)); tipHide(); }
+function setTextSize(v){ tsize = TSIZES.includes(+v) ? +v : 100; try { localStorage.setItem(TSIZE_KEY, String(tsize)); } catch(e) {} applyTextSize(); }
 function displayPanel(cls){
   const opt = (v, l) => `<button data-layout="${v}" class="${layoutPref === v ? 'on' : ''}">${l}</button>`;
   return `<div class="panel set ${cls || ''}"><span class="h2">Display</span>
     <div class="row"><p>Layout<small>Vertical suits phones held upright. Horizontal puts the status panel in a sidebar for wide screens. Auto picks for you.</small></p></div>
-    <div class="seg">${opt('auto', 'Auto')}${opt('vertical', 'Vertical')}${opt('horizontal', 'Horizontal')}</div></div>`;
+    <div class="seg">${opt('auto', 'Auto')}${opt('vertical', 'Vertical')}${opt('horizontal', 'Horizontal')}</div>
+    <div class="row"><p>Text size<small>Makes all text and buttons larger or smaller on this device.</small></p></div>
+    <div class="seg">${TSIZES.map(v => `<button data-tsize="${v}" class="${tsize === v ? 'on' : ''}" aria-pressed="${tsize === v}">${v}%</button>`).join('')}</div></div>`;
 }
 function soundPanel(){
   const row = (k, vk, label, note) => `<div class="row"><p>${label}<small>${note}</small></p><button class="tog${ASET[k] ? ' on' : ''}" data-atog="${k}" aria-label="${label}" aria-pressed="${ASET[k]}"></button></div>
@@ -4711,8 +4743,11 @@ function renderLog(){
 }
 // Tab icons, added once (the labels stay the buttons' text)
 document.querySelectorAll('#tabs [data-tab]').forEach(b => { if (!b.querySelector('.gi')) b.insertAdjacentHTML('afterbegin', ico(b.dataset.tab, 'tic')); });
+const tabScroll = {};   // scroll position per tab (round 5), so going Tasks -> Log -> Tasks keeps your place
 function setTab(t){
   if (t === 'faq' && tab !== 'faq') faqFrom = tab;
+  if (tab && t !== tab) tabScroll[tab] = window.scrollY || 0;
+  tipHide();
   tab = t;
   document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === t));
   ['tasks','map','auto','skills','gear','archive','legacy','log','faq'].forEach(v => $('#v-' + v).hidden = v !== t);
@@ -4723,7 +4758,7 @@ function setTab(t){
   if (t === 'archive') newPerk = false;
   gearKey = ''; archKey = ''; logKey = '';
   renderView(true);
-  window.scrollTo(0, 0);
+  window.scrollTo(0, tabScroll[t] || 0);
   if (t === 'faq') faqFocus();
 }
 function renderView(force, loop){   // loop: the frame loop already redraws Tasks and Map
@@ -5033,7 +5068,7 @@ const FAQ_ALL = [
   ['What happens at a crossing with automation?', 'A queued or automated crossing stops just before it finishes and waits while the seedling finishes automated actions and training, builds affordable automated gear and tops sap cells up and fills deadwood (grafts in Act II) to full carry, unless the seedling is out of cells and low on energy. Tap a crossing yourself to go at once.'],
   ['Pause, saving and speed', 'Progress is saved on this device only (this browser or the app); use <b>Save files</b> in the main menu (\u2630) to back it up or move it, and <b>Restart</b> next to the slot there to start this slot over. Pause with the button at the top or the space bar. The game only runs while it is on screen: in another app, a background tab or closed, the clock stops and carries on where it left off. Each <b>Stasis watch</b> record (one for leaving each section the first time) tunes the seedlings\u2019 stasis: energy drains a little slower, more with each one, up to \u221250% in all. The <b>speed menu</b> (\u00bb) at the top appears once Act I has been cleared: \u00d72 then, and \u00d75 once Act II has been cleared. It is a flat speed-up of real time, kept on this device for every save. Opening a save you haven\u2019t played for more than a day shows a short <b>Welcome back</b> recap. The <b>Log</b> tab has filters (Deaths, Records, Automation, Story); records and automation are listed there as they happen. Messages are also read out by screen readers.'],
   ['Save management', 'The game saves itself every few seconds on this device. <b>Save Management</b> in the \u2630 menu holds: the five <b>save slots</b> (give each a name when you start a new game or save into it, or with <b>Rename</b>; load one, copy your current game into another as a save state with \u201cSave here\u201d, or delete one); under each used slot, its <b>death save</b>, written automatically at every death in that slot (load it to go back to that death; playing it never changes the regular slot. If it is too far gone, load the regular slot again from there, which deletes that death save. Deleting or starting over a slot removes its death save too); <b>Backups</b> under each slot, kept by themselves after 5 minutes, 30 minutes and 2 hours of play and just before a slot is replaced or deleted (tap Restore to bring one back; what the slot held is backed up first; \u201cExport all saves\u201d takes them along); <b>Restart</b>, next to the slot you are playing, which starts that slot over; and <b>Save files and transfer</b>: export a save file, import one, copy the save as text to move it between devices, or share it to the game\u2019s GitHub folder and load shared saves from there. A game that holds a broken number is never saved over your last good save: a message says so instead. If the browser refuses to save (storage full or blocked), a message says why and offers the export at once. After an hour of play and a day without an exported save, a note reminds you to export one (turn it off under Save file).'],
-  ['Settings', '<b>Settings</b> (the ⚙ button, or Settings in the ☰ menu) holds the clock and pause options (death screen, starting paused, after a new section, when a section run ends or when a task finishes), sound (music and effects), layout (vertical or horizontal) and, in the Android app, app updates. Energy and automation options (auto-recharge, auto-charge, the charge threshold, charging when needed) are in the Auto tab.'],
+  ['Settings', '<b>Settings</b> (the ⚙ button, or Settings in the ☰ menu) holds the clock and pause options (death screen, starting paused, after a new section, when a section run ends or when a task finishes), sound (music and effects), layout (vertical or horizontal), text size (90% to 130%, kept on this device) and, in the Android app, app updates. Energy and automation options (auto-recharge, auto-charge, the charge threshold, charging when needed) are in the Auto tab.'],
 ];
 // Shown once the drive is first lit.
 const FAQ_NGP = ['Legacy tasks', 'There is no restarting: after the Hearth Tree is kindled, the story always moves forward. As Act II unfolds, <b>legacy tasks</b> open up in Act I, one theme at a time. Each theme adds a set of five parts to every Act I section, open once a seedling has done that section\u2019s last regular action: two pairs of steps, then a <b>final</b> that needs both pairs. Revealed sets are <b>needed for the crossing</b> (and for kindling the Hearth Tree). Finishing a final gives its bonus for the rest of that life, growing with the final\u2019s mastery (nothing untrained, full share at twice the usual familiarity). All six finals of a theme (one per Act I section), done and mastered, give its full effect. Each set has an optional <b>drill</b> that trains only its five parts; section drills don\u2019t train them. Legacy parts are never queued for you: a toast and a dot on the Tasks tab say when they open up. Once automated they join chains and section runs like any other task. The <b>Legacy</b> tab shows what each revealed theme does and how far it has got. Kindling the Hearth Tree the first time also unlocks the <b>Quartermaster\u2019s cache</b>: every seedling starts with all of its automated gear already built, in both acts.'];
@@ -5046,7 +5081,7 @@ const HOTKEYS = [
    on:e => (e.code === 'Space' || e.key === 'p') && !['INPUT', 'TEXTAREA', 'SELECT', 'BUTTON'].includes(e.target.tagName) && $('#modal').hidden,
    run:() => togglePause()},
   {keys:['\u2190', '\u2192'], sep:' ', what:'Previous or next tab',
-   on:e => (e.key === 'ArrowLeft' || e.key === 'ArrowRight') && !['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName) && $('#modal').hidden && !e.altKey && !e.ctrlKey && !e.metaKey,
+   on:e => (e.key === 'ArrowLeft' || e.key === 'ArrowRight') && !['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName) && !(e.target.closest && e.target.closest('.lchips,.seg')) && $('#modal').hidden && !e.altKey && !e.ctrlKey && !e.metaKey,
    run:e => { const tabs = [...document.querySelectorAll('#tabs [data-tab]')].filter(b => !b.hidden).map(b => b.dataset.tab), i = tabs.indexOf(tab); if (i >= 0) setTab(tabs[(i + (e.key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length]); }}];
 const FAQ_KEYS = ['Keyboard shortcuts', 'With a keyboard (in a browser on a computer):<table class="dt fkeys"><tbody>' + HOTKEYS.map(k => '<tr><td>' + k.keys.map(x => '<kbd>' + x + '</kbd>').join(k.sep) + '</td><td>' + k.what + '</td></tr>').join('') + '</tbody></table>Keys do nothing while you type in a box or a pop-up is open.'];
 let faqDone = '', faqQ = '', faqFrom = null;
@@ -5122,8 +5157,13 @@ document.addEventListener('toggle', e => { const d = e.target; if (d && d.datase
 
 /* ----- modals ----- */
 // While a pop-up is open the page behind it is locked in place (only the pop-up itself scrolls)
+// A close X in the corner of every pop-up that has a way out (round 5): it taps that pop-up's own Close / Back / Cancel.
+const MX_SEL = '[data-settingsclose],[data-ow="x"],[data-menu="back"],[data-close],[data-storyok]';
 function showModal(h){
-  $('#mbox').innerHTML = h; $('#modal').hidden = false; document.documentElement.classList.add('mopen'); $('#mbox').scrollTop = 0;
+  if (typeof tipHide === 'function') tipHide();
+  $('#mbox').innerHTML = h; $('#modal').hidden = false;
+  const out = $('#mbox').querySelector(MX_SEL);
+  if (out) $('#mbox').insertAdjacentHTML('afterbegin', '<button class="mx" data-mx aria-label="' + esc(out.textContent.trim() || 'Close') + '">\u2715</button>'); document.documentElement.classList.add('mopen'); $('#mbox').scrollTop = 0;
   const t = $('#mbox h2'); $('#mbox').setAttribute('aria-label', t ? t.textContent : 'Pop-up');
   const mb = $('#mbox'); mb.tabIndex = -1; try { mb.focus({preventScroll:true}); } catch(e) {}   // keyboard and screen readers start inside the pop-up; no button looks pre-selected
 }
@@ -5304,6 +5344,7 @@ document.addEventListener('click', e => {
       }]]);
   }
   if (d.layout) { setLayout(d.layout); return; }
+  if (d.tsize) { setTextSize(d.tsize); return; }
   if ('flip' in d) { setLayout(isHoriz() ? 'vertical' : 'horizontal'); toast(isHoriz() ? 'Horizontal layout' : 'Vertical layout'); return; }
   if (d.atog) {
     ASET[d.atog] = !ASET[d.atog]; asave(); audioVolumes();
@@ -5314,6 +5355,7 @@ document.addEventListener('click', e => {
   if ('eat' in d) { const f = readyFoods()[0], h0 = L.hp; if (f && eat(f)) sfx('eat'), toast('Recharged. +' + fmt(L.hp - h0) + ' energy'); return; }
   if ('exportjson' in d) { exportJson(); return; }
   if ('errcopy' in d) { const fb = () => exportText('selene-error-' + fileStamp() + '.txt', errLast); try { navigator.clipboard.writeText(errLast).then(() => toast('Error details copied'), fb); } catch(e2) { fb(); } return; }
+  if ('mx' in d) { const out = $('#mbox').querySelector(MX_SEL); if (out) out.click(); return; }
   if ('errclose' in d) { const eb = document.getElementById('errbar'); if (eb) eb.hidden = true; return; }
   if ('expremind' in d) { const o = expState(); o.off = !o.off; expWrite(o); b.classList.toggle('on', !o.off); b.setAttribute('aria-pressed', String(!o.off)); toast(o.off ? 'Export reminder off' : 'Export reminder on'); return; }
   if ('exportfile' in d) { exportJson(true); return; }
@@ -5512,7 +5554,7 @@ function frame(now){
   const idle = paused || S.set.paused || S.life.dead;
   if (uiN !== uiSeen || now - uiT >= (idle ? UI_IDLE_MS : UI_MS)) {
     uiSeen = uiN; uiT = now;
-    updateHud();
+    updateHud(); tipCheck();
     if (tab === 'tasks') { renderTasks(); updateTasks(); }
     if (tab === 'map') { renderMap(); updateMap(); }
   }
@@ -5587,13 +5629,14 @@ function showSettings(from){
     <button class="btn pri" data-settingsclose>${from === 'menu' ? 'Back to menu' : 'Close'}</button>`);
 }
 // Reset: like a fresh install. 'soft' keeps the save slots; 'full' clears everything the game keeps on this device.
-const SOFT_KEYS = ['selene.secfold.v1', 'selene.mapfold.v1', 'selene.prefs.v1', 'selene.audio.v1', 'selene.speeds.v1', 'selene.faq.v1', 'selene.layout.v1', 'selene.sharename.v1', 'selene.update.v1'];
+const SOFT_KEYS = ['selene.textsize.v1', 'selene.secfold.v1', 'selene.mapfold.v1', 'selene.prefs.v1', 'selene.audio.v1', 'selene.speeds.v1', 'selene.faq.v1', 'selene.layout.v1', 'selene.sharename.v1', 'selene.update.v1'];
 function creditsPanel(){
   return `<div class="panel set mpanel"><span class="h2">Credits</span>
     <p class="note"><b>Icons</b> made by Lorc, Delapouite and Skoll. Available on <a href="https://game-icons.net" target="_blank" rel="noopener">game-icons.net</a>. Licensed under <a href="https://creativecommons.org/licenses/by/3.0/" target="_blank" rel="noopener">CC BY 3.0</a>; recoloured and simplified. The authors and game-icons.net do not endorse this game.</p>
     <p class="note"><b>Fonts</b>: Selene Display is a trimmed copy of Saira Condensed (\u00a9 2016 The Saira Project Authors); Selene Text and Selene Mono are trimmed copies of IBM Plex Sans (\u00a9 2017\u20132019 IBM Corp.) and IBM Plex Mono (\u00a9 2017 IBM Corp.). All under the <a href="https://openfontlicense.org" target="_blank" rel="noopener">SIL Open Font License 1.1</a>, renamed as it requires.</p>
     <p class="note"><b>Sound effects</b> partly made with ZzFX by Frank Force (MIT License, \u00a9 2019 Frank Force, <a href="https://github.com/KilledByAPixel/ZzFX" target="_blank" rel="noopener">github.com/KilledByAPixel/ZzFX</a>).</p>
-    <p class="note"><b>Inspired by</b> Increlution (Gniller), Idle Loops, Immortality Idle and Progress Knight.</p></div>`;
+    <p class="note"><b>Inspired by</b> Increlution (Gniller), Idle Loops, Immortality Idle and Progress Knight.</p>
+    <p class="note"><b>Made with AI:</b> the game was programmed with the help of AI (Claude by Anthropic). The story and other texts are placeholders for now and will be rewritten.</p></div>`;
 }
 function resetPanel(){
   return `<div class="panel set mpanel rpanel"><span class="h2">Reset</span>
@@ -5644,7 +5687,7 @@ function askReset(kind){
 }
 function refreshSettings(){ if (settingsFrom && !$('#modal').hidden && document.getElementById('upd-st')) showSettings(settingsFrom); }
 function boot(data){
-  applyLayout();
+  applyLayout(); applyTextSize();
   if (UPD.auto) setTimeout(() => checkAppUpdate(false), 2500);
   let raw = data && data.S;
   if (!raw) { loadSaved(); const c = slotCheck(slot); if (c.why || c.ckBad) recovering = c; raw = c.why ? null : c.raw; }
