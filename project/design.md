@@ -63,7 +63,8 @@ Notes:
 
 ## Flow
 - **Pacing rule (owner 2026-11-05): Act II takes about twice as long as Act I** (lean bot, in-game time; `tests/totals.test.js` keeps the ratio within 1.8-2.2). Build "act ii twice act i": Act I 5.59 h, Act II 11.20 h.
-- Act I = 6 sections (Seedling Vaults, Taproot Galleries, The Shattered Bark, The Heartwood, Canopy Gardens, Ember Crown). Kindling the Hearth Tree ends Act I; there is no restarting. Every seedling that kindles it carries on into Act II.
+- Act I = 6 sections (Seedling Vaults, Taproot Galleries, The Shattered Bark, The Heartwood, Canopy Gardens, Ember Crown). Kindling the Hearth Tree ends Act I; every seedling that kindles it carries on into Act II.
+- **Runs (owner 2026-11-05: the sections are infinitely repeatable):** after the safe orbit over Tessaly the save can begin the voyage again from the Seedling Vaults, as often as wanted. Kept: familiarity, automation, records, legacy, the sealed record, presets, settings, the seedling count. Started again: the route, the seedling, the run's totals. Each finished run lowers the familiarity needed (x0.75, floor 9 lives' worth for x10). Legacy themes revealed in Act II appear in Act I from the next run; targets judge the first run. A hidden story layer ("the sealed record", 16 beats, one per section) opens from the second run (planned, step 3).
 - Act II is linear, three parts, ten sections (from build "Act II reordered"):
   1. The long watch: The Long Current, The Drift, The Long Dark, Turnover (restore the artificial gravity, raise the ward-shields, plot the turnover, flip Selene end over end, bank and relight the Hearthfire, plot the approach, begin the braking burn; finale: Drop out of relativistic speed).
   2. The Boarders (while Selene brakes): Bark Breach, Contested Boughs, The Hive Ship, The Mending (finale: Rekindle the Hearthfire).

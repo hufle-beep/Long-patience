@@ -1,6 +1,6 @@
 # Roadmap: Selene: Tidelocked
 
-Last updated: 2026-11-05 14:20 (build "two-part legacy"). Update in every push.
+Last updated: 2026-11-05 14:20 (build "runs"). Update in every push.
 
 ## Order of work (owner, 2026-11-04)
 1. **Section-by-section playtesting and tuning** (now). Sections 1 and 2 frozen; next the Shattered Bark, then sections 3-14 one by one: the owner plays and uploads a save after each crossing, Claude proposes options for that section's knobs only, the owner freezes it.
@@ -12,6 +12,7 @@ Last updated: 2026-11-05 14:20 (build "two-part legacy"). Update in every push.
 **Owner decision (2026-11-05):** polishing can come before tuning when its gains are immediate.
 
 ## Next up
+- **Runs (owner 17:04 "the sections should be infinitely repeatable", go 17:08 with Claude's picks): step 1 BUILT** (run loop: ending pop-up, Begin the voyage again, main-menu New run, carry-over rules, run bonus x0.75 with floor, legacy in Act I from run 2, targets on run 1). **Finding:** the run bot plays run 2 and 3 in one seedling and about 13 in-game minutes each; options to the owner before step 2 (run history in the Log) and step 3 (the sealed record).
 - **Two-part legacy (owner 16:30, A + length 1, go 16:34): BUILT.** Each legacy set is a step and a final (plus its drill): 60 parts instead of 150, same work per set. Act I 5.59 h, Act II 11.17 h, completionist 9 / 11 / 9.
 - **Hidden story layer (owner 16:40; picks 16:43: U1, P2 "The Lure"):** six sealed story beats, one per Act I section, opened in order by the first legacy final done in that section; Claude drafts the six texts and the exact changes for the owner's go.
 - **Act II about twice Act I (owner 16:00, design rule; Shape II 16:13, go): BUILT** (Shattered Bark to Ember Crown x1.6, Act II x2.78; lean Act I 5.59 h, Act II 11.20 h; ratio test added). Next: the owner's replay saves (the Shattered Bark first).
@@ -58,6 +59,7 @@ Last updated: 2026-11-05 14:20 (build "two-part legacy"). Update in every push.
 See design.md: colony content held back from Act II, the Act II legacy themes from the old Honours, and four open questions.
 
 ## Done recently (see changelog.md for all)
+- 2026-11-05: runs: the voyage can begin again from the Seedling Vaults after the safe orbit.
 - 2026-11-05: two-part legacy sets (a step and a final, plus the drill).
 - 2026-11-05: Act II about twice as long as Act I again (longer sections from the Shattered Bark on).
 - 2026-11-05: free crossings (no sap-cell cost); Safe harbour now +25% station reserve.

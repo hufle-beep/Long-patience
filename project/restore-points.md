@@ -13,7 +13,8 @@ The **Restore points** workflow (`.github/workflows/restore-points.yml`) runs on
 What the recent commits are (newest first):
 | Commit | What it is |
 |---|---|
-| (next) | Two-part legacy sets |
+| (next) | Runs, step 1: the voyage can begin again |
+| `ef7afa0` | Two-part legacy sets |
 | `f612bde` | Act II twice Act I: longer sections from the Shattered Bark on |
 | `791f7f6` | Free crossings (mechanics chunk 3, last of the five) |
 | `9c4965d` | Gear built when paid (mechanics chunk 5) |
