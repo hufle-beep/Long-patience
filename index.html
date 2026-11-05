@@ -122,7 +122,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--amber);outline-
 html[data-rv="0"] .qinsbar,html[data-rv="0"] .qrow .qo,html[data-rv="0"] .qpre,html[data-rv="0"] .need2,html[data-rv="1"] .need2,html[data-rv="0"] .need3,html[data-rv="1"] .need3,html[data-rv="2"] .need3{display:none!important}
 .nstep{display:flex;align-items:flex-start;gap:6px;border:1px dashed var(--amber);border-radius:4px;padding:5px 8px;font-size:12px;margin:4px 0}.nstep b{color:var(--amber);white-space:nowrap}.nstep span{flex:1}.nstep button{background:none;border:0;color:var(--dim);cursor:pointer}
 .le.lnew{border-left:3px solid var(--amber);padding-left:8px}.lnewt{color:var(--amber);font-weight:600}
-.journal h3{margin:14px 0 4px;color:var(--amber)}.journal p{margin:0 0 8px;line-height:1.5}.wnew li{margin:0 0 6px}
+.wnew li{margin:0 0 6px}
 .bruns{margin:6px 0;display:grid;gap:4px}.brun{display:flex;gap:6px;align-items:center;justify-content:space-between;border:1px solid var(--line);border-radius:4px;padding:4px 6px;font-size:12px}.brun.pin{border-color:var(--amber)}
 .split{font-size:12px;color:var(--dim)}.split b{font-weight:500}.sfast{color:var(--green)}.sslow{color:var(--red-t)}.seven{color:var(--amber)}
 .aubulk{display:flex;gap:6px;align-items:center;flex-wrap:wrap;font-size:12px;color:var(--dim);margin:4px 0}.aubulk .btn{padding:2px 9px;font-size:12px}
@@ -597,7 +597,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
 // Renamed from Long Patience: move this device's old storage keys to the new 'selene.' names once
 try { const old = []; for (let n = 0; n < localStorage.length; n++) old.push(localStorage.key(n)); old.forEach(k => { if (k && k.indexOf('long-patience.') === 0) { const nk = 'selene.' + k.slice(14); if (localStorage.getItem(nk) == null) localStorage.setItem(nk, localStorage.getItem(k)); localStorage.removeItem(k); } }); } catch(e) {}
 /* ===== Game data and rules (no DOM) ===== */
-const BUILD = '2026-11-05 · settings merged';   // shown in the main menu, to tell which version is loaded
+const BUILD = '2026-11-05 · pop-ups merged';   // shown in the main menu, to tell which version is loaded
 const DPS = 8;             // simulation ticks per real second at 1x (doubled for the test version: same balance, half the real time)
 // Time is simulated in ticks. 80 ticks make one day unit (18 minutes each), so a day lasts
 // 20 real seconds at 1x and Players only ever see in-game time and real time, never days.
@@ -3442,8 +3442,9 @@ function showWelcome(ms){
     'Queue: ' + (L.queue.length ? L.queue.length + ' row' + (L.queue.length > 1 ? 's' : '') : 'empty') + (L.chainRun ? '; a section run is on' : '') + '.',
     'Automated and switched on: ' + at + ' task' + (at === 1 ? '' : 's') + ', ' + ag + ' gear design' + (ag === 1 ? '' : 's') + (S.set.autoPaused ? ' (automation is paused: the switch by Pause turns it back on)' : '') + '.',
     pre.length ? 'Presets: ' + esc(pre.join(', ')) + (trig ? '; ' + trig + ' trigger' + (trig > 1 ? 's' : '') + ' on.' : '; no triggers on.') : 'No presets saved yet.'];
+  const notes = newNotes();
   owActs = {}; owActs.c0 = () => { hideModal(); paused = false; if (S.life.dead) showDeath(); };
-  showModal(`<h2>Welcome back</h2><p class="d">${d <= 1 ? 'A day' : d + ' days'} since this save was last played. Time didn\u2019t pass aboard while you were away.</p><ul class="evl wb">${li.map(x => '<li>' + x + '</li>').join('')}</ul><button class="btn pri" data-ow="c0">Carry on</button>`);
+  showModal(`<h2>Welcome back</h2><p class="d">${d <= 1 ? 'A day' : d + ' days'} since this save was last played. Time didn\u2019t pass aboard while you were away.</p><ul class="evl wb">${li.map(x => '<li>' + x + '</li>').join('')}</ul>${notes.length ? '<h3>What\u2019s new</h3>' + notesHtml(notes) : ''}<button class="btn pri" data-ow="c0">Carry on</button>`);
 }
 
 /* ----- main menu and save slots ----- */
@@ -3571,7 +3572,7 @@ function tgtCheck(z){
 function logEvt(k, t){ const L = S.life; (S.evlog = S.evlog || []).push({k, g:S.gen, a:+(L.day / TPD).toFixed(1), t}); if (S.evlog.length > 100) S.evlog.shift(); logKey = ''; }
 HOOK.perk = p => { logEvt('rec', p.name); sfx('perk'); toast('Archive record: ' + p.name, true); if (tab !== 'archive') newPerk = true; archKey = ''; };
 HOOK.change = () => { taskKey = ''; gearKey = ''; if (S && S.life) pinChains(); };
-HOOK.practiced = t => { hint('auto1'); logEvt('auto', t.name); sfx('perk'); taskKey = ''; autoKey = ''; toast('Automated: \u201c' + t.name + '\u201d' + (S.auto[t.id] ? ' now runs by itself (tap AUTO to switch it off).' : ' can run by itself (tap AUTO).'), true); };
+HOOK.practiced = t => { logEvt('auto', t.name); sfx('perk'); taskKey = ''; autoKey = ''; toast('Automated: \u201c' + t.name + '\u201d' + (S.auto[t.id] ? ' now runs by itself (tap AUTO to switch it off).' : ' can run by itself (tap AUTO).'), true); };
 HOOK.stopped = j => { sfx('error'); taskKey = ''; toast((j.prod.rations ? FD[jobFood(j)].name : 'Deadwood') + ' storage full. Stopped \u201c' + j.name + '\u201d; time is stopped.'); };
 // Death screen (on by default): the game waits on it until you sprout. Once AUTO_LIVES seedlings have died
 // it can be switched off, and the next seedling is sprouted straight away and keeps running.
@@ -3811,24 +3812,15 @@ function nextStepTxt(){
   return cross ? 'Goal here: finish the section\u2019s actions, then \u201c' + cross.name + '\u201d.' : '';
 }
 function nextStepHtml(){ const t = nextStepTxt(); return t ? `<div class="nstep"><b>Next step</b> <span>${esc(t)}</span><button data-nonext aria-label="Hide the next-step line">\u2715</button></div>` : ''; }
-// First-hour hints in the Log (R15): once each, or at most every 10 minutes for the nagging kind; until the Heartwood
+// First-hour hints in the Log (R15): once each, until the Heartwood (the live advice is the next-step line)
 const HINTS = {
-  death1:['once', 'A seedling is gone, but not its work: familiarity, records and automation progress carry over, so the next one works faster. The death screen shows what carried over.'],
-  cross1:['once', 'First crossing. A crossing costs a share of the sap cells carried, and there is no way back; the new section has its own charging station and its own drill.'],
-  auto1:['once', 'A task can now be automated. Switch it on with AUTO and later seedlings do it by themselves, in order, before the queue.'],
-  idle:['cool', 'The seedling has nothing to do, so the clock has stopped. Tap a task, or + to queue it.'],
+  death1:'A seedling is gone, but not its work: familiarity, records and automation progress carry over, so the next one works faster. The death screen shows what carried over.',
+  cross1:'First crossing. A crossing costs a share of the sap cells carried, and there is no way back; the new section has its own charging station and its own drill.',
 };
 function hint(k){
   if (!S || !HINTS[k] || (S.firstAt || {})[3] || S.won) return;
-  const h = S.hints = S.hints || {}, [kind, txt] = HINTS[k], now = S.stats.played || 0;
-  if (kind === 'once' ? h[k] : h[k] != null && now - h[k] < 600) return;
-  h[k] = kind === 'once' ? 1 : now; logEvt('hint', txt); toast(txt);
-}
-let idleSince = null;
-function hintTick(){
-  const L = S.life, idle = !L.dead && !S.set.paused && !paused && !L.cur && !L.queue.length && !L.job && S.intro;
-  if (!idle) { idleSince = null; return; }
-  if (idleSince == null) idleSince = performance.now(); else if (performance.now() - idleSince > 30000) { idleSince = performance.now(); hint('idle'); }
+  const h = S.hints = S.hints || {}; if (h[k]) return;
+  h[k] = 1; logEvt('hint', HINTS[k]); toast(HINTS[k]);
 }
 // What's new (R20): shown once when a save first opens in a newer build (player-facing notes, oldest first)
 const BUILD_NOTES = [
@@ -3836,31 +3828,28 @@ const BUILD_NOTES = [
   ['phone comfort', 'Text size setting (Settings > Display); the queue follows the row being worked on; pop-ups have a close \u2715.'],
   ['queue tools', 'The game pauses once when a section is first reached (Settings). Queue rows: 1\u00d7 runs a row for this seedling only, tap a row number to add tasks after it, hold \u2715 to remove every copy; keys 1\u20135 load presets; \u21ba next to the Now line returns the seedling to the roots.'],
   ['information', 'A strip under the section name shows what this seedling has done; Pin (Edit list) shows what a task or gear design still needs; familiarity steps Practiced, Skilled, Mastered; tooltips show time to the next step, automation progress and what makes up the drain.'],
-  ['guidance', 'A next-step line and hints in the Log for the first sections; the Ship log can be read as a journal; this note after updates.'],
+  ['guidance', 'A next-step line and hints in the Log for the first sections; this note after updates.'],
   ['runs', 'Best runs: what the seedling that crossed a section did there is kept (up to three per section, pin one to keep it) and can be loaded into the queue; section headers compare your seedling count with your other games on this device; the Auto tab can switch a whole section on or off.'],
   ['settings merged', 'Fewer, clearer settings: Auto-charge now also covers charging when energy runs low (the separate Charge when needed is gone); Settings has one choice for what happens at a death, one for pausing at crossings, and a row of Pause when… chips.'],
+  ['pop-ups merged', 'One pop-up when you open a save after a while: the welcome-back recap now lists what\u2019s new too. The Log keeps only the first-death and first-crossing hints (the next-step line covers the rest), and the Journal view is gone: the Ship log already reads in order by section.'],
 ];
 const buildKey = () => BUILD.split('\u00b7').pop().trim();
-function whatsNew(){
+function newNotes(){   // the notes since this save last opened (records the current build)
   const k = buildKey(), seen = S.seenB;
-  if (!seen) { S.seenB = k; return false; }   // a new game (or a save from before this note) starts here
-  if (seen === k) return false;
-  const i = BUILD_NOTES.findIndex(n => n[0] === seen), list = BUILD_NOTES.slice(i >= 0 ? i + 1 : -2);
-  S.seenB = k; if (!list.length) return false;
+  if (!seen) { S.seenB = k; return []; }   // a new game (or a save from before this note) starts here
+  if (seen === k) return [];
+  const i = BUILD_NOTES.findIndex(n => n[0] === seen); S.seenB = k;
+  return BUILD_NOTES.slice(i >= 0 ? i + 1 : -2);
+}
+const notesHtml = list => `<ul class="wnew">${list.map(n => `<li><b>${esc(n[0])}</b>: ${esc(n[1])}</li>`).join('')}</ul>`;
+function whatsNew(){
+  const list = newNotes(); if (!list.length) return false;
   paused = true;
-  showModal(`<h2>What\u2019s new</h2><p class="d">Changes since you last played this save:</p><ul class="wnew">${list.map(n => `<li><b>${esc(n[0])}</b>: ${esc(n[1])}</li>`).join('')}</ul><button class="btn pri" data-close>Carry on</button>`);
+  showModal(`<h2>What\u2019s new</h2><p class="d">Changes since you last played this save:</p>${notesHtml(list)}<button class="btn pri" data-close>Carry on</button>`);
   return true;
 }
 // Balance state of this test build (R22): which sections are tuned
 const TUNED_TXT = 'Test build: balanced and frozen up to the Taproot Galleries; later sections are still being tuned.';
-// The Ship log as one text (R32): every story entry once, by section in route order
-function showJournal(){
-  const byZ = {}, other = []; S.log.forEach(e => { const z = logZone(e); if (z) (byZ[z] = byZ[z] || []).push(e); else other.push(e); });
-  let h = ''; ROUTE.forEach(z => { if (byZ[z]) h += `<h3>${esc(ZN(z).name)}</h3>` + byZ[z].map(e => `<p><b>${esc(e.t)}.</b> ${esc(e.x)}</p>`).join(''); });
-  if (other.length) h += '<h3>Other entries</h3>' + other.map(e => `<p><b>${esc(e.t)}.</b> ${esc(e.x)}</p>`).join('');
-  paused = true;
-  showModal(`<h2>Journal</h2><div class="journal">${h || '<p class="d">Nothing yet.</p>'}</div><button class="btn pri" data-jclose>Close</button>`);
-}
 function edBtns(t){
   const f = !!(S.fav || {})[t.id], hd = tHidden(t);
   return `<button class="tfv${f ? ' on' : ''}" data-tfav="${t.id}" aria-pressed="${f}" aria-label="${f ? 'Unfavourite' : 'Favourite'} ${esc(t.name)}">\u2605</button>` +
@@ -4975,7 +4964,7 @@ function renderLog(){
     h += `<div class="panel"><span class="h2">${title}</span><p class="note">${note}</p>` + (list.length ? '<ul class="evl">' + list.map(e => `<li><b>${esc(e.t)}</b> <span>seedling ${e.g} \u00b7 at ${fmtDays((e.a || 0) * TPD)}</span></li>`).join('') + '</ul>' : '<p class="note">None yet (counted from this version of the game).</p>') + '</div>';
   });
   const s0 = h.length;
-  h += '<div class="panel"><span class="h2">Ship log</span><p class="note">What your seedlings have learned about Selene, her sleeping crew and WARDEN. Entries this seedling found are marked.</p>' + (S.log.length ? '<button class="btn" data-journal>Read as a journal</button>' : '') + '</div><div>';
+  h += '<div class="panel"><span class="h2">Ship log</span><p class="note">What your seedlings have learned about Selene, her sleeping crew and WARDEN. Entries this seedling found are marked.</p>' + '</div><div>';
   if (!S.log.length) h += '<p class="note">Nothing yet.</p>';
   const byZ = {}, other = [];
   S.log.forEach(e => { const z = logZone(e); if (z) (byZ[z] = byZ[z] || []).push(e); else other.push(e); });   // oldest first
@@ -5311,7 +5300,7 @@ function renderAuto(){
 const FAQ_ALL = [
   ['Selene and the Root-Kin', 'The Root-Kin of Earth grow their technology: tools, cities, vehicles and ships come from specialised trees, hardened with magic. It is a highly advanced techno-magical civilisation, and everything in it is organic. There are no nation states left, but the local cultures are kept alive. One World Government has ruled for thousands of years: a democracy with slight meritocratic elements. <b>Selene</b> is one of their colony ships: a long, swept hull of living wood with crescent wings, grown around the <b>Hearth Tree</b>, which is her drive, her mind (WARDEN) and her garden at once. Root-Kin ships ride the ambient magic that saturates the universe, close to the speed of light, inside magical ward-shields and under artificial gravity, and can turn on any axis without strain. That is why, halfway there, Selene has to <b>flip</b> and brake for the rest of the voyage. Seedlings like K-7 are disposable drones of WARDEN and the Hearth Tree, grown for a single task and given just enough autonomy to carry it out.'],
   ['What is the goal?', 'Restore Selene so WARDEN can wake the sleeping crew. All of Act I happens inside the Hearth Tree, her drive, mind and garden at once: the sap flow that powers her in the Taproot Galleries, the meteor wounds in her hull in the Shattered Bark, WARDEN\u2019s mind and the star-charts in the Heartwood, the food gardens in the Canopy Gardens, and the Hearthfire in the Ember Crown. Act I ends when you kindle the Hearth Tree. One seedling cannot do it all; it takes many lives (around 50 with very good play). <i>Test build: balanced and frozen up to the Taproot Galleries; later sections are still being tuned.</i>'],
-  ['How do I start?', 'Tap a task to work on it right away. Climb out of the seed pod first, then tap the vault\u2019s sap line for sap cells and strip dead bark panels for deadwood. Time only moves while your seedling is working: with nothing to do, the clock stops, so you can always read and plan. Hold a card, icon or button for a moment (or hover with a mouse) to see what it does. The strip under the section name shows what this seedling has done so far, in order (amber actions, green charging, sand deadwood, violet drills, cyan crossings); the death screen shows the whole life. In <b>Edit list</b>, <b>Pin</b> puts a task or gear design at the top of the Tasks tab with what it still needs. Holding the Energy line shows what makes up the drain. Until you reach the Heartwood, a <b>Next step</b> line at the top of the Tasks tab suggests what to do (\u2715 hides it) and a few hints land in the Log. Some queue and settings controls appear as the game opens up. The Ship log can be read in one piece with <b>Read as a journal</b>, and after an update a short note says what changed.'],
+  ['How do I start?', 'Tap a task to work on it right away. Climb out of the seed pod first, then tap the vault\u2019s sap line for sap cells and strip dead bark panels for deadwood. Time only moves while your seedling is working: with nothing to do, the clock stops, so you can always read and plan. Hold a card, icon or button for a moment (or hover with a mouse) to see what it does. The strip under the section name shows what this seedling has done so far, in order (amber actions, green charging, sand deadwood, violet drills, cyan crossings); the death screen shows the whole life. In <b>Edit list</b>, <b>Pin</b> puts a task or gear design at the top of the Tasks tab with what it still needs. Holding the Energy line shows what makes up the drain. Until you reach the Heartwood, a <b>Next step</b> line at the top of the Tasks tab suggests what to do (\u2715 hides it) and a few hints land in the Log. Some queue and settings controls appear as the game opens up. After an update a short note says what changed.'],
   ['What are jobs, actions and training?', '<b>Jobs</b> repeat and make sap cells or deadwood in batches; they stop when that storage is full. <b>Actions</b> are one-off tasks that unlock things and move the story on. Each needs certain earlier actions, and a section\u2019s last action (its crossing) needs every other action of that section. Tasks you have met before stay listed, greyed out, until what they need is done; you can still queue them. <b>Drills</b> each add a little familiarity to every task in their section, up to 4 sessions per life. Small icons by a task\u2019s name show what it holds from the start: a <b>star</b> for a record not found yet, a <b>cog</b> for a gear design it opens, an <b>arrow</b> for a crossing. Its effects show once a seedling has finished it, grouped by how long they last: <b>This seedling</b> (storage, recharges, deadwood per minute: gone at death) and <b>Kept</b> (records, familiarity from drills). <b>Edit list</b> (above the section) lets you star tasks, which puts them at the top of their section, or hide them: hidden tasks fold into one line at the bottom (tap it to show them) and still run when queued, automated or chained. Crossings and chain cards can\u2019t be hidden. Both are kept in the save.'],
   ['How does the queue work?', 'Tapping a task runs it right away, ahead of the queue (a job runs until its store is full); it is not added to the queue. Tapping a gear card works the same way: it is built right away, after gathering the deadwood (grafts in Act II) it still needs. <b>+</b> adds a task to the end of the queue; drag it or use the arrows to move it up. You can queue the same task several times at different places: tap + again for another copy. A task queued once runs until it is done; with several copies, each copy covers one repetition (one training session, one rep, or one fill of a store). The queue holds up to 100 items. Drag an item by the handle on its left to move it, or use the arrows; ✕ removes it. Queued jobs run until their storage is full. You can queue things you have seen before even if they are not available yet; they wait their turn. Gear can be queued too, with the <b>+</b> on its card (gear is listed in each section of the Tasks tab): the seedling works the best deadwood job until it can afford the design, then builds it. Five presets save and load whole queues (tap a preset\u2019s number to name it), <b>Copy / paste</b> turns the queue into plain text and back (a pasted line that isn\u2019t a known name gets a \u201cdid you mean\u201d tip, and one that can\u2019t run yet says why), and <b>Undo</b> takes back the last change to the queue. Tap a row\u2019s name to <b>skip</b> it: it stays in the queue but doesn\u2019t run until you tap it again. Press and hold <b>+</b> on a drill or a task with several reps to queue one copy per repetition still to do. <b>Least familiar</b> sorts the queue so the weakest tasks run first (chains stay on top). <b>Triggers</b> load a preset by themselves when a new seedling sprouts or when it enters a section you choose, or any section from there through a later one. Each rule can be switched off, kept for every 2nd, 3rd\u2026 seedling, and moved up or down: when several match at once, only the highest fires (each rule at most once per seedling). <b>Keep queue between seedlings</b> gives each new seedling the queue you planned, minus anything that is automated and switched on. <b>The forecast:</b> the game plays your seedling\u2019s life forward with the same rules (queue, automation, recharges, crossings), so each queue row shows the energy left when it is done and when that will be; rows the seedling won\u2019t reach turn red, and <b>Dies here</b> marks the row where it dies. The Outlook line gives the forecast death and its cause; a setting can pause the game once, just before it. When the forecast death comes from energy or wear and a setting that is off or low (Auto-recharge, Auto-charge, the charge threshold, Charge when needed, and in Act II Auto-scavenge and Auto-repair) would make the seedling live clearly longer, the Outlook line names it and how much time it adds. <b>Clear queue</b> keeps the row the seedling is working on. <b>+ Row</b> by a preset adds a queue row that loads it: once every row above it is done (or skipped), the preset replaces that row and everything below it. Each preset loads this way once per seedling; the row goes along when the queue carries over to the next seedling. A dot marked <b>new</b> on a task means no seedling has finished it yet. Tap a row\u2019s number to add new tasks after it instead of at the end (<b>Next</b> puts them after the row being worked on; <b>End</b> goes back). <b>1\u00d7</b> on a row runs it for this seedling only: the next seedling\u2019s queue leaves it out. Hold a row\u2019s \u2715 to remove every copy of that task. With a keyboard, keys 1 to 5 load the presets. <b>Best runs here</b> (under the presets) keeps what the seedling that crossed this section did here, as a queue with its numbers (seedlings used, energy, sap cells and deadwood left, time): up to three per section, never one beaten on every number; <b>Pin</b> keeps one for good, <b>Load</b> puts it in the queue (Undo works).'],
   ['Energy and sap cells', 'Seedlings are biomechanical: as long as they have energy, the body is sustained. The <b>Energy</b> bar drains all the time; each recharge uses one <b>sap cell</b> and puts energy back. <b>Every recharge restores the same amount</b>; what changes is how often the seedling can recharge. Sap cells are carried up to the seedling\u2019s <b>storage capacity</b>, which grows as the seedling gets deeper into the ship (5 in the Seedling Vaults, up to 90 in the Ember Crown, in steps of 5), plus gear and records. Each section has a <b>charging station</b> job, but it only opens partway into the section and holds a limited <b>reserve</b> per seedling life; when it is drained, the seedling has to cross or run down. Every crossing also costs a share of the cells carried, more the further into the ship you go, so a seedling always arrives living on what it brought. At first a seedling can recharge every 5 seconds of in-game time. Each section has one <b>charger upgrade</b> action that shortens the wait between recharges for the rest of that life, down to about 2 seconds, and adds half again to that section\u2019s station reserve; each seedling has to fix them again. Recharges are always whole, and the seedling only recharges when it needs to: when a whole recharge fits under full energy, or sooner once energy is down to half. At full energy no cell is used. With no cells left at all, the seedling runs down. The Hive Ship\u2019s only charging comes late, so arrive charged.'],
@@ -5416,7 +5405,7 @@ document.addEventListener('toggle', e => { const d = e.target; if (d && d.datase
 /* ----- modals ----- */
 // While a pop-up is open the page behind it is locked in place (only the pop-up itself scrolls)
 // A close X in the corner of every pop-up that has a way out (round 5): it taps that pop-up's own Close / Back / Cancel.
-const MX_SEL = '[data-settingsclose],[data-ow="x"],[data-menu="back"],[data-close],[data-storyok],[data-jclose]';
+const MX_SEL = '[data-settingsclose],[data-ow="x"],[data-menu="back"],[data-close],[data-storyok]';
 function showModal(h){
   if (typeof tipHide === 'function') tipHide();
   $('#mbox').innerHTML = h; $('#modal').hidden = false;
@@ -5613,8 +5602,6 @@ document.addEventListener('click', e => {
   if ('eat' in d) { const f = readyFoods()[0], h0 = L.hp; if (f && eat(f)) sfx('eat'), toast('Recharged. +' + fmt(L.hp - h0) + ' energy'); return; }
   if ('exportjson' in d) { exportJson(); return; }
   if ('errcopy' in d) { const fb = () => exportText('selene-error-' + fileStamp() + '.txt', errLast); try { navigator.clipboard.writeText(errLast).then(() => toast('Error details copied'), fb); } catch(e2) { fb(); } return; }
-  if ('jclose' in d) { hideModal(); paused = false; return; }
-  if ('journal' in d) { showJournal(); return; }
   if ('nonext' in d) { S.noNext = 1; nxaT = 0; taskKey = ''; renderView(); return; }
   if ('mx' in d) { const out = $('#mbox').querySelector(MX_SEL); if (out) out.click(); return; }
   if ('errclose' in d) { const eb = document.getElementById('errbar'); if (eb) eb.hidden = true; return; }
@@ -5829,7 +5816,7 @@ function frame(now){
   const idle = paused || S.set.paused || S.life.dead;
   if (uiN !== uiSeen || now - uiT >= (idle ? UI_IDLE_MS : UI_MS)) {
     uiSeen = uiN; uiT = now;
-    updateHud(); tipCheck(); hintTick(); { const rv = String(revealLv()); if (document.documentElement.dataset.rv !== rv) document.documentElement.dataset.rv = rv; }
+    updateHud(); tipCheck(); { const rv = String(revealLv()); if (document.documentElement.dataset.rv !== rv) document.documentElement.dataset.rv = rv; }
     if (tab === 'tasks') { renderTasks(); updateTasks(); }
     if (tab === 'map') { renderMap(); updateMap(); }
   }

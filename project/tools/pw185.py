@@ -1,6 +1,6 @@
 # Guidance (build "guidance", round 5 chunk 6): controls revealed with progress; next-step line until the
-# Heartwood (dismissable); first-hour hints in the Log (once, idle with a cooldown); What's new once per build for
-# a save that saw an older build (not for new games); tuned-up-to note on the Map; journal; new-this-seedling marks.
+# Heartwood (dismissable); first-hour hints in the Log (once each; the idle and automation hints were dropped in build "pop-ups merged"); What's new once per build for
+# a save that saw an older build (not for new games); tuned-up-to note on the Map; new-this-seedling marks (the Journal was dropped).
 import json
 from playwright.sync_api import sync_playwright
 errs=[]
@@ -26,17 +26,16 @@ with sync_playwright() as p:
     if 'Next step' not in r[0] or r[1]!='': errs.append('next-step line: %s' % r)
     r=pg.evaluate("()=>{ S.noNext=0; S.firstAt[3]={d:1,r:1,g:3}; nxaT=0; updateTasks(); const t=$('#nstep').textContent; delete S.firstAt[3]; return t; }")
     if r!='': errs.append('next-step line still shown after the Heartwood')
-    # hints: once; idle with cooldown; panel and chip
-    r=pg.evaluate("""()=>{ S.hints={}; S.evlog=[]; hint('death1'); hint('death1'); S.stats.played=100; hint('idle'); S.stats.played=200; hint('idle'); S.stats.played=800; hint('idle');
+    # hints: once each; the dropped ones do nothing; panel and chip
+    r=pg.evaluate("""()=>{ S.hints={}; S.evlog=[]; hint('death1'); hint('death1'); hint('cross1'); hint('idle'); hint('auto1');
       const n=S.evlog.filter(e=>e.k==='hint').length; logKey=''; setTab('log'); const panel=[...document.querySelectorAll('#v-log .h2')].some(x=>x.textContent==='Hints'), chip=!!$('[data-logf="hint"]'); return [n, panel, chip]; }""")
     print('hints', r)
-    if r!=[3,True,True]: errs.append('hints: %s' % r)
-    # journal and new marks
+    if r!=[2,True,True]: errs.append('hints: %s' % r)
+    # new marks; no Journal button
     r=pg.evaluate("""()=>{ S.log=[{g:S.gen-1,a:1,t:'Old entry',x:'old'},{g:S.gen,a:2,t:'New entry',x:'new'}]; logKey=''; renderLog();
-      const marks=document.querySelectorAll('#v-log .le.lnew').length; $('[data-journal]').click(); const j=$('#mbox .journal').textContent; const x=!!$('#mbox .mx'); $('#mbox [data-jclose]').click();
-      return [marks, /Old entry/.test(j) && /New entry/.test(j), x, $('#modal').hidden]; }""")
-    print('journal', r)
-    if r!=[1,True,True,True]: errs.append('journal / marks: %s' % r)
+      return [document.querySelectorAll('#v-log .le.lnew').length, !!$('[data-journal]'), typeof showJournal]; }""")
+    print('marks', r)
+    if r!=[1,False,'undefined']: errs.append('marks / journal: %s' % r)
     # map note
     r=pg.evaluate("()=>{ mapKey=''; setTab('map'); return $('#v-map .tuned') && $('#v-map .tuned').textContent; }")
     if not r or 'Taproot' not in r: errs.append('no tuned note on the Map: %r' % r)

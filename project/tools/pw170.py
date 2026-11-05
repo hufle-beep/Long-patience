@@ -5,7 +5,7 @@ import json, time
 from playwright.sync_api import sync_playwright
 errs=[]
 s=json.load(open('/tmp/claude-0/sim/snap12.json'))
-s['saved']=int(time.time()*1000)-3*86400000; s['intro']=True   # last played three days ago
+s['saved']=int(time.time()*1000)-3*86400000; s['intro']=True; s['seenB']='queue tools'   # last played three days ago
 raw=json.dumps(s)
 with sync_playwright() as p:
     b=p.chromium.launch(); pg=b.new_page(viewport={'width':390,'height':900}); pg.on('pageerror', lambda e: errs.append(str(e)))
@@ -15,6 +15,8 @@ with sync_playwright() as p:
     wb=pg.inner_text('#mbox'); print('welcome', wb.replace('\n',' | ')[:300])
     if 'WELCOME BACK' not in wb.upper() or '3 days' not in wb or 'Seedling' not in wb: errs.append('no welcome-back recap')
     if pg.evaluate("()=>document.querySelector('#mbox').getAttribute('aria-label')")!='Welcome back': errs.append('pop-up has no dialog label')
+    wn=pg.evaluate("()=>[document.querySelectorAll('#mbox .wnew li').length, S.seenB===buildKey()]"); print('notes in welcome', wn)
+    if wn[0] < 2 or not wn[1]: errs.append("What's new not in the welcome pop-up: %s" % wn)
     pg.click('[data-ow="c0"]'); pg.wait_for_timeout(200)
     # pause all automation
     r=pg.evaluate("""()=>{ paused=true; const auto=TASKS.filter(t=>S.auto[t.id]&&practiced(t)&&t.kind!=='job'); const g=ITEMS.filter(i=>S.gauto&&S.gauto[i.id]&&gearPracticed(i));
