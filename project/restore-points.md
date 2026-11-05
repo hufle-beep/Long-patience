@@ -12,7 +12,8 @@ The **Restore points** workflow (`.github/workflows/restore-points.yml`) runs on
 What the recent commits are (newest first):
 | Commit | What it is |
 |---|---|
-| (next) | Guidance: next-step line, hints, progressive controls, What's new, tuned note, journal |
+| (next) | Runs: best section runs, splits vs other games, Auto all on/off |
+| `bb6b448` | Guidance: next-step line, hints, progressive controls, What's new, tuned note, journal |
 | `6ae7bb3` | Information: timeline strip, pins, familiarity steps, ETA, drain breakdown, formulas, route summary |
 | `04cb03b` | Queue tools: first-arrival pause, one-shot rows, insert point, long-press remove, keys 1-5, Return to the roots button |
 | `f1ec77a` | Phone comfort: text size, contrast, scroll per tab, close X, queue follow, accessibility; Made with AI note |

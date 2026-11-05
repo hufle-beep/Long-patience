@@ -41,8 +41,8 @@ with sync_playwright() as p:
     r=pg.evaluate("()=>{ mapKey=''; setTab('map'); return $('#v-map .tuned') && $('#v-map .tuned').textContent; }")
     if not r or 'Taproot' not in r: errs.append('no tuned note on the Map: %r' % r)
     # what's new: a save that saw 'queue tools' gets the notes after it, once
-    r=pg.evaluate("""()=>{ setTab('tasks'); S.seenB='queue tools'; S.intro=true; startGame(); const t=!$('#modal').hidden && $('#mbox h2').textContent, n=document.querySelectorAll('#mbox .wnew li').length; hideModal(); paused=false; startGame(); const again=!$('#modal').hidden; return [t, n, again, S.seenB]; }""")
+    r=pg.evaluate("""()=>{ setTab('tasks'); S.seenB='queue tools'; S.intro=true; startGame(); const t=!$('#modal').hidden && $('#mbox h2').textContent, n=document.querySelectorAll('#mbox .wnew li').length; hideModal(); paused=false; startGame(); const again=!$('#modal').hidden; return [t, n === BUILD_NOTES.length - 1 - BUILD_NOTES.findIndex(x=>x[0]==='queue tools'), again, S.seenB === buildKey()]; }""")
     print('whats new', r)
-    if r[0]!='What’s new' or r[1]!=2 or r[2] or r[3]!='guidance': errs.append("what's new: %s" % r)
+    if r!=['What’s new', True, False, True]: errs.append("what's new: %s" % r)
     print('errors', errs)
     b.close()
