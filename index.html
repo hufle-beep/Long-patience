@@ -550,7 +550,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
 // Renamed from Long Patience: move this device's old storage keys to the new 'selene.' names once
 try { const old = []; for (let n = 0; n < localStorage.length; n++) old.push(localStorage.key(n)); old.forEach(k => { if (k && k.indexOf('long-patience.') === 0) { const nk = 'selene.' + k.slice(14); if (localStorage.getItem(nk) == null) localStorage.setItem(nk, localStorage.getItem(k)); localStorage.removeItem(k); } }); } catch(e) {}
 /* ===== Game data and rules (no DOM) ===== */
-const BUILD = '2026-11-05 · runs';   // shown in the main menu, to tell which version is loaded
+const BUILD = '2026-11-05 · no idle charging';   // shown in the main menu, to tell which version is loaded
 const DPS = 8;             // simulation ticks per real second at 1x (doubled for the test version: same balance, half the real time)
 // Time is simulated in ticks. 80 ticks make one day unit (18 minutes each), so a day lasts
 // 20 real seconds at 1x and Players only ever see in-game time and real time, never days.
@@ -1328,8 +1328,11 @@ function pickFood(){
   return best;
 }
 // What runs now. `ex` (legacy levels second slot) lists tasks already taken by the other slot.
-function active(ex){
+function active(ex, noTop){
   const L = S.life, ok = t => !!t && !(ex && ex.has(t.id));
+  // Charging and scavenging only top the seedling up for work still to come: with nothing else to do (no tapped
+  // task, live queue row, ready automation, section run or held crossing) time stops instead (owner 2026-11-05).
+  const busy = () => { const k = [L.viaChain, L.autoJob, L.crossNow]; const w = !!active(ex, true); [L.viaChain, L.autoJob, L.crossNow] = k; return w; };
   qPresetFire();
   // A task you tapped runs at once, ahead of food, automation and the queue, until it is done
   // (a job: until its store is full). It is never placed in the queue.
@@ -1351,20 +1354,21 @@ function active(ex){
     else if (ok(t)) return t;
   }
 
-  if (S.set.autoFood) {   // auto-forage: standard from the first seedling
+  if (noTop) {}   // probing for other work (busy): skip the top-ups
+  else if (S.set.autoFood) {   // auto-forage: standard from the first seedling
     const food = pickFood();
     if (food) {
       // Threshold: a share of the store the best charging station fills; counts every recharge you carry.
       const f = jobFood(food), cap = M.fcap[f], low = cap * (S.set.foodPct || 40) / 100;
       if (L.rations < low) L.foraging = true;
       if (L.foraging && (L.food[f] || 0) >= Math.min(low * 2, cap - 0.5)) L.foraging = false;
-      if (L.foraging && ok(food)) return food;
+      if (L.foraging && ok(food) && busy()) return food;
     } else L.foraging = false;   // every food store is full (or there is no charging station here): foraging is over
   } else L.foraging = false;
-  const feed = feedJob();
-  if (ok(feed)) return feed;
-  const scav = scavJob();   // grafts for the ship, like foraging
-  if (ok(scav)) return scav;
+  const feed = noTop ? null : feedJob();
+  if (ok(feed) && busy()) return feed;
+  const scav = noTop ? null : scavJob();   // grafts for the ship, like foraging
+  if (ok(scav) && busy()) return scav;
   const held = heldStep();
   if (ok(held)) return held;
   // One-click section run: everything in the section in chain order, then the crossing (no waiting).
@@ -3627,6 +3631,7 @@ const BUILD_NOTES = [
   ['information', 'A strip under the section name shows what this seedling has done; Pin (Edit list) shows what a task or gear design still needs; familiarity steps Practiced, Skilled, Mastered; tooltips show time to the next step, automation progress and what makes up the drain.'],
   ['guidance', 'A next-step line and hints in the Log for the first sections; this note after updates.'],
   ['runs', 'Best runs: what the seedling that crossed a section did there is kept (up to three per section, pin one to keep it) and can be loaded into the queue; section headers compare your seedling count with your other games on this device; the Auto tab can switch a whole section on or off.'],
+  ['no idle charging', 'Auto-charge and Auto-scavenge only top a seedling up while it has other work to come back to: with an empty queue and nothing automated to do, time stops instead of burning its life at a charging station.'],
   ['settings merged', 'Fewer, clearer settings: Auto-charge now also covers charging when energy runs low (the separate Charge when needed is gone); Settings has one choice for what happens at a death, one for pausing at crossings, and a row of Pause when… chips.'],
   ['pop-ups merged', 'One pop-up when you open a save after a while: the welcome-back recap now lists what\u2019s new too. The Log keeps only the first-death and first-crossing hints (the next-step line covers the rest), and the Journal view is gone: the Ship log already reads in order by section.'],
   ['tooltips trimmed', 'Task card tooltips show only what the card doesn\u2019t: familiarity steps, automation progress, time saved and the full list of what a task opens. Tapping a route node shows the same bubble as holding it. Section headers are two lines shorter.'],
