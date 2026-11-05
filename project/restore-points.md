@@ -12,7 +12,8 @@ The **Restore points** workflow (`.github/workflows/restore-points.yml`) runs on
 What the recent commits are (newest first):
 | Commit | What it is |
 |---|---|
-| (next) | Queue tools: first-arrival pause, one-shot rows, insert point, long-press remove, keys 1-5, Return to the roots button |
+| (next) | Information: timeline strip, pins, familiarity steps, ETA, drain breakdown, formulas, route summary |
+| `04cb03b` | Queue tools: first-arrival pause, one-shot rows, insert point, long-press remove, keys 1-5, Return to the roots button |
 | `f1ec77a` | Phone comfort: text size, contrast, scroll per tab, close X, queue follow, accessibility; Made with AI note |
 | `acba88d` | Test tooling: data tests, milestone table, old-save test (tools only) |
 | `d85919a` | Robustness: save failures, export reminder, error catcher, clock clamp, tap guard |

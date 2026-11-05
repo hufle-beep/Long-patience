@@ -48,7 +48,7 @@ with sync_playwright() as p:
     pg.evaluate("()=>{ setTab('skills'); renderSkills(); }"); pg.wait_for_timeout(200)
     bd=pg.evaluate("()=>{ const el=document.querySelector('#v-skills .skbd'); return el?el.textContent:''; }")
     print('breakdown', bd)
-    if not bd.startswith('Speed ×') or 'familiarity ×' not in bd: errs.append('no speed breakdown')
+    if 'Speed ×' not in bd or 'familiarity ×' not in bd: errs.append('no speed breakdown')
     # pace: tasks per real minute over the forecast life (shown on the queue line)
     pc=pg.evaluate("()=>[fcRateTxt({end:'dead', day0:0, endDay:TPD*60, done0:2, s:{life:{done:{a:10, b:4}}}}), fcRateTxt({end:'idle', day0:0, endDay:2, done0:0, s:{life:{done:{a:3}}}}), realSecs(TPD*60)]")
     print('pace', pc)
