@@ -556,7 +556,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
 // Renamed from Long Patience: move this device's old storage keys to the new 'selene.' names once
 try { const old = []; for (let n = 0; n < localStorage.length; n++) old.push(localStorage.key(n)); old.forEach(k => { if (k && k.indexOf('long-patience.') === 0) { const nk = 'selene.' + k.slice(14); if (localStorage.getItem(nk) == null) localStorage.setItem(nk, localStorage.getItem(k)); localStorage.removeItem(k); } }); } catch(e) {}
 /* ===== Game data and rules (no DOM) ===== */
-const BUILD = '2026-11-05 · section targets';   // shown in the main menu, to tell which version is loaded
+const BUILD = '2026-11-05 · longer vaults';   // shown in the main menu, to tell which version is loaded
 const DPS = 8;             // simulation ticks per real second at 1x (doubled for the test version: same balance, half the real time)
 // Time is simulated in ticks. 80 ticks make one day unit (18 minutes each), so a day lasts
 // 20 real seconds at 1x and Players only ever see in-game time and real time, never days.
@@ -1159,7 +1159,7 @@ const TASKS = [
   {id:'safeorbit', z:14, kind:'act', finale:'C', name:'Establish a safe orbit over Tessaly', days:937, req:[], perk:'harbour',
     log:'Selene settles into a stable orbit. Below, Tessaly turns: oceans, cloud, a long brown coast. Three thousand people are still asleep. They are home, nearly. WARDEN holds the wake cycle. Someone has to look at the ground first.'},
 ];
-const ZDAYS = {1:2.212, 2:1.158, 15:1.0, 3:0.686, 4:0.606, 5:0.372, 6:0.677, 7:0.877, 8:0.877, 9:0.593, 10:0.796, 11:0.796, 12:0.756, 16:1.0, 13:0.756, 14:0.756};   // no skill transfer: later sections are short, and speed comes from familiarity
+const ZDAYS = {1:2.81, 2:1.158, 15:1.0, 3:0.686, 4:0.606, 5:0.372, 6:0.677, 7:0.877, 8:0.877, 9:0.593, 10:0.796, 11:0.796, 12:0.756, 16:1.0, 13:0.756, 14:0.756};   // no skill transfer: later sections are short, and speed comes from familiarity
 const TRAIN_CAP = 4, TRAIN_XP = 1.5;
 const LEGACY_LEN = 0.6;   // legacy parts are needed for every crossing once revealed, so they are kept short
 const T = {}; TASKS.forEach(t => { T[t.id] = t; t.sk = []; t.reps = t.kind === 'train' ? TRAIN_CAP : (t.reps || 1); if (t.days) t.days = Math.round(t.days * ZDAYS[t.z] * (t.legacy && t.kind === 'act' ? LEGACY_LEN : 1)); });

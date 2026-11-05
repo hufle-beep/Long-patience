@@ -4,9 +4,9 @@ Test bots, checks and screenshot scripts used to work on Selene: Tidelocked. The
 
 | Script | What it does | Pass |
 |---|---|---|
-| `sim11c.js` | Lean Act I bot | `TOTAL in-game h` about 5.40 |
-| `simcomp2.js` | Completionist bot (all actions, drills 4/4, all gear). Stops when a seedling reaches section `UPTO` (a section id, default 2; route order 1, 2, 15, 3, 4, 5), or at seedling `MAXG` (default 60) | first `sec 2` seedling = 7 |
-| `sim16c.js AB` | Whole game; Act II hours (long watch, Boarders, Arrival) and death causes | Act II about 7.11 h |
+| `sim11c.js` | Lean Act I bot | `TOTAL in-game h` about 5.51 |
+| `simcomp2.js` | Completionist bot (all actions, drills 4/4, all gear). Stops when a seedling reaches section `UPTO` (a section id, default 2; route order 1, 2, 15, 3, 4, 5), or at seedling `MAXG` (default 60) | first `sec 2` seedling = 10 |
+| `sim16c.js AB` | Whole game; Act II hours (long watch, Boarders, Arrival) and death causes | Act II about 7.08 h |
 | `simsnap.js AB` | Save snapshot once section `STOPZ` (an id, compared by route) is reached (`STOPT`, `OUT`) | writes JSON |
 | `sanity.py` | Data (incl. duplicate ids), long runs on six saves (incl. old Act II saves checked for kept legacy reveals) (incl. an old-build save past the Taproot: ward-lock and table migration), every tab and pop-up, leftover old words | `page errors: none`, `text problems: none` |
 | `fontpack.py` | Rebuilds the embedded font block (`<style id="fonts">`) in index.html from google/fonts: trims, renames (OFL Reserved Font Names), WOFF2. Needs fonttools and brotli (see handover §5) | `fonts: 7 faces, ~104 KB woff2` |

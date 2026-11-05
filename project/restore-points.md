@@ -12,7 +12,8 @@ The **Restore points** workflow (`.github/workflows/restore-points.yml`) runs on
 What the recent commits are (newest first):
 | Commit | What it is |
 |---|---|
-| (next) | Section targets: target per section, star and Log entry |
+| (next) | Longer Vaults: length factor 2.81 (owner's pick B) |
+| `12bf58c` | Section targets: target per section, star and Log entry |
 | `67f3e56` | Queue history: load past queue, merged deaths, pause when queue done, pace, speed breakdown |
 | `64bab68` | Save checks: checksum, format, recovery screen, share export |
 | `70b23d5` | Quieter audio: one reverb, audio sleeps, Android pauseTimers |

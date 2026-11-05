@@ -51,8 +51,8 @@ Seedlings = seedlings that first reached the next section minus those that first
 
 | # | Section | Length factor | Danger | Cell storage | Station reserve | Crossing cost in | Bot seedlings | Status |
 |---|---|---|---|---|---|---|---|---|
-| 1 | Seedling Vaults | 2.212 (drills base 25) | 1.00 | 5 | 15 | - | completionist 7 (one drill per section; was 10, then 9), lean 4-5; **user 9** | **FROZEN 2026-11-04** |
-| 2 | Taproot Galleries | 1.158 | 1.05 | 20 | 10 | 8% | lean 23, completionist 16; **user 14** | **FROZEN 2026-11-05** |
+| 1 | Seedling Vaults | **2.81** (was 2.212; drills base 25) | 1.00 | 5 | 15 | - | completionist **10** (2.212: 7 after one drill per section; was 10, then 9), lean 8; **user 9** at freeze, **user 6** on the replay at 2.212 | **retuned (B) 2026-11-05**: freeze again when the owner says |
+| 2 | Taproot Galleries | 1.158 | 1.05 | 20 | 10 | 8% | lean 22, completionist 13 (14 before the longer Vaults); **user 14** | **FROZEN 2026-11-05** |
 | 15 | **The Shattered Bark** (new, after the Taproot) | 1.0 | 1.075 | 25 | 10 | 9.5% | lean 21, completionist 14 | new, untuned; next to retune |
 | 3 | The Heartwood | 0.686 | 1.10 | 35 | 15 | 11% | 21 | |
 | 4 | Canopy Gardens | 0.606 | 1.15 | 60 | 30 | 14% | 10 | |
@@ -88,13 +88,15 @@ Act II progression values (danger, crossing cost, wear, charger and workshop tie
 **Stasis watch ladder** (records Stasis watch I-XVI, one per section in route order, each makes energy drain slower): 1, 1.5, 1.5 (Shattered Bark), 2, 2, 2 % (Act I, total -10%; was 1, 1.5, 2, 2.5, 3 before the Shattered Bark) | 3, 3, 3.5, 3.5 (long watch), 4, 4, 4.5, 4.5 (Boarders, The Mending), 5, 5 (Arrival) % (Act II, route order; Stasis watch VII-XVI) = **-50% total**. Replaced the old +8 h of time away.
 
 ### Seedling Vaults tuning log
+- **2026-11-05 replay** (save `saves/hufle2-2026-11-05-1121-clone6.txt`, build with one drill per section, length 2.212): completionist clear (all 8 actions, drill 4/4, all four gear) by **seedling 6**. Lives 0:39, 1:12, 1:13, 1:23, 1:27 in-game, seedling 6 crossed at 1:48; section 7:43 in-game / 3:51 real at x2 (frozen run: 13:02). All deaths "Drained faster than it could recharge". Time spent: charging 2:13, deadwood 1:48, drill 1:25, actions about 2:20. Cause: the single drill at 0.2 per session (bot 10 -> 7; owner 9 -> 6; the owner runs about one seedling under the bot).
+- Options tried on the completionist bot (Vaults / Taproot): length +20% 9/-, +27% **10/13**, +35% 11, +50% 12; station reserve 15 -> 10: 10/17; danger 1.0 -> 1.1: 10/15; drill 0.1 in the Vaults only: 8. **Owner's pick B (2026-11-05 11:32): length factor 2.212 -> 2.81.** Lean Act I 5.40 -> 5.51 h; Act II 7.11 -> 7.08 h. Completionist Shattered Bark 11 -> 10.
 - Build "energy cap 500": completionist needed **29 seedlings** (each drill session about 30 s in-game after the 6.5x stretch); lean bot 10.
 - Tested: drills 1/4 + reserve 10 -> completionist 15 / lean 10; drills 1/4 + reserve 20 -> 8 / 5; drills 1/4 + reserve 15 -> 11 / 6; **drills 1/4 + section x0.9 + reserve 15 -> 10 / 5 (applied as retune 1)**.
 - User playtest on "retune 1": 9 seedlings. Re-run on "Act II danger +18%": 9 seedlings (below). User froze it.
 
 ### Frozen sections
 Note 2026-11-05 (build "crossing fill"): crossings fill deadwood to full carry again before moving on (base design; Act I had lost it on 2026-11-04 06:07). Both freezes below were played without it. They stay frozen; the owner replays the whole game from the start to judge whether a retune is needed.
-- **1 · Seedling Vaults: FROZEN 2026-11-04** (build "Act II danger +18%"; unchanged by the renames). Requirement: every action, both drills 4/4 and all four gear done, root-lock iris forced by about seedling 9-10. Values: length factor 2.212, drills base 25, danger 1.00, cell storage 5, station reserve 15, Stasis watch I = -1% drain.
+- **1 · Seedling Vaults: FROZEN 2026-11-04, reopened and retuned 2026-11-05 (B: length 2.81; see the tuning log), freeze again when the owner says.** Original freeze (build "Act II danger +18%"; unchanged by the renames): Requirement: every action, both drills 4/4 and all four gear done, root-lock iris forced by about seedling 9-10. Values: length factor 2.212, drills base 25, danger 1.00, cell storage 5, station reserve 15, Stasis watch I = -1% drain.
 - **2 · Taproot Galleries: FROZEN 2026-11-05** (build "voyage clock"; untouched since "the Hearth Tree"). Requirement: every action, both drills 4/4 and all four gear (baton, doser, chitinarm, lace) done, crossing by about seedling 14 of the section. Values: length factor 1.158, danger 1.05, cell storage 20, station reserve 10, crossing cost in 8%, Stasis watch II = -1.5% drain.
 
 ---

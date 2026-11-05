@@ -1,6 +1,6 @@
 # Roadmap: Selene: Tidelocked
 
-Last updated: 2026-11-05 (build "section targets"). Update in every push.
+Last updated: 2026-11-05 (build "longer vaults"). Update in every push.
 
 ## Order of work (owner, 2026-11-04)
 1. **Section-by-section playtesting and tuning** (now). Sections 1 and 2 frozen; next the Shattered Bark, then sections 3-14 one by one: the owner plays and uploads a save after each crossing, Claude proposes options for that section's knobs only, the owner freezes it.
@@ -12,6 +12,7 @@ Last updated: 2026-11-05 (build "section targets"). Update in every push.
 **Owner decision (2026-11-05):** polishing can come before tuning when its gains are immediate.
 
 ## Next up
+- **Seedling Vaults retuned (owner's pick B, 2026-11-05 11:32):** length factor 2.212 -> 2.81 after the owner's 6-seedling replay (bot 7 -> 10, aiming at the owner's 9). Freeze again when the owner says. **Next:** the button review (brown on yellow for buttons that deserve emphasis; options with screenshots), then tooltips (owner 11:35: hover on the web, long-press on Android; options first), alongside the owner's next replay saves.
 - **Research round 4 picks (owner 2026-11-05 10:23: all; go 10:25), six chunks, each pushed on its own:** 1 credits and docs BUILT (full ZzFX MIT text, Plex Sans 2017-2019, "Inspired by" line, research.md round 4). 2 UI performance BUILT (10 Hz text, 2 Hz paused, task-list change counter, no unchanged writes, forecast slices, autosave 15 s, no bold title weight). 3 BUILT: sound (one 2 s reverb, audio sleeps) and Android pauseTimers. 4 BUILT: save safety (checksum, save version, recovery screen) and export (Android share sheet, file names with build and time). 5 BUILT: queue and info (load a past queue, speed breakdown, pause when the queue is finished, completions per real minute, merged death lines). 6 BUILT: section targets (target seedlings per section, badge only). **All six chunks built.** **Then (owner 10:31, corrected 10:48):** buttons that deserve emphasis get brown text on yellow like the menu's Continue button (only where it makes sense; weigh every button in the game), slightly larger like the main screen; go through every menu and offer further interface polish (options first).
 - **Research rounds 2 and 3 picks (owner 2026-11-05 08:36: all green and yellow except challenges; go 08:41), five chunks, each pushed on its own:** 1 save safety BUILT (rolling backups, broken-number guard, paste tips, average row). 2 sound BUILT (ZzFX generator: crossing, sprout, gear built, low energy at 15% once per seedling). 3 BUILT: trigger table (on/off, from/through section, every N seedlings, priority) and FAQ (search, opens on the current tab, Keys entry from one hotkey table). 4 BUILT: route overview on the Map tab (unreached sections hidden), game-icons.net icons, Credits in Settings. 5 BUILT: welcome-back recap, Log filter chips, screen-reader announcements, pause all automation. **All five chunks built.**
 - **Round 1c picks (owner go-ahead 2026-11-05 07:54: "go, P3 yes"), two chunks:** chunk 1 BUILT (forecast names a starving setting, Clear queue keeps the current row, icons on task cards, effects grouped This seedling / Kept, "· P3" removed). Chunk 2 BUILT: a queue row "Load preset: name" (fires once every row above it is done, replaces itself and the rows below with the preset), favourite and hide filters (Edit list, favourites first in their section, hidden tasks fold into "N hidden", still run; crossings can't be hidden; kept in the save). Then research rounds 2 and 3.
@@ -51,6 +52,7 @@ Last updated: 2026-11-05 (build "section targets"). Update in every push.
 See design.md: colony content held back from Act II, the Act II legacy themes from the old Honours, and four open questions.
 
 ## Done recently (see changelog.md for all)
+- 2026-11-05: Seedling Vaults 27% longer (owner's pick B; bot 7 -> 10, aiming at the owner's 9).
 - 2026-11-05: section targets: target seedlings per section in the header and route info, a star and Log entry when cleared within it.
 - 2026-11-05: queue history: load a past seedling's starting queue, merged death rows, pause when the queue is finished, tasks per real minute, speed breakdown.
 - 2026-11-05: save checks: format number and checksum, recovery screen, Android share sheet export, file names with time and build.
