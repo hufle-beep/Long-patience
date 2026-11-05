@@ -20,7 +20,6 @@
 /* Layout: one-column ship console. Sticky readout header, scrolling task list, fixed tab bar. Single dark look (heartwood browns, amber resin) by choice. */
 html{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 [hidden]{display:none!important}
-body{margin:0}
 :root{
   --bg:#1a140c; --panel:#241b10; --panel2:#2e2316; --line:#4a3920; --line2:#6b5532; --fg:#f2e6c9; --dim:#b39b6c; --faint:#786245;   /* Root-Kin palette: heartwood browns, amber resin */
   --amber:#f0a03c; --amber-soft:rgba(240,160,60,.14); --amber-fill:rgba(240,160,60,.22);
@@ -30,8 +29,7 @@ body{margin:0}
   --f-mono:'Selene Mono',ui-monospace,Menlo,monospace;
   color-scheme:dark;
 }
-html,body{background:var(--bg);color:var(--fg)}
-body{font-family:var(--f-body);font-size:14px;line-height:1.4;-webkit-tap-highlight-color:transparent}
+html,body{background:var(--bg);color:var(--fg)}body{margin:0;font-family:var(--f-body);font-size:14px;line-height:1.4;-webkit-tap-highlight-color:transparent}
 body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--panel)}
 button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
 button:focus-visible,input:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
@@ -39,7 +37,6 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--amber);outline-
 .gut{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
 .num{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
 .lbl{font-family:var(--f-disp);text-transform:uppercase;letter-spacing:.09em;font-size:12px;color:var(--dim);font-weight:600}
-
 /* HUD */
 #hud{position:sticky;top:env(safe-area-inset-top,0px);z-index:6;background:var(--panel);border-bottom:1px solid var(--line);padding-block:10px 10px}
 #hud .wrap{display:grid;gap:7px}
@@ -77,11 +74,9 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--amber);outline-
 .bar.xp i{background:var(--cyan)}
 .meter span{font-size:12px;color:var(--fg);min-width:92px;text-align:right}
 .res{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.res>div{display:flex;align-items:baseline;gap:6px;background:var(--panel2);border-radius:4px;padding:5px 8px;min-width:0}
 .res b{font-size:15px;font-weight:500}
 .res .cap{font-size:11px;color:var(--faint);font-weight:400}
-.res b.full{color:var(--amber)}
-.res>div{flex-wrap:wrap}
+.res b.full{color:var(--amber)}.res>div{display:flex;align-items:baseline;gap:6px;background:var(--panel2);border-radius:4px;padding:5px 8px;min-width:0;flex-wrap:wrap}
 .res small.rt{flex-basis:100%;margin-left:0;color:var(--dim);font-size:11px}
 .res small.rt.neg{color:var(--red-t)}
 #t-ratt{white-space:pre-line;overflow-wrap:anywhere}   /* one short line each: cells, station, crossing */
@@ -133,8 +128,7 @@ html[data-rv="0"] .qinsbar,html[data-rv="0"] .qrow .qo,html[data-rv="0"] .qpre,h
 .nowrow{display:flex;gap:6px;align-items:stretch}.nowrow .now{flex:1;min-width:0}
 .rtr{flex:none;min-width:34px;border:1px solid var(--line2);border-radius:4px;background:var(--panel2);color:var(--dim);font-size:15px;padding:0 8px;cursor:pointer}
 .rtr:hover{color:var(--fg)}
-.qinsbar{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:12px;color:var(--dim);margin:0 0 4px}.qinsbar .btn{padding:2px 9px;font-size:12px}
-.qrow .qn{background:none;border:0;color:inherit;font:inherit;padding:0 2px;cursor:pointer}.qrow .qn.ins{color:var(--amber);text-decoration:underline}
+.qinsbar{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:12px;color:var(--dim);margin:0 0 4px}.qinsbar .btn{padding:2px 9px;font-size:12px}.qrow .qn.ins{color:var(--amber);text-decoration:underline}
 .qrow button.qo{font-size:11px;opacity:.75}.qrow button.qo.on{color:var(--amber);border-color:var(--amber);opacity:1}
 .now{position:relative;overflow:hidden;border:1px solid var(--line);border-radius:4px;padding:7px 9px;display:flex;justify-content:space-between;gap:10px;align-items:center;min-height:34px}
 .now .nf{position:absolute;inset:0 auto 0 0;width:0;background:var(--amber-fill)}
@@ -144,13 +138,11 @@ html[data-rv="0"] .qinsbar,html[data-rv="0"] .qrow .qo,html[data-rv="0"] .qpre,h
 .now.idle{border-color:var(--amber);animation:blink 1.6s ease-in-out infinite}
 .now.forage{border-color:var(--green)}
 @keyframes blink{50%{border-color:var(--line)}}
-
 /* main */
 main{padding-block:12px 100px}
 main .wrap{display:grid;gap:18px}
 .view{display:grid;gap:18px}
 .view[hidden]{display:none!important}
-
 /* queue */
 .qp{display:grid;gap:8px;padding:10px;border:1px dashed var(--line);border-radius:6px}
 .qh{display:flex;justify-content:space-between;align-items:center}
@@ -177,9 +169,7 @@ button.zh.zhb{margin:14px 0 6px}
 .chain span.st.ok{border-color:var(--cyan-soft)}
 .qnow{display:flex;gap:10px;align-items:center;justify-content:space-between;padding:7px 9px;border:1px solid var(--amber);border-radius:4px;font-size:13px}
 .qnow .btn{padding:5px 10px;font-size:12px}
-.qh button{font-size:12px;color:var(--dim);padding:3px 6px}
-.qlist{display:flex;flex-wrap:wrap;gap:6px}
-.qlist{list-style:none;margin:0;padding:0;display:grid;gap:4px}
+.qh button{font-size:12px;color:var(--dim);padding:3px 6px}.qlist{flex-wrap:wrap;list-style:none;margin:0;padding:0;display:grid;gap:4px}
 .qlist.long{max-height:55vh;overflow-y:auto;overscroll-behavior:contain;padding-right:2px}
 .qrow{display:flex;align-items:center;gap:6px;padding:4px 4px 4px 8px;border-radius:4px;background:var(--panel2);border:1px solid var(--line);font-size:13px}
 .qrow.blocked{opacity:.6}
@@ -188,15 +178,12 @@ button.zh.zhb{margin:14px 0 6px}
 .qrow.fnr{border-color:var(--red);background:rgba(226,96,79,.1)}
 .qrow.fnr .qfc{color:var(--red-t)}
 .qrow.fdie{border-color:var(--red);border-width:2px}
-.qrow.fdie .qfc{color:var(--red-t);font-weight:600}
-.qrow .qn{color:var(--faint);font-family:var(--f-mono);font-size:12px}
+.qrow.fdie .qfc{color:var(--red-t);font-weight:600}.qrow .qn{background:none;border:0;font:inherit;padding:0 2px;cursor:pointer;color:var(--faint);font-family:var(--f-mono);font-size:12px}
 .qrow .qt{flex:1;min-width:0}
 .qrow.cq{border-color:var(--cyan-soft);align-items:flex-start}
-.task.chaincard{border-color:var(--cyan-soft)}
 .task.chaincard .tn{color:var(--cyan)}
 .task.chaincard .csub{list-style:none;margin:0;padding:6px 12px 10px;display:grid;gap:2px;font-size:12px;color:var(--dim);flex-basis:100%}
-.task.chaincard .csub li.done{color:var(--faint);text-decoration:line-through}
-.task.chaincard{flex-wrap:wrap}
+.task.chaincard .csub li.done{color:var(--faint);text-decoration:line-through}.task.chaincard{border-color:var(--cyan-soft);flex-wrap:wrap}
 .copen{font-size:13px}
 .qrow.cq .cqt{width:auto;height:auto;border:0;padding:0;color:var(--cyan);font-size:13px;text-align:left}
 .qrow .csub{list-style:none;margin:6px 0 2px;padding:0 0 0 4px;display:grid;gap:2px;font-size:12px;color:var(--dim)}
@@ -214,30 +201,19 @@ button.zh.zhb{margin:14px 0 6px}
 .qh .qhb button.qclear:hover{border-color:var(--red);color:var(--red-t)}
 .qbody{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:start}
 .qmain{min-width:0;display:grid;gap:6px}
-.qpre{display:grid;gap:6px;padding-left:10px;border-left:1px dashed var(--line)}
-.qps{display:grid;gap:3px;font-size:12px}
 .qpl{display:flex;gap:6px;align-items:baseline}
 .qpb{display:flex;flex-wrap:wrap;gap:4px}
 .qps b{font-family:var(--f-mono);color:var(--amber)}
 .qps small{color:var(--dim);font-size:11px}
 .qps button{font-size:11px;padding:4px 7px;border:1px solid var(--line2);border-radius:4px;color:var(--fg);background:var(--panel2)}
 .qps button:disabled{opacity:.35;cursor:default}
-.qpre{width:98px;box-sizing:border-box}
-.qps .qpl{display:grid;grid-template-columns:auto minmax(0,1fr);column-gap:5px;width:100%;border:0;padding:0;font-size:12px;color:var(--fg);text-align:left;cursor:pointer}
 .qps .qpn{color:var(--sand);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.qps .qpl small{grid-column:1/-1}
 .qps .qpl.nn small{grid-column:auto}
 .qps .qpn i{color:var(--faint);font-style:normal}
-.qps.qtx{border-top:1px dashed var(--line);padding-top:6px}
 /* Presets as compact rows under the queue (build "clearer buttons") */
-.qbody{grid-template-columns:minmax(0,1fr)}
-.qpre{width:auto;padding:8px 0 0;border-left:0;border-top:1px dashed var(--line);display:flex;flex-wrap:wrap;gap:5px 10px;align-items:center}
-.qpre>.lbl{flex:1 1 100%}
-.qps{flex:1 1 100%;display:flex;align-items:center;gap:8px}
-.qps .qpl{display:flex;flex:1 1 auto;min-width:0;align-items:baseline;gap:6px}
-.qps .qpl small{grid-column:auto}
-.qps .qpb{flex:0 0 auto;flex-wrap:nowrap}
-.qps.qtx{flex:0 0 auto;border-top:0;padding-top:0;gap:5px}
+.qbody{grid-template-columns:minmax(0,1fr)}.qpre{padding-left:10px;box-sizing:border-box;width:auto;padding:8px 0 0;border-left:0;border-top:1px dashed var(--line);display:flex;flex-wrap:wrap;gap:5px 10px;align-items:center}
+.qpre>.lbl{flex:1 1 100%}.qps{font-size:12px;flex:1 1 100%;display:flex;align-items:center;gap:8px}.qps .qpl{grid-template-columns:auto minmax(0,1fr);column-gap:5px;width:100%;border:0;padding:0;font-size:12px;color:var(--fg);text-align:left;cursor:pointer;display:flex;flex:1 1 auto;min-width:0;align-items:baseline;gap:6px}.qps .qpl small{grid-column:auto}
+.qps .qpb{flex:0 0 auto;flex-wrap:nowrap}.qps.qtx{flex:0 0 auto;border-top:0;padding-top:0;gap:5px}
 .qps.qtx .lbl{font-size:11px}
 .zh .nxa .ok{color:var(--green)}.zh .nxa .neg{color:var(--red-t)}
 .sktm{font-size:11px;color:var(--dim);margin-top:2px}
@@ -261,8 +237,7 @@ button.zh.zhb{margin:14px 0 6px}
 .rn.cur rect{stroke:var(--amber);stroke-width:2}.rn.cur .rni{fill:var(--amber)}.rn.life rect{stroke:var(--cyan)}.rn.unk rect{fill:none;stroke-dasharray:4 3}.rn.unk text{fill:var(--faint);font-size:15px}
 .rn[data-routez]{cursor:pointer}.ract{font-family:var(--f-disp);font-size:12px;letter-spacing:.06em;fill:var(--dim);text-transform:uppercase}
 .re{fill:none;stroke-width:2}.re.lit{stroke:var(--cyan)}.re.ever{stroke:var(--sand);opacity:.6}.re.unk{stroke:var(--faint);stroke-dasharray:4 3}
-.rk{white-space:nowrap;padding:0 4px;border:1px solid var(--line);border-radius:3px}.rk.cur{border-color:var(--amber)}.rk.life{border-color:var(--cyan)}.rk.ever{border-color:var(--sand)}
-.spd .apz{display:flex;align-items:center;gap:3px;color:var(--cyan)}.spd .apz .gi{margin:0;width:16px;height:16px}.spd.a5{grid-template-columns:44px 44px 44px 1fr 94px}.spd .apz{padding:0;justify-content:center}.spd .apz.on{color:var(--red-t);border-color:var(--red);background:none;flex-direction:column;gap:0}.spd .apz.on span{font-size:9px;line-height:1}.spd .apz span{font-size:11px;text-transform:uppercase}
+.rk{white-space:nowrap;padding:0 4px;border:1px solid var(--line);border-radius:3px}.rk.cur{border-color:var(--amber)}.rk.life{border-color:var(--cyan)}.rk.ever{border-color:var(--sand)}.spd .apz .gi{margin:0;width:16px;height:16px}.spd.a5{grid-template-columns:44px 44px 44px 1fr 94px}.spd .apz{display:flex;align-items:center;gap:3px;color:var(--cyan);padding:0;justify-content:center}.spd .apz.on{color:var(--red-t);border-color:var(--red);background:none;flex-direction:column;gap:0}.spd .apz.on span{font-size:9px;line-height:1}.spd .apz span{font-size:11px;text-transform:uppercase}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap}
 .lchips{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 12px}.lchips button{border:1px solid var(--line);border-radius:14px;padding:5px 12px;font-size:13px;color:var(--dim)}.lchips button.on{color:var(--fg);border-color:var(--amber);background:var(--panel2)}
 .evl{list-style:none;margin:6px 0 0;padding:0}.evl li{padding:5px 0;border-top:1px dashed var(--line);font-size:14px}.evl li span{color:var(--dim);font-size:12.5px}
@@ -278,7 +253,6 @@ button.zh.zhb{margin:14px 0 6px}
 .lockq{visibility:visible!important}
 .qnote{font-size:12px;color:var(--dim)}
 .qnote b{color:var(--fg);font-weight:500}
-
 /* zones and tasks */
 .zone{display:grid;gap:6px}
 .zh{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;border-bottom:1px solid var(--line);padding-bottom:5px}
@@ -321,7 +295,6 @@ button.zh.zhb{margin:14px 0 6px}
 .tq.in{color:var(--amber);border-color:var(--amber);font-size:12px}
 .task.lock .tm{opacity:.45;cursor:default;border-style:dashed}
 .task.lock .tq{visibility:hidden}
-
 /* skills */
 .sk.fam h3{font-family:var(--f-body);font-size:14px;text-transform:none;letter-spacing:0;font-weight:500}
 .sk{display:grid;gap:6px;padding:10px 0;border-bottom:1px solid var(--line)}
@@ -333,7 +306,6 @@ button.zh.zhb{margin:14px 0 6px}
 .note{font-size:13px;color:var(--dim);max-width:62ch;margin:0}
 .panel{border:1px solid var(--line);border-radius:6px;padding:12px;display:grid;gap:4px;background:var(--panel)}
 .h2{margin:0;font-family:var(--f-disp);font-size:19px;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
-
 /* gear */
 .item{display:flex;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
 .item>div{flex:1;min-width:0}
@@ -343,7 +315,6 @@ button.zh.zhb{margin:14px 0 6px}
 .gqb{flex:0 0 auto;width:40px;height:40px;margin-left:6px}
 .item.lockd h3{color:var(--dim)}
 .owned{font-family:var(--f-mono);font-size:12px;color:var(--green);min-width:84px;text-align:center}
-
 /* archive */
 .perk{padding:9px 0;border-bottom:1px solid var(--line);display:grid;gap:2px}
 .perk h3{margin:0;font-size:14px;font-weight:500;color:var(--amber)}
@@ -368,14 +339,12 @@ input[type=range]{width:100%;accent-color:var(--amber)}
 .btn:not(.pri):not(.warn){background:var(--panel2);border-color:var(--line2)}
 .btn.warn{border-color:var(--red);color:var(--red-t)}
 .btn.pri{background:var(--amber);border-color:var(--amber);color:var(--bg);font-weight:600}
-
 /* log */
 .le{padding:10px 0;border-bottom:1px solid var(--line);display:grid;gap:3px}
 .le header{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
 .le h3{margin:0;font-size:14px;font-weight:500}
 .le time{font-family:var(--f-mono);font-size:11px;color:var(--faint)}
 .le p{margin:0;font-size:13px;color:var(--dim);max-width:62ch}
-
 /* tabs */
 #tabs{position:fixed;left:0;right:0;bottom:0;z-index:6;background:var(--panel);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
 #tabs .wrap{display:flex;justify-content:space-between;gap:2px;overflow-x:auto;scrollbar-width:none}
@@ -387,7 +356,6 @@ input[type=range]{width:100%;accent-color:var(--amber)}
 #tabs button.on::before{content:"";position:absolute;top:-1px;left:10%;right:10%;height:2px;background:var(--amber)}
 .fnew{font-family:var(--f-mono);font-size:10.5px;color:var(--bg);background:var(--cyan);border-radius:3px;padding:0 5px;margin-left:6px;vertical-align:middle}
 #tabs button.dot::after{content:"";position:absolute;top:9px;right:18%;width:6px;height:6px;border-radius:50%;background:var(--cyan)}
-
 /* modal + toast */
 #modal{position:fixed;inset:0;z-index:20;background:rgba(14,10,5,.84);display:flex;align-items:center;justify-content:center;padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
 html.mopen,html.mopen body{overflow:hidden;overscroll-behavior:none}
@@ -445,9 +413,7 @@ html.mopen,html.mopen body{overflow:hidden;overscroll-behavior:none}
 .mn text{fill:var(--fg);font-family:var(--f-body);font-size:11.5px;font-weight:500}
 .mn .ms{fill:var(--dim);font-family:var(--f-mono);font-size:9.5px;font-weight:400}
 .mn.done .mb{stroke:var(--amber)}
-.mn.done .mf{fill:var(--amber-fill)}
-.mn.cur .mb{stroke:var(--amber);stroke-width:2}
-.mn.cur .mb{filter:drop-shadow(0 0 4px rgba(240,160,60,.55))}
+.mn.done .mf{fill:var(--amber-fill)}.mn.cur .mb{stroke:var(--amber);stroke-width:2;filter:drop-shadow(0 0 4px rgba(240,160,60,.55))}
 .mn.lock{opacity:.4}
 .me{fill:none;stroke:var(--line);stroke-width:1.5}
 .me.lit{stroke:var(--amber);opacity:.7}
@@ -584,7 +550,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
 // Renamed from Long Patience: move this device's old storage keys to the new 'selene.' names once
 try { const old = []; for (let n = 0; n < localStorage.length; n++) old.push(localStorage.key(n)); old.forEach(k => { if (k && k.indexOf('long-patience.') === 0) { const nk = 'selene.' + k.slice(14); if (localStorage.getItem(nk) == null) localStorage.setItem(nk, localStorage.getItem(k)); localStorage.removeItem(k); } }); } catch(e) {}
 /* ===== Game data and rules (no DOM) ===== */
-const BUILD = '2026-11-05 · logic tightened';   // shown in the main menu, to tell which version is loaded
+const BUILD = '2026-11-05 · ui tightened';   // shown in the main menu, to tell which version is loaded
 const DPS = 8;             // simulation ticks per real second at 1x (doubled for the test version: same balance, half the real time)
 // Time is simulated in ticks. 80 ticks make one day unit (18 minutes each), so a day lasts
 // 20 real seconds at 1x and Players only ever see in-game time and real time, never days.
@@ -2765,6 +2731,7 @@ document.addEventListener('visibilitychange', () => { if (!A.ctx) return; if (do
 </script>
 
 <script id="ui">
+const near = (e, sel) => e.target.closest && e.target.closest(sel);   // the element matching sel that an event came from, if any
 /* ===== Interface ===== */
 const KEY = 'selene.save.v1';
 const $ = s => document.querySelector(s);
@@ -3665,7 +3632,6 @@ function autoBtn(t){
   return `<button class="ta${on ? ' on' : ''}" data-auto="${t.id}" aria-pressed="${on}" aria-label="Automate ${esc(t.name)}">AUTO</button>` +
 ''; 
 }
-function chips(t){ return ''; }
 // Favourite and hidden task cards (kept in the save); "Edit list" shows the toggles
 let editList = false;
 const showHid = {};
@@ -4059,7 +4025,7 @@ document.addEventListener('pointerout', e => { if (e.pointerType === 'touch' || 
 document.addEventListener('pointerdown', e => {
   tipHide(); tipSwallow = false; tipTouch = null;
   if (e.pointerType !== 'touch') return;
-  if (e.target.closest && e.target.closest('button[data-q],[data-qdrag]')) return;   // the + keeps its long-press; drag handles drag
+  if (near(e, 'button[data-q],[data-qdrag]')) return;   // the + keeps its long-press; drag handles drag
   const el = tipFind(e.target); if (!el) return;
   tipTouch = {el, x:e.clientX, y:e.clientY};
   tipT = setTimeout(() => { if (tipTouch && tipTouch.el.isConnected && tipShow(tipTouch.el, tipTouch.x, tipTouch.y)) tipSwallow = true; }, TIP_HOLD);
@@ -4072,7 +4038,7 @@ document.addEventListener('contextmenu', e => { if (tipSwallow || (tipEl && !tip
 // Long-press + on a drill or a task with several reps: queue one copy per repetition still to do
 let lpT = null, lpDone = false;
 document.addEventListener('pointerdown', e => {
-  const bq = e.target.closest && e.target.closest('button[data-q]'); lpDone = false; clearTimeout(lpT);
+  const bq = near(e, 'button[data-q]'); lpDone = false; clearTimeout(lpT);
   if (!bq || S.life.dead) return;
   const id = bq.dataset.q, t = T[id]; if (!t || t.kind === 'job' || (t.reps || 1) < 2) return;
   lpT = setTimeout(() => {
@@ -4083,18 +4049,18 @@ document.addEventListener('pointerdown', e => {
   }, 550);
 });
 ['pointerup', 'pointercancel', 'pointerleave'].forEach(k => document.addEventListener(k, () => clearTimeout(lpT)));
-document.addEventListener('click', e => { if (lpDone && e.target.closest && e.target.closest('button[data-q]')) { lpDone = false; e.stopImmediatePropagation(); e.preventDefault(); } }, true);   // the long-press already queued: no extra copy
+document.addEventListener('click', e => { if (lpDone && near(e, 'button[data-q]')) { lpDone = false; e.stopImmediatePropagation(); e.preventDefault(); } }, true);   // the long-press already queued: no extra copy
 // Arrow keys move between the buttons of a chip row or a segmented choice (round 5); the tab keys leave them alone.
 document.addEventListener('keydown', e => {
   if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
-  const g = e.target.closest && e.target.closest('.lchips,.seg'); if (!g) return;
+  const g = near(e, '.lchips,.seg'); if (!g) return;
   const bs = [...g.querySelectorAll('button')], i = bs.indexOf(e.target); if (i < 0) return;
   e.preventDefault(); bs[(i + (e.key === 'ArrowRight' ? 1 : bs.length - 1)) % bs.length].focus();
 });
 // Long-press a queue row's remove button: remove every copy of that task (round 5); Undo brings them back
 let lpX = null, lpXDone = false;
 document.addEventListener('pointerdown', e => {
-  const bx = e.target.closest && e.target.closest('button[data-unqi]'); lpXDone = false; clearTimeout(lpX);
+  const bx = near(e, 'button[data-unqi]'); lpXDone = false; clearTimeout(lpX);
   if (!bx || S.life.dead) return;
   lpX = setTimeout(() => {
     const L = S.life, id = L.queue[+bx.dataset.unqi]; if (id == null) return; lpXDone = true;
@@ -4104,8 +4070,8 @@ document.addEventListener('pointerdown', e => {
   }, 550);
 });
 ['pointerup', 'pointercancel'].forEach(ev => document.addEventListener(ev, () => clearTimeout(lpX), true));
-document.addEventListener('pointerleave', e => { if (e.target.closest && e.target.closest('button[data-unqi]')) clearTimeout(lpX); }, true);
-document.addEventListener('click', e => { if (lpXDone && e.target.closest && e.target.closest('button[data-unqi]')) { lpXDone = false; e.stopImmediatePropagation(); e.preventDefault(); } }, true);
+document.addEventListener('pointerleave', e => { if (near(e, 'button[data-unqi]')) clearTimeout(lpX); }, true);
+document.addEventListener('click', e => { if (lpXDone && near(e, 'button[data-unqi]')) { lpXDone = false; e.stopImmediatePropagation(); e.preventDefault(); } }, true);
 // Tap guard (round 5): a second tap within TAP_GUARD ms on the same button that spends, crosses or confirms is ignored,
 // so a double tap can't build, repair, recharge, cross or confirm twice ("Tap again" needs a real second tap).
 const TAP_GUARD = 400, GUARD_SEL = '[data-gdo],[data-repair],[data-eat],[data-confirm],[data-skiphold],[data-decant]';
@@ -4115,7 +4081,7 @@ function tapGuardKey(b){
   const t = b.dataset.do && typeof T !== 'undefined' && T[b.dataset.do]; return t && t.cross ? 'do:' + t.id : '';
 }
 document.addEventListener('click', e => {
-  const b = e.target.closest && e.target.closest('button'); if (!b) return;
+  const b = near(e, 'button'); if (!b) return;
   const k = tapGuardKey(b); if (!k) return;
   const now = performance.now();
   if (k === guardK && now - guardT < TAP_GUARD) { e.stopImmediatePropagation(); e.preventDefault(); return; }
@@ -4123,7 +4089,7 @@ document.addEventListener('click', e => {
 }, true);
 let qDrag = null;
 document.addEventListener('pointerdown', e => {
-  const hnd = e.target.closest && e.target.closest('[data-qdrag]');
+  const hnd = near(e, '[data-qdrag]');
   if (!hnd || qDrag || e.button > 0) return;
   const row = hnd.closest('.qrow'), list = row.parentElement, rows = [...list.children].filter(r => r.dataset.qid);   // queue rows only (not the pinned section run)
   e.preventDefault();
@@ -4218,7 +4184,7 @@ function renderTasks(){
   }).join('') + '<div class="qps qtx"><span class="lbl">Text</span><span class="qpb"><button data-qtext aria-label="Queue as text: copy or paste">Copy / paste</button></span></div><div class="qps qtx"><span class="lbl">Sort</span><span class="qpb"><button data-qsortfam aria-label="Sort the queue: least familiar tasks first">Least familiar</button></span></div><div class="qps qtx need2"><span class="lbl">Triggers</span><span class="qpb"><button data-qtrig aria-label="Preset triggers: load a preset by itself">' + ((S.qtrig || []).length ? (S.qtrig || []).length + ' rule' + ((S.qtrig || []).length > 1 ? 's' : '') : 'Set up') + '</button></span></div></div></div>';
   h += bestRunsHtml(L.sec || 1);
   if (L.job) h += `<div class="qnote">Fallback job: <b>${esc(T[L.job].name)}</b>. It runs whenever the queue is empty.</div>`;
-  h += `<div class="row qkeep"><p>Keep queue between seedlings<small>A new seedling starts with the queue you planned this life, minus anything automated and switched on.</small></p><button class="tog${S.set.keepQueue !== false ? ' on' : ''}" data-set="keepQueue" aria-label="Keep queue between seedlings" aria-pressed="${S.set.keepQueue !== false}"></button></div></div>`;
+  h += `${togRow('keepQueue', 'Keep queue between seedlings', `A new seedling starts with the queue you planned this life, minus anything automated and switched on.`, ' qkeep')}</div>`;
 
   h += `<div class="lbar"><button class="btn${editList ? ' on' : ''}" data-editlist aria-pressed="${editList}">${editList ? 'Done' : 'Edit list'}</button>${editList ? '<small>\u2605 puts a task at the top of its section; Hide folds it into the hidden line at the bottom. Hidden tasks still run when queued, automated or chained. Crossings and chain cards stay.</small>' : ''}</div>`;
   ZONES.forEach(z => {
@@ -4250,7 +4216,7 @@ function renderTasks(){
         h += `<div class="task job${L.job === t.id ? ' fb' : ''}${cardCls(t)}" data-id="${t.id}">
           <button class="tm" data-do="${t.id}"><div class="tf"></div>
             <div class="th"><span class="tn">${esc(t.name)}</span><span class="te num" data-r="${res}"></span></div>
-            <div class="tx">${chips(t)}${t.haz ? '<span class="haz">▲ hazard</span>' : ''}${!t.prod ? '<span>no output</span>' : '<span class="tt num"></span>'}<span class="pr num"></span></div>
+            <div class="tx">${t.haz ? '<span class="haz">▲ hazard</span>' : ''}${!t.prod ? '<span>no output</span>' : '<span class="tt num"></span>'}<span class="pr num"></span></div>
           </button>${editList ? '<div class="side">' + edBtns(t) + '</div>' : ''}</div>`;   // jobs: no queue or automation buttons (auto-forage, gear and crossings run them)
       });
     }
@@ -4261,7 +4227,7 @@ function renderTasks(){
         h += `<div class="task act train${(S.ever || {})[t.id] ? '' : ' nev'}${cardCls(t)}" data-id="${t.id}">
           <button class="tm" data-do="${t.id}"><div class="tf"></div>
             <div class="th"><span class="tn">${esc(t.name)}</span><span class="te num"></span></div>
-            <div class="tx">${chips(t)}<span class="num rp"></span><span class="num pp">${progHtml(t, autoFrac(t))}</span>${effectHtml(t)}</div>
+            <div class="tx"><span class="num rp"></span><span class="num pp">${progHtml(t, autoFrac(t))}</span>${effectHtml(t)}</div>
           </button>
           <div class="side">${editList ? edBtns(t) : tqBtn(t) + autoBtn(t)}</div></div>`;
       });
@@ -4273,7 +4239,7 @@ function renderTasks(){
         h += `<div class="task act${t.cross ? ' cross' : ''}${(S.ever || {})[t.id] ? '' : ' nev'}${cardCls(t)}" data-id="${t.id}">
           <button class="tm" data-do="${t.id}"><div class="tf"></div>${t.cross ? `<div class="crossw">Leads to ${esc(zoneThe(t.to || nextZone(t.z)))} \u00b7 no way back</div>` : ''}
             <div class="th"><span class="tn">${esc(t.name)}${tIcons(t)}</span><span class="te num"></span></div>
-            <div class="tx">${chips(t)}${t.reps > 1 ? `<span class="num rp"></span>` : ''}${t.haz ? '<span class="haz">▲ hazard</span>' : ''}<span class="num pp">${progHtml(t, autoFrac(t))}</span>${effectHtml(t)}</div>
+            <div class="tx">${t.reps > 1 ? `<span class="num rp"></span>` : ''}${t.haz ? '<span class="haz">▲ hazard</span>' : ''}<span class="num pp">${progHtml(t, autoFrac(t))}</span>${effectHtml(t)}</div>
           </button>
           <div class="side">${editList ? edBtns(t) : tqBtn(t) + autoBtn(t)}</div></div>`;
       });
@@ -4293,7 +4259,7 @@ function renderTasks(){
       const sealed = t.req.includes('wardlift') && !reqMet('wardlift');   // the kindling, under WARDEN's ward-lock
       const need = t.req.filter(r => !reqMet(r) && r !== 'wardlift').map(r => S.seen[r] || T[r].legacy ? T[r].name : 'something unseen');
       h += `<div class="task lock${cardCls(t)}" data-lock="${t.id}"><div class="tm"><div class="th"><span class="tn">${esc(t.name)}${tIcons(t)}</span></div>
-        <div class="tx">${chips(t)}<span>${sealed ? 'Sealed by WARDEN\u2019s ward-lock. Mend the hull in the Shattered Bark first.' + (need.length ? ' ' : '') : ''}${need.length ? 'Needs: ' + esc(need.join(', ')) : ''}</span></div></div>${editList ? '<div class="side">' + edBtns(t) + '</div>' : qBtn(t.id, ' lockq')}</div>`;
+        <div class="tx"><span>${sealed ? 'Sealed by WARDEN\u2019s ward-lock. Mend the hull in the Shattered Bark first.' + (need.length ? ' ' : '') : ''}${need.length ? 'Needs: ' + esc(need.join(', ')) : ''}</span></div></div>${editList ? '<div class="side">' + edBtns(t) + '</div>' : qBtn(t.id, ' lockq')}</div>`;
     });
     if (nHid) h += `<button class="sub hidn" data-showhid="${z.id}" aria-expanded="${showH}">${showH ? '\u25be' : '\u25b8'} ${nHid} hidden${editList ? ' (shown while editing)' : ''}</button>`;
     h += '</section>';
@@ -4471,7 +4437,7 @@ let qfRefs = [];
 // The queue follows the row being worked on (round 5): it is marked, and a long (scrolling) queue list keeps it in view,
 // unless you scrolled the list yourself; following resumes after the next queue edit or 20 s without touching it.
 let qFollowI = -1, qHandT = -1e9;
-['wheel', 'touchmove', 'pointerdown'].forEach(ev => document.addEventListener(ev, e => { if (e.target.closest && e.target.closest('.qlist')) qHandT = performance.now(); }, {passive:true, capture:true}));
+['wheel', 'touchmove', 'pointerdown'].forEach(ev => document.addEventListener(ev, e => { if (near(e, '.qlist')) qHandT = performance.now(); }, {passive:true, capture:true}));
 function qFollow(rowEl){
   const list = rowEl && rowEl.closest('.qlist'); if (!list || list.scrollHeight <= list.clientHeight + 2) return;
   const lr = list.getBoundingClientRect(), rr = rowEl.getBoundingClientRect(), top = rr.top - lr.top;
@@ -4677,7 +4643,7 @@ function renderSkills(){
     if (fz) return h;
     ts.forEach(t => { const fr = masteryFrac(t);
       h += `<div class="sk fam"><div class="skh"><h3>${esc(t.name)}</h3><b>\u00d7${fmt(masteryF(t))}</b></div><div class="bar xp"><i style="width:${(fr * 100).toFixed(1)}%"></i></div>
-        <div class="skm num"><span>${chips(t)}</span><span>${fmt((S.fam || {})[t.id] || 0)}/${fmt(famNeed(t))}${t.kind === 'job' ? ' batches' : ''}</span></div>${speedBdHtml(t)}${(S.tt || {})[t.id] ? `<div class="sktm num">Time spent: this seedling ${clkG((L.tt || {})[t.id] || 0)} \u00b7 all seedlings ${clkG(S.tt[t.id])}</div>` : ''}${t.kind === 'job' ? '' : '<div class="skeff">' + (effectHtml(t, true) || '<span class="eff">no effect</span>') + '</div>'}</div>`; });
+        <div class="skm num"><span></span><span>${fmt((S.fam || {})[t.id] || 0)}/${fmt(famNeed(t))}${t.kind === 'job' ? ' batches' : ''}</span></div>${speedBdHtml(t)}${(S.tt || {})[t.id] ? `<div class="sktm num">Time spent: this seedling ${clkG((L.tt || {})[t.id] || 0)} \u00b7 all seedlings ${clkG(S.tt[t.id])}</div>` : ''}${t.kind === 'job' ? '' : '<div class="skeff">' + (effectHtml(t, true) || '<span class="eff">no effect</span>') + '</div>'}</div>`; });
     const gs = ITEMS.filter(i => gearZone(i) === z.id && ((S.ever || {})[i.req] || gearKnown(i)));
     if (gs.length) h += '<div class="sub asub">Gear</div>';
     gs.forEach(i => { const bt = BT[i.id], fr = masteryFrac(bt);
@@ -4767,7 +4733,7 @@ function displayPanel(cls){
   return `<div class="panel set ${cls || ''}"><span class="h2">Display</span>
     <div class="row"><p>Layout<small>Vertical suits phones held upright. Horizontal puts the status panel in a sidebar for wide screens. Auto picks for you.</small></p></div>
     <div class="seg">${opt('auto', 'Auto')}${opt('vertical', 'Vertical')}${opt('horizontal', 'Horizontal')}</div>
-    <div class="row need2"><p>Show formulas<small>Tooltips add the formulas behind drain, speed and crossing costs.</small></p><button class="tog${S.set.showFormulas ? ' on' : ''}" data-set="showFormulas" aria-label="Show formulas" aria-pressed="${!!S.set.showFormulas}"></button></div>
+    ${togRow('showFormulas', 'Show formulas', `Tooltips add the formulas behind drain, speed and crossing costs.`, ' need2')}
     <div class="row"><p>Text size<small>Makes all text and buttons larger or smaller on this device.</small></p></div>
     <div class="seg">${TSIZES.map(v => `<button data-tsize="${v}" class="${tsize === v ? 'on' : ''}" aria-pressed="${tsize === v}">${v}%</button>`).join('')}</div></div>`;
 }
@@ -5124,10 +5090,10 @@ function updateMap(){
   document.querySelectorAll('#v-map .me').forEach(e => e.classList.toggle('lit', isDone(e.dataset.from)));
 }
 // Route overview: tap (or Enter on) a known section for its details
-document.addEventListener('click', e => { const g = e.target.closest && e.target.closest('[data-routez]'); if (g) tipShow(g); });   // a tap shows the route tooltip
-document.addEventListener('keydown', e => { if (e.key !== 'Enter') return; const g = e.target.closest && e.target.closest('[data-routez]'); if (g) tipShow(g); });
+document.addEventListener('click', e => { const g = near(e, '[data-routez]'); if (g) tipShow(g); });   // a tap shows the route tooltip
+document.addEventListener('keydown', e => { if (e.key !== 'Enter') return; const g = near(e, '[data-routez]'); if (g) tipShow(g); });
 document.addEventListener('click', e => {
-  const g = e.target.closest && e.target.closest('[data-mapdo]'); if (!g) return;
+  const g = near(e, '[data-mapdo]'); if (!g) return;
   const L = S.life, t = T[g.dataset.mapdo];
   if (L.dead || complete(t) || zBefore(t.z, L.sec)) { sfx('error'); return; }
   audioStart(); sfx('click');
@@ -5159,30 +5125,34 @@ function bindFoodPct(){
 }
 function partsSettingsHtml(){
   if (!(S.a2 && S.a2.open)) return '';
-  let h = `<div class="row"><p>Auto-repair<small>Act II: spend grafts on Selene whenever her wear reaches a full repair and the repair cooldown is over.</small></p><button class="tog${S.set.autoRepair ? ' on' : ''}" data-set="autoRepair" aria-label="Auto-repair" aria-pressed="${!!S.set.autoRepair}"></button></div>`;
-  h += `<div class="row"><p>Auto-scavenge<small>Act II: work the best graft job when grafts drop below ${PARTS_DAYS * TPD / DPS} seconds of repairs (plus any workshop you are about to build), and stay until twice that.</small></p><button class="tog${S.set.autoScav ? ' on' : ''}" data-set="autoScav" aria-label="Auto-scavenge" aria-pressed="${!!S.set.autoScav}"></button></div>`;
+  let h = togRow('autoRepair', 'Auto-repair', `Act II: spend grafts on Selene whenever her wear reaches a full repair and the repair cooldown is over.`);
+  h += togRow('autoScav', 'Auto-scavenge', `Act II: work the best graft job when grafts drop below ${PARTS_DAYS * TPD / DPS} seconds of repairs (plus any workshop you are about to build), and stay until twice that.`);
   return h;
 }
 function foodSettingsHtml(){
   let h = '';
-  h += `<div class="row"><p>Auto-recharge<small>Use a sap cell whenever the recharge cooldown is over and energy has room for it.</small></p><button class="tog${S.set.autoEat ? ' on' : ''}" data-set="autoEat" aria-label="Auto-recharge" aria-pressed="${S.set.autoEat}"></button></div>`;
+  h += togRow('autoEat', 'Auto-recharge', `Use a sap cell whenever the recharge cooldown is over and energy has room for it.`);
   {
-    h += `<div class="row"><p>Auto-charge<small>Switch to the best charging station when your sap cells run below the threshold (and stay until they reach twice that), or when energy is low and recharges can still restore it faster than it drains; then the interrupted task carries on.</small></p><button class="tog${S.set.autoFood ? ' on' : ''}" data-set="autoFood" aria-label="Auto-charge" aria-pressed="${S.set.autoFood}"></button></div>
+    h += `${togRow('autoFood', 'Auto-charge', `Switch to the best charging station when your sap cells run below the threshold (and stay until they reach twice that), or when energy is low and recharges can still restore it faster than it drains; then the interrupted task carries on.`)}
       <div><div class="row"><p>Charge threshold<small>Share of your cell storage capacity. When the cells you carry drop below it, charging stations step in; they stop at twice this level (or when storage is full).</small></p></div><div class="pctin"><input type="number" id="fd-n" inputmode="numeric" min="1" max="99" step="1" value="${S.set.foodPct || 40}" aria-label="Charge threshold percent"><span>%</span></div><input type="range" id="fd" min="1" max="99" step="1" value="${S.set.foodPct || 40}" aria-label="Charge threshold, percent of cell storage capacity"></div>`;
   }
   return h;
 }
 // Clock and pause options (in the settings menu)
+// Settings switches: a row with a label, an explanation and a toggle (data-set flips it; see the click handler)
+const SET_ON = ['keepQueue', 'deathPause'];   // switches that are on unless turned off
+const setOn = k => SET_ON.includes(k) ? S.set[k] !== false : !!S.set[k];
+const togRow = (k, label, txt, cls = '') => `<div class="row${cls}"><p>${label}<small>${txt}</small></p><button class="tog${setOn(k) ? ' on' : ''}" data-set="${k}" aria-label="${label}" aria-pressed="${setOn(k)}"></button></div>`;
 function pauseSettingsHtml(){
   const st = S.set, seg = (lbl, opts, cur) => `<div class="seg" role="group" aria-label="${lbl}">${opts.map(([v, txt, to]) => `<button data-setto="${to}" class="${cur === v ? 'on' : ''}" aria-pressed="${cur === v}">${txt}</button>`).join('')}</div>`;
-  const chip = (k, txt, lbl, cls = '') => `<button data-set="${k}" class="${(k === 'deathPause' ? st[k] !== false : !!st[k]) ? 'on' : ''}${cls}" aria-pressed="${k === 'deathPause' ? st[k] !== false : !!st[k]}" aria-label="${lbl}">${txt}</button>`;
+  const chip = (k, txt, lbl, cls = '') => `<button data-set="${k}" class="${setOn(k) ? 'on' : ''}${cls}" aria-pressed="${setOn(k)}" aria-label="${lbl}">${txt}</button>`;
   const dm = st.deathScreen !== false ? 's' : st.deathQueue ? 'q' : 'g', cm = st.pauseCross ? 'e' : st.pauseFirst !== false ? 'f' : 'n';
   return (decantUnlocked()
       ? `<div class="fld"><p>At a death<small>Stop: the game waits at the death screen until you sprout the next seedling. Carry on: the next seedling sprouts at once and a short message sums up the death; with “If queue unfinished” it still stops when rows you set were left (automated rows don’t count).</small></p>${seg('At a death', [['s', 'Stop', 'deathScreen=true,deathQueue=false'], ['q', 'If queue unfinished', 'deathScreen=false,deathQueue=true'], ['g', 'Carry on', 'deathScreen=false,deathQueue=false']], dm)}</div>`
       : `<div class="fld"><label>Death screen</label><small class="note">Automatic sprouting unlocks after ${AUTO_LIVES} seedlings have died (${S.stats.deaths || 0}/${AUTO_LIVES}). Until then the game stops at each death.</small></div>`) + `
-    <div class="row"><p>Always run sections once ready<small>Whenever the section a seedling is in is fully automated, a section run starts by itself: the queue’s leftovers for its sections are cleared and the run is pinned at the top of the queue. Pressing Run section turns this on; Stop turns it off.</small></p><button class="tog${st.autoRun ? ' on' : ''}" data-set="autoRun" aria-label="Always run sections once ready" aria-pressed="${!!st.autoRun}"></button></div>
+    ${togRow('autoRun', 'Always run sections once ready', `Whenever the section a seedling is in is fully automated, a section run starts by itself: the queue’s leftovers for its sections are cleared and the run is pinned at the top of the queue. Pressing Run section turns this on; Stop turns it off.`)}
     <div class="fld"><p>Pause at crossings<small>First time: the clock stops once the first time any seedling reaches a section, so you can read its new tasks. Every crossing: whenever a seedling crosses, so you can plan the new section.</small></p>${seg('Pause at crossings', [['n', 'Never', 'pauseFirst=false,pauseCross=false'], ['f', 'First time', 'pauseFirst=true,pauseCross=false'], ['e', 'Every crossing', 'pauseFirst=true,pauseCross=true']], cm)}</div>
-    <div class="row"><p>During section runs, pause only when the run ends<small>A run across several sections keeps going through its crossings, and the clock stops once the run finishes or stops by itself. Your own Stop doesn’t pause.</small></p><button class="tog${st.pauseRunEnd ? ' on' : ''}" data-set="pauseRunEnd" aria-label="During section runs, pause only when the run ends" aria-pressed="${!!st.pauseRunEnd}"></button></div>
+    ${togRow('pauseRunEnd', 'During section runs, pause only when the run ends', `A run across several sections keeps going through its crossings, and the clock stops once the run finishes or stops by itself. Your own Stop doesn’t pause.`)}
     <div class="fld"><p>Pause when…<small>A task finishes: an action with all its repeats, a drill’s sessions for this life, or a job once its storage is full (automated tasks too). The queue is done: the last row you set (a short chime; clearing it yourself doesn’t count). Before the forecast death: once per seedling, 5 s (in-game) before it. The game opens, or a seedling sprouts from the death screen: the clock waits for Resume.</small></p><div class="lchips">${chip('pauseDone', 'A task finishes', 'Pause when a task finishes')}${chip('pauseQueue', 'The queue is done', 'Pause when the queue is finished', ' need2')}${chip('pauseDeath', 'Before the forecast death', 'Pause just before the forecast death', ' need2')}${chip('startPaused', 'The game opens', 'Start the game paused')}${chip('deathPause', 'A seedling sprouts', 'Start new seedlings paused')}</div></div>
 `;
 }
@@ -5221,7 +5191,7 @@ function renderAuto(){
     h += '<div class="alist">';
     ['job','act','train'].forEach(k => zl.filter(t => t.kind === k).forEach(t => {
       const on = !!S.auto[t.id], f = masteryF(t);
-      h += `<div class="arow${on ? ' on' : ''}"><div class="an"><b>${esc(t.name)}</b><span>${KIND_LABEL[t.kind]}${t.cross ? ' · crossing' : ''} · ${chips(t)} · \u00d7${fmt(f)}${f >= SECTION_F ? '' : f >= LINK_F ? ' (links)' : ' (links at \u00d7' + LINK_F + ')'}</span></div>
+      h += `<div class="arow${on ? ' on' : ''}"><div class="an"><b>${esc(t.name)}</b><span>${KIND_LABEL[t.kind]}${t.cross ? ' · crossing' : ''} ·  · \u00d7${fmt(f)}${f >= SECTION_F ? '' : f >= LINK_F ? ' (links)' : ' (links at \u00d7' + LINK_F + ')'}</span></div>
         <button class="tog${on ? ' on' : ''}" data-auto="${t.id}" aria-pressed="${on}" aria-label="Automate ${esc(t.name)}"></button>
       </div>`;
     }));
@@ -5271,7 +5241,7 @@ const HOTKEYS = [
    on:e => (e.code === 'Space' || e.key === 'p') && !['INPUT', 'TEXTAREA', 'SELECT', 'BUTTON'].includes(e.target.tagName) && $('#modal').hidden,
    run:() => togglePause()},
   {keys:['\u2190', '\u2192'], sep:' ', what:'Previous or next tab',
-   on:e => (e.key === 'ArrowLeft' || e.key === 'ArrowRight') && !['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName) && !(e.target.closest && e.target.closest('.lchips,.seg')) && $('#modal').hidden && !e.altKey && !e.ctrlKey && !e.metaKey,
+   on:e => (e.key === 'ArrowLeft' || e.key === 'ArrowRight') && !['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName) && !(near(e, '.lchips,.seg')) && $('#modal').hidden && !e.altKey && !e.ctrlKey && !e.metaKey,
    run:e => { const tabs = [...document.querySelectorAll('#tabs [data-tab]')].filter(b => !b.hidden).map(b => b.dataset.tab), i = tabs.indexOf(tab); if (i >= 0) setTab(tabs[(i + (e.key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length]); }}];
 HOTKEYS.push({keys:['1', '5'], sep:' to ', what:'Load preset 1 to 5 (Undo is in the queue)',
   on:e => /^[1-5]$/.test(e.key) && !['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName) && $('#modal').hidden && !e.altKey && !e.ctrlKey && !e.metaKey,
@@ -5670,7 +5640,7 @@ document.addEventListener('click', e => {
   }
   if (d.gauto) { S.gauto[d.gauto] = !S.gauto[d.gauto]; autoKey = ''; gearKey = ''; taskKey = ''; toast((S.gauto[d.gauto] ? 'Auto-build on: ' : 'Auto-build off: ') + IT[d.gauto].name); renderView(); return; }
   if (d.setto) { d.setto.split(',').forEach(kv => { const [k, v] = kv.split('='); S.set[k] = v === 'true'; }); }   // a choice that sets several switches at once
-  if (d.set || d.setto) { if (d.set) S.set[d.set] = d.set === 'deathPause' ? S.set.deathPause === false : !S.set[d.set]; savePrefs(); if (d.set === 'autoRun') { if (S.set.autoRun) autoRunCheck(); else if (L.chainRun) { L.chainRun = false; L.runFrom = null; } taskKey = ''; } autoKey = ''; renderArchive(true); if (tab === 'auto') renderAuto(); if (settingsFrom && !$('#modal').hidden && b.closest('#modal')) showSettings(settingsFrom); return; }
+  if (d.set || d.setto) { if (d.set) S.set[d.set] = !setOn(d.set); savePrefs(); if (d.set === 'autoRun') { if (S.set.autoRun) autoRunCheck(); else if (L.chainRun) { L.chainRun = false; L.runFrom = null; } taskKey = ''; } autoKey = ''; renderArchive(true); if (tab === 'auto') renderAuto(); if (settingsFrom && !$('#modal').hidden && b.closest('#modal')) showSettings(settingsFrom); return; }
   if (d.confirm) {
     const k = d.confirm;
     if (!confirmT[k]) {
