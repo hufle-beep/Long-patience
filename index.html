@@ -550,7 +550,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
 // Renamed from Long Patience: move this device's old storage keys to the new 'selene.' names once
 try { const old = []; for (let n = 0; n < localStorage.length; n++) old.push(localStorage.key(n)); old.forEach(k => { if (k && k.indexOf('long-patience.') === 0) { const nk = 'selene.' + k.slice(14); if (localStorage.getItem(nk) == null) localStorage.setItem(nk, localStorage.getItem(k)); localStorage.removeItem(k); } }); } catch(e) {}
 /* ===== Game data and rules (no DOM) ===== */
-const BUILD = '2026-11-05 · free crossings';   // shown in the main menu, to tell which version is loaded
+const BUILD = '2026-11-05 · act ii twice act i';   // shown in the main menu, to tell which version is loaded
 const DPS = 8;             // simulation ticks per real second at 1x (doubled for the test version: same balance, half the real time)
 // Time is simulated in ticks. 80 ticks make one day unit (18 minutes each), so a day lasts
 // 20 real seconds at 1x and Players only ever see in-game time and real time, never days.
@@ -1125,7 +1125,7 @@ const TASKS = [
   {id:'safeorbit', z:14, kind:'act', finale:'C', name:'Establish a safe orbit over Tessaly', days:937, req:[], perk:'harbour',
     log:'Selene settles into a stable orbit. Below, Tessaly turns: oceans, cloud, a long brown coast. Three thousand people are still asleep. They are home, nearly. WARDEN holds the wake cycle. Someone has to look at the ground first.'},
 ];
-const ZDAYS = {1:2.81, 2:1.158, 15:1.0, 3:0.686, 4:0.606, 5:0.372, 6:0.677, 7:0.877, 8:0.877, 9:0.593, 10:0.796, 11:0.796, 12:0.756, 16:1.0, 13:0.756, 14:0.756};   // no skill transfer: later sections are short, and speed comes from familiarity
+const ZDAYS = {1:2.81, 2:1.158, 15:1.6, 3:1.098, 4:0.97, 5:0.595, 6:1.882, 7:2.438, 8:2.438, 9:1.649, 10:2.213, 11:2.213, 12:2.102, 16:2.78, 13:2.102, 14:2.102};   // section length factors. Design rule: Act II takes about twice as long as Act I (lean bot, in-game time); build "act ii twice act i": Shattered Bark to Ember Crown x1.6, all of Act II x2.78 (Vaults and Taproot as played)
 const TRAIN_CAP = 4, TRAIN_XP = 1.5;
 const LEGACY_LEN = 0.6;   // legacy parts are needed for every crossing once revealed, so they are kept short
 const T = {}; TASKS.forEach(t => { T[t.id] = t; t.sk = []; t.reps = t.kind === 'train' ? TRAIN_CAP : (t.reps || 1); if (t.days) t.days = Math.round(t.days * ZDAYS[t.z] * (t.legacy && t.kind === 'act' ? LEGACY_LEN : 1)); });
@@ -3699,6 +3699,7 @@ const BUILD_NOTES = [
   ['one upgrade', 'Act II: each section\u2019s charger upgrade now also makes repairs come more often; the separate workshop actions (and their graft cost) are gone.'],
   ['gear built when paid', 'Gear is built the moment it is paid for: no assembly step. Most designs cost a little more deadwood instead (the cheapest ones are unchanged).'],
   ['free crossings', 'Crossings no longer cost sap cells. The Safe harbour record now makes charging stations hold 25% more; Supply manifests keeps its faster charging.'],
+  ['act ii twice act i', 'Longer sections from the Shattered Bark on, and Act II about twice as long as Act I again. The Seedling Vaults and Taproot Galleries are unchanged.'],
 ];
 const buildKey = () => BUILD.split('\u00b7').pop().trim();
 function newNotes(){   // the notes since this save last opened (records the current build)

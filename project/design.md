@@ -62,12 +62,13 @@ Notes:
 - Act I order: Seedling Vaults (clone stock) -> Taproot Galleries (power) -> The Shattered Bark (hull, the meteor wounds) -> The Heartwood (navigation, WARDEN's mind) -> Canopy Gardens (food) -> Ember Crown (propulsion; Kindle the Hearth Tree ends Act I).
 
 ## Flow
+- **Pacing rule (owner 2026-11-05): Act II takes about twice as long as Act I** (lean bot, in-game time; `tests/totals.test.js` keeps the ratio within 1.8-2.2). Build "act ii twice act i": Act I 5.59 h, Act II 11.20 h.
 - Act I = 6 sections (Seedling Vaults, Taproot Galleries, The Shattered Bark, The Heartwood, Canopy Gardens, Ember Crown). Kindling the Hearth Tree ends Act I; there is no restarting. Every seedling that kindles it carries on into Act II.
 - Act II is linear, three parts, ten sections (from build "Act II reordered"):
   1. The long watch: The Long Current, The Drift, The Long Dark, Turnover (restore the artificial gravity, raise the ward-shields, plot the turnover, flip Selene end over end, bank and relight the Hearthfire, plot the approach, begin the braking burn; finale: Drop out of relativistic speed).
   2. The Boarders (while Selene brakes): Bark Breach, Contested Boughs, The Hive Ship, The Mending (finale: Rekindle the Hearthfire).
   3. Arrival: The Tessaly System (scan the gas giant, its moons, the asteroid belt, a comet tail, the radiation belt, the inner worlds; slingshot), Tessaly Orbit (orbit insertion, orbital survey, sweep debris; finale: Establish a safe orbit over Tessaly).
-- Pacing: see playtest-notes.md (current: Act I 5.70 h, Act II 8.69 h in-game, lean bot).
+- Pacing: see playtest-notes.md (current: Act I 5.59 h, Act II 11.20 h in-game, lean bot).
 
 ## Difficulty
 - Danger ramp (drain and hazards): x1.0 in the Seedling Vaults, +5% per Act I section (the Shattered Bark slotted in at x1.075); Act II x2.12 (Bark Breach) up to x2.60 (Tessaly Orbit) after the +18% retune.
