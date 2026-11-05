@@ -530,7 +530,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
 // Renamed from Long Patience: move this device's old storage keys to the new 'selene.' names once
 try { const old = []; for (let n = 0; n < localStorage.length; n++) old.push(localStorage.key(n)); old.forEach(k => { if (k && k.indexOf('long-patience.') === 0) { const nk = 'selene.' + k.slice(14); if (localStorage.getItem(nk) == null) localStorage.setItem(nk, localStorage.getItem(k)); localStorage.removeItem(k); } }); } catch(e) {}
 /* ===== Game data and rules (no DOM) ===== */
-const BUILD = '2026-11-05 · queue summaries';   // shown in the main menu, to tell which version is loaded
+const BUILD = '2026-11-05 · queue controls';   // shown in the main menu, to tell which version is loaded
 const DPS = 8;             // simulation ticks per real second at 1x (doubled for the test version: same balance, half the real time)
 // Time is simulated in ticks. 80 ticks make one day unit (18 minutes each), so a day lasts
 // 20 real seconds at 1x and Players only ever see in-game time and real time, never days.
@@ -2711,6 +2711,24 @@ function applyLoaded(raw, from){
     return askOverwrite('Restore all saves from this file?', 'It holds ' + ks.length + ' save' + (ks.length === 1 ? '' : 's') + ' (' + ks.map(k => /^d/.test(k) ? 'death save ' + k.slice(1) : 'slot ' + k).join(', ') + '). Each one replaces the save in the same slot on this device; other slots are kept.',
       [['Restore them', 'warn', () => { save(); wiping = true; try { ks.forEach(k => localStorage.setItem(slotKey(k), JSON.stringify(raw.slots[k]))); localStorage.setItem(ACTIVE_KEY, raw.active && raw.slots[raw.active] ? raw.active : ks.find(k => !/^d/.test(k)) || ks[0]); } catch(e) {} location.reload(); }]], 'saves');
   }
+  // a single save: check it, show what it holds, and load it only once confirmed
+  const bad = saveProblem(raw);
+  if (bad) { sfx('error'); toast('That save can\u2019t be loaded: ' + bad + '. Nothing was changed.'); return; }
+  const L0 = raw.life, z = ZN(L0.sec || 1);
+  return askOverwrite('Load this save?', 'It replaces the game in ' + slotLabel(slot) + ' (keep a copy with Export first if you need it).',
+    [['Load ' + (raw.name ? '\u201c' + raw.name + '\u201d' : 'it') + ': seedling ' + raw.gen + ', ' + (z ? z.name : 'section ' + L0.sec) + (L0.dead ? ' (dead)' : ''), 'warn', () => loadChecked(raw, from)]], hideModal);
+}
+// What is wrong with a single save, or '' when it looks loadable
+function saveProblem(raw){
+  if (!raw || typeof raw !== 'object') return 'not a save';
+  if (!raw.life || typeof raw.life !== 'object') return 'no seedling in it';
+  if (!(raw.gen >= 1)) return 'no seedling number';
+  if (raw.life.sec != null && !ZN(raw.life.sec)) return 'unknown section ' + raw.life.sec;
+  if (raw.life.queue != null && !Array.isArray(raw.life.queue)) return 'damaged queue';
+  try { mergeState(JSON.parse(JSON.stringify(raw))); } catch(e) { return 'damaged data'; }
+  return '';
+}
+function loadChecked(raw, from){
   S = mergeState(raw); M = mods(); pinChains();
   taskKey = ''; gearKey = ''; archKey = ''; logKey = '';
   paused = false; hideModal(); S.intro = true; save();
@@ -3234,6 +3252,21 @@ function qTrigPanel(rules){
   showModal(h);
 }
 HOOK.trig = (i, r) => { taskKey = ''; toast('Trigger ' + (i + 1) + ': loaded preset ' + (r.p + 1) + (qpName(r.p) ? ' (' + qpName(r.p) + ')' : '') + '.'); };
+// Long-press + on a drill or a task with several reps: queue one copy per repetition still to do
+let lpT = null, lpDone = false;
+document.addEventListener('pointerdown', e => {
+  const bq = e.target.closest && e.target.closest('button[data-q]'); lpDone = false; clearTimeout(lpT);
+  if (!bq || S.life.dead) return;
+  const id = bq.dataset.q, t = T[id]; if (!t || t.kind === 'job' || (t.reps || 1) < 2) return;
+  lpT = setTimeout(() => {
+    const L = S.life, left = t.reps - (L.done[id] || 0) - qCount(id); lpDone = true;
+    if (left <= 0) { toast('Every repetition of ' + t.name + ' is already queued.'); return; }
+    qSnap('Add copies'); let n = 0; while (n < left && qAdd(id)) n++;
+    sfx('click'); toast('Queued ' + n + ' more cop' + (n === 1 ? 'y' : 'ies') + ' of ' + t.name + ' (one per repetition).'); taskKey = ''; renderView();
+  }, 550);
+});
+['pointerup', 'pointercancel', 'pointerleave'].forEach(k => document.addEventListener(k, () => clearTimeout(lpT)));
+document.addEventListener('click', e => { if (lpDone && e.target.closest && e.target.closest('button[data-q]')) { lpDone = false; e.stopImmediatePropagation(); e.preventDefault(); } }, true);   // the long-press already queued: no extra copy
 let qDrag = null;
 document.addEventListener('pointerdown', e => {
   const hnd = e.target.closest && e.target.closest('[data-qdrag]');
@@ -3313,7 +3346,7 @@ function renderTasks(){
   h += '</div><div class="qpre" aria-label="Queue presets"><span class="lbl">Presets</span>' + Array.from({length:QPRESETS}, (_, i) => i).map(i => {
     const n = (S.qpresets[i] || []).length;
     return `<div class="qps"><button class="qpl${qpName(i) ? '' : ' nn'}" data-qpname="${i}" aria-label="Name preset ${i + 1}" title="Tap to name this preset"><b>${i + 1}</b>${qpName(i) ? `<span class="qpn">${esc(qpName(i))}</span>` : ''}<small>${n ? n + ' item' + (n > 1 ? 's' : '') : 'empty'}</small></button><span class="qpb"><button data-qsave="${i}" aria-label="Save queue to preset ${i + 1}">Save</button><button data-qload="${i}" ${n ? '' : 'disabled'} aria-label="Load preset ${i + 1}">Load</button></span></div>`;
-  }).join('') + '<div class="qps qtx"><span class="lbl">Text</span><span class="qpb"><button data-qtext aria-label="Queue as text: copy or paste">Copy / paste</button></span></div><div class="qps qtx"><span class="lbl">Triggers</span><span class="qpb"><button data-qtrig aria-label="Preset triggers: load a preset by itself">' + ((S.qtrig || []).length ? (S.qtrig || []).length + ' rule' + ((S.qtrig || []).length > 1 ? 's' : '') : 'Set up') + '</button></span></div></div></div>';
+  }).join('') + '<div class="qps qtx"><span class="lbl">Text</span><span class="qpb"><button data-qtext aria-label="Queue as text: copy or paste">Copy / paste</button></span></div><div class="qps qtx"><span class="lbl">Sort</span><span class="qpb"><button data-qsortfam aria-label="Sort the queue: least familiar tasks first">Least familiar</button></span></div><div class="qps qtx"><span class="lbl">Triggers</span><span class="qpb"><button data-qtrig aria-label="Preset triggers: load a preset by itself">' + ((S.qtrig || []).length ? (S.qtrig || []).length + ' rule' + ((S.qtrig || []).length > 1 ? 's' : '') : 'Set up') + '</button></span></div></div></div>';
   if (L.job) h += `<div class="qnote">Fallback job: <b>${esc(T[L.job].name)}</b>. It runs whenever the queue is empty.</div>`;
   h += `<div class="row qkeep"><p>Keep queue between seedlings<small>A new seedling starts with the queue you planned this life, minus anything automated and switched on.</small></p><button class="tog${S.set.keepQueue !== false ? ' on' : ''}" data-set="keepQueue" aria-label="Keep queue between seedlings" aria-pressed="${S.set.keepQueue !== false}"></button></div></div>`;
 
@@ -3640,7 +3673,7 @@ function updateHud(){
   else if (S.set.paused) { $('#n-name').textContent = 'Paused' + (cur ? ': ' + cur.name : ''); $('#n-eta').textContent = 'tap Resume'; }
   else if (!cur) { $('#n-name').textContent = 'Time stopped. Pick a task below.'; $('#n-eta').textContent = ''; $('#n-fill').style.width = '0'; }
   else {
-    $('#n-name').textContent = (L.viaChain ? '\u26d3 \u00d7' + flowMul().toFixed(2) + ' \u00b7 ' : '') + (blip ? '' : L.feeding ? 'Recharging: ' : L.foraging ? 'Charging: ' : '') + (L.now && isGQ(L.now) && IT[L.now.slice(2)] && cur.prod && cur.prod.salvage ? 'Gathering ' + salW() + ' for: ' + IT[L.now.slice(2)].name : cur.name);
+    $('#n-name').textContent = (L.viaChain ? '\u26d3 \u00d7' + flowMul().toFixed(2) + ' \u00b7 ' : '') + (blip ? '' : L.feeding ? 'Recharging: ' : L.foraging ? 'Charging: ' : L.held && cur.id !== L.held && !L.now ? 'Before crossing: ' : '') + (L.now && isGQ(L.now) && IT[L.now.slice(2)] && cur.prod && cur.prod.salvage ? 'Gathering ' + salW() + ' for: ' + IT[L.now.slice(2)].name : cur.name) + nowWhy(cur, blip);
     if (cur.kind !== 'job') {
       const sp = speedOf(cur) * (L.viaChain ? flowMul() : 1);
       $('#n-fill').style.width = ((L.prog[cur.id] || 0) / cur.days * 100).toFixed(1) + '%';
@@ -3655,6 +3688,13 @@ function updateHud(){
   audioMood(L.dead ? 0 : L.hp / M.maxHp, paused || !!S.set.paused);
 }
 
+// Why the seedling is doing what it does, when that isn't obvious (charging, gathering grafts)
+function nowWhy(cur, blip){
+  const L = S.life; if (!cur || blip) return '';
+  if (L.foraging && cur.prod && cur.prod.rations) { const f = jobFood(cur); return ' (cells ' + fmt(L.rations) + ' of ' + fmt(M.fcap[f]) + ', below the ' + (S.set.foodPct || 40) + '% threshold)'; }
+  if (L.scav && cur.prod && cur.prod.salvage && !L.now) return ' (' + salW() + ' low: ' + fmt(L.salvage) + ' of ' + Math.round(M.salCap) + ')';
+  return '';
+}
 /* ----- other views ----- */
 // Sections behind the current seedling fold into one line (tap to open); 'au:3' / 'sk:3' -> open
 const secFold = {};
@@ -4103,7 +4143,7 @@ const FAQ_ALL = [
   ['What is the goal?', 'Restore Selene so WARDEN can wake the sleeping crew. All of Act I happens inside the Hearth Tree, her drive, mind and garden at once: the sap flow that powers her in the Taproot Galleries, the meteor wounds in her hull in the Shattered Bark, WARDEN\u2019s mind and the star-charts in the Heartwood, the food gardens in the Canopy Gardens, and the Hearthfire in the Ember Crown. Act I ends when you kindle the Hearth Tree. One seedling cannot do it all; it takes many lives (around 50 with very good play).'],
   ['How do I start?', 'Tap a task to work on it right away. Climb out of the seed pod first, then tap the vault\u2019s sap line for sap cells and strip dead bark panels for deadwood. Time only moves while your seedling is working: with nothing to do, the clock stops, so you can always read and plan.'],
   ['What are jobs, actions and training?', '<b>Jobs</b> repeat and make sap cells or deadwood in batches; they stop when that storage is full. <b>Actions</b> are one-off tasks that unlock things and move the story on. Each needs certain earlier actions, and a section\u2019s last action (its crossing) needs every other action of that section. Tasks you have met before stay listed, greyed out, until what they need is done; you can still queue them. <b>Drills</b> each add a little familiarity to every task in their section, up to 4 sessions per life.'],
-  ['How does the queue work?', 'Tapping a task runs it right away, ahead of the queue (a job runs until its store is full); it is not added to the queue. Tapping a gear card works the same way: it is built right away, after gathering the deadwood (grafts in Act II) it still needs. <b>+</b> adds a task to the end of the queue; drag it or use the arrows to move it up. You can queue the same task several times at different places: tap + again for another copy. A task queued once runs until it is done; with several copies, each copy covers one repetition (one training session, one rep, or one fill of a store). The queue holds up to 100 items. Drag an item by the handle on its left to move it, or use the arrows; ✕ removes it. Queued jobs run until their storage is full. You can queue things you have seen before even if they are not available yet; they wait their turn. Gear can be queued too, with the <b>+</b> on its card (gear is listed in each section of the Tasks tab): the seedling works the best deadwood job until it can afford the design, then builds it. Five presets save and load whole queues (tap a preset\u2019s number to name it), <b>Copy / paste</b> turns the queue into plain text and back, and <b>Undo</b> takes back the last change to the queue. Tap a row\u2019s name to <b>skip</b> it: it stays in the queue but doesn\u2019t run until you tap it again. <b>Triggers</b> load a preset by themselves when a new seedling sprouts or when it enters a section you choose (each rule once per seedling). <b>Keep queue between seedlings</b> gives each new seedling the queue you planned, minus anything that is automated and switched on. <b>The forecast:</b> the game plays your seedling\u2019s life forward with the same rules (queue, automation, recharges, crossings), so each queue row shows the energy left when it is done and when that will be; rows the seedling won\u2019t reach turn red, and <b>Dies here</b> marks the row where it dies. The Outlook line gives the forecast death and its cause; a setting can pause the game once, just before it. A dot marked <b>new</b> on a task means no seedling has finished it yet.'],
+  ['How does the queue work?', 'Tapping a task runs it right away, ahead of the queue (a job runs until its store is full); it is not added to the queue. Tapping a gear card works the same way: it is built right away, after gathering the deadwood (grafts in Act II) it still needs. <b>+</b> adds a task to the end of the queue; drag it or use the arrows to move it up. You can queue the same task several times at different places: tap + again for another copy. A task queued once runs until it is done; with several copies, each copy covers one repetition (one training session, one rep, or one fill of a store). The queue holds up to 100 items. Drag an item by the handle on its left to move it, or use the arrows; ✕ removes it. Queued jobs run until their storage is full. You can queue things you have seen before even if they are not available yet; they wait their turn. Gear can be queued too, with the <b>+</b> on its card (gear is listed in each section of the Tasks tab): the seedling works the best deadwood job until it can afford the design, then builds it. Five presets save and load whole queues (tap a preset\u2019s number to name it), <b>Copy / paste</b> turns the queue into plain text and back, and <b>Undo</b> takes back the last change to the queue. Tap a row\u2019s name to <b>skip</b> it: it stays in the queue but doesn\u2019t run until you tap it again. Press and hold <b>+</b> on a drill or a task with several reps to queue one copy per repetition still to do. <b>Least familiar</b> sorts the queue so the weakest tasks run first (chains stay on top). <b>Triggers</b> load a preset by themselves when a new seedling sprouts or when it enters a section you choose (each rule once per seedling). <b>Keep queue between seedlings</b> gives each new seedling the queue you planned, minus anything that is automated and switched on. <b>The forecast:</b> the game plays your seedling\u2019s life forward with the same rules (queue, automation, recharges, crossings), so each queue row shows the energy left when it is done and when that will be; rows the seedling won\u2019t reach turn red, and <b>Dies here</b> marks the row where it dies. The Outlook line gives the forecast death and its cause; a setting can pause the game once, just before it. A dot marked <b>new</b> on a task means no seedling has finished it yet.'],
   ['Energy and sap cells', 'Seedlings are biomechanical: as long as they have energy, the body is sustained. The <b>Energy</b> bar drains all the time; each recharge uses one <b>sap cell</b> and puts energy back. <b>Every recharge restores the same amount</b>; what changes is how often the seedling can recharge. Sap cells are carried up to the seedling\u2019s <b>storage capacity</b>, which grows as the seedling gets deeper into the ship (5 in the Seedling Vaults, up to 90 in the Ember Crown, in steps of 5), plus gear and records. Each section has a <b>charging station</b> job, but it only opens partway into the section and holds a limited <b>reserve</b> per seedling life; when it is drained, the seedling has to cross or run down. Every crossing also costs a share of the cells carried, more the further into the ship you go, so a seedling always arrives living on what it brought. At first a seedling can recharge every 5 seconds of in-game time. Each section has one <b>charger upgrade</b> action that shortens the wait between recharges for the rest of that life, down to about 2 seconds, and adds half again to that section\u2019s station reserve; each seedling has to fix them again. Recharges are always whole, and the seedling only recharges when it needs to: when a whole recharge fits under full energy, or sooner once energy is down to half. At full energy no cell is used. With no cells left at all, the seedling runs down. The Hive Ship\u2019s only charging comes late, so arrive charged.'],
   ['What carries over when a seedling dies?', '<b>Familiarity</b> is kept: every task stays as fast as your seedlings have made it (see the Mastery tab). Every 10 seconds of in-game time a seedling survives is analysed afterwards, run and memory alike, and becomes an <b>efficiency patch</b>: later seedlings drain their energy a little more slowly, up to \u00f71.6. <b>Archive records</b> found by finishing certain actions are permanent upgrades. Gear, sap cells, deadwood and progress through the ship reset.'],
   ['What are sections?', 'Act I is split into six sections. A <b>red</b> action leads to the next one, and the way back is sealed for that seedling, so finish what you need first (records, training, gear). Each new seedling starts back in the Seedling Vaults.'],
@@ -4400,6 +4440,13 @@ document.addEventListener('click', e => {
   if ('qundo' in d) { const u = qUndoNow(); toast(u ? 'Undone: ' + u.toLowerCase() : 'Nothing to undo'); taskKey = ''; gearKey = ''; renderView(); return; }
   if ('qtext' in d) { qTextPanel(); return; }
   if ('qtrig' in d) { qTrigPanel(); return; }
+  if ('qsortfam' in d) {   // the weakest tasks first (chains stay pinned on top; gear by its build familiarity; ties keep their order)
+    const fam = id => isGQ(id) ? (IT[id.slice(2)] ? masteryFrac(BT[id.slice(2)]) : 1) : T[id] ? masteryFrac(T[id]) : 1;
+    const pin = L.queue.filter(isCQ), rest = L.queue.filter(q => !isCQ(q)).map((id, k) => ({id, k, f:fam(id)}));
+    if (rest.length < 2) { toast('Nothing to sort.'); return; }
+    qSnap('Sort'); L.queue = pin.concat(rest.sort((a, b) => a.f - b.f || a.k - b.k).map(x => x.id));
+    toast('Queue sorted: least familiar first. Undo puts the old order back.'); taskKey = ''; renderView(); return;
+  }
   if (d.qskip != null) { const id = L.queue[+d.qskip]; if (id == null) return; qSnap((L.qskip || {})[id] ? 'Run again' : 'Skip'); L.qskip = L.qskip || {}; if (L.qskip[id]) delete L.qskip[id]; else L.qskip[id] = 1; taskKey = ''; renderView(); return; }
   if (d.qskipall != null) { qSnap(d.qskipall === '1' ? 'Disable all' : 'Enable all'); L.qskip = {}; if (d.qskipall === '1') L.queue.forEach(id => { if (!isCQ(id)) L.qskip[id] = 1; }); taskKey = ''; renderView(); return; }
   if (d.qpname != null) { qpNamePanel(+d.qpname); return; }
@@ -4458,6 +4505,12 @@ function togglePause(){
   toast(S.set.paused ? 'Paused. Time is stopped.' : 'Resumed');
   renderSpeed(); save();
 }
+document.addEventListener('keydown', e => {   // left and right arrows switch tabs
+  if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+  const tg = e.target.tagName; if (tg === 'INPUT' || tg === 'TEXTAREA' || tg === 'SELECT' || !$('#modal').hidden || e.altKey || e.ctrlKey || e.metaKey) return;
+  const tabs = [...document.querySelectorAll('#tabs [data-tab]')].filter(b => !b.hidden).map(b => b.dataset.tab), i = tabs.indexOf(tab);
+  if (i < 0) return; e.preventDefault(); setTab(tabs[(i + (e.key === 'ArrowRight' ? 1 : tabs.length - 1)) % tabs.length]);
+});
 document.addEventListener('keydown', e => {
   if (e.code !== 'Space' && e.key !== 'p') return;
   const tg = e.target.tagName;
