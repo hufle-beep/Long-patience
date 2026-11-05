@@ -3071,7 +3071,7 @@ function renderTasks(){
     else if (!av && S.seen[t.id] && legacyOpen(t)) locked.push(t.id);
   });
   const key = vis.join() + '|' + locked.join() + '|' + [...chainedIds()].join() + JSON.stringify(cOpen) + JSON.stringify(qOpen) + JSON.stringify(L.cjd || {}) + L.queue.filter(isCQ).map(id => cSteps(id).filter(x => cStepDone(id, x)).length).join() + (L.now || '') + (L.chainRun ? 'R' : '') + runSpan(L.sec || 1).join('') + JSON.stringify(sectionGate(L.sec || 1)) + ITEMS.filter(i => isDone(i.req)).map(i => i.id + (L.owned[i.id] ? 'o' : assembling(i.id) ? 'a' + Math.floor((L.prog['b:' + i.id] || 0) / BT[i.id].days * 20) : L.salvage >= i.cost ? 'y' : 'n') + (gearAuto(i) ? '*' : '') + ((S.gprac || {})[i.id] || 0)).join() + '|' + L.queue.join() + (L.queue.some(isGQ) ? Math.floor(L.salvage) + '/' + M.salCap + Object.keys(L.owned).join() : '') + '|' + L.job + '|' + Object.keys(S.perks).join() + '|' + S.gen + '|' + JSON.stringify(showLocked) + '|' + L.sec + '|' + (L.held || '') + holdList().join() + '|' + JSON.stringify(S.qpresets) + (L.qdone || []).length + (S.set.keepQueue !== false) + '|' + TASKS.filter(t => practiced(t)).map(t => t.id + (S.auto[t.id] ? '*' : '') + prioOf(t)).join() + '|' + openPrio;
-  const gk = JSON.stringify(sectionGate(L.sec || 1)) + runSpan(L.sec || 1).join() + !!L.chainRun + '|' + vis.map(id => Math.floor(masteryFrac(T[id]) * 100) + ':' + (S.prac[id] || 0) + ((S.ever || {})[id] ? 'e' : '')).join() + '|' + ITEMS.map(i => Math.floor(masteryFrac(BT[i.id]) * 100) + ((S.gprac || {})[i.id] || 0)).join();
+  const gk = JSON.stringify(sectionGate(L.sec || 1)) + runSpan(L.sec || 1).join() + !!L.chainRun + '|' + vis.map(id => (S.ever || {})[id] ? 'e' : '').join() + '|' + ITEMS.map(i => (gearKnown(i) ? 'k' : '') + (gearPracticed(i) ? 'p' : '')).join();   // familiarity and auto % update in place (updateTasks), so they never rebuild the list
   if (key + gk === taskKey) return;
   taskKey = key + gk;
 
@@ -3178,9 +3178,11 @@ function renderTasks(){
   $('#v-tasks').innerHTML = h;
   chainRefs = [...document.querySelectorAll('#v-tasks .task[data-chain]')].map(el => ({el, k:el.dataset.chain, f:el.querySelector('.tf'), e:el.querySelector('.te'), fl:el.querySelector('.cfl')}));
   refs = [...document.querySelectorAll('#v-tasks .task[data-id]')].map(el => ({
-    el, t:T[el.dataset.id], f:el.querySelector('.tf'), e:el.querySelector('.te'), rp:el.querySelector('.rp'), tt:el.querySelector('.tt'), pr:el.querySelector('.pr')
+    el, t:T[el.dataset.id], f:el.querySelector('.tf'), e:el.querySelector('.te'), rp:el.querySelector('.rp'), tt:el.querySelector('.tt'), pr:el.querySelector('.pr'), pp:el.querySelector('.pp')
   }));
+  gRefs = [...document.querySelectorAll('#v-tasks .gtm[data-gdo]')].map(el => ({i:IT[el.dataset.gdo], pp:el.querySelector('.pp')})).filter(r => r.i && r.pp);
 }
+let gRefs = [];
 let chainRefs = [];
 // What the current-task panel shows: food runs shorter than FOOD_BLIP_MS keep the interrupted task on screen
 const shown = {id:null, main:null, since:0}, FOOD_BLIP_MS = 1200;
@@ -3194,8 +3196,10 @@ function updateTasks(){
     r.fl.textContent = 'flow \u00d7' + fm.toFixed(2);
     r.el.classList.toggle('on', L.viaChain && cSteps(r.k).includes(L.cur));
   });
+  gRefs.forEach(r => setH(r.pp, progHtml(BT[r.i.id], gearAutoFrac(r.i))));   // gear familiarity / auto %, in place
   refs.forEach(r => {
     const t = r.t, on = L.cur === t.id || L.cur2 === t.id;
+    if (r.pp) setH(r.pp, progHtml(t, autoFrac(t)));   // familiarity / auto %, in place (no list rebuild)
     r.el.classList.toggle('on', shown.id ? shown.id === t.id : on);
     const sp = speedOf(t);
     if (t.kind !== 'job') {

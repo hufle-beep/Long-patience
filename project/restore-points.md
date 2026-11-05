@@ -8,7 +8,8 @@ The **Restore points** workflow (`.github/workflows/restore-points.yml`) runs on
 What the recent commits are (newest first):
 | Commit | What it is |
 |---|---|
-| (next) | Stronger drills, gain shown, familiarity with one decimal |
+| (next) | Fix: Tasks tab flicker (familiarity updates in place) |
+| `f5f7ed6` | Stronger drills, gain shown, familiarity with one decimal |
 | `a3e3259` | Fix: crossings fill deadwood to full carry again |
 | `9bacd4f` | Taproot Galleries frozen (docs only) |
 | `edb1d3f` | Meteor shower Stage 3: voyage clock and timeline texts |

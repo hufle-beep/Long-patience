@@ -1,6 +1,6 @@
 # Handover: Selene: Tidelocked
 
-Last updated: 2026-11-05 01:40 (build "stronger drills"). Drills give 2.5x more familiarity, and show it. Crossings fill deadwood to full carry again (base design); the owner replays the whole game from the start to see if a retune is needed. Meteor shower redesign complete (Stages 1-3 built). Seedling Vaults and Taproot Galleries FROZEN. Next: the Shattered Bark retune from the owner's playtest save (playtest-notes.md, roadmap.md). Update this file in every push.
+Last updated: 2026-11-05 02:00 (build "no flicker"). The Tasks tab no longer flickers (familiarity updates in place). Drills give 2.5x more familiarity, and show it. Crossings fill deadwood to full carry again (base design); the owner replays the whole game from the start to see if a retune is needed. Meteor shower redesign complete (Stages 1-3 built). Seedling Vaults and Taproot Galleries FROZEN. Next: the Shattered Bark retune from the owner's playtest save (playtest-notes.md, roadmap.md). Update this file in every push.
 
 ## 1. What the game is
 An incremental "clone-loop" game in one HTML file (like Increlution/Incremortal). You are K-7, a **seedling** (disposable drone of WARDEN and the Hearth Tree) aboard **Selene**, a living-wood colony ship of the Root-Kin of Earth. Each seedling works tasks until its energy runs out; familiarity, records and automation carry over to the next one.
@@ -63,7 +63,7 @@ Play: https://hufle-beep.github.io/Long-patience/ · Android APK: release `andro
   - Links need x2 familiarity (`LINK_F`); one-click section runs need x5 (`SECTION_F`).
   - "Always run sections once ready" is `S.set.autoRun`; chains are pinned at the top of the queue.
 - **Voyage clock:** every zone has `yr` (voyage year, 480-year voyage `VOYAGE`); `voyTxt(z)` gives "Year N · P% of the voyage", shown as a second line in section headers (Tasks and Auto tabs). Act I is all year 120; the long watch 120-240; Boarders 477-478; Arrival 479-480. FAQ "Selene's voyage" opens with Act II.
-- **Task cards:** they show `% to x10 / % to auto` (violet/green). Effects show "?" until the task has been finished once in this save (`S.ever`). Full effects are listed on the Mastery tab. `effectHtml(t, full)`.
+- **Task cards:** they show `% to x10 / % to auto` (violet/green). These numbers (task and gear cards, the `.pp` span) are refreshed in place every frame by `updateTasks()` (`refs[].pp`, `gRefs`) and are **not** part of `renderTasks()`'s rebuild key: a full rebuild of the list repaints it and flickered on Android whenever familiarity ticked up (build "no flicker"). Keep anything that changes several times a second out of that key. Effects show "?" until the task has been finished once in this save (`S.ever`). Full effects are listed on the Mastery tab. `effectHtml(t, full)`.
 - **Records (Archive):**
   - `PERKS`, permanent, found the first time certain actions are finished.
   - Stasis watch I-XV, one per section end, numbered in route order (record ids watch1-watch15 kept; watch15 is the Shattered Bark, shown as III).
