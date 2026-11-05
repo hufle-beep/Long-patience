@@ -13,7 +13,8 @@ The **Restore points** workflow (`.github/workflows/restore-points.yml`) runs on
 What the recent commits are (newest first):
 | Commit | What it is |
 |---|---|
-| (next) | Automation at practiced (mechanics chunk 2) |
+| (next) | One upgrade: Act II workshops merged into the charger upgrades (mechanics chunk 4) |
+| `0031174` | Automation at practiced (mechanics chunk 2) |
 | `f7df47e` | One food store (code), Now-line fix, article fix (mechanics chunk 1) |
 | `e26d83d` | UI tightened (**hard reset point**, branch `fallback/2026-11-05-before-mechanics`): merged CSS rules, toggle-row helper, near(), chips() gone (cleanup chunk 6) |
 | `05721a1` | Logic tightened: no-op functions, constant modifiers, stale comments (cleanup chunk 5) |

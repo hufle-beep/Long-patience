@@ -1,6 +1,6 @@
 # Bot milestones
 
-Build: 2026-11-05 · one food store. Written by `node milestones.js` (lean bot: sim16c.js AB, whole game; completionist bot: simcomp2.js, Act I up to the Heartwood). Seedlings used = first seedling in the next section minus the first in this one; time = in-game h:mm spent in the section.
+Build: 2026-11-05 · one upgrade. Written by `node milestones.js` (lean bot: sim16c.js AB, whole game; completionist bot: simcomp2.js, Act I up to the Heartwood). Seedlings used = first seedling in the next section minus the first in this one; time = in-game h:mm spent in the section.
 
 | id | Section | Target | Lean seedlings | Lean time | Completionist seedlings | Completionist time |
 |---|---|---|---|---|---|---|
@@ -10,15 +10,15 @@ Build: 2026-11-05 · one food store. Written by `node milestones.js` (lean bot: 
 | 3 | The Heartwood | 6 | 9 | 0:54 | 5 | 0:32 |
 | 4 | Canopy Gardens | 7 | 7 | 1:05 | - | - |
 | 5 | Ember Crown | 4 | 5 | 1:00 | - | - |
-| 9 | The Long Current | 2 | 2 | 0:22 | - | - |
-| 10 | The Drift | 5 | 4 | 0:47 | - | - |
-| 11 | The Long Dark | 8 | 6 | 0:57 | - | - |
+| 9 | The Long Current | 2 | 1 | 0:12 | - | - |
+| 10 | The Drift | 5 | 5 | 0:59 | - | - |
+| 11 | The Long Dark | 8 | 4 | 0:39 | - | - |
 | 12 | Turnover | 6 | 4 | 0:47 | - | - |
-| 6 | Bark Breach | 1 | 1 | 0:13 | - | - |
+| 6 | Bark Breach | 1 | 1 | 0:12 | - | - |
 | 7 | Contested Boughs | 3 | 3 | 0:41 | - | - |
-| 8 | The Hive Ship | 4 | 3 | 0:36 | - | - |
-| 16 | The Mending | 1 | 1 | 0:15 | - | - |
-| 13 | The Tessaly System | 2 | 1 | 0:23 | - | - |
+| 8 | The Hive Ship | 4 | 2 | 0:25 | - | - |
+| 16 | The Mending | 1 | 1 | 0:16 | - | - |
+| 13 | The Tessaly System | 2 | 2 | 0:36 | - | - |
 | 14 | Tessaly Orbit | 1 | - | - | - | - |
 
 No section far above its target; the lean bot crossed every section.

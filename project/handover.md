@@ -1,6 +1,6 @@
 # Handover: Selene: Tidelocked
 
-Last updated: 2026-11-05 16:00 (build "automation at practiced": mechanics chunk 2 of 5, owner 15:00 picks G1 A, G2 A, G3 A, G4 A, G5 keep, G6 keep, G7 keep, G8 A and both finds; go 15:07. **Hard reset point before the mechanics changes: branch `fallback/2026-11-05-before-mechanics` (`e26d83d`), never delete.** owner 14:01 "go with your suggestions for all"). Next: the owner's replay saves (the Shattered Bark next). Seedling Vaults retuned (freeze again when the owner says), Taproot Galleries FROZEN. Fallback build on branch `fallback/2026-11-05-embedded-fonts`. Update this file in every push.
+Last updated: 2026-11-05 16:25 (build "one upgrade": mechanics chunk 4 of 5; chunk 3 (no crossing cell cost) waits for the owner's call on the Safe harbour record, owner 15:00 picks G1 A, G2 A, G3 A, G4 A, G5 keep, G6 keep, G7 keep, G8 A and both finds; go 15:07. **Hard reset point before the mechanics changes: branch `fallback/2026-11-05-before-mechanics` (`e26d83d`), never delete.** owner 14:01 "go with your suggestions for all"). Next: the owner's replay saves (the Shattered Bark next). Seedling Vaults retuned (freeze again when the owner says), Taproot Galleries FROZEN. Fallback build on branch `fallback/2026-11-05-embedded-fonts`. Update this file in every push.
 
 ## 1. What the game is
 An incremental "clone-loop" game in one HTML file (like Increlution/Incremortal). You are K-7, a **seedling** (disposable drone of WARDEN and the Hearth Tree) aboard **Selene**, a living-wood colony ship of the Root-Kin of Earth. Each seedling works tasks until its energy runs out; familiarity, records and automation carry over to the next one.
@@ -52,7 +52,7 @@ Play: https://hufle-beep.github.io/Long-patience/ · Android APK: release `andro
 - **Deadwood and grafts:**
   - Stored in `L.salvage`. `salW(z)` gives the display word: "deadwood" in Act I, "grafts" in Act II.
   - Gear (`ITEMS`) is built from it, with assembly tasks `b:<id>` (`BT`).
-  - Act II wear (`WEAR_RATE`, by route: least early in the long watch, most in Arrival) adds drain. Repairs cost grafts. There are workshops ws6-ws14 and ws16; their tiers (`REPAIR_UP`) and the charger tiers (`MEAL_UP`) rise in route order.
+  - Act II wear (`WEAR_RATE`, by route: least early in the long watch, most in Arrival) adds drain. Repairs cost grafts. Since build "one upgrade" there are no workshops: each Act II charger upgrade (`MEAL_UP`, recharges) also carries the repair-cooldown tier (`REPAIR_UP`, keyed by the same action ids); both rise in route order. The up-front graft payment (`t.parts`, `L.paid`, `shopNeed`) went with the workshops.
 - **Crossing hold and fill:** `holdCross`/`crossHeld` (`CROSS_HOLD`) stop a queued or automated crossing just short of finishing while `pendingActs`, `pendingGearJob` or `fillJob` has work. `fillJob` tops sap cells to the auto-charge stop level, then deadwood/grafts to full carry (`M.salCap`), both acts; skipped for deadwood while under 1 sap cell and energy under the charge threshold (`foodPct` of max energy). `FILL_RESUME 0.85`. The bots queue their crossings, so they do go through the hold and the fill.
 - **Familiarity (Mastery tab):**
   - Stored in `S.fam[id]`. Speed is 1 + 9 x min(1, fam/famNeed) (`MASTER_MIN 0.1`).
