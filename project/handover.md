@@ -1,6 +1,6 @@
 # Handover: Selene: Tidelocked
 
-Last updated: 2026-11-05 13:35 (build "robustness": round 5 chunk 1: save failures reported, safe slot load, export reminder, error catcher, clock clamp, tap guard). Next: the round 5 chunks (see roadmap), then the owner's replay saves (the Shattered Bark next). Seedling Vaults retuned (freeze again when the owner says), Taproot Galleries FROZEN. Fallback build on branch `fallback/2026-11-05-embedded-fonts`. Update this file in every push.
+Last updated: 2026-11-05 13:55 (build "robustness": round 5 chunk 2: data-integrity tests, milestone table, old-save test (tools only)). Next: the round 5 chunks (see roadmap), then the owner's replay saves (the Shattered Bark next). Seedling Vaults retuned (freeze again when the owner says), Taproot Galleries FROZEN. Fallback build on branch `fallback/2026-11-05-embedded-fonts`. Update this file in every push.
 
 ## 1. What the game is
 An incremental "clone-loop" game in one HTML file (like Increlution/Incremortal). You are K-7, a **seedling** (disposable drone of WARDEN and the Hearth Tree) aboard **Selene**, a living-wood colony ship of the Root-Kin of Earth. Each seedling works tasks until its energy runs out; familiarity, records and automation carry over to the next one.
@@ -159,6 +159,8 @@ The tools:
 - `pw173.py`: quieter audio (one 2 s reverb with music and sound sends, sleeps with music off after 10 s quiet, a sound wakes it and plays, music on wakes it; the Android activity pauses and resumes WebView timers).
 - `pw172.py`: lighter redraws (about 10 redraws a second running, 2 paused, a tap redraws at once, no DOM writes of unchanged values while paused, the energy bar is a transform, the task list still rebuilds on a queue change, autosave 15 s, no 700 face).
 - `pw180.py`: robustness (storage-full save: toast, pop-up, last saved unchanged; a slot that crashes on merge doesn't switch slots; export reminder timing and off switch; error bar and the loop keeps running; clock clamp; double tap on a confirm button counts once).
+- `pw181.py`: old saves (every file in saves/ and the fixtures merges cleanly, keeps its seedling, passes slotCheck, runs and forecasts; the cut-off 2026-11-03-2331 upload must be reported as damaged).
+- `milestones.js`: the milestone table (see playtest-notes.md, Test bots); writes `milestones.md`.
 - `pw179.py`: folds (Ship log oldest first and grouped, folded behind the seedling, finished act under one header, Records oldest first, Archive, Mastery and Auto act and section folds).
 - `pw171.py` (rewritten for build "folds"): Map folds (old choices moved over, act header, sections behind folded, taps stored); no reload, so no longer flaky; was: map folds (fully mapped sections fold, tap folds/opens, kept across reload, default choice not stored).
 - `pw170.py`: welcome back (3 days away), pause all automation (nothing automated runs, header switch, back on), live-region announcements, dialog label, Log events and filter chips.
@@ -169,7 +171,7 @@ The tools:
 - `pw151/152/153/158/159/160.py`: Playwright checks (header and pause, stasis, death saves, save names, compact cards, storage migration). Each must print `errors []`.
 - `oneoff/`: the scripts that did the Hearth Tree reskin, cleanup and comment rewording (history and reference only).
 
-- `tests/` (**regression tests**, `node --test project/tools/tests/*.test.js`, about 70 s; `QUICK=1` skips the Act II run): forecast = real run (fresh game, 12 lives; four fixture saves; the forecast leaves `S` untouched), frozen sections (completionist first seedlings: Vaults 10, Taproot 13, Shattered Bark 10), queue tools (forecast hints match the real run with the setting on; Clear queue keeps the current row), Act totals (lean Act I 5.51 h; Act II 3.96 / 2.08 / 1.04 h, 7.08 in all). They run the bots from `project/tools` against the repo's index.html (or `F=`). **Update the expected numbers in the same commit as any deliberate balance change** (and when a section is retuned or frozen).
+- `tests/` (**regression tests**, `node --test project/tools/tests/*.test.js`, about 70 s; `QUICK=1` skips the Act II run): data integrity (`data.test.js`, round 5: unique ids, every requirement, record, gear opener and crossing target exists, no requirement points at a later section or loops, every section's end task is reachable from its own and earlier tasks (static softlock check), every route section has its danger, crossing cost, store, length, year, target and `GI.z<id>` icon), forecast = real run (fresh game, 12 lives; four fixture saves; the forecast leaves `S` untouched), frozen sections (completionist first seedlings: Vaults 10, Taproot 13, Shattered Bark 10), queue tools (forecast hints match the real run with the setting on; Clear queue keeps the current row), Act totals (lean Act I 5.51 h; Act II 3.96 / 2.08 / 1.04 h, 7.08 in all). They run the bots from `project/tools` against the repo's index.html (or `F=`). **Update the expected numbers in the same commit as any deliberate balance change** (and when a section is retuned or frozen).
 
 Run before every push: the syntax check below, sanity.py, the pw tests and the regression tests.
 

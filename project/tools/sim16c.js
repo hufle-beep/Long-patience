@@ -31,5 +31,5 @@ for(let life=0;life<400&&!done;life++){
 }
 const days=(S.stats.daysLived+S.life.day)/TPD;
 console.log("CAUSES",JSON.stringify(C2));console.log('REAL with overclock: long watch h',((globalThis.RB-globalThis.RA)/3600).toFixed(2),'boarders h',((globalThis.RC-globalThis.RB)/3600).toFixed(2),'arrival h',((globalThis.RT-globalThis.RC)/3600).toFixed(2),'act2 h',((globalThis.RT-globalThis.RA)/3600).toFixed(2),'legacy levels at end',globalThis.LV);console.log('in-game: long watch h',((globalThis.T6-globalThis.T9)*TPD/DPS/3600).toFixed(2),'boarders and arrival h',((days-globalThis.T6)*TPD/DPS/3600).toFixed(2));console.log('branch',BR,'first',JSON.stringify(first),'done',done,'winGen',winGen,'endGen',S.gen,'act2 clones',S.gen-winGen,'act2 h',((days-winDays)*TPD/DPS/3600).toFixed(2),'total h',(days*TPD/DPS/3600).toFixed(2),'honours',S.a2.hon);
-console.log(lives.slice(-12).join(' '));
+console.log(lives.slice(-12).join(' '));console.log('FIRSTAT '+JSON.stringify(S.firstAt||{}));
 `);

@@ -12,7 +12,8 @@ The **Restore points** workflow (`.github/workflows/restore-points.yml`) runs on
 What the recent commits are (newest first):
 | Commit | What it is |
 |---|---|
-| (next) | Robustness: save failures, export reminder, error catcher, clock clamp, tap guard |
+| (next) | Test tooling: data tests, milestone table, old-save test (tools only) |
+| `d85919a` | Robustness: save failures, export reminder, error catcher, clock clamp, tap guard |
 | `be57633` | Folds: Ship log order, section and act folds on five tabs |
 | `c1dadef` | Tooltips: hover and hold, cards, icons, header, buttons, route |
 | `a7c9272` | Clearer buttons: emphasis, compact presets, split warnings |

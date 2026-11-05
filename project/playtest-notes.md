@@ -38,6 +38,7 @@ Goal: retune one section at a time from the user's playtests, then **freeze** it
 - **Lean bot** (sim11bv / sim11c / simtrace / simlean): quickest action first, crosses when nothing else fits, no drills, gear only if affordable.
 - **Completionist bot** (simcomp / simcomp2): does every action, all drills to 4/4, builds all of the section's gear, then crosses. This is the one matching the user's style.
 - **Act II bot**: `node sim16c.js AB` (runs the whole game through Arrival; prints death causes and Boarders / Long Watch / Arrival hours). Without `AB` it stops after Boarders. `simsnap.js` (STOPZ, STOPT, OUT) writes a save snapshot once a section is reached, for screenshots.
+- **Milestone table** (`node milestones.js`, about 50 s): runs the lean whole-game bot and the completionist bot (Act I up to the Heartwood), writes `project/tools/milestones.md` (seedlings used and in-game time per section, next to each target) and prints what changed since the last table; flags a section the lean bot used more than 3x its target (and at least 10 over) or never crossed (exit code 2). Commit the table with each balance change.
 - **Sanity check** (sanity.py): data duplicates, a long in-page run on a fresh game, an old-key save and two Act II saves, every tab and pop-up, and a scan for leftover old words.
 
 ### Section targets (in the game since build "section targets", 2026-11-05; badge only)
