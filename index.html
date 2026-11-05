@@ -200,7 +200,7 @@ button.zh.zhb{margin:14px 0 6px}
 .qpre{display:grid;gap:6px;padding-left:10px;border-left:1px dashed var(--line)}
 .qps{display:grid;gap:3px;font-size:12px}
 .qpl{display:flex;gap:6px;align-items:baseline}
-.qpb{display:flex;gap:4px}
+.qpb{display:flex;flex-wrap:wrap;gap:4px}
 .qps b{font-family:var(--f-mono);color:var(--amber)}
 .qps small{color:var(--dim);font-size:11px}
 .qps button{font-size:11px;padding:4px 7px;border:1px solid var(--line);border-radius:4px;color:var(--fg)}
@@ -219,6 +219,7 @@ button.zh.zhb{margin:14px 0 6px}
 .qrow .qtn{width:auto;height:auto;border:0;padding:0;font:inherit;color:inherit;text-align:left;cursor:pointer}
 .qrow.qskip{opacity:.55;border-style:dashed}
 .qrow.qskip .qtn{text-decoration:line-through}
+.qrow.pq{border-style:dashed}.qrow.pq .qtn{color:var(--violet)}
 .qskipbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px;color:var(--dim)}
 .qskipbar button{font-size:12px;padding:4px 8px;border:1px solid var(--line);border-radius:4px;color:var(--fg)}
 .trow{display:grid;grid-template-columns:auto 1fr;gap:6px 8px;align-items:center;padding:8px 0;border-top:1px dashed var(--line)}
@@ -378,7 +379,7 @@ html.mopen,html.mopen body{overflow:hidden;overscroll-behavior:none}
 .slot .btn{padding:6px 10px;font-size:12px}
 .owname{display:grid;gap:4px;margin:8px 0}.owname input{font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:6px;background:var(--panel2);color:inherit}
 .skeff{font-size:12px;margin-top:4px}.skeff .eff{color:var(--dim)}
-.ti{display:inline-block;vertical-align:-1px;margin-left:5px;fill:currentColor}.ti-rec{color:var(--amber)}.ti-gear{color:var(--sand)}.ti-cross{color:var(--cyan)}.etag{font-weight:600;color:var(--fg)}.pfam{color:var(--violet)}.paut{color:var(--green)}.pp{white-space:nowrap}.eff{color:var(--dim)}
+.ti{display:inline-block;vertical-align:-1px;margin-left:5px;fill:currentColor}.ti-rec{color:var(--amber)}.ti-gear{color:var(--sand)}.ti-cross{color:var(--cyan)}.lbar{display:flex;align-items:center;gap:10px;margin:10px 0 2px}.lbar small{color:var(--dim);font-size:12px}.lbar .btn.on{border-color:var(--amber);color:var(--amber)}.task.hid{opacity:.5}.task.fav .tn{color:var(--amber)}.tfv,.thd{font-size:12px;padding:6px 8px;border:1px solid var(--line);border-radius:4px;color:var(--faint)}.tfv.on{color:var(--amber);border-color:var(--amber)}.thd.on{color:var(--fg)}.hidn{cursor:pointer;width:100%;text-align:left}.etag{font-weight:600;color:var(--fg)}.pfam{color:var(--violet)}.paut{color:var(--green)}.pp{white-space:nowrap}.eff{color:var(--dim)}
 .arow.pend{opacity:.85}
 .owarn{border-left:3px solid var(--red);padding:6px 10px;background:var(--panel2);border-radius:4px}
 .slot .dslot{margin:2px 0 0 10px;padding:8px;border-left:3px solid var(--red, #c55);background:var(--panel)}
@@ -530,7 +531,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
 // Renamed from Long Patience: move this device's old storage keys to the new 'selene.' names once
 try { const old = []; for (let n = 0; n < localStorage.length; n++) old.push(localStorage.key(n)); old.forEach(k => { if (k && k.indexOf('long-patience.') === 0) { const nk = 'selene.' + k.slice(14); if (localStorage.getItem(nk) == null) localStorage.setItem(nk, localStorage.getItem(k)); localStorage.removeItem(k); } }); } catch(e) {}
 /* ===== Game data and rules (no DOM) ===== */
-const BUILD = '2026-11-05 · forecast hints and icons';   // shown in the main menu, to tell which version is loaded
+const BUILD = '2026-11-05 · preset rows and filters';   // shown in the main menu, to tell which version is loaded
 const DPS = 8;             // simulation ticks per real second at 1x (doubled for the test version: same balance, half the real time)
 // Time is simulated in ticks. 80 ticks make one day unit (18 minutes each), so a day lasts
 // 20 real seconds at 1x and Players only ever see in-game time and real time, never days.
@@ -1270,7 +1271,7 @@ ITEMS.forEach(i => { const t = {id:'b:' + i.id, gear:i.id, z:gearZone(i), kind:'
 
 let S, M;
 let HALT = false;   // set by the UI to stop the clock in the middle of a catch-up (e.g. pause on task completion)
-const HOOK = {repaired(){}, legacy(){}, legacyAvail(){}, autoRun(){}, ngpEarn(){}, assembling(){}, taskDone(){}, log(){}, perk(){}, die(){}, win(){}, change(){}, stopped(){}, practiced(){}, done(){}, rested(){}, crossed(){}, bought(){}, qfull(){}, merge(){}, kit(){}, runEnd(){}, trig(){}};
+const HOOK = {presetRow(){}, repaired(){}, legacy(){}, legacyAvail(){}, autoRun(){}, ngpEarn(){}, assembling(){}, taskDone(){}, log(){}, perk(){}, die(){}, win(){}, change(){}, stopped(){}, practiced(){}, done(){}, rested(){}, crossed(){}, bought(){}, qfull(){}, merge(){}, kit(){}, runEnd(){}, trig(){}};
 
 // Player preferences (switches, thresholds, boost speed) are stored once for the device, not per save:
 // a new game or another slot starts with the same settings.
@@ -1288,7 +1289,7 @@ function newLife(s){
   return L;
 }
 function defaultState(){
-  const s = {v:1, tv:3, qpresets:[[], [], [], [], []], gprac:{}, gauto:{}, gprio:{}, ev:2, rv:4, sv:2, pv:3, vv:3, gen:1, prio:{}, fam:{}, ever:{}, prac:{}, auto:{}, echo:{}, perks:{}, seen:{}, logged:{}, log:[], lastOrder:[], lastJob:null,
+  const s = {v:1, tv:3, fav:{}, hide:{}, qpresets:[[], [], [], [], []], gprac:{}, gauto:{}, gprio:{}, ev:2, rv:4, sv:2, pv:3, vv:3, gen:1, prio:{}, fam:{}, ever:{}, prac:{}, auto:{}, echo:{}, perks:{}, seen:{}, logged:{}, log:[], lastOrder:[], lastJob:null,
     set:Object.assign({speed:1, autoFood:true, autoEat:true, foodDays:2, foodPct:40, keepQueue:true, autoRun:false, autoRepair:true, autoScav:true, partsDays:2, deathScreen:true, deathPause:true, startPaused:false, pauseCross:false, pauseRunEnd:false, pauseDone:false, replay:true, fillCross:false, autoFeed:false, deathQueue:false, pauseDeath:false}, loadPrefs()),
     stats:{bestAge:0, deaths:0, daysLived:0, played:0}, a2:{open:false, hon:0, lv:{}, perks:{}, fin:0}, branch:null, merge:null, a2run:{reached:{}, done:{}}, pr:{n:0, pts:0, growth:0, drain:0, hp:0, speed:0, carry:0, runs:[]}, won:false, winGen:0, bank:0, saved:Date.now(), intro:false};
   s.life = newLife(s);
@@ -1435,6 +1436,7 @@ function pickFood(){
 // What runs now. `ex` (legacy levels second slot) lists tasks already taken by the other slot.
 function active(ex){
   const L = S.life, ok = t => !!t && !(ex && ex.has(t.id));
+  qPresetFire();
   // A task you tapped runs at once, ahead of food, automation and the queue, until it is done
   // (a job: until its store is full). It is never placed in the queue.
   if (L.now && isCQ(L.now)) {   // a merged chain you tapped: runs its steps in order, at chain-flow speed
@@ -1507,6 +1509,7 @@ function active(ex){
   // Your queue: actions run until done; queued jobs run until their storage is full, then drop out
   for (const id of L.queue.slice()) {
     if (L.qskip && L.qskip[id]) continue;   // skipped by the player: stays in the queue, never runs
+    if (isPQ(id)) continue;   // a preset row waits for the rows above it (qPresetFire)
     if (isCQ(id)) {
       const next = chainNext(id, ok);
       if (next) { if (ok(next)) { L.viaChain = true; return next; } continue; }
@@ -1839,7 +1842,7 @@ function enterZone(z, from){
   L.sec = z; if (!L.secAt) L.secAt = {}; if (!L.secAt[z]) L.secAt[z] = {d:L.day, r:L.real || 0};
   runTotal(z);
   (L.visited = L.visited || {})[z] = 1;
-  const stay = id => isCQ(id) ? cSteps(id).some(x => isGQ(x) ? !zBefore(gearZone(IT[x.slice(2)]), z) : !zBefore(T[x].z, z)) : isGQ(id) ? (qItem(id) && (isDone(qItem(id).req) || !zBefore(gearZone(qItem(id)), z))) : !zBefore(T[id].z, z);
+  const stay = id => isPQ(id) ? true : isCQ(id) ? cSteps(id).some(x => isGQ(x) ? !zBefore(gearZone(IT[x.slice(2)]), z) : !zBefore(T[x].z, z)) : isGQ(id) ? (qItem(id) && (isDone(qItem(id).req) || !zBefore(gearZone(qItem(id)), z))) : !zBefore(T[id].z, z);
   L.qdone.push(...L.queue.filter(id => !stay(id))); L.queue = L.queue.filter(stay);
   if (L.job && zBefore(T[L.job].z, z)) L.job = null;
   L.foraging = false; L.held = null;
@@ -2040,6 +2043,7 @@ function qCurEntry(){
 // How a queue entry left the queue: done, or dropped unfinished (left behind at a crossing, merged into a chain)
 function fcState(id){
   const L = S.life;
+  if (isPQ(id)) return 'done';
   if (isCQ(id)) return cSteps(id).every(x => cStepDone(id, x)) ? 'done' : 'left';
   if (isGQ(id)) return L.owned[id.slice(2)] || assembling(id.slice(2)) ? 'done' : 'left';
   const t = T[id]; return !t ? 'left' : t.kind === 'job' || complete(t) || (L.done[id] || 0) > 0 ? 'done' : 'left';
@@ -2108,9 +2112,13 @@ const QPRESETS = 5;   // saved queue presets
 const isGQ = id => typeof id === 'string' && id.startsWith('g:');
 // A chain in the queue is one entry, 'ch:' + its steps in order (task ids and 'g:' designs).
 const isCQ = id => typeof id === 'string' && id.startsWith('ch:');
+// A preset row in the queue is 'p:<preset index>': once every row above it is finished (or skipped), it
+// replaces itself and everything below it with that preset (qPresetFire). Each preset fires once per seedling.
+const isPQ = id => typeof id === 'string' && /^p:[0-4]$/.test(id);
+const qpLabel = i => ((S.qpnames || [])[i] || 'preset ' + (i + 1));
 const cSteps = id => id.slice(3).split(',').filter(x => isGQ(x) ? IT[x.slice(2)] : T[x]);
 const stepName = x => isGQ(x) ? 'Build ' + IT[x.slice(2)].name : T[x].name;
-const qItem = id => isCQ(id) ? (cSteps(id).length ? {id, name:'Chain: ' + cSteps(id).map(stepName).join(' \u2192 ')} : null) : isGQ(id) ? IT[id.slice(2)] : T[id];
+const qItem = id => isPQ(id) ? {id, name:'Load preset: ' + qpLabel(+id.slice(2))} : isCQ(id) ? (cSteps(id).length ? {id, name:'Chain: ' + cSteps(id).map(stepName).join(' \u2192 ')} : null) : isGQ(id) ? IT[id.slice(2)] : T[id];
 const qName = id => { const x = qItem(id); return x ? (isGQ(id) ? 'Build ' + x.name : x.name) : id; };
 // The queue entry for the chain a task belongs to (null when it is not linked to anything)
 function chainKeyFor(t){
@@ -2326,6 +2334,7 @@ function qMoveTo(i, to){
 // A queue entry still worth keeping: not finished, not left behind, its gear not built
 function qLive(id){
   const L = S.life; if (!qItem(id)) return false;
+  if (isPQ(id)) return true;
   if (isCQ(id)) return cSteps(id).some(x => !isGQ(x) && !zBefore(T[x].z, L.sec || 1));
   if (isGQ(id)) return !L.owned[qItem(id).id];
   return !(T[id].kind !== 'job' && complete(T[id])) && !zBefore(T[id].z, L.sec || 1);
@@ -2334,6 +2343,19 @@ function qLive(id){
 function qLoadPreset(i){
   const L = S.life, p = (S.qpresets[i] || []).filter(id => qItem(id)).slice(0, QMAX);
   L.qdone = []; L.queue = p.filter(qLive); pinChains();
+}
+// A preset row at the top of the queue (skipped rows aside) fires: the preset replaces it and the rows below it
+function qPresetFire(){
+  const L = S.life; let n = 0;
+  while (n++ < QPRESETS + 1) {
+    const i = L.queue.findIndex(q => !(L.qskip || {})[q]), id = L.queue[i];
+    if (i < 0 || !isPQ(id)) return;
+    const k = +id.slice(2), p = (S.qpresets[k] || []).filter(q => qItem(q) && qLive(q));
+    L.queue.splice(i, 1); (L.qdone = L.qdone || []).push(id);
+    if ((L.qpf || {})[k] || !p.length) { HOOK.change(); continue; }   // each preset once per seedling; an empty one is just used up
+    (L.qpf = L.qpf || {})[k] = 1;
+    L.queue = L.queue.slice(0, i).concat(p).slice(0, QMAX); pinChains(); HOOK.presetRow(k); HOOK.change();
+  }
 }
 // Preset triggers (up to QTRIG): 'when a new seedling sprouts' or 'when it enters section z', load preset p.
 // Each rule fires at most once per seedling (L.qtf). A new seedling counts as entering its first section.
@@ -2901,6 +2923,7 @@ function mergeState(raw){
   WATCH.forEach(p => { if ((s.ever || {})[p.secEnd] || (s.logged || {})[p.secEnd] || (p.secEnd === 'ignite' && s.won) || (s.life && s.life.done && s.life.done[p.secEnd])) s.perks[p.id] = true; });
   delete s.perks.service1; delete s.perks.service2;
   if (!s.gprac) s.gprac = {}; if (!s.gauto) s.gauto = {}; if (!s.gprio) s.gprio = {};
+  if (!s.fav || typeof s.fav !== 'object') s.fav = {}; if (!s.hide || typeof s.hide !== 'object') s.hide = {};   // favourite and hidden task cards
   if (!s.a2 || typeof s.a2 !== 'object') s.a2 = {open:false, hon:0, lv:{}, perks:{}, fin:0};
   ['lv','perks'].forEach(k => { if (!s.a2[k]) s.a2[k] = {}; });
   if ((s.won || (s.pr && s.pr.n)) && !s.a2.open) s.a2.open = true;   // Act II opens for anyone who has lit the drive
@@ -3210,6 +3233,16 @@ function prioPick(t){
     [1,2,3,4,5].map(n => `<button data-setprio="${t.id}" data-n="${n}" class="${prioOf(t) === n ? 'on' : ''}">${n}</button>`).join('') + '</div></div>';
 }
 function chips(t){ return ''; }
+// Favourite and hidden task cards (kept in the save); "Edit list" shows the toggles
+let editList = false;
+const showHid = {};
+const tHidden = t => !t.cross && !!(S.hide || {})[t.id];
+const cardCls = t => ((S.fav || {})[t.id] ? ' fav' : '') + (tHidden(t) ? ' hid' : '');
+function edBtns(t){
+  const f = !!(S.fav || {})[t.id], hd = tHidden(t);
+  return `<button class="tfv${f ? ' on' : ''}" data-tfav="${t.id}" aria-pressed="${f}" aria-label="${f ? 'Unfavourite' : 'Favourite'} ${esc(t.name)}">\u2605</button>` +
+    (t.cross ? '' : `<button class="thd${hd ? ' on' : ''}" data-thide="${t.id}" aria-pressed="${hd}" aria-label="${hd ? 'Show' : 'Hide'} ${esc(t.name)}">${hd ? 'Show' : 'Hide'}</button>`);
+}
 // Small icons by a task's name, shown from the start: a record not found yet, a gear design it opens, a crossing
 const TI_SVG = {
   rec:'<path d="M6 .8l1.5 3.3 3.6.4-2.7 2.4.8 3.5L6 8.6 2.8 10.4l.8-3.5L.9 4.5l3.6-.4z"/>',
@@ -3237,6 +3270,7 @@ const qText = () => S.life.queue.map((id, i) => (i + 1) + '. ' + (isCQ(id) ? 'Ch
 function qParse(txt){
   const key = x => x.toLowerCase().replace(/[\u2018\u2019`]/g, "'");   // curly or straight apostrophes alike
   const byName = {}; TASKS.forEach(t => { if (t.kind !== 'build') byName[key(t.name)] = t.id; }); ITEMS.forEach(i => { byName[key('Build ' + i.name)] = 'g:' + i.id; });
+  for (let i = 0; i < QPRESETS; i++) { byName[key('Load preset: preset ' + (i + 1))] = 'p:' + i; if (qpName(i)) byName[key('Load preset: ' + qpName(i))] = 'p:' + i; }
   const ids = [], bad = []; let chains = 0;
   String(txt || '').split(/\r?\n/).forEach(line => {
     const n = line.replace(/^\s*(\d+[.)]|[-*\u2022])\s*/, '').replace(/\s+/g, ' ').trim(); if (!n) return;
@@ -3298,6 +3332,7 @@ function qTrigPanel(rules){
   h += '<button class="btn pri" data-ow="c0">Save</button><button class="btn" data-ow="x">Cancel</button></div>';
   showModal(h);
 }
+HOOK.presetRow = k => { taskKey = ''; toast('Queue row: loaded preset ' + (k + 1) + (qpName(k) ? ' (' + qpName(k) + ')' : '') + '.'); };
 HOOK.trig = (i, r) => { taskKey = ''; toast('Trigger ' + (i + 1) + ': loaded preset ' + (r.p + 1) + (qpName(r.p) ? ' (' + qpName(r.p) + ')' : '') + '.'); };
 // Long-press + on a drill or a task with several reps: queue one copy per repetition still to do
 let lpT = null, lpDone = false;
@@ -3360,7 +3395,7 @@ function renderTasks(){
     if (av && !complete(t)) vis.push(t.id);
     else if (!av && S.seen[t.id] && legacyOpen(t)) locked.push(t.id);
   });
-  const key = vis.join() + '|' + locked.join() + '|' + [...chainedIds()].join() + JSON.stringify(cOpen) + JSON.stringify(qOpen) + JSON.stringify(L.cjd || {}) + L.queue.filter(isCQ).map(id => cSteps(id).filter(x => cStepDone(id, x)).length).join() + (L.now || '') + (L.chainRun ? 'R' : '') + runSpan(L.sec || 1).join('') + JSON.stringify(sectionGate(L.sec || 1)) + ITEMS.filter(i => isDone(i.req)).map(i => i.id + (L.owned[i.id] ? 'o' : assembling(i.id) ? 'a' + Math.floor((L.prog['b:' + i.id] || 0) / BT[i.id].days * 20) : L.salvage >= i.cost ? 'y' : 'n') + (gearAuto(i) ? '*' : '') + ((S.gprac || {})[i.id] || 0)).join() + '|' + L.queue.join() + (L.queue.some(isGQ) ? Math.floor(L.salvage) + '/' + M.salCap + Object.keys(L.owned).join() : '') + '|' + L.job + '|' + Object.keys(S.perks).join() + '|' + S.gen + '|' + JSON.stringify(showLocked) + '|' + L.sec + '|' + (L.held || '') + holdList().join() + '|' + JSON.stringify(S.qpresets) + (L.qdone || []).length + (S.set.keepQueue !== false) + '|' + TASKS.filter(t => practiced(t)).map(t => t.id + (S.auto[t.id] ? '*' : '') + prioOf(t)).join() + '|' + openPrio + '|' + JSON.stringify(L.qskip || {}) + JSON.stringify(S.qtrig || []) + '|' + !!(qUndo && qUndo.gen === S.gen) + JSON.stringify(S.qpnames || []);
+  const key = vis.join() + '|' + JSON.stringify(S.fav || {}) + JSON.stringify(S.hide || {}) + editList + JSON.stringify(showHid) + '|' + locked.join() + '|' + [...chainedIds()].join() + JSON.stringify(cOpen) + JSON.stringify(qOpen) + JSON.stringify(L.cjd || {}) + L.queue.filter(isCQ).map(id => cSteps(id).filter(x => cStepDone(id, x)).length).join() + (L.now || '') + (L.chainRun ? 'R' : '') + runSpan(L.sec || 1).join('') + JSON.stringify(sectionGate(L.sec || 1)) + ITEMS.filter(i => isDone(i.req)).map(i => i.id + (L.owned[i.id] ? 'o' : assembling(i.id) ? 'a' + Math.floor((L.prog['b:' + i.id] || 0) / BT[i.id].days * 20) : L.salvage >= i.cost ? 'y' : 'n') + (gearAuto(i) ? '*' : '') + ((S.gprac || {})[i.id] || 0)).join() + '|' + L.queue.join() + (L.queue.some(isGQ) ? Math.floor(L.salvage) + '/' + M.salCap + Object.keys(L.owned).join() : '') + '|' + L.job + '|' + Object.keys(S.perks).join() + '|' + S.gen + '|' + JSON.stringify(showLocked) + '|' + L.sec + '|' + (L.held || '') + holdList().join() + '|' + JSON.stringify(S.qpresets) + (L.qdone || []).length + (S.set.keepQueue !== false) + '|' + TASKS.filter(t => practiced(t)).map(t => t.id + (S.auto[t.id] ? '*' : '') + prioOf(t)).join() + '|' + openPrio + '|' + JSON.stringify(L.qskip || {}) + JSON.stringify(S.qtrig || []) + '|' + !!(qUndo && qUndo.gen === S.gen) + JSON.stringify(S.qpnames || []);
   const gk = JSON.stringify(sectionGate(L.sec || 1)) + runSpan(L.sec || 1).join() + !!L.chainRun + '|' + vis.map(id => (S.ever || {})[id] ? 'e' : '').join() + '|' + ITEMS.map(i => (gearKnown(i) ? 'k' : '') + (gearPracticed(i) ? 'p' : '')).join();   // familiarity and auto % update in place (updateTasks), so they never rebuild the list
   if (key + gk === taskKey) return;
   taskKey = key + gk;
@@ -3379,12 +3414,12 @@ function renderTasks(){
   if (L.queue.length || L.chainRun) {
     h += '<ol class="qlist' + (L.queue.length > 12 ? ' long' : '') + '">' + runRow() + L.queue.map((id, i) => {
       if (isCQ(id)) return chainRow(id, i);
-      const g = isGQ(id), t = g ? {name:qName(id)} : T[id], it = g ? qItem(id) : null;
-      const bl = g ? (!isDone(it.req) || it.cost > M.salCap) : !available(t);
-      const why = g ? (!isDone(it.req) ? 'after: ' + T[it.req].name : it.cost > M.salCap ? 'needs bigger ' + salW() + ' storage' : fmt(Math.min(L.salvage, it.cost)) + '/' + fmt(it.cost) + ' ' + salW() + (L.salvage < it.cost && !bestSalvageJob() ? ' \u00b7 no ' + salW() + ' job here yet' : ''))
+      const g = isGQ(id), pq = isPQ(id), t = g || pq ? {name:qName(id)} : T[id], it = g ? qItem(id) : null;
+      const bl = pq ? false : g ? (!isDone(it.req) || it.cost > M.salCap) : !available(t);
+      const why = pq ? ((S.qpresets[+id.slice(2)] || []).length ? 'loads once the rows above are done; replaces the rows below' : 'preset is empty: it will just be used up') : g ? (!isDone(it.req) ? 'after: ' + T[it.req].name : it.cost > M.salCap ? 'needs bigger ' + salW() + ' storage' : fmt(Math.min(L.salvage, it.cost)) + '/' + fmt(it.cost) + ' ' + salW() + (L.salvage < it.cost && !bestSalvageJob() ? ' \u00b7 no ' + salW() + ' job here yet' : ''))
         : L.held === id ? 'on hold: wrapping up the section' : !bl ? '' : zAfter(t.z, L.sec) ? 'waits for ' + zoneThe(t.z) : zBefore(t.z, L.sec) ? 'left behind' : 'waiting for its requirements';
       const sk = !!(L.qskip || {})[id];
-      return `<li class="qrow${bl ? ' blocked' : ''}${g ? ' gq' : ''}${sk ? ' qskip' : ''}" data-qid="${id}"><span class="qdrag" data-qdrag="${i}" aria-hidden="true" title="Drag to reorder">⠇</span><span class="qn">${i + 1}.</span><span class="qt"><button class="qtn" data-qskip="${i}" aria-pressed="${sk}" title="${sk ? 'Skipped: tap to run it again' : 'Tap to skip (it stays in the queue)'}">${esc(t.name)}</button>${t.kind === 'job' ? ' <small>until full</small>' : ''}${sk ? ' <small>skipped \u00b7 tap the name to run it</small>' : why ? ` <small>${why}</small>` : ''}<small class="qfc" data-qf="${i}"></small></span>
+      return `<li class="qrow${bl ? ' blocked' : ''}${g ? ' gq' : ''}${pq ? ' pq' : ''}${sk ? ' qskip' : ''}" data-qid="${id}"><span class="qdrag" data-qdrag="${i}" aria-hidden="true" title="Drag to reorder">⠇</span><span class="qn">${i + 1}.</span><span class="qt"><button class="qtn" data-qskip="${i}" aria-pressed="${sk}" title="${sk ? 'Skipped: tap to run it again' : 'Tap to skip (it stays in the queue)'}">${esc(t.name)}</button>${t.kind === 'job' ? ' <small>until full</small>' : ''}${sk ? ' <small>skipped \u00b7 tap the name to run it</small>' : why ? ` <small>${why}</small>` : ''}<small class="qfc" data-qf="${i}"></small></span>
         <button data-qmove="${i}" data-dir="-1" ${i <= qPinned() ? 'disabled' : ''} aria-label="Move ${esc(t.name)} up">\u2191</button><button data-qmove="${i}" data-dir="1" ${i === L.queue.length - 1 ? 'disabled' : ''} aria-label="Move ${esc(t.name)} down">\u2193</button><button data-unqi="${i}" aria-label="Remove ${esc(t.name)} from queue">\u2715</button></li>`;
     }).join('') + '</ol>';
   } else {
@@ -3392,23 +3427,29 @@ function renderTasks(){
   }
   h += '</div><div class="qpre" aria-label="Queue presets"><span class="lbl">Presets</span>' + Array.from({length:QPRESETS}, (_, i) => i).map(i => {
     const n = (S.qpresets[i] || []).length;
-    return `<div class="qps"><button class="qpl${qpName(i) ? '' : ' nn'}" data-qpname="${i}" aria-label="Name preset ${i + 1}" title="Tap to name this preset"><b>${i + 1}</b>${qpName(i) ? `<span class="qpn">${esc(qpName(i))}</span>` : ''}<small>${n ? n + ' item' + (n > 1 ? 's' : '') : 'empty'}</small></button><span class="qpb"><button data-qsave="${i}" aria-label="Save queue to preset ${i + 1}">Save</button><button data-qload="${i}" ${n ? '' : 'disabled'} aria-label="Load preset ${i + 1}">Load</button></span></div>`;
+    return `<div class="qps"><button class="qpl${qpName(i) ? '' : ' nn'}" data-qpname="${i}" aria-label="Name preset ${i + 1}" title="Tap to name this preset"><b>${i + 1}</b>${qpName(i) ? `<span class="qpn">${esc(qpName(i))}</span>` : ''}<small>${n ? n + ' item' + (n > 1 ? 's' : '') : 'empty'}</small></button><span class="qpb"><button data-qsave="${i}" aria-label="Save queue to preset ${i + 1}">Save</button><button data-qload="${i}" ${n ? '' : 'disabled'} aria-label="Load preset ${i + 1}">Load</button><button data-qprow="${i}" ${n ? '' : 'disabled'} aria-label="Add a queue row that loads preset ${i + 1}" title="Add a row that loads this preset when the queue reaches it">+ Row</button></span></div>`;
   }).join('') + '<div class="qps qtx"><span class="lbl">Text</span><span class="qpb"><button data-qtext aria-label="Queue as text: copy or paste">Copy / paste</button></span></div><div class="qps qtx"><span class="lbl">Sort</span><span class="qpb"><button data-qsortfam aria-label="Sort the queue: least familiar tasks first">Least familiar</button></span></div><div class="qps qtx"><span class="lbl">Triggers</span><span class="qpb"><button data-qtrig aria-label="Preset triggers: load a preset by itself">' + ((S.qtrig || []).length ? (S.qtrig || []).length + ' rule' + ((S.qtrig || []).length > 1 ? 's' : '') : 'Set up') + '</button></span></div></div></div>';
   if (L.job) h += `<div class="qnote">Fallback job: <b>${esc(T[L.job].name)}</b>. It runs whenever the queue is empty.</div>`;
   h += `<div class="row qkeep"><p>Keep queue between seedlings<small>A new seedling starts with the queue you planned this life, minus anything automated and switched on.</small></p><button class="tog${S.set.keepQueue !== false ? ' on' : ''}" data-set="keepQueue" aria-label="Keep queue between seedlings" aria-pressed="${S.set.keepQueue !== false}"></button></div></div>`;
 
+  h += `<div class="lbar"><button class="btn${editList ? ' on' : ''}" data-editlist aria-pressed="${editList}">${editList ? 'Done' : 'Edit list'}</button>${editList ? '<small>\u2605 puts a task at the top of its section; Hide folds it into the hidden line at the bottom. Hidden tasks still run when queued, automated or chained. Crossings and chain cards stay.</small>' : ''}</div>`;
   ZONES.forEach(z => {
     if (z.id !== L.sec) return;
     // Linked tasks merge into one chain card each (they leave the normal lists), with their gear inside
     const zchains = chainsOf(z.id).map(c => chainKeyFor(c[0])).filter(Boolean);
     const inChain = new Set(); zchains.forEach(k => cSteps(k).forEach(x => inChain.add(x)));
     const zt = TASKS.filter(t => t.z === z.id && !inChain.has(t.id));
-    const jobs = zt.filter(t => t.kind === 'job' && vis.includes(t.id));
-    const acts = zt.filter(t => t.kind === 'act' && vis.includes(t.id));
-    const trains = zt.filter(t => t.kind === 'train' && vis.includes(t.id));
-    const lk = zt.filter(t => locked.includes(t.id));
+    let jobs = zt.filter(t => t.kind === 'job' && vis.includes(t.id));
+    let acts = zt.filter(t => t.kind === 'act' && vis.includes(t.id));
+    let trains = zt.filter(t => t.kind === 'train' && vis.includes(t.id));
+    let lk = zt.filter(t => locked.includes(t.id));
     const cleared = TASKS.filter(t => t.z === z.id && complete(t)).length;
     if (!zchains.length && !jobs.length && !acts.length && !trains.length && !lk.length && !cleared) return;
+    // Favourites first in each list; hidden cards fold into one line at the bottom (they still run)
+    const fv = S.fav || {}, showH = editList || !!showHid[z.id];
+    let nHid = 0;
+    const lst = a => { const v = a.filter(t => !tHidden(t) || showH); nHid += a.filter(tHidden).length; return v.sort((x, y) => (fv[y.id] ? 1 : 0) - (fv[x.id] ? 1 : 0)); };
+    jobs = lst(jobs); acts = lst(acts); trains = lst(trains); lk = lst(lk.slice().sort((x, y) => chainOrd(x) - chainOrd(y)));
     h += `<section class="zone"><header class="zh"><h2>${z.name}</h2><span>${z.sub}</span><span class="yr">${voyTxt(z)}</span><span class="nxa" id="nxa">${nextAutoHtml(z.id)}</span>${cleared ? `<em>${cleared} done</em>` : ''}</header>`;
     if (zchains.length) {
       h += '<div class="sub">Chains \u00b7 linked tasks work as one, faster with chain flow</div>';
@@ -3418,35 +3459,35 @@ function renderTasks(){
       h += '<div class="sub">Jobs · repeat</div>';
       jobs.forEach(t => {
         const res = t.prod ? (t.prod.rations ? 'rations' : 'salvage') : '';
-        h += `<div class="task job${L.job === t.id ? ' fb' : ''}" data-id="${t.id}">
+        h += `<div class="task job${L.job === t.id ? ' fb' : ''}${cardCls(t)}" data-id="${t.id}">
           <button class="tm" data-do="${t.id}"><div class="tf"></div>
             <div class="th"><span class="tn">${esc(t.name)}</span><span class="te num" data-r="${res}"></span></div>
             <div class="tx">${chips(t)}${t.haz ? '<span class="haz">▲ hazard</span>' : ''}${!t.prod ? '<span>no output</span>' : '<span class="tt num"></span>'}<span class="pr num"></span></div>
-          </button></div>`;   // jobs: no queue or automation buttons (auto-forage, gear and crossings run them)
+          </button>${editList ? '<div class="side">' + edBtns(t) + '</div>' : ''}</div>`;   // jobs: no queue or automation buttons (auto-forage, gear and crossings run them)
       });
     }
     if (trains.length) {
       h += `<div class="sub">Drills · up to ${TRAIN_CAP} sessions each per life · each session adds familiarity to every task in this section</div>`;
       trains.forEach(t => {
         const qi = L.queue.indexOf(t.id);
-        h += `<div class="task act train${(S.ever || {})[t.id] ? '' : ' nev'}" data-id="${t.id}">
+        h += `<div class="task act train${(S.ever || {})[t.id] ? '' : ' nev'}${cardCls(t)}" data-id="${t.id}">
           <button class="tm" data-do="${t.id}"><div class="tf"></div>
             <div class="th"><span class="tn">${esc(t.name)}</span><span class="te num"></span></div>
             <div class="tx">${chips(t)}<span class="num rp"></span><span class="num pp">${progHtml(t, autoFrac(t))}</span>${effectHtml(t)}</div>
           </button>
-          <div class="side">${tqBtn(t)}${autoBtn(t)}</div></div>` + prioPick(t);
+          <div class="side">${editList ? edBtns(t) : tqBtn(t) + autoBtn(t)}</div></div>` + prioPick(t);
       });
     }
     if (acts.length) {
       h += '<div class="sub">Actions</div>';
       acts.forEach(t => {
         const qi = L.queue.indexOf(t.id);
-        h += `<div class="task act${t.cross ? ' cross' : ''}${(S.ever || {})[t.id] ? '' : ' nev'}" data-id="${t.id}">
+        h += `<div class="task act${t.cross ? ' cross' : ''}${(S.ever || {})[t.id] ? '' : ' nev'}${cardCls(t)}" data-id="${t.id}">
           <button class="tm" data-do="${t.id}"><div class="tf"></div>${t.cross ? `<div class="crossw">Leads to ${esc(zoneThe(t.to || nextZone(t.z)))} \u00b7 no way back</div>` : ''}
             <div class="th"><span class="tn">${esc(t.name)}${tIcons(t)}</span><span class="te num"></span></div>
             <div class="tx">${chips(t)}${t.reps > 1 ? `<span class="num rp"></span>` : ''}${t.haz ? '<span class="haz">▲ hazard</span>' : ''}<span class="num pp">${progHtml(t, autoFrac(t))}</span>${effectHtml(t)}</div>
           </button>
-          <div class="side">${tqBtn(t)}${autoBtn(t)}</div></div>` + prioPick(t);
+          <div class="side">${editList ? edBtns(t) : tqBtn(t) + autoBtn(t)}</div></div>` + prioPick(t);
       });
     }
     {
@@ -3460,12 +3501,13 @@ function renderTasks(){
     }
     // Tasks met in an earlier life stay listed, greyed out until everything they need is done (they can be queued)
     if (lk.length) h += '<div class="sub">Not yet available \u00b7 needs other tasks first</div>';
-    lk.slice().sort((x, y) => chainOrd(x) - chainOrd(y)).forEach(t => {
+    lk.forEach(t => {
       const sealed = t.req.includes('wardlift') && !reqMet('wardlift');   // the kindling, under WARDEN's ward-lock
       const need = t.req.filter(r => !reqMet(r) && r !== 'wardlift').map(r => S.seen[r] || T[r].legacy ? T[r].name : 'something unseen');
-      h += `<div class="task lock" data-lock="${t.id}"><div class="tm"><div class="th"><span class="tn">${esc(t.name)}${tIcons(t)}</span></div>
-        <div class="tx">${chips(t)}<span>${sealed ? 'Sealed by WARDEN\u2019s ward-lock. Mend the hull in the Shattered Bark first.' + (need.length ? ' ' : '') : ''}${need.length ? 'Needs: ' + esc(need.join(', ')) : ''}</span></div></div>${qBtn(t.id, ' lockq')}</div>`;
+      h += `<div class="task lock${cardCls(t)}" data-lock="${t.id}"><div class="tm"><div class="th"><span class="tn">${esc(t.name)}${tIcons(t)}</span></div>
+        <div class="tx">${chips(t)}<span>${sealed ? 'Sealed by WARDEN\u2019s ward-lock. Mend the hull in the Shattered Bark first.' + (need.length ? ' ' : '') : ''}${need.length ? 'Needs: ' + esc(need.join(', ')) : ''}</span></div></div>${editList ? '<div class="side">' + edBtns(t) + '</div>' : qBtn(t.id, ' lockq')}</div>`;
     });
+    if (nHid) h += `<button class="sub hidn" data-showhid="${z.id}" aria-expanded="${showH}">${showH ? '\u25be' : '\u25b8'} ${nHid} hidden${editList ? ' (shown while editing)' : ''}</button>`;
     h += '</section>';
   });
   $('#v-tasks').innerHTML = h;
@@ -4210,8 +4252,8 @@ const FAQ_ALL = [
   ['Selene and the Root-Kin', 'The Root-Kin of Earth grow their technology: tools, cities, vehicles and ships come from specialised trees, hardened with magic. It is a highly advanced techno-magical civilisation, and everything in it is organic. There are no nation states left, but the local cultures are kept alive. One World Government has ruled for thousands of years: a democracy with slight meritocratic elements. <b>Selene</b> is one of their colony ships: a long, swept hull of living wood with crescent wings, grown around the <b>Hearth Tree</b>, which is her drive, her mind (WARDEN) and her garden at once. Root-Kin ships ride the ambient magic that saturates the universe, close to the speed of light, inside magical ward-shields and under artificial gravity, and can turn on any axis without strain. That is why, halfway there, Selene has to <b>flip</b> and brake for the rest of the voyage. Seedlings like K-7 are disposable drones of WARDEN and the Hearth Tree, grown for a single task and given just enough autonomy to carry it out.'],
   ['What is the goal?', 'Restore Selene so WARDEN can wake the sleeping crew. All of Act I happens inside the Hearth Tree, her drive, mind and garden at once: the sap flow that powers her in the Taproot Galleries, the meteor wounds in her hull in the Shattered Bark, WARDEN\u2019s mind and the star-charts in the Heartwood, the food gardens in the Canopy Gardens, and the Hearthfire in the Ember Crown. Act I ends when you kindle the Hearth Tree. One seedling cannot do it all; it takes many lives (around 50 with very good play).'],
   ['How do I start?', 'Tap a task to work on it right away. Climb out of the seed pod first, then tap the vault\u2019s sap line for sap cells and strip dead bark panels for deadwood. Time only moves while your seedling is working: with nothing to do, the clock stops, so you can always read and plan.'],
-  ['What are jobs, actions and training?', '<b>Jobs</b> repeat and make sap cells or deadwood in batches; they stop when that storage is full. <b>Actions</b> are one-off tasks that unlock things and move the story on. Each needs certain earlier actions, and a section\u2019s last action (its crossing) needs every other action of that section. Tasks you have met before stay listed, greyed out, until what they need is done; you can still queue them. <b>Drills</b> each add a little familiarity to every task in their section, up to 4 sessions per life. Small icons by a task\u2019s name show what it holds from the start: a <b>star</b> for a record not found yet, a <b>cog</b> for a gear design it opens, an <b>arrow</b> for a crossing. Its effects show once a seedling has finished it, grouped by how long they last: <b>This seedling</b> (storage, recharges, deadwood per minute: gone at death) and <b>Kept</b> (records, familiarity from drills).'],
-  ['How does the queue work?', 'Tapping a task runs it right away, ahead of the queue (a job runs until its store is full); it is not added to the queue. Tapping a gear card works the same way: it is built right away, after gathering the deadwood (grafts in Act II) it still needs. <b>+</b> adds a task to the end of the queue; drag it or use the arrows to move it up. You can queue the same task several times at different places: tap + again for another copy. A task queued once runs until it is done; with several copies, each copy covers one repetition (one training session, one rep, or one fill of a store). The queue holds up to 100 items. Drag an item by the handle on its left to move it, or use the arrows; ✕ removes it. Queued jobs run until their storage is full. You can queue things you have seen before even if they are not available yet; they wait their turn. Gear can be queued too, with the <b>+</b> on its card (gear is listed in each section of the Tasks tab): the seedling works the best deadwood job until it can afford the design, then builds it. Five presets save and load whole queues (tap a preset\u2019s number to name it), <b>Copy / paste</b> turns the queue into plain text and back, and <b>Undo</b> takes back the last change to the queue. Tap a row\u2019s name to <b>skip</b> it: it stays in the queue but doesn\u2019t run until you tap it again. Press and hold <b>+</b> on a drill or a task with several reps to queue one copy per repetition still to do. <b>Least familiar</b> sorts the queue so the weakest tasks run first (chains stay on top). <b>Triggers</b> load a preset by themselves when a new seedling sprouts or when it enters a section you choose (each rule once per seedling). <b>Keep queue between seedlings</b> gives each new seedling the queue you planned, minus anything that is automated and switched on. <b>The forecast:</b> the game plays your seedling\u2019s life forward with the same rules (queue, automation, recharges, crossings), so each queue row shows the energy left when it is done and when that will be; rows the seedling won\u2019t reach turn red, and <b>Dies here</b> marks the row where it dies. The Outlook line gives the forecast death and its cause; a setting can pause the game once, just before it. When the forecast death comes from energy or wear and a setting that is off or low (Auto-recharge, Auto-charge, the charge threshold, Charge when needed, and in Act II Auto-scavenge and Auto-repair) would make the seedling live clearly longer, the Outlook line names it and how much time it adds. <b>Clear queue</b> keeps the row the seedling is working on. A dot marked <b>new</b> on a task means no seedling has finished it yet.'],
+  ['What are jobs, actions and training?', '<b>Jobs</b> repeat and make sap cells or deadwood in batches; they stop when that storage is full. <b>Actions</b> are one-off tasks that unlock things and move the story on. Each needs certain earlier actions, and a section\u2019s last action (its crossing) needs every other action of that section. Tasks you have met before stay listed, greyed out, until what they need is done; you can still queue them. <b>Drills</b> each add a little familiarity to every task in their section, up to 4 sessions per life. Small icons by a task\u2019s name show what it holds from the start: a <b>star</b> for a record not found yet, a <b>cog</b> for a gear design it opens, an <b>arrow</b> for a crossing. Its effects show once a seedling has finished it, grouped by how long they last: <b>This seedling</b> (storage, recharges, deadwood per minute: gone at death) and <b>Kept</b> (records, familiarity from drills). <b>Edit list</b> (above the section) lets you star tasks, which puts them at the top of their section, or hide them: hidden tasks fold into one line at the bottom (tap it to show them) and still run when queued, automated or chained. Crossings and chain cards can\u2019t be hidden. Both are kept in the save.'],
+  ['How does the queue work?', 'Tapping a task runs it right away, ahead of the queue (a job runs until its store is full); it is not added to the queue. Tapping a gear card works the same way: it is built right away, after gathering the deadwood (grafts in Act II) it still needs. <b>+</b> adds a task to the end of the queue; drag it or use the arrows to move it up. You can queue the same task several times at different places: tap + again for another copy. A task queued once runs until it is done; with several copies, each copy covers one repetition (one training session, one rep, or one fill of a store). The queue holds up to 100 items. Drag an item by the handle on its left to move it, or use the arrows; ✕ removes it. Queued jobs run until their storage is full. You can queue things you have seen before even if they are not available yet; they wait their turn. Gear can be queued too, with the <b>+</b> on its card (gear is listed in each section of the Tasks tab): the seedling works the best deadwood job until it can afford the design, then builds it. Five presets save and load whole queues (tap a preset\u2019s number to name it), <b>Copy / paste</b> turns the queue into plain text and back, and <b>Undo</b> takes back the last change to the queue. Tap a row\u2019s name to <b>skip</b> it: it stays in the queue but doesn\u2019t run until you tap it again. Press and hold <b>+</b> on a drill or a task with several reps to queue one copy per repetition still to do. <b>Least familiar</b> sorts the queue so the weakest tasks run first (chains stay on top). <b>Triggers</b> load a preset by themselves when a new seedling sprouts or when it enters a section you choose (each rule once per seedling). <b>Keep queue between seedlings</b> gives each new seedling the queue you planned, minus anything that is automated and switched on. <b>The forecast:</b> the game plays your seedling\u2019s life forward with the same rules (queue, automation, recharges, crossings), so each queue row shows the energy left when it is done and when that will be; rows the seedling won\u2019t reach turn red, and <b>Dies here</b> marks the row where it dies. The Outlook line gives the forecast death and its cause; a setting can pause the game once, just before it. When the forecast death comes from energy or wear and a setting that is off or low (Auto-recharge, Auto-charge, the charge threshold, Charge when needed, and in Act II Auto-scavenge and Auto-repair) would make the seedling live clearly longer, the Outlook line names it and how much time it adds. <b>Clear queue</b> keeps the row the seedling is working on. <b>+ Row</b> by a preset adds a queue row that loads it: once every row above it is done (or skipped), the preset replaces that row and everything below it. Each preset loads this way once per seedling; the row goes along when the queue carries over to the next seedling. A dot marked <b>new</b> on a task means no seedling has finished it yet.'],
   ['Energy and sap cells', 'Seedlings are biomechanical: as long as they have energy, the body is sustained. The <b>Energy</b> bar drains all the time; each recharge uses one <b>sap cell</b> and puts energy back. <b>Every recharge restores the same amount</b>; what changes is how often the seedling can recharge. Sap cells are carried up to the seedling\u2019s <b>storage capacity</b>, which grows as the seedling gets deeper into the ship (5 in the Seedling Vaults, up to 90 in the Ember Crown, in steps of 5), plus gear and records. Each section has a <b>charging station</b> job, but it only opens partway into the section and holds a limited <b>reserve</b> per seedling life; when it is drained, the seedling has to cross or run down. Every crossing also costs a share of the cells carried, more the further into the ship you go, so a seedling always arrives living on what it brought. At first a seedling can recharge every 5 seconds of in-game time. Each section has one <b>charger upgrade</b> action that shortens the wait between recharges for the rest of that life, down to about 2 seconds, and adds half again to that section\u2019s station reserve; each seedling has to fix them again. Recharges are always whole, and the seedling only recharges when it needs to: when a whole recharge fits under full energy, or sooner once energy is down to half. At full energy no cell is used. With no cells left at all, the seedling runs down. The Hive Ship\u2019s only charging comes late, so arrive charged.'],
   ['What carries over when a seedling dies?', '<b>Familiarity</b> is kept: every task stays as fast as your seedlings have made it (see the Mastery tab). Every 10 seconds of in-game time a seedling survives is analysed afterwards, run and memory alike, and becomes an <b>efficiency patch</b>: later seedlings drain their energy a little more slowly, up to \u00f71.6. <b>Archive records</b> found by finishing certain actions are permanent upgrades. Gear, sap cells, deadwood and progress through the ship reset.'],
   ['What are sections?', 'Act I is split into six sections. A <b>red</b> action leads to the next one, and the way back is sealed for that seedling, so finish what you need first (records, training, gear). Each new seedling starts back in the Seedling Vaults.'],
@@ -4507,12 +4549,21 @@ document.addEventListener('click', e => {
   if (d.showlock) { showLocked[d.showlock] = !showLocked[d.showlock]; taskKey = ''; renderView(); return; }
   if ('qundo' in d) { const u = qUndoNow(); toast(u ? 'Undone: ' + u.toLowerCase() : 'Nothing to undo'); taskKey = ''; gearKey = ''; renderView(); return; }
   if ('qtext' in d) { qTextPanel(); return; }
+  if ('editlist' in d) { editList = !editList; taskKey = ''; renderView(); return; }
+  if (d.tfav) { S.fav = S.fav || {}; if (S.fav[d.tfav]) delete S.fav[d.tfav]; else S.fav[d.tfav] = 1; taskKey = ''; renderView(); return; }
+  if (d.thide) { S.hide = S.hide || {}; if (S.hide[d.thide]) delete S.hide[d.thide]; else S.hide[d.thide] = 1; taskKey = ''; renderView(); return; }
+  if (d.showhid) { showHid[d.showhid] = !showHid[d.showhid]; taskKey = ''; renderView(); return; }
+  if (d.qprow != null) { qSnap('Add a preset row'); if (qAdd('p:' + d.qprow)) toast('Queued: Load preset ' + (+d.qprow + 1) + (qpName(+d.qprow) ? ' (' + qpName(+d.qprow) + ')' : '') + '. It loads once every row above it is done.'); taskKey = ''; renderView(); return; }
   if ('qtrig' in d) { qTrigPanel(); return; }
   if ('qsortfam' in d) {   // the weakest tasks first (chains stay pinned on top; gear by its build familiarity; ties keep their order)
     const fam = id => isGQ(id) ? (IT[id.slice(2)] ? masteryFrac(BT[id.slice(2)]) : 1) : T[id] ? masteryFrac(T[id]) : 1;
     const pin = L.queue.filter(isCQ), rest = L.queue.filter(q => !isCQ(q)).map((id, k) => ({id, k, f:fam(id)}));
-    if (rest.length < 2) { toast('Nothing to sort.'); return; }
-    qSnap('Sort'); L.queue = pin.concat(rest.sort((a, b) => a.f - b.f || a.k - b.k).map(x => x.id));
+    if (rest.filter(x => !isPQ(x.id)).length < 2) { toast('Nothing to sort.'); return; }
+    // preset rows stay where they are: the rows between them are sorted on their own
+    const out = []; let seg = [];
+    const flush = () => { out.push(...seg.sort((a, b) => a.f - b.f || a.k - b.k).map(x => x.id)); seg = []; };
+    rest.forEach(x => { if (isPQ(x.id)) { flush(); out.push(x.id); } else seg.push(x); }); flush();
+    qSnap('Sort'); L.queue = pin.concat(out);
     toast('Queue sorted: least familiar first. Undo puts the old order back.'); taskKey = ''; renderView(); return;
   }
   if (d.qskip != null) { const id = L.queue[+d.qskip]; if (id == null) return; qSnap((L.qskip || {})[id] ? 'Run again' : 'Skip'); L.qskip = L.qskip || {}; if (L.qskip[id]) delete L.qskip[id]; else L.qskip[id] = 1; taskKey = ''; renderView(); return; }

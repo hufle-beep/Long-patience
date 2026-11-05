@@ -12,7 +12,8 @@ The **Restore points** workflow (`.github/workflows/restore-points.yml`) runs on
 What the recent commits are (newest first):
 | Commit | What it is |
 |---|---|
-| (next) | Forecast hints, Clear queue keeps the current row, task icons, This seedling / Kept effects |
+| (next) | Queue row that loads a preset, favourite and hide filters |
+| `6d9a8d5` | Forecast hints, Clear queue keeps the current row, task icons, This seedling / Kept effects |
 | `7c09ae3` | Fix: automated gear gathers its own deadwood during the life again |
 | `d98d7a7` | Queue chunk C: Now-line reasons, safe import, arrow keys, Least familiar sort, long-press + |
 | `35df058` | Queue chunk B: life summary, next-automation line, time per task |

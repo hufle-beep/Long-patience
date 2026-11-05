@@ -1,6 +1,6 @@
 # Roadmap: Selene: Tidelocked
 
-Last updated: 2026-11-05 (build "forecast hints and icons"). Update in every push.
+Last updated: 2026-11-05 (build "preset rows and filters"). Update in every push.
 
 ## Order of work (owner, 2026-11-04)
 1. **Section-by-section playtesting and tuning** (now). Sections 1 and 2 frozen; next the Shattered Bark, then sections 3-14 one by one: the owner plays and uploads a save after each crossing, Claude proposes options for that section's knobs only, the owner freezes it.
@@ -12,7 +12,7 @@ Last updated: 2026-11-05 (build "forecast hints and icons"). Update in every pus
 **Owner decision (2026-11-05):** polishing can come before tuning when its gains are immediate.
 
 ## Next up
-- **Round 1c picks (owner go-ahead 2026-11-05 07:54: "go, P3 yes"), two chunks:** chunk 1 BUILT (forecast names a starving setting, Clear queue keeps the current row, icons on task cards, effects grouped This seedling / Kept, "· P3" removed). Chunk 2 next: a queue row "Load preset: name" (fires once every row above it is done, replaces itself and the rows below with the preset), favourite and hide filters (Edit list, favourites first in their section, hidden tasks fold into "N hidden", still run; crossings can't be hidden; kept in the save). Then research rounds 2 and 3.
+- **Round 1c picks (owner go-ahead 2026-11-05 07:54: "go, P3 yes"), two chunks:** chunk 1 BUILT (forecast names a starving setting, Clear queue keeps the current row, icons on task cards, effects grouped This seedling / Kept, "· P3" removed). Chunk 2 BUILT: a queue row "Load preset: name" (fires once every row above it is done, replaces itself and the rows below with the preset), favourite and hide filters (Edit list, favourites first in their section, hidden tasks fold into "N hidden", still run; crossings can't be hidden; kept in the save). Then research rounds 2 and 3.
 - **Queue chunks (owner go-ahead 2026-11-05 02:54: "Go A-C, commit and push between chunks"):** A built (preset triggers, skip toggles, pause before the forecast death). B built (life summary on the death screen; next-automation line in each section header; time per task, this seedling and all, on the Mastery tab). C built (Now-line reasons, safe import, arrow keys, Least familiar sort, long-press + for copies). All three chunks done. Dropped as not fitting: pending bar, record column, do once now.
 - **Research round 1c (owner's priority, 2026-11-05 03:09): Increlution, Your Chronicle, Idling to Rule the Gods, Terraformental** studied (all closed source: ideas only); write-up and combined top 8 in research.md, waiting for the owner's picks. Then rounds 2 and 3.
 - **Ideas from other games (research.md):** round 1 (Idle Loops, wrtsc) and round 1b (Immortality Idle, Progress Knight Quest: owner's priority) studied. Built from them: queue forecast, undo, queue as text, named presets, death-screen-if-unfinished setting, "new" marks, regression tests. Also built: preset triggers, per-goal ETA (the next-automation line), life summary at death, pause before the forecast death, long-press + for copies. Open: repeat counts on queue entries; round 1c picks. Next rounds: 2 (Antimatter Dimensions, Trimps), 3 (The Modding Tree, ZzFX, game-icons.net).
@@ -49,6 +49,7 @@ Last updated: 2026-11-05 (build "forecast hints and icons"). Update in every pus
 See design.md: colony content held back from Act II, the Act II legacy themes from the old Honours, and four open questions.
 
 ## Done recently (see changelog.md for all)
+- 2026-11-05: queue row that loads a preset (+ Row), favourite and hide filters on the Tasks tab (Edit list).
 - 2026-11-05: forecast hints (the Outlook line names a setting that starves the seedling), Clear queue keeps the current row, task icons (record, gear, crossing), effects grouped This seedling / Kept, gear "· P3" label removed.
 - 2026-11-05: fix: automated gear gathers its own deadwood during the life again (lost on 2026-11-04 06:07); crossing stop and fill unchanged.
 - 2026-11-05: queue chunk C: Now-line reasons, safe import, arrow keys for tabs, Least familiar sort, long-press + for copies.
