@@ -291,6 +291,7 @@ button.zh.zhb{margin:14px 0 6px}
 .tgt{display:block;font-family:var(--f-mono);font-size:11px;color:var(--dim);margin-top:2px}.tgt.met{color:var(--amber)}
 .rn .rstar{fill:var(--amber);font-size:13px}
 .skbd{font-size:11px;color:var(--dim);margin-top:3px}
+.tipb{position:fixed;z-index:60;max-width:min(300px,calc(100vw - 16px));box-sizing:border-box;padding:7px 10px;border:1px solid var(--amber);border-radius:6px;background:var(--panel);color:var(--fg);font-size:12.5px;line-height:1.35;white-space:pre-line;box-shadow:0 6px 18px rgba(0,0,0,.5);pointer-events:none}
 .histq{display:block;margin-top:4px;font-size:11px;padding:3px 7px;border:1px solid var(--line);border-radius:4px;color:var(--amber);background:var(--panel2)}
 .tf.fast,.nf.fast{width:100%!important;transform:none!important;opacity:.75;background:linear-gradient(90deg,var(--amber-soft),var(--amber-fill),var(--amber-soft))!important}
 .task.fb .tn::after{content:" · fallback";color:var(--faint);font-size:11px;font-weight:400}
@@ -526,11 +527,11 @@ tr.pttot td{font-weight:600;color:var(--amber)}
       <div class="ident"><button class="menub" data-menu="open" aria-label="Main menu">☰</button><b>K-7</b><span id="h-gen">Seedling 1</span><span class="htimes"><span id="h-day" class="num hday" title="Elapsed: in-game time this clone has lived, then real time"></span><span id="h-left" class="num hleft" title="Remaining: in-game time this clone has left, then the real time that takes at the current speed"></span></span></div>
       <div class="spd" id="h-spd"></div>
     </div>
-    <div class="meter"><span class="lbl" style="min-width:0;text-align:left">Energy</span><div class="bar hp"><i id="b-hp"></i></div><span id="t-hp" class="num"></span></div>
+    <div class="meter" id="tipenergy"><span class="lbl" style="min-width:0;text-align:left">Energy</span><div class="bar hp"><i id="b-hp"></i></div><span id="t-hp" class="num"></span></div>
     <div class="surv" id="surv"><span class="lbl">Outlook</span><em id="s-why"></em><span id="s-plan" class="num plan" title="Planned work: the tapped task and everything in the queue, at today&#39;s speeds"></span></div>
     <div class="res">
-      <div><span class="lbl">Sap cells</span><span id="t-foods" class="foods"></span><small id="t-ratt" class="rt num"></small><button id="eatb" class="eat num" data-eat>Recharge</button></div>
-      <div><span class="lbl" id="t-sall">Deadwood</span><b id="t-sal" class="num"></b><small id="t-salr" class="num"></small><small id="t-salt" class="rt num"></small><small id="t-wear" class="rt num" hidden></small><button id="repb" class="eat rep num" data-repair hidden>Repair</button></div>
+      <div><span class="lbl">Sap cells</span><span id="t-foods" class="foods"></span><small id="t-ratt" class="rt num"></small><button id="eatb" class="eat num" data-eat data-tip="Use a sap cell to refill energy. Turns yellow when a recharge is ready; Auto-recharge does this by itself.">Recharge</button></div>
+      <div><span class="lbl" id="t-sall">Deadwood</span><b id="t-sal" class="num"></b><small id="t-salr" class="num"></small><small id="t-salt" class="rt num"></small><small id="t-wear" class="rt num" hidden></small><button id="repb" data-tip="Spend grafts to take 1.5 wear off Selene (each point of wear adds 8% drain). Turns yellow when a repair is possible; Auto-repair does this by itself." class="eat rep num" data-repair hidden>Repair</button></div>
     </div>
     <div class="now" id="now"><div class="nf" id="n-fill"></div><span id="n-name"></span><span id="n-eta" class="num"></span></div>
   </div>
@@ -571,7 +572,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
 // Renamed from Long Patience: move this device's old storage keys to the new 'selene.' names once
 try { const old = []; for (let n = 0; n < localStorage.length; n++) old.push(localStorage.key(n)); old.forEach(k => { if (k && k.indexOf('long-patience.') === 0) { const nk = 'selene.' + k.slice(14); if (localStorage.getItem(nk) == null) localStorage.setItem(nk, localStorage.getItem(k)); localStorage.removeItem(k); } }); } catch(e) {}
 /* ===== Game data and rules (no DOM) ===== */
-const BUILD = '2026-11-05 · clearer buttons';   // shown in the main menu, to tell which version is loaded
+const BUILD = '2026-11-05 · tooltips';   // shown in the main menu, to tell which version is loaded
 const DPS = 8;             // simulation ticks per real second at 1x (doubled for the test version: same balance, half the real time)
 // Time is simulated in ticks. 80 ticks make one day unit (18 minutes each), so a day lasts
 // 20 real seconds at 1x and Players only ever see in-game time and real time, never days.
@@ -2784,7 +2785,7 @@ function setH(el, h){ if (el && el._h !== h) { el._h = h; el.innerHTML = h; } }
 // Write only what changed (unchanged writes still cost a style pass and a layout on phones)
 function setT(el, t){ t = String(t); if (el && el.textContent !== t) { el.textContent = t; el._h = undefined; } }   // clears setH's memory: the same element may be written both ways
 function setW(el, w){ w = String(w); if (el && el._w !== w) { el._w = w; el.style.transform = 'scaleX(' + Math.max(0, Math.min(1, (parseFloat(w) || 0) / 100)) + ')'; } }   // live bars (#b-hp, .nf, .tf): w is a width like '42.5%'
-function setTi(el, t){ if (el && el.title !== t) el.title = t; }
+function setTi(el, t){ if (!el || (el.dataset.tip || '') === t) return; if (t) el.dataset.tip = t; else delete el.dataset.tip; }   // the game's own tooltip (see Tooltips)
 // In-game time this seedling has left at the current hunger and strain (from the HUD's survival forecast)
 let lastSvT = Infinity;
 const tooLong = days => isFinite(lastSvT) && days > lastSvT + 1e-6;
@@ -3569,8 +3570,8 @@ function secRunHtml(z){
   const endNote = sp.length && ACT_ENDS.includes(sp[sp.length - 1]) ? ' It stops at the end of the act.' : '';
   if (L.chainRun && (L.sec || 1) === z) return `<div class="secrun on"><span>${sp.length > 1 ? 'Running ' + sp.length + ' sections as one chain: ' + names + '\u2026' : 'Running the whole section as one chain\u2026'} <small>Always on: sections run by themselves once ready.</small></span><button class="btn" data-secstop>Stop</button></div>`;
   if (sp.length > 1) return `<div class="secrun"><span>Sections linked: ${names}. Every task is automated and \u00d7${SECTION_F} familiar, so the run carries on across ${sp.length - 1 === 1 ? 'the crossing' : 'the crossings'}.${endNote}</span><button class="btn pri" data-secrun>\u25b6 Run ${sp.length} sections</button></div>`;
-  if (g.ready) return `<div class="secrun"><span>Section chain ready: every task is automated and \u00d7${SECTION_F} familiar.</span><button class="btn pri" data-secrun>\u25b6 Run section</button></div>`;
-  return `<div class="secrun dim"><span>Section chain: ${g.ok}/${g.n} parts automated at \u00d7${SECTION_F} (gear: automated). ${S.set.autoRun ? ' It starts by itself once ready.' : ''} Details in the Auto tab.</span><button class="btn" disabled>\u25b6 Run section</button></div>`;   // always shown above the queue
+  if (g.ready) return `<div class="secrun"><span>Section chain ready: every task is automated and \u00d7${SECTION_F} familiar.</span><button class="btn pri" data-secrun data-tip="Run every automated task of this section in chain order, at chain-flow speed, then cross on.">\u25b6 Run section</button></div>`;
+  return `<div class="secrun dim"><span>Section chain: ${g.ok}/${g.n} parts automated at \u00d7${SECTION_F} (gear: automated). ${S.set.autoRun ? ' It starts by itself once ready.' : ''} Details in the Auto tab.</span><button class="btn" disabled data-tip="Opens once every task of this section is automated and \u00d7${SECTION_F} familiar.">\u25b6 Run section</button></div>`;   // always shown above the queue
 }
 function autoBtn(t){
   if (!practiced(t) || t.kind === 'job') return '';
@@ -3644,7 +3645,7 @@ function tIcons(t){
   if ((t.perk && !S.perks[t.perk]) || WATCH.some(p => p.secEnd === t.id && !S.perks[p.id])) ic.push(['rec', 'Finds a record']);
   if (ITEMS.some(i => i.req === t.id)) ic.push(['gear', 'Opens a gear design']);
   if (t.cross) ic.push(['cross', 'Crossing']);
-  return ic.map(([k, l]) => `<svg class="ti ti-${k}" viewBox="0 0 12 12" width="12" height="12" role="img"><title>${l}</title>${TI_SVG[k]}</svg>`).join('');
+  return ic.map(([k, l]) => `<svg class="ti ti-${k}" viewBox="0 0 12 12" width="12" height="12" role="img" aria-label="${l}" data-tip="${l}">${TI_SVG[k]}</svg>`).join('');
 }   // task types were removed
 
 // Drag to reorder the queue (mouse and touch): grab the handle at the left of a row.
@@ -3794,6 +3795,58 @@ function qTrigPanel(rules){
 }
 HOOK.presetRow = k => { taskKey = ''; toast('Queue row: loaded preset ' + (k + 1) + (qpName(k) ? ' (' + qpName(k) + ')' : '') + '.'); };
 HOOK.trig = (i, r) => { taskKey = ''; toast('Trigger ' + (i + 1) + ': loaded preset ' + (r.p + 1) + (qpName(r.p) ? ' (' + qpName(r.p) + ')' : '') + '.'); };
+// Tooltips: one game-styled bubble. Mouse or pen: hover 0.4 s. Touch: hold 0.5 s (the tap that follows is
+// swallowed; moving 10 px cancels). Sources: data-tip or title (moved to data-tip so the browser's own tooltip
+// never shows), or a computed text (tipText): task cards, the header lines, a few buttons, route nodes.
+// The queue + keeps its long-press (queue every copy), so it shows its tooltip on hover only.
+const TIP_HOVER = 400, TIP_HOLD = 500, TIP_STAY = 4000;
+let tipEl = null, tipT = null, tipHideT = null, tipSrc = null, tipTouch = null, tipSwallow = false;
+const stripTags = s => String(s || '').replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+function tipText(el){
+  if (el.matches('[data-tip]') && el.dataset.tip) return el.dataset.tip;
+  if (el.matches('.task[data-id]') && T[el.dataset.id]) { const t = T[el.dataset.id], fx = stripTags(effectHtml(t, true)); return t.name + (fx ? '\n' + fx : ''); }
+  if (el.matches('[data-routez]')) return routeInfoTxt(+el.dataset.routez);
+  if (el.id === 'tipenergy') { const L = S.life; return 'Energy ' + Math.ceil(L.hp) + ' of ' + M.maxHp + '. When it runs out, the seedling dies. Recharges (sap cells) refill it.'; }
+  if (el.id === 'surv') return [$('#s-why'), $('#s-plan')].map(x => x ? x.textContent : '').filter(Boolean).join('\n');
+  return '';
+}
+function tipFind(target){
+  let el = target && target.closest ? target.closest('[data-tip]:not([data-tip=""]),[title]:not([title=""]),.task[data-id],[data-routez],#tipenergy,#surv') : null;
+  if (el && el.hasAttribute('title')) { if (el.title) el.dataset.tip = el.title; el.removeAttribute('title'); }
+  return el;
+}
+function tipShow(el, x, y){
+  const txt = tipText(el); if (!txt) return false;
+  if (!tipEl) { tipEl = document.createElement('div'); tipEl.className = 'tipb'; tipEl.setAttribute('role', 'tooltip'); document.body.appendChild(tipEl); }
+  tipEl.textContent = txt; tipEl.hidden = false;
+  const r = el.getBoundingClientRect(), w = tipEl.offsetWidth, hh = tipEl.offsetHeight, vw = innerWidth, vh = innerHeight;
+  const cx = x != null ? x : r.left + r.width / 2, top0 = y != null ? y - 14 : r.top;
+  let top = top0 - hh - 8; if (top < 8) top = (y != null ? y + 22 : r.bottom + 8); if (top + hh > vh - 8) top = Math.max(8, vh - hh - 8);
+  tipEl.style.left = Math.max(8, Math.min(vw - w - 8, cx - w / 2)) + 'px'; tipEl.style.top = top + 'px';
+  clearTimeout(tipHideT); tipHideT = setTimeout(tipHide, TIP_STAY + txt.length * 30);
+  return true;
+}
+function tipHide(){ clearTimeout(tipT); tipT = null; tipSrc = null; if (tipEl) tipEl.hidden = true; }
+document.addEventListener('pointerover', e => {
+  if (e.pointerType === 'touch') return;
+  const el = tipFind(e.target); if (el === tipSrc) return;
+  tipHide(); if (!el) return;
+  tipSrc = el; tipT = setTimeout(() => { if (tipSrc === el && el.isConnected) tipShow(el); }, TIP_HOVER);
+});
+document.addEventListener('pointerout', e => { if (e.pointerType === 'touch' || !tipSrc) return; if (!e.relatedTarget || !tipSrc.contains(e.relatedTarget)) tipHide(); });
+document.addEventListener('pointerdown', e => {
+  tipHide(); tipSwallow = false; tipTouch = null;
+  if (e.pointerType !== 'touch') return;
+  if (e.target.closest && e.target.closest('button[data-q],[data-qdrag]')) return;   // the + keeps its long-press; drag handles drag
+  const el = tipFind(e.target); if (!el) return;
+  tipTouch = {el, x:e.clientX, y:e.clientY};
+  tipT = setTimeout(() => { if (tipTouch && tipTouch.el.isConnected && tipShow(tipTouch.el, tipTouch.x, tipTouch.y)) tipSwallow = true; }, TIP_HOLD);
+}, true);
+document.addEventListener('pointermove', e => { if (tipTouch && Math.hypot(e.clientX - tipTouch.x, e.clientY - tipTouch.y) > 10) { clearTimeout(tipT); tipTouch = null; } });
+['pointerup', 'pointercancel'].forEach(k => document.addEventListener(k, () => { if (!tipSwallow) clearTimeout(tipT); tipTouch = null; }));
+document.addEventListener('click', e => { if (tipSwallow) { tipSwallow = false; e.stopImmediatePropagation(); e.preventDefault(); } }, true);   // letting go after a hold doesn't tap
+document.addEventListener('contextmenu', e => { if (tipSwallow || (tipEl && !tipEl.hidden)) e.preventDefault(); });
+['scroll', 'keydown'].forEach(k => document.addEventListener(k, tipHide, true));
 // Long-press + on a drill or a task with several reps: queue one copy per repetition still to do
 let lpT = null, lpDone = false;
 document.addEventListener('pointerdown', e => {
@@ -4055,7 +4108,7 @@ function jobBar(el, t, sp){
 let lastSpd = '';
 function renderSpeed(){
   // Pause, plus the game-speed menu once a faster speed has been unlocked
-  let h = `<button data-settings="hud" class="flip" aria-label="Settings" title="Settings">\u2699</button><button data-atog="musicOn" class="mus${ASET.musicOn ? ' on' : ''}" aria-label="Music ${ASET.musicOn ? 'on' : 'off'}">\u266a</button><button data-pause class="pause${S.set.paused ? ' on' : ''}" aria-label="${S.set.paused ? 'Resume' : 'Pause'}">${S.set.paused ? '\u25b6 Resume' : '\u275a\u275a Pause'}</button>`;
+  let h = `<button data-settings="hud" class="flip" aria-label="Settings" title="Settings">\u2699</button><button data-atog="musicOn" class="mus${ASET.musicOn ? ' on' : ''}" aria-label="Music ${ASET.musicOn ? 'on' : 'off'}" data-tip="Music ${ASET.musicOn ? 'on: tap to turn it off' : 'off: tap to turn it on'} (volumes in Settings)">\u266a</button><button data-pause class="pause${S.set.paused ? ' on' : ''}" aria-label="${S.set.paused ? 'Resume' : 'Pause'}" data-tip="${S.set.paused ? 'Resume: the clock runs again' : 'Pause: stop the clock (Space)'}">${S.set.paused ? '\u25b6 Resume' : '\u275a\u275a Pause'}</button>`;
   // Pause all automation: shown once anything is automated (or while paused)
   if (autoPaused() || Object.keys(S.auto).some(k => S.auto[k]) || Object.keys(S.gauto || {}).some(k => S.gauto[k]))
     h = h.replace('<button data-pause', `<button data-autopause class="apz${autoPaused() ? ' on' : ''}" aria-pressed="${autoPaused()}" aria-label="${autoPaused() ? 'Automation paused: tap to resume it' : 'Pause all automation'}" title="${autoPaused() ? 'Automation paused: tap to resume it' : 'Pause all automation (the queue keeps working)'}">${ico('auto')}${autoPaused() ? '<span>off</span>' : ''}</button><button data-pause`);
@@ -4639,11 +4692,12 @@ function routeHtml(){
   });
   return `<div class="panel rmap"><span class="h2">Route</span><p class="note">Selene\u2019s sections in order. <span class="rk cur">Here now</span> <span class="rk life">reached this life</span> <span class="rk ever">reached before</span>; ? not reached yet. Tap a section for its year, crossing cost and danger.</p><div class="mapwrap"><svg viewBox="0 0 ${W} ${y}" width="100%" role="img" aria-label="Route of Selene\u2019s sections">${edges}${nodes}</svg></div></div>`;
 }
-function routeInfo(z){
-  const Z = ZN(z); if (!Z || !routeKnown(z)) return;
+function routeInfo(z){ const t = routeInfoTxt(z); if (t) toast(t); }
+function routeInfoTxt(z){
+  const Z = ZN(z); if (!Z || !routeKnown(z)) return '';
   const i = ROUTE.indexOf(z), cost = i > 0 ? ' \u00b7 crossing in costs ' + Math.round(crossCost(z) * 100) + '% of the sap cells carried' : '';
   const t = TARGETS[z], u = secUsed(z);
-  toast(Z.name + ' (' + Z.sub + ') \u00b7 ' + voyTxt(Z) + cost + ' \u00b7 danger \u00d7' + danger(z).toFixed(2) + (t ? ' \u00b7 target ' + t + ' seedlings' + (u != null ? ', cleared in ' + u + (u <= t ? ' \u2605' : '') : '') : ''));
+  return Z.name + ' (' + Z.sub + ') \u00b7 ' + voyTxt(Z) + cost + ' \u00b7 danger \u00d7' + danger(z).toFixed(2) + (t ? ' \u00b7 target ' + t + ' seedlings' + (u != null ? ', cleared in ' + u + (u <= t ? ' \u2605' : '') : '') : '');
 }
 // Section target line: cleared in N (a star within the target), or what a crossing now would count
 const tgtMet = z => { const u = secUsed(z); return u != null && TARGETS[z] && u <= TARGETS[z]; };
@@ -4865,7 +4919,7 @@ function renderAuto(){
 const FAQ_ALL = [
   ['Selene and the Root-Kin', 'The Root-Kin of Earth grow their technology: tools, cities, vehicles and ships come from specialised trees, hardened with magic. It is a highly advanced techno-magical civilisation, and everything in it is organic. There are no nation states left, but the local cultures are kept alive. One World Government has ruled for thousands of years: a democracy with slight meritocratic elements. <b>Selene</b> is one of their colony ships: a long, swept hull of living wood with crescent wings, grown around the <b>Hearth Tree</b>, which is her drive, her mind (WARDEN) and her garden at once. Root-Kin ships ride the ambient magic that saturates the universe, close to the speed of light, inside magical ward-shields and under artificial gravity, and can turn on any axis without strain. That is why, halfway there, Selene has to <b>flip</b> and brake for the rest of the voyage. Seedlings like K-7 are disposable drones of WARDEN and the Hearth Tree, grown for a single task and given just enough autonomy to carry it out.'],
   ['What is the goal?', 'Restore Selene so WARDEN can wake the sleeping crew. All of Act I happens inside the Hearth Tree, her drive, mind and garden at once: the sap flow that powers her in the Taproot Galleries, the meteor wounds in her hull in the Shattered Bark, WARDEN\u2019s mind and the star-charts in the Heartwood, the food gardens in the Canopy Gardens, and the Hearthfire in the Ember Crown. Act I ends when you kindle the Hearth Tree. One seedling cannot do it all; it takes many lives (around 50 with very good play).'],
-  ['How do I start?', 'Tap a task to work on it right away. Climb out of the seed pod first, then tap the vault\u2019s sap line for sap cells and strip dead bark panels for deadwood. Time only moves while your seedling is working: with nothing to do, the clock stops, so you can always read and plan.'],
+  ['How do I start?', 'Tap a task to work on it right away. Climb out of the seed pod first, then tap the vault\u2019s sap line for sap cells and strip dead bark panels for deadwood. Time only moves while your seedling is working: with nothing to do, the clock stops, so you can always read and plan. Hold a card, icon or button for a moment (or hover with a mouse) to see what it does.'],
   ['What are jobs, actions and training?', '<b>Jobs</b> repeat and make sap cells or deadwood in batches; they stop when that storage is full. <b>Actions</b> are one-off tasks that unlock things and move the story on. Each needs certain earlier actions, and a section\u2019s last action (its crossing) needs every other action of that section. Tasks you have met before stay listed, greyed out, until what they need is done; you can still queue them. <b>Drills</b> each add a little familiarity to every task in their section, up to 4 sessions per life. Small icons by a task\u2019s name show what it holds from the start: a <b>star</b> for a record not found yet, a <b>cog</b> for a gear design it opens, an <b>arrow</b> for a crossing. Its effects show once a seedling has finished it, grouped by how long they last: <b>This seedling</b> (storage, recharges, deadwood per minute: gone at death) and <b>Kept</b> (records, familiarity from drills). <b>Edit list</b> (above the section) lets you star tasks, which puts them at the top of their section, or hide them: hidden tasks fold into one line at the bottom (tap it to show them) and still run when queued, automated or chained. Crossings and chain cards can\u2019t be hidden. Both are kept in the save.'],
   ['How does the queue work?', 'Tapping a task runs it right away, ahead of the queue (a job runs until its store is full); it is not added to the queue. Tapping a gear card works the same way: it is built right away, after gathering the deadwood (grafts in Act II) it still needs. <b>+</b> adds a task to the end of the queue; drag it or use the arrows to move it up. You can queue the same task several times at different places: tap + again for another copy. A task queued once runs until it is done; with several copies, each copy covers one repetition (one training session, one rep, or one fill of a store). The queue holds up to 100 items. Drag an item by the handle on its left to move it, or use the arrows; ✕ removes it. Queued jobs run until their storage is full. You can queue things you have seen before even if they are not available yet; they wait their turn. Gear can be queued too, with the <b>+</b> on its card (gear is listed in each section of the Tasks tab): the seedling works the best deadwood job until it can afford the design, then builds it. Five presets save and load whole queues (tap a preset\u2019s number to name it), <b>Copy / paste</b> turns the queue into plain text and back (a pasted line that isn\u2019t a known name gets a \u201cdid you mean\u201d tip, and one that can\u2019t run yet says why), and <b>Undo</b> takes back the last change to the queue. Tap a row\u2019s name to <b>skip</b> it: it stays in the queue but doesn\u2019t run until you tap it again. Press and hold <b>+</b> on a drill or a task with several reps to queue one copy per repetition still to do. <b>Least familiar</b> sorts the queue so the weakest tasks run first (chains stay on top). <b>Triggers</b> load a preset by themselves when a new seedling sprouts or when it enters a section you choose, or any section from there through a later one. Each rule can be switched off, kept for every 2nd, 3rd\u2026 seedling, and moved up or down: when several match at once, only the highest fires (each rule at most once per seedling). <b>Keep queue between seedlings</b> gives each new seedling the queue you planned, minus anything that is automated and switched on. <b>The forecast:</b> the game plays your seedling\u2019s life forward with the same rules (queue, automation, recharges, crossings), so each queue row shows the energy left when it is done and when that will be; rows the seedling won\u2019t reach turn red, and <b>Dies here</b> marks the row where it dies. The Outlook line gives the forecast death and its cause; a setting can pause the game once, just before it. When the forecast death comes from energy or wear and a setting that is off or low (Auto-recharge, Auto-charge, the charge threshold, Charge when needed, and in Act II Auto-scavenge and Auto-repair) would make the seedling live clearly longer, the Outlook line names it and how much time it adds. <b>Clear queue</b> keeps the row the seedling is working on. <b>+ Row</b> by a preset adds a queue row that loads it: once every row above it is done (or skipped), the preset replaces that row and everything below it. Each preset loads this way once per seedling; the row goes along when the queue carries over to the next seedling. A dot marked <b>new</b> on a task means no seedling has finished it yet.'],
   ['Energy and sap cells', 'Seedlings are biomechanical: as long as they have energy, the body is sustained. The <b>Energy</b> bar drains all the time; each recharge uses one <b>sap cell</b> and puts energy back. <b>Every recharge restores the same amount</b>; what changes is how often the seedling can recharge. Sap cells are carried up to the seedling\u2019s <b>storage capacity</b>, which grows as the seedling gets deeper into the ship (5 in the Seedling Vaults, up to 90 in the Ember Crown, in steps of 5), plus gear and records. Each section has a <b>charging station</b> job, but it only opens partway into the section and holds a limited <b>reserve</b> per seedling life; when it is drained, the seedling has to cross or run down. Every crossing also costs a share of the cells carried, more the further into the ship you go, so a seedling always arrives living on what it brought. At first a seedling can recharge every 5 seconds of in-game time. Each section has one <b>charger upgrade</b> action that shortens the wait between recharges for the rest of that life, down to about 2 seconds, and adds half again to that section\u2019s station reserve; each seedling has to fix them again. Recharges are always whole, and the seedling only recharges when it needs to: when a whole recharge fits under full energy, or sooner once energy is down to half. At full energy no cell is used. With no cells left at all, the seedling runs down. The Hive Ship\u2019s only charging comes late, so arrive charged.'],
