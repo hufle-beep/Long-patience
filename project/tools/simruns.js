@@ -13,6 +13,7 @@ for (let run = 1; run <= RUNS; run++) {
   for (let life = 0; life < 600 && !done; life++) {
     const L = S.life;
     while (!L.dead && !done) {
+      if (S.actEnd === 1) moveOnToAct2();   // the Act I choice: move on
       const acts = TASKS.filter(t => t.kind === 'act' && available(t) && !complete(t)).sort((a, b) => a.days / speedOf(a) - b.days / speedOf(b));
       const safe = acts.filter(t => !t.haz || Math.min(hazDmg(t), MAX_DRAIN) * t.days * t.reps / speedOf(t) < L.hp * 0.8);
       const nonCross = safe.filter(t => !t.cross && !t.finale && !t.win), cross = safe.filter(t => t.cross || t.finale || t.win);

@@ -36,7 +36,7 @@ with sync_playwright() as p:
             for m in set(BAD.findall(txt)): problems.append(f'{name}/{t}: "{m}"')
         hdr=pg.locator('header, .ident').first.inner_text() if pg.locator('header, .ident').count() else ''
         for m in set(BAD.findall(hdr)): problems.append(f'{name}/header: "{m}"')
-        for fn in ["showMenu()","showMenu('saves')","showMenu('new')","showSettings()","showIntro()","showDeath()","showWin()"]:
+        for fn in ["showMenu()","showMenu('saves')","showMenu('new')","showSettings()","showIntro()","showDeath()","showActEnd(1, true)","showActEnd(2)"]:
             try:
                 pg.evaluate(f"()=>{{ {fn}; }}"); pg.wait_for_timeout(120); txt=pg.locator('#mbox').inner_text()
                 for m in set(BAD.findall(txt)): problems.append(f'{name}/{fn}: "{m}"')

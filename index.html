@@ -398,6 +398,7 @@ html.mopen,html.mopen body{overflow:hidden;overscroll-behavior:none}
 .slot span{font-size:12px;color:var(--dim)}
 .slot em{font-style:normal;font-size:12px;color:var(--amber)}
 .slot .btn{padding:6px 10px;font-size:12px}
+.slot.ngp{border-color:var(--violet);background:linear-gradient(90deg,rgba(169,140,240,.14),var(--panel2) 60%)}.slot.ngp b{color:var(--violet)}
 .owname{display:grid;gap:4px;margin:8px 0}.owname input{font:inherit;padding:8px 10px;border:1px solid var(--line);border-radius:6px;background:var(--panel2);color:inherit}
 .skeff{font-size:12px;margin-top:4px}.skeff .eff{color:var(--dim)}
 .ti{display:inline-block;vertical-align:-1px;margin-left:5px;fill:currentColor}.ti-rec{color:var(--amber)}.ti-gear{color:var(--sand)}.ti-cross{color:var(--cyan)}.lbar{display:flex;align-items:center;gap:10px;margin:10px 0 2px}.lbar small{color:var(--dim);font-size:12px}.lbar .btn.on{border-color:var(--amber);color:var(--amber)}.task.hid{opacity:.5}.task.fav .tn{color:var(--amber)}.tfv,.thd{font-size:12px;padding:6px 8px;border:1px solid var(--line);border-radius:4px;color:var(--faint)}.tfv.on{color:var(--amber);border-color:var(--amber)}.thd.on{color:var(--fg)}.hidn{cursor:pointer;width:100%;text-align:left}.etag{font-weight:600;color:var(--fg)}.pfam{color:var(--violet)}.paut{color:var(--green)}.pp{white-space:nowrap}.eff{color:var(--dim)}
@@ -550,7 +551,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
 // Renamed from Long Patience: move this device's old storage keys to the new 'selene.' names once
 try { const old = []; for (let n = 0; n < localStorage.length; n++) old.push(localStorage.key(n)); old.forEach(k => { if (k && k.indexOf('long-patience.') === 0) { const nk = 'selene.' + k.slice(14); if (localStorage.getItem(nk) == null) localStorage.setItem(nk, localStorage.getItem(k)); localStorage.removeItem(k); } }); } catch(e) {}
 /* ===== Game data and rules (no DOM) ===== */
-const BUILD = '2026-11-05 · no idle charging';   // shown in the main menu, to tell which version is loaded
+const BUILD = '2026-11-05 · act choices';   // shown in the main menu, to tell which version is loaded
 const DPS = 8;             // simulation ticks per real second at 1x (doubled for the test version: same balance, half the real time)
 // Time is simulated in ticks. 80 ticks make one day unit (18 minutes each), so a day lasts
 // 20 real seconds at 1x and Players only ever see in-game time and real time, never days.
@@ -1152,7 +1153,7 @@ ITEMS.forEach(i => { if (i.eff && i.eff.zsp && i.eff.zsp.GZ) i.eff.zsp = {[gearZ
 
 let S, M;
 let HALT = false;   // set by the UI to stop the clock in the middle of a catch-up (e.g. pause on task completion)
-const HOOK = {newRun(){}, voyageEnd(){}, presetRow(){}, legacy(){}, legacyAvail(){}, autoRun(){}, taskDone(){}, log(){}, perk(){}, die(){}, win(){}, change(){}, stopped(){}, practiced(){}, done(){}, crossed(){}, bought(){}, qfull(){}, kit(){}, runEnd(){}, trig(){}};
+const HOOK = {newRun(){}, actEnd(){}, presetRow(){}, legacy(){}, legacyAvail(){}, autoRun(){}, taskDone(){}, log(){}, perk(){}, die(){}, win(){}, change(){}, stopped(){}, practiced(){}, done(){}, crossed(){}, bought(){}, qfull(){}, kit(){}, runEnd(){}, trig(){}};
 
 // Player preferences (switches, thresholds, boost speed) are stored once for the device, not per save:
 // a new game or another slot starts with the same settings.
@@ -1685,8 +1686,12 @@ function finish(t){
   if (complete(t) && t.perk && !hasPerk(PK[t.perk])) { if (PK[t.perk].act2) S.a2.perks[t.perk] = true; else S.perks[t.perk] = true; M = mods(); HOOK.perk(PK[t.perk]); }
   WATCH.forEach(p => { if (p.secEnd === t.id && complete(t) && !S.perks[p.id]) { S.perks[p.id] = true; HOOK.perk(p); } });
   if (t.win) { L.wonAt = {d:L.day, r:L.real || 0}; recordBest(L); runTotal('lit'); }
-  if (t.win && !S.won) { S.won = true; S.winGen = S.gen; S.a2.open = true; S.branch = 'A'; if (!L.dead) enterZone(ACT2R[0], 5); if (S.pr && !S.pr.kit) { S.pr.kit = true; HOOK.kit(); } HOOK.win(); }
-  else if (t.win && !L.dead) enterZone(ACT2R[0], 5);   // on into Act II: the long watch first
+  const firstWin = t.win && !S.won;
+  if (firstWin) { S.won = true; S.winGen = S.gen; S.a2.open = true; S.branch = 'A'; if (S.pr && !S.pr.kit) { S.pr.kit = true; HOOK.kit(); } HOOK.win(); }
+  if (t.win && !L.dead) {
+    if (firstWin || S.replay1) { S.actEnd = 1; HOOK.actEnd(1, firstWin); }   // the choice, at the end of Act I each run and of each Act I replay: replay, move on, or the main menu
+    else enterZone(ACT2R[0], 5);   // later seedlings re-kindle on their way and carry on into Act II at once
+  }
   if (t.finale && complete(t)) finishBranch(t);
   if (complete(t)) HOOK.taskDone(t);
   legacyCheck(); autoRunCheck();
@@ -1806,15 +1811,27 @@ function progOf(L){ return Object.keys(L.visited || {1:1}).length + (L.wonAt ? 1
 // reveals and levels, the sealed record, presets, best runs, settings. Started again: the route, the seedling (the
 // count goes on), this run's totals and Act II parts. Each finished run lowers the familiarity needed (FAM_RUN).
 const runNo = () => (S && S.pr && S.pr.n) || 0;   // finished runs before this one (0 = the first run)
+// After Act I (owner 2026-11-05 17:34): move on to Act II, or replay Act I from the Seedling Vaults with everything
+// kept (a story replay: the sealed beats of Act I open; legacy is not revealed before Act II). There is no Act II-only replay.
+function moveOnToAct2(){ S.actEnd = null; S.replay1 = false; enterZone(ACT2R[0], 5); }   // on into Act II: the long watch first
+function replayAct1(){
+  const pr = S.pr = S.pr || {n:0}; pr.r1 = (pr.r1 || 0) + 1;
+  S.actEnd = null; S.replay1 = true; decant(); S.life.queue = []; S.life.qdone = [];
+  HOOK.newRun(pr.n + 1, pr.r1);
+}
+// After Act II: restart the whole game (a prestige reset: regular tasks' familiarity and automation start over; records,
+// legacy tasks and their familiarity, the death award, the sealed record, presets and settings are kept).
 function newRun(){
   const pr = S.pr = S.pr || {n:0}; if (!Array.isArray(pr.runs)) pr.runs = [];
   pr.runs.push({n:pr.n + 1, g0:pr.g0 || 1, g1:S.gen, played:S.stats.played || 0, firstAt:S.firstAt || {}});
   pr.n++; pr.g0 = S.gen + 1;
   S.won = false; S.branch = null; S.a2.fin = 0;
   S.a2run = {reached:{}, done:{}, lrev:(S.a2run || {}).lrev || {}};
-  S.firstAt = {};
+  S.firstAt = {}; S.actEnd = null; S.replay1 = false; pr.r1 = 0;
+  TASKS.forEach(t => { if (!t.legacy) { delete S.fam[t.id]; delete S.auto[t.id]; delete (S.prac || {})[t.id]; } });
+  S.gprac = {}; S.gauto = {};
   decant(); S.life.queue = []; S.life.qdone = [];
-  HOOK.newRun(pr.n + 1);
+  HOOK.newRun(pr.n + 1, 0);
 }
 function finishBranch(t){
   const L = S.life; S.a2run = S.a2run || {reached:{}, done:{}};
@@ -1822,7 +1839,7 @@ function finishBranch(t){
   if (first) { S.a2run.done[t.finale] = 1; S.a2.fin = (S.a2.fin || 0) + 1; }
   if (t.finale === 'B') enterZone(6, 12);   // the long watch is over (Selene is braking): the boarders strike
   if (t.finale === 'A') enterZone(13, 16);   // the Hearthfire burns again: on into the arrival
-  if (t.finale === 'C' && first) HOOK.voyageEnd();   // in orbit over Tessaly (first time this run): the voyage can begin again
+  if (t.finale === 'C' && first) { S.actEnd = 2; HOOK.actEnd(2); }   // in orbit over Tessaly (first time this run): restart the whole game, or the main menu
 }
 function recordBest(L){
   const pr = progOf(L), z = L.sec || 1, at = (isA2(z) ? L.secAt && L.secAt[z] : L.wonAt) || (L.secAt && L.secAt[z]) || {d:0, r:0};
@@ -2894,7 +2911,8 @@ function slotInfo(raw){
   const age = fmtDays(raw.life.day || 0);
   const rec = Object.keys(raw.perks || {}).length;
   const when = raw.saved ? new Date(raw.saved).toLocaleString([], {month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'}) : '';
-  return 'Seedling ' + raw.gen + (raw.life.dead ? ' (dead)' : ', ' + age + ' lived') + ' \u00b7 ' + rec + '/' + PERKS.length + ' records' + (raw.won ? ' \u00b7 Hearth kindled' : '') + (when ? ' \u00b7 ' + when : '');
+  const rt = runTag(raw);
+  return (rt ? rt + ' \u00b7 ' : '') + 'Seedling ' + raw.gen + (raw.life.dead ? ' (dead)' : ', ' + age + ' lived') + ' \u00b7 ' + rec + '/' + PERKS.length + ' records' + (raw.won ? ' \u00b7 Hearth kindled' : '') + (when ? ' \u00b7 ' + when : '');
 }
 /* ----- saves are local: text helpers, and old GitHub settings are wiped ----- */
 const b64enc = str => btoa(unescape(encodeURIComponent(str)));
@@ -3238,6 +3256,7 @@ function startGame(){
   awayMs = 0;
   if (S.life.dead) showDeath();
   else if (!S.intro) { S.seenB = buildKey(); showIntro(); }
+  else if (S.actEnd) showActEnd(S.actEnd);   // a choice left open at an act's end
   else whatsNew();
 }
 // Welcome back: a short recap when a save is opened after more than a day
@@ -3267,14 +3286,14 @@ function showMenu(view){
     h += '<p>Start a new game in which slot? A used slot is overwritten; tap it twice to confirm.</p><div class="slots">';
     for (let i = 1; i <= SLOTS; i++) {
       const r = readSlot(i);
-      h += `<button class="slot" data-newin="${i}" data-used="${r ? 1 : 0}"><b>Slot ${i}${r && r.name ? ' \u00b7 ' + esc(r.name) : ''}</b><span>${esc(slotInfo(r))}</span><em>${r ? 'Overwrite' : 'Start here'}</em></button>`;
+      h += `<button class="slot${runTag(r) ? ' ngp' : ''}" data-newin="${i}" data-used="${r ? 1 : 0}"><b>Slot ${i}${r && r.name ? ' \u00b7 ' + esc(r.name) : ''}</b><span>${esc(slotInfo(r))}</span><em>${r ? 'Overwrite' : 'Start here'}</em></button>`;
     }
     h += '</div><button class="btn" data-menu="back">Back</button>';
   } else if (view === 'saves') {
     h += '<span class="lbl">Save slots</span><div class="slots">';
     for (let i = 1; i <= SLOTS; i++) {
       const r = readSlot(i), act = i === slot, dmg = !r && !!slotText(i);
-      h += `<div class="slot${act ? ' act' : ''}"><b>Slot ${i}${r && r.name ? ' \u00b7 ' + esc(r.name) : ''}${act ? ' \u00b7 playing' : ''}</b><span>${dmg ? 'Damaged save: it can\u2019t be read. Export it or restore a backup.' : esc(slotInfo(r))}</span><div class="btns">`;
+      h += `<div class="slot${act ? ' act' : ''}${runTag(r) ? ' ngp' : ''}"><b>Slot ${i}${r && r.name ? ' \u00b7 ' + esc(r.name) : ''}${act ? ' \u00b7 playing' : ''}</b><span>${dmg ? 'Damaged save: it can\u2019t be read. Export it or restore a backup.' : esc(slotInfo(r))}</span><div class="btns">`;
       if (dmg) h += `<button class="btn" data-loadslot="${i}">Options</button>`;
       if (r) h += `<button class="btn" data-rename="${i}">Rename</button>`;
       const fromD = slot === 'd' + i;   // playing this slot's own death save
@@ -3300,7 +3319,6 @@ function showMenu(view){
     h += '<div class="mbtns">';
     if (recovering && recovering.s === slot) { owActs = {rec:showRecovery}; h += `<button class="btn warn" data-ow="rec">${esc(slotLabel(slot))} can\u2019t be opened: see the options</button>`; }
     else if (cur && cur.life) h += `<button class="btn pri" data-menu="continue">Continue \u00b7 ${slotLabel(slot)}${cur.name ? ' \u00b7 ' + esc(cur.name) : ''}<small>${esc(slotInfo(cur))}</small></button>`;
-    if (cur && cur.life && S && S.life && a2Done()) h += `<button class="btn" data-newrun>New run on this save<small>Begin the voyage again from the Seedling Vaults</small></button>`;
     h += `<button class="btn${cur && cur.life ? '' : ' pri'}" data-menu="new">New game</button><button class="btn" data-menu="saves">Save Management</button><button class="btn" data-settings="menu">Settings</button></div>`;
   }
   showModal(h);
@@ -3369,7 +3387,7 @@ HOOK.runEnd = (from, to, why) => { taskKey = ''; autoKey = '';
 // Log events for the Records and Automation filters (kept in the save, newest 100; counted from build "publishing set")
 // Section targets: when the seedling moves on, judge the section it left (once per section and save)
 function tgtCheck(z){
-  if (runNo()) return;   // later runs are naturally faster: targets and splits judge the first run
+  if (runNo() || ((S.pr || {}).r1 && ACT1.includes(ROUTE[ROUTE.indexOf(z) - 1]))) return;   // targets and splits judge the first pass through a section (not later runs, not Act I replays)
   const p = ROUTE[ROUTE.indexOf(z) - 1]; if (p == null || !TARGETS[p]) return;
   if (!S.tgts || typeof S.tgts !== 'object') S.tgts = {};
   if (S.tgts[p]) return;
@@ -3401,7 +3419,7 @@ function autoDecant(){
   decant(); sfx('sprout'); taskKey = ''; mapKey = ''; autoKey = '';
   save(); toast(msg);
 }
-HOOK.win = () => { save(); showWin(); };
+HOOK.win = () => { save(); };   // the kindling story opens the Act I choice (showActEnd)
 HOOK.kit = () => { sfx('perk'); toast('Quartermaster\u2019s cache unlocked: every seedling now starts with all of its automated gear.', true); archKey = ''; };
 
 
@@ -3631,7 +3649,6 @@ const BUILD_NOTES = [
   ['information', 'A strip under the section name shows what this seedling has done; Pin (Edit list) shows what a task or gear design still needs; familiarity steps Practiced, Skilled, Mastered; tooltips show time to the next step, automation progress and what makes up the drain.'],
   ['guidance', 'A next-step line and hints in the Log for the first sections; this note after updates.'],
   ['runs', 'Best runs: what the seedling that crossed a section did there is kept (up to three per section, pin one to keep it) and can be loaded into the queue; section headers compare your seedling count with your other games on this device; the Auto tab can switch a whole section on or off.'],
-  ['no idle charging', 'Auto-charge and Auto-scavenge only top a seedling up while it has other work to come back to: with an empty queue and nothing automated to do, time stops instead of burning its life at a charging station.'],
   ['settings merged', 'Fewer, clearer settings: Auto-charge now also covers charging when energy runs low (the separate Charge when needed is gone); Settings has one choice for what happens at a death, one for pausing at crossings, and a row of Pause when… chips.'],
   ['pop-ups merged', 'One pop-up when you open a save after a while: the welcome-back recap now lists what\u2019s new too. The Log keeps only the first-death and first-crossing hints (the next-step line covers the rest), and the Journal view is gone: the Ship log already reads in order by section.'],
   ['tooltips trimmed', 'Task card tooltips show only what the card doesn\u2019t: familiarity steps, automation progress, time saved and the full list of what a task opens. Tapping a route node shows the same bubble as holding it. Section headers are two lines shorter.'],
@@ -3643,13 +3660,15 @@ const BUILD_NOTES = [
   ['act ii twice act i', 'Longer sections from the Shattered Bark on, and Act II about twice as long as Act I again. The Seedling Vaults and Taproot Galleries are unchanged.'],
   ['two-part legacy', 'Legacy sets are now a step and a final (plus the optional drill) instead of five parts; the step takes as long as the four old parts together, so each bonus costs the same time in fewer tasks.'],
   ['runs', 'Once Selene is in orbit over Tessaly, the voyage can begin again from the Seedling Vaults, as often as you like (also from the main menu). Familiarity, automation, records and legacy carry over; legacy themes revealed in Act II appear in Act I from the next run, and each run needs a little less familiarity.'],
+  ['no idle charging', 'Auto-charge and Auto-scavenge only top a seedling up while it has other work to come back to: with an empty queue and nothing automated to do, time stops instead of burning its life at a charging station.'],
+  ['act choices', 'At the end of Act I: move on to Act II, replay Act I (everything kept), or go to the main menu. At the end of Act II: restart the whole game (regular familiarity and automation start over; records, legacy and the death award stay) or the main menu. Saves past their first run are coloured and show their run.']
 ];
 const buildKey = () => BUILD.split('\u00b7').pop().trim();
 function newNotes(){   // the notes since this save last opened (records the current build)
   const k = buildKey(), seen = S.seenB;
   if (!seen) { S.seenB = k; return []; }   // a new game (or a save from before this note) starts here
   if (seen === k) return [];
-  const i = BUILD_NOTES.findIndex(n => n[0] === seen); S.seenB = k;
+  const i = BUILD_NOTES.map(n => n[0]).lastIndexOf(seen); S.seenB = k;   // the newest entry with that key (two builds were called 'runs')
   return BUILD_NOTES.slice(i >= 0 ? i + 1 : -2);
 }
 const notesHtml = list => `<ul class="wnew">${list.map(n => `<li><b>${esc(n[0])}</b>: ${esc(n[1])}</li>`).join('')}</ul>`;
@@ -5248,23 +5267,29 @@ function showDeath(){
 }
 // Runs: the ending of a run, and starting the next one (see newRun)
 const RUN_FRAME = 'WARDEN rewinds the voyage through the K line\u2019s engrams. Something in the record doesn\u2019t add up.';   // placeholder text
-function showVoyageEnd(){
+// The choice at the end of each act (every time): Act I -> replay Act I, move on to Act II, main menu;
+// Act II -> restart the whole game, main menu. A choice left open (main menu) comes back on Continue (S.actEnd).
+const runTag = s => { const pr = (s && s.pr) || {}; const n = (pr.n || 0) + 1, r1 = pr.r1 || 0; return n > 1 || r1 ? 'Run ' + n + (r1 ? ' \u00b7 Act I replay ' + r1 : '') : ''; };
+function showActEnd(act, first){
   paused = true;
-  showModal(`<h2>In orbit over Tessaly</h2><p>Selene holds a safe orbit. Below, Tessaly turns; above her, ${S.gen} seedlings of K-7 are behind her. Run ${runNo() + 1} is complete.</p><p class="d">You can begin the voyage again from the Seedling Vaults. Familiarity, automation, records and legacy carry over; the route and the seedling start again. Legacy themes revealed so far appear in Act I from the next run.</p><div class="mbtns"><button class="btn pri" data-newrun>Begin the voyage again</button><button class="btn" data-close>Stay in orbit</button></div>`);
+  const tag = runTag(S), menu = '<button class="btn" data-actmenu>Main menu</button>';
+  if (act === 1) showModal((first ? winHtml() : `<h2>Act I complete</h2><p>The Hearth Tree burns${tag ? ' (' + tag + ')' : ''}. It took ${S.gen} seedlings of K-7 so far.</p>`) +
+    `<p class="d"><b>Replay Act I</b>: back to the Seedling Vaults with everything you have. <b>Move on</b>: on into Act II.</p><div class="mbtns"><button class="btn pri" data-acton>Move on to Act II</button><button class="btn" data-actreplay>Replay Act I</button>${menu}</div>`);
+  else showModal(`<h2>In orbit over Tessaly</h2><p>Selene holds a safe orbit. Below, Tessaly turns; behind her, ${S.gen} seedlings of K-7. Run ${runNo() + 1} is complete.</p><p class="d"><b>Restart the whole game</b>: back to the Seedling Vaults for run ${runNo() + 2}. Familiarity and automation of regular tasks start over; records, legacy, the death award, presets and settings stay, and legacy themes revealed in Act II now show in Act I.</p><div class="mbtns"><button class="btn pri" data-newrun>Restart the whole game</button>${menu}</div>`);
 }
 function askNewRun(){
   paused = true;
-  showModal(`<h2>Begin the voyage again?</h2><p>${RUN_FRAME}</p><p class="d">Run ${runNo() + 2} starts in the Seedling Vaults with a new seedling. Kept: familiarity, automation, records, legacy, presets and settings. Started again: the route, this seedling\u2019s queue and gear, and this run\u2019s totals. This can\u2019t be undone (a backup is made first).</p><div class="mbtns"><button class="btn pri" data-newrungo>Begin run ${runNo() + 2}</button><button class="btn" data-close>Not yet</button></div>`);
+  showModal(`<h2>Restart the whole game?</h2><p>${RUN_FRAME}</p><p class="d">Run ${runNo() + 2} starts in the Seedling Vaults with a new seedling. Started over: familiarity and automation of regular tasks, gear automation, the route and this run\u2019s totals. Kept: records, legacy tasks and their familiarity, the death award, presets and settings. This can\u2019t be undone (a backup is made first).</p><div class="mbtns"><button class="btn pri" data-newrungo>Begin run ${runNo() + 2}</button><button class="btn" data-ow="back">Back</button></div>`);
+  owActs = {back:() => showActEnd(2)};
 }
-HOOK.voyageEnd = () => { save(); setTimeout(showVoyageEnd, 0); };
-HOOK.newRun = n => { taskKey = ''; mapKey = ''; autoKey = ''; logKey = ''; logEvt('rec', 'Run ' + n + ' begins'); toast('Run ' + n + ' begins: back in the Seedling Vaults.', true); };
-function showWin(){
-  paused = true;
-  showModal(`<h2>The Hearth Tree is kindled</h2>
+HOOK.actEnd = (act, first) => { save(); setTimeout(() => showActEnd(act, first), 0); };
+HOOK.newRun = (n, r1) => { taskKey = ''; mapKey = ''; autoKey = ''; logKey = ''; const t = r1 ? 'Act I replay ' + r1 + ' (run ' + n + ')' : 'Run ' + n; logEvt('rec', t + ' begins'); toast(t + ' begins: back in the Seedling Vaults.', true); };
+function winHtml(){
+  return (`<h2>The Hearth Tree is kindled</h2>
     <p>The sap flows, the gardens fruit and the Hearth Tree carries Selene on the current toward Tessaly. It took ${S.gen} seedling${S.gen > 1 ? 's' : ''} of K-7 to get here. None of them will be remembered.</p>
     <p>WARDEN begins the wake cycle, then puts it off: the voyage is far from over. The long watch begins, and someone has to keep her running all the way to Tessaly: about 360 more years, with the turnover at year 240 and Tessaly at year 480.</p>
-    <p class="d"><b>Act II</b> begins. The ship isn\u2019t done with K-7 yet: every seedling that kindles the Hearth Tree carries on into whatever comes next. Going further will open up <b>legacy tasks</b> in Act I (see the Legacy tab), and the <b>Quartermaster\u2019s cache</b> is unlocked: from now on seedlings start with their automated gear.</p>
-    <button class="btn pri" data-close>Continue</button>`);
+    <p class="d"><b>Act II</b> lies ahead. The ship isn\u2019t done with K-7 yet: every seedling that kindles the Hearth Tree carries on into whatever comes next. Going further will open up <b>legacy tasks</b> in Act I (see the Legacy tab), and the <b>Quartermaster\u2019s cache</b> is unlocked: from now on seedlings start with their automated gear.</p>
+`);
 }
 
 /* ----- input ----- */
@@ -5405,6 +5430,9 @@ document.addEventListener('click', e => {
   }
   if ('repair' in d) { const a = repair(); if (a) { sfx('toggle'); toast('Repaired ' + fmt(a) + ' wear.'); } return; }
   if ('newrun' in d) { askNewRun(); return; }
+  if ('acton' in d) { hideModal(); moveOnToAct2(); paused = false; save(); renderView(true); return; }
+  if ('actreplay' in d) { bkBefore(slot, 'before an Act I replay'); replayAct1(); S.set.paused = false; save(); startGame(); renderView(true); return; }
+  if ('actmenu' in d) { save(); showMenu(); return; }
   if ('newrungo' in d) { bkBefore(slot, 'before run ' + (runNo() + 2)); newRun(); S.set.paused = false; save(); startGame(); renderView(true); return; }   // from the ending or the main menu
   if ('eat' in d) { const f = readyFoods()[0], h0 = L.hp; if (f && eat(f)) sfx('eat'), toast('Recharged. +' + fmt(L.hp - h0) + ' energy'); return; }
   if ('exportjson' in d) { exportJson(); return; }
