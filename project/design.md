@@ -93,6 +93,10 @@ Notes:
 - **Crossing fill (base design, restored 2026-11-05):** a queued or automated crossing stops just short of finishing; the seedling finishes automated actions/drills, builds affordable automated gear, tops sap cells up to the auto-charge stop level, then **fills deadwood (grafts in Act II) to full carry**, so the next section's gear can start at once. It costs energy; that is the point. Safety net: a seedling with under 1 sap cell and energy under the charge threshold skips the deadwood and crosses. Tapping the crossing yourself crosses at once. (From 2026-11-04 06:07, `da78682`, until this fix, Act I crossings filled no deadwood: a regression.)
 - "Always run sections once ready" (global): a run starts by itself whenever the current section is fully automated, clears the queue's leftovers for its sections and is pinned at the top of the queue. Runs still stop at act ends.
 
+## Queue forecast and queue tools (2026-11-05, build "queue forecast")
+- The forecast plays the current seedling forward with the real rules (queue, automation, recharges, crossings, wear) on a copy of the save. Each queue row shows the energy left when it is done and when; rows the seedling won't reach are red; "Dies here" (or "Dies before this") marks where it dies. The Outlook line and the header's time left use the forecast death and cause; the queue header shows when the queue is done, or how many rows this life gets through.
+- Undo (one step) for queue edits; the queue as plain text (copy; add or replace from pasted names); presets can be named; a setting stops at the death screen when the queue wasn't finished (only with the death screen off); a "new" dot on tasks no seedling has finished yet.
+
 ## Honours: removed from the game (2026-11-04)
 - No longer earned and no effects. Old save data (a2.hon, a2.lv) is kept but ignored.
 

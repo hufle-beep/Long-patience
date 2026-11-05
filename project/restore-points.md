@@ -2,13 +2,18 @@
 
 **Nothing is ever deleted from the git history**, so every past version can always be recovered. For quick rollbacks, the newest 5 restore points are also kept as named tags, and the newest 5 Android builds as separate downloads. Update this list in every push: add the new point on top and keep 5. Removing an old tag only removes the label; the commit stays in history.
 
+## Fallback branches (kept until the owner says otherwise)
+Named branches that point at a known-good build, kept on purpose (unlike the rolling tags below):
+- `fallback/2026-11-05-embedded-fonts` → `9c61ac5`, the last build before the queue forecast and queue tools. To play it again: check out that branch's `index.html` (see "How to roll back" below) or install the matching Android backup build. Saves stay compatible both ways (new fields like preset names are simply ignored by the older build).
+
 ## Game versions (git tags, kept automatically)
 The **Restore points** workflow (`.github/workflows/restore-points.yml`) runs on every push to main. It keeps a tag on each of the **newest 5 commits**, named `restore/<date>-<commit>` (for example `restore/2026-11-04-4b28cfd`), and removes older restore tags. The current list is on GitHub under Tags (filter `restore/`).
 
 What the recent commits are (newest first):
 | Commit | What it is |
 |---|---|
-| (next) | Fonts embedded in the game (offline, same look) |
+| (next) | Queue forecast, Undo, queue as text, named presets, regression tests |
+| `9c61ac5` | Fonts embedded in the game (offline, same look). **Fallback branch** `fallback/2026-11-05-embedded-fonts` |
 | `660a99a` | Fix: Tasks tab flicker (familiarity updates in place) |
 | `f5f7ed6` | Stronger drills, gain shown, familiarity with one decimal |
 | `a3e3259` | Fix: crossings fill deadwood to full carry again |

@@ -12,5 +12,6 @@ Test bots, checks and screenshot scripts used to work on Selene: Tidelocked. The
 | `fontpack.py` | Rebuilds the embedded font block (`<style id="fonts">`) in index.html from google/fonts: trims, renames (OFL Reserved Font Names), WOFF2. Needs fonttools and brotli (see handover §5) | `fonts: 8 faces, ~117 KB woff2` |
 | `shots.py` | Screenshots of every screen to `/home/claude/shots` | no errors |
 | `pw151-162.py` | Playwright checks: header/pause, stasis, death saves, names, cards, storage move, test speeds, FAQ unfolding and resets | `errors []` |
+| `tests/` | Regression tests: `node --test project/tools/tests/*.test.js` (~70 s; `QUICK=1` skips the Act II run). Forecast = real run, frozen sections' seedling counts, Act totals. Update expected values with any deliberate balance change | `# fail 0` |
 | `oneoff/` | Scripts that did the reskin, cleanup and comment rewording (reference) | - |
 | `fixtures/` | `snap16.json` (The Mending), `snap4old.json` (built before the Shattered Bark, seedling in the Canopy Gardens), `snap7.json` (Contested Boughs), `snap12.json` (Turnover), `blank.html` | - |

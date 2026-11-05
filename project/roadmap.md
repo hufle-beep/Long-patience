@@ -1,6 +1,6 @@
 # Roadmap: Selene: Tidelocked
 
-Last updated: 2026-11-05. Update in every push.
+Last updated: 2026-11-05 (build "queue forecast"). Update in every push.
 
 ## Order of work (owner, 2026-11-04)
 1. **Section-by-section playtesting and tuning** (now). Sections 1 and 2 frozen; next the Shattered Bark, then sections 3-14 one by one: the owner plays and uploads a save after each crossing, Claude proposes options for that section's knobs only, the owner freezes it.
@@ -9,7 +9,10 @@ Last updated: 2026-11-05. Update in every push.
 4. **Texts and story:** a friend of the owner will write texts and story to replace the AI-generated ones (then the owner's own story beats and flavour texts fit in here too).
 5. **Then either Act III, or publishing** on Google Play, itch.io and galaxy.click (see "Later" below).
 
+**Owner decision (2026-11-05):** polishing can come before tuning when its gains are immediate.
+
 ## Next up
+- **Ideas from other games (research.md):** round 1 (Idle Loops, wrtsc) and round 1b (Immortality Idle, Progress Knight Quest: owner's priority) studied. Built from them: queue forecast, undo, queue as text, named presets, death-screen-if-unfinished setting, "new" marks, regression tests. Open, best value first: preset triggers, per-goal ETA ("next automation in about N seedlings"), life summary at death, pause before the forecast death, repeat counts. Next rounds: 2 (Antimatter Dimensions, Trimps), 3 (The Modding Tree, ZzFX, game-icons.net).
 - **Full replay from the start (owner, 2026-11-05)** on build "embedded fonts" (deadwood filled to full carry at crossings; drills 2.5x stronger), to see whether the frozen sections and the rest need a retune.
 - **Meteor shower redesign (approved 2026-11-04, see design.md):** **All three stages built 2026-11-05** (The Shattered Bark, ward-lock, Hardened grain; Act II reordered with The Mending; 480-year voyage clock and timeline texts). Was: Stage 2 Act II reordered (long watch with Turnover first, Boarders + new The Mending with Rekindle the Hearthfire, then Arrival); Stage 3 480-year voyage clock and texts. Confirm each stage's exact changes before building.
 - Section retune: the Taproot Galleries FROZEN 2026-11-05 (owner, 14 seedlings). Next: the Shattered Bark (untuned: lean bot 21 seedlings, completionist 14), waiting for the owner's playtest save. Act II retune order now follows the new route (The Long Current first); The Mending is new and untuned. Lean bot Act II went from 7.72 h to 8.69 h with the reorder (long watch 4.89 h).
@@ -43,6 +46,7 @@ Last updated: 2026-11-05. Update in every push.
 See design.md: colony content held back from Act II, the Act II legacy themes from the old Honours, and four open questions.
 
 ## Done recently (see changelog.md for all)
+- 2026-11-05: queue forecast (energy per queue row, red unreached rows, "Dies here", forecast death on the Outlook line), queue Undo, queue as text, named presets, death-screen-if-unfinished setting, "new" marks on never-finished tasks, regression tests; previous build kept on branch `fallback/2026-11-05-embedded-fonts`.
 - 2026-11-05: fonts embedded in index.html (offline, same look; OFL copies renamed Selene Display/Text/Mono).
 - 2026-11-05: Tasks tab flicker fixed (familiarity and auto % update in place; the list rebuilds only when its contents change).
 - 2026-11-05: stronger drills (credit 0.04 -> 0.1), per-session gain on the drill card, familiarity with one decimal.
