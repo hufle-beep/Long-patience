@@ -28,6 +28,7 @@ with sync_playwright() as p:
     if r!=['true,false,false,false',True,True]: errs.append('one-shot rows: %s' % r)
     # long-press remove: every copy
     pg.evaluate("()=>{ const [a,b2]=A5, L=S.life; L.queue=[a,b2,a,a]; S.set.paused=true; taskKey=''; setTab('tasks'); renderTasks(); }")
+    pg.wait_for_timeout(400)   # let the redraw settle (controls revealed by progress can shift rows)
     bx=pg.locator('[data-unqi="0"]'); box=bx.bounding_box()
     pg.mouse.move(box['x']+box['width']/2, box['y']+box['height']/2); pg.mouse.down(); pg.wait_for_timeout(750); pg.mouse.up(); pg.wait_for_timeout(150)
     r=pg.evaluate("()=>S.life.queue.join()===A5[1]")

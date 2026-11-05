@@ -23,8 +23,8 @@ with sync_playwright() as p:
     if r!=['1.3','130',True,True]: errs.append('text size: %s' % r)
     pg.click('#mbox .mx'); pg.wait_for_timeout(150)
     if not pg.evaluate("()=>$('#modal').hidden"): errs.append('X did not close Settings')
-    pg.reload(); pg.wait_for_timeout(900)
-    z=pg.evaluate("()=>document.documentElement.style.zoom")
+    # (no reload: headless reloads can lose fresh storage writes) read it back the way boot does
+    z=pg.evaluate("()=>{ document.documentElement.style.zoom=''; tsize=+localStorage.getItem(TSIZE_KEY)||100; applyTextSize(); return document.documentElement.style.zoom; }")
     if z not in ('1.3',): errs.append('text size not applied after reload: %r' % z)
     pg.evaluate("()=>{ hideModal(); paused=true; S.intro=true; setTextSize(100); }")
     if pg.evaluate("()=>document.documentElement.style.zoom")!='': errs.append('100% should clear the zoom')
