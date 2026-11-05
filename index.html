@@ -531,7 +531,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
 // Renamed from Long Patience: move this device's old storage keys to the new 'selene.' names once
 try { const old = []; for (let n = 0; n < localStorage.length; n++) old.push(localStorage.key(n)); old.forEach(k => { if (k && k.indexOf('long-patience.') === 0) { const nk = 'selene.' + k.slice(14); if (localStorage.getItem(nk) == null) localStorage.setItem(nk, localStorage.getItem(k)); localStorage.removeItem(k); } }); } catch(e) {}
 /* ===== Game data and rules (no DOM) ===== */
-const BUILD = '2026-11-05 · preset rows and filters';   // shown in the main menu, to tell which version is loaded
+const BUILD = '2026-11-05 · one drill per section';   // shown in the main menu, to tell which version is loaded
 const DPS = 8;             // simulation ticks per real second at 1x (doubled for the test version: same balance, half the real time)
 // Time is simulated in ticks. 80 ticks make one day unit (18 minutes each), so a day lasts
 // 20 real seconds at 1x and Players only ever see in-game time and real time, never days.
@@ -666,15 +666,10 @@ const TASKS = [
   // Drills: up to TRAIN_CAP sessions per life each; each adds a little familiarity to every task of its section. Two per section.
   // Section finishers (crossings, the ignition, Act II finales) need every other action of their section (added below).
   {id:'drill',   z:1, kind:'train', name:'Pressure drills in the root lock',    days:25, req:['vats']},
-  {id:'rewire',  z:1, kind:'train', name:'Re-thread the vault’s nerve vines',           days:25, req:['cables']},
-  {id:'genes',   z:2, kind:'train', name:'Study the taproot’s sap chemistry',      days:40,  req:['valves']},
   {id:'reckon',  z:2, kind:'train', name:'Patrol the root galleries',         days:40,  req:['survey']},
   {id:'faults',  z:3, kind:'train', name:'Star-reckoning drills in the ring archive',          days:40,  req:['coolmap']},
-  {id:'locks',   z:3, kind:'train', name:'Pick practice seed-locks in the armoury', days:40, req:['armdoor']},
   {id:'flightsim', z:4, kind:'train', name:'Graft-and-prune drills',          days:40,  req:['relays']},
-  {id:'puzzles', z:4, kind:'train', name:'Study WARDEN\u2019s growth protocols',           days:40,  req:['tap']},
   {id:'zerog',   z:5, kind:'train', name:'Zero-g drills in the crown shaft',  days:40,  req:['warden']},
-  {id:'seals',   z:5, kind:'train', name:'Calibrate the ember-duct seals',  days:40,  req:['injstrip']},
   // Zone 1
   {id:'wake', z:1, kind:'act', name:'Climb out of the seed pod', days:2, req:[],
     log:'Fluid drains from the pod. A voice through the roots: \u201cMaintenance seedling K-7, sprouted. Work cycle begins.\u201d Grown into the pod wall: PROPERTY OF SELENE.'},
@@ -775,7 +770,6 @@ const TASKS = [
     log:'The vine-lift climbs past the stasis groves. Through frosted resin, row after row of sleeping faces. Above them the outer bark is torn open.'},
   // The Shattered Bark (section id 15, after the Taproot Galleries): the meteor shower's wounds in the outer hull
   {id:'barkseal', z:15, kind:'train', name:'Pressure-seal drills on the outer bark', days:40, req:['breachmap']},
-  {id:'graftdrill', z:15, kind:'train', name:'Grafting drills on dead boughs', days:40, req:['bracebough']},
   {id:'barkstrip', z:15, kind:'job', name:'Strip the shattered bark', prod:{salvage:0.04}, haz:0.05, req:['lift']},
   {id:'scars', z:15, kind:'act', name:'Survey the scars', days:150, req:['lift'],
     log:'Cold light through the bark. A meteor shower tore into Selene a quarter of the way to Tessaly, and her wounds still weep sap into the dark.'},
@@ -969,7 +963,6 @@ const TASKS = [
   {id:'bpod', z:6, kind:'job', name:'Scavenge the boarding pod', prod:{salvage:0.12}, haz:0.1, req:[]},
   {id:'bait', z:6, kind:'act', name:'Set bait in the galleries', days:138, haz:0.2, req:['track'], split:'ambush'},
   {id:'ambush', z:6, kind:'act', name:'Ambush a boarding party', days:134, reps:3, haz:0.35, req:['bait'], perk:'scars'},
-  {id:'cqb', z:6, kind:'train', name:'Close-quarters drills', days:40, req:['ambush']},
   {id:'drag', z:6, kind:'act', name:'Drag a fallen boarder to the lab', days:138, req:['ambush'], split:'studyb'},
   {id:'studyb', z:6, kind:'act', name:'Study a fallen boarder', days:138, req:['drag'], perk:'xeno',
     log:'Chitin over muscle, grown for a single purpose. Someone engineered these too. Disposable, like you.'},
@@ -993,7 +986,6 @@ const TASKS = [
   {id:'jam', z:7, kind:'act', name:'Jam the boarders’ signal', days:297, req:['antenna','protect']},
   {id:'trapparts', z:7, kind:'act', name:'Gather thorns for traps', days:377, req:['jam'], split:'traps'},
   {id:'traps', z:7, kind:'act', name:'Rig the boughs with traps', days:604, req:['trapparts','medfront']},
-  {id:'trapdrill', z:7, kind:'train', name:'Trap-laying drills', days:40, req:['traps']},
   {id:'shiptrace', z:7, kind:'act', name:'Listen through the bark', days:396, req:['traps','medb'], split:'traceship'},
   {id:'synthfix', z:7, kind:'act', meal:true, name:'Tune the healing grove’s charging rack', days:400, req:['watchpost']},   // charger upgrade: recharges come more often
   {id:'ws7', z:7, kind:'act', shop:true, name:'Strip a boarder cutter for tools', days:400, req:['watchpost']},   // workshop: repairs come more often (costs grafts)
@@ -1027,7 +1019,6 @@ const TASKS = [
   {id:'watchdrill', z:9, kind:'train', name:'Damage-control drills', days:40, req:['patch']},
   {id:'podscan', z:9, kind:'act', name:'Scan the stasis pods', days:205, req:['patch'], split:'recal'},
   {id:'recal', z:9, kind:'act', name:'Recalibrate the stasis pods', days:469, req:['podscan'], perk:'podtel'},
-  {id:'podcheck', z:9, kind:'train', name:'Pod-maintenance rounds', days:40, req:['podscan']},
   {id:'logdump', z:9, kind:'act', name:'Dump WARDEN\u2019s log archive', days:234, req:['patch'], split:'audit'},
   {id:'audit', z:9, kind:'act', name:'Audit WARDEN’s logs', days:335, req:['logdump'], perk:'wardenlog',
     log:'Every seedling of the K line is in here, filed under consumables. Next to each: hours worked, cause of failure. Someone kept count after all.'},
@@ -1067,7 +1058,6 @@ const TASKS = [
   {id:'ws11', z:11, kind:'act', shop:true, name:'Teach the tender drones bark repair', days:400, req:['podalarm']},   // workshop: repairs come more often (costs grafts)
   {id:'upkeep11', z:11, kind:'job', upkeep:true, name:'Keep the stasis groves running', prod:{salvage:0.18}, req:[]},
   {id:'darkration', z:11, kind:'job', name:'Ration the stasis-grove reserve sap cells', prod:{rations:0.18}, req:['podalarm']},
-  {id:'poddrill', z:11, kind:'train', name:'Pod-failure drills', days:40, req:['nursepods']},
   {id:'memdrill', z:11, kind:'train', name:'Memory-bank checks', days:40, req:['memmap']},
   {id:'turnpoint', z:11, kind:'act', cross:true, to:12, name:'Reach the turnover point', days:921, req:[],
     log:'Halfway between the stars, Selene rides the current in silence. Behind her, the long watch. Ahead, Tessaly’s sun, still only a bright star.'},
@@ -1087,14 +1077,12 @@ const TASKS = [
   {id:'ws12', z:12, kind:'act', shop:true, name:'Brace the frames for the braking burn', days:400, req:['burncalc']},   // workshop: repairs come more often (costs grafts)
   {id:'burnration', z:12, kind:'job', name:'Bleed charge from the braking burn', prod:{rations:0.19}, req:['burncalc']},
   {id:'shieldpatch', z:12, kind:'job', upkeep:true, name:'Patch the ward-shields', prod:{salvage:0.19}, req:[]},
-  {id:'flipdrill', z:12, kind:'train', name:'Ward-shield drills', days:40, req:['flip']},
   {id:'shielddrill', z:12, kind:'train', name:'Turnover drills', days:40, req:['shieldrig']},
   {id:'relslow', z:12, kind:'act', finale:'B', name:'Drop out of relativistic speed', days:785, lifeEff:{salCap:100}, req:[],
     log:'Two hundred and thirty-seven years of braking later, the stars stop crowding the bow and spread back across the sky. Tessaly’s sun is a sun again, not a point of light.'},
   // The Mending (section id 16, last of the Boarders): repairing the boarders' damage and rekindling the Hearthfire
   {id:'husktrim', z:16, kind:'job', name:'Strip the boarders\u2019 husks for grafts', prod:{salvage:0.19}, haz:0.05, req:[]},
   {id:'menddrill', z:16, kind:'train', name:'Bark-mending drills', days:30, req:['cutscars']},
-  {id:'emberdrill', z:16, kind:'train', name:'Ember-tending drills', days:30, req:['emberbed']},
   {id:'tally', z:16, kind:'act', name:'Tally the boarders\u2019 damage', days:150, req:[],
     log:'The boarders\u2019 cutters went deep. Sap lines hang severed, the stasis groves are bruised, and the Hearthfire has drowned in its own ash. Selene is falling toward Tessaly without her brakes.'},
   {id:'cutscars', z:16, kind:'act', name:'Close the cutter wounds', days:280, haz:0.15, req:['tally'],
@@ -1129,7 +1117,6 @@ const TASKS = [
   {id:'sysration', z:13, kind:'job', name:'Charge off the sensor bloom\u2019s backup cells', prod:{rations:0.2}, req:['scanout']},
   {id:'debris', z:13, kind:'job', name:'Catch drifting debris', prod:{salvage:0.2}, haz:0.1, req:[]},
   {id:'scandrill', z:13, kind:'train', name:'Scanner calibration drills', days:40, req:['giant']},
-  {id:'evadedrill', z:13, kind:'train', name:'Evasive-burn drills', days:40, req:['belt']},
   {id:'closein', z:13, kind:'act', cross:true, to:14, name:'Close on Tessaly', days:1001, lifeEff:{salCap:100}, req:[]},
   // Tessaly Orbit (Act II ends here: a safe orbit; landing is for later)
   {id:'insertplan', z:14, kind:'act', name:'Plan the orbit insertion', days:403, req:[], split:'insert'},
@@ -1143,7 +1130,6 @@ const TASKS = [
   {id:'ws14', z:14, kind:'act', shop:true, name:'Grow an orbital repair dock', days:400, req:['insert']},   // workshop: repairs come more often (costs grafts)
   {id:'meatvats', z:14, kind:'job', name:'Charge from the orbital sun-leaves', prod:{rations:0.16}, req:['insertplan']},
   {id:'orbitkeep', z:14, kind:'job', upkeep:true, name:'Keep the stasis groves cold', prod:{salvage:0.2}, req:[]},
-  {id:'landdrill', z:14, kind:'train', name:'Orbital survey drills', days:40, req:['orbitsurvey']},
   {id:'trimdrill', z:14, kind:'train', name:'Station-keeping drills', days:40, req:['insert']},
   {id:'safeorbit', z:14, kind:'act', finale:'C', name:'Establish a safe orbit over Tessaly', days:937, req:[], perk:'harbour',
     log:'Selene settles into a stable orbit. Below, Tessaly turns: oceans, cloud, a long brown coast. Three thousand people are still asleep. They are home, nearly. WARDEN holds the wake cycle. Someone has to look at the ground first.'},
@@ -1415,11 +1401,17 @@ const gearAutoFrac = i => Math.min(1, ((S.gprac || {})[i.id] || 0) / gearNeed(i)
 // Familiarity gain: records and gear that used to boost skill XP now boost it (all tasks, or one section)
 function famGain(t){ return M.xp * ((M.zxp && M.zxp[t.z]) || 1) * (isA2(t.z) ? M.a2fam * (1 + A2_SHARE / 3 * ngpLv('growth')) : 1 + 1 / 3 * ngpLv('growth')); }   // Deep echo: +33% familiarity per level (Act II: +3%)
 function addFam(t, a){ if (!S.fam) S.fam = {}; S.fam[t.id] = (S.fam[t.id] || 0) + a; }
-// Drills: each session adds DRILL_CREDIT of a life's worth to every other task of its section
-// (kept small: drills reach dozens of tasks at once, so a large credit let a run skip most of its seedlings)
-const DRILL_CREDIT = 0.1;
+// Drills: each session adds a share of a life's worth to every other task of its section (kept small:
+// drills reach dozens of tasks at once, so a large credit let a run skip most of its seedlings).
+// One drill per section since build "one drill per section": it counts double (DRILL_CREDIT_SEC);
+// a legacy drill trains its own five parts at DRILL_CREDIT.
+const DRILL_CREDIT = 0.1, DRILL_CREDIT_SEC = 0.2;
+const drillShare = d => d.lset ? DRILL_CREDIT : DRILL_CREDIT_SEC;
+// The second drill of each section was removed; its automation progress goes to the one kept (once, in mergeState)
+const DRILL_MERGE = [['drill','rewire'], ['reckon','genes'], ['barkseal','graftdrill'], ['faults','locks'], ['flightsim','puzzles'], ['zerog','seals'],
+  ['watchdrill','podcheck'], ['memdrill','poddrill'], ['shielddrill','flipdrill'], ['sealdrill','cqb'], ['triage','trapdrill'], ['menddrill','emberdrill'], ['scandrill','evadedrill'], ['trimdrill','landdrill']];
 function drillCredit(d){
-  TASKS.forEach(t => { if (t.kind !== 'train' && t.z === d.z && (d.lset ? t.lset === d.lset : !t.legacy)) addFam(t, DRILL_CREDIT * compUnit(t) * famGain(t)); });   // a legacy drill trains its own five parts
+  TASKS.forEach(t => { if (t.kind !== 'train' && t.z === d.z && (d.lset ? t.lset === d.lset : !t.legacy)) addFam(t, drillShare(d) * compUnit(t) * famGain(t)); });   // a legacy drill trains its own five parts
 }
 // hazards hurt less the more familiar the task is (up to /4, like the old combat and resolve levels)
 function hazDmg(t){ return (t.haz || 0) * M.haz * M.a2haz / (1 + 3 * masteryFrac(t)); }
@@ -2948,6 +2940,13 @@ function mergeState(raw){
     TASKS.forEach(t => { const u = t.kind === 'job' ? JOB_UNIT : t.kind === 'train' ? TRAIN_CAP : (t.reps || 1); if ((P[t.id] || 0) >= AUTO_LIVES * u && s.auto[t.id] == null) s.auto[t.id] = true; });
     ITEMS.forEach(i => { if ((s.gprac[i.id] || 0) >= AUTO_LIVES && s.gauto[i.id] == null) s.gauto[i.id] = true; }); }
   if (!s.prac) s.prac = {}; if (!s.auto) s.auto = {}; if (!s.prio) s.prio = {};
+  if (!s.drv1) {   // one drill per section: the kept drill takes the higher automation count of the pair
+    s.drv1 = 1;
+    DRILL_MERGE.forEach(([k, g]) => {
+      if ((s.prac[g] || 0) > (s.prac[k] || 0)) s.prac[k] = s.prac[g];
+      if (s.auto[g] === true && s.auto[k] == null) s.auto[k] = true;
+    });
+  }
   if (!raw.vv) s.vit = (s.vit || 0) / 4;   // genome bonus quartered (v3)
   else if (raw.vv < 3) s.vit = (s.vit || 0) / 2;
   s.vv = 3;
@@ -3141,7 +3140,7 @@ function effectHtml(t, full){
   if (t.kind === 'train') {
     // what one session adds to each task it trains (the same share for every one of them)
     const x = TASKS.find(u => u.kind !== 'train' && u.z === t.z && (t.lset ? u.lset === t.lset : !u.legacy));
-    const g = x ? DRILL_CREDIT * compUnit(x) * famGain(x) / famNeed(x) : 0;
+    const g = x ? drillShare(t) * compUnit(x) * famGain(x) / famNeed(x) : 0;
     kept.push('+' + (100 * g).toFixed(2) + '% familiarity per session to every ' + (t.lset ? 'part of its set' : 'task in ' + zoneThe(t.z)));
   }
   const b = [];   // effects grouped by how long they last: this seedling's life, or kept for good

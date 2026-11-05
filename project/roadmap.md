@@ -1,6 +1,6 @@
 # Roadmap: Selene: Tidelocked
 
-Last updated: 2026-11-05 (build "preset rows and filters"). Update in every push.
+Last updated: 2026-11-05 (build "one drill per section"). Update in every push.
 
 ## Order of work (owner, 2026-11-04)
 1. **Section-by-section playtesting and tuning** (now). Sections 1 and 2 frozen; next the Shattered Bark, then sections 3-14 one by one: the owner plays and uploads a save after each crossing, Claude proposes options for that section's knobs only, the owner freezes it.
@@ -49,6 +49,7 @@ Last updated: 2026-11-05 (build "preset rows and filters"). Update in every push
 See design.md: colony content held back from Act II, the Act II legacy themes from the old Honours, and four open questions.
 
 ## Done recently (see changelog.md for all)
+- 2026-11-05: one drill per section, twice as strong (14 drills removed; automation progress merged); completionist Seedling Vaults 9 -> 7.
 - 2026-11-05: queue row that loads a preset (+ Row), favourite and hide filters on the Tasks tab (Edit list).
 - 2026-11-05: forecast hints (the Outlook line names a setting that starves the seedling), Clear queue keeps the current row, task icons (record, gear, crossing), effects grouped This seedling / Kept, gear "· P3" label removed.
 - 2026-11-05: fix: automated gear gathers its own deadwood during the life again (lost on 2026-11-04 06:07); crossing stop and fill unchanged.

@@ -48,7 +48,7 @@ Seedlings = seedlings that first reached the next section minus those that first
 
 | # | Section | Length factor | Danger | Cell storage | Station reserve | Crossing cost in | Bot seedlings | Status |
 |---|---|---|---|---|---|---|---|---|
-| 1 | Seedling Vaults | 2.212 (drills base 25) | 1.00 | 5 | 15 | - | completionist 10, lean 4-5; **user 9** | **FROZEN 2026-11-04** |
+| 1 | Seedling Vaults | 2.212 (drills base 25) | 1.00 | 5 | 15 | - | completionist 7 (one drill per section; was 10, then 9), lean 4-5; **user 9** | **FROZEN 2026-11-04** |
 | 2 | Taproot Galleries | 1.158 | 1.05 | 20 | 10 | 8% | lean 23, completionist 16; **user 14** | **FROZEN 2026-11-05** |
 | 15 | **The Shattered Bark** (new, after the Taproot) | 1.0 | 1.075 | 25 | 10 | 9.5% | lean 21, completionist 14 | new, untuned; next to retune |
 | 3 | The Heartwood | 0.686 | 1.10 | 35 | 15 | 11% | 21 | |
@@ -64,6 +64,8 @@ Seedlings = seedlings that first reached the next section minus those that first
 | 16 | **The Mending** (new, ends the Boarders) | 1.0 | 2.51 | 30 | 10 | 39.5% | 1 | new, untuned |
 | 13 | The Tessaly System (Arrival) | 0.756 | 2.54 | 30 | 15 | 41% | 3 | |
 | 14 | Tessaly Orbit | 0.756 | 2.60 | 35 | 10 | 44% | 2 | |
+
+One drill per section (2026-11-05, build "one drill per section", owner: S1, A, double the single ones too): the second drill of each of the 14 pairs removed (the one that opens later), the kept drill and the Drift's and Hive Ship's give **0.2** per session (legacy drills 0.1). Completionist bot: Seedling Vaults 9 -> **7**, Taproot 14, Shattered Bark 11 (unchanged); lean bot and Act II bot unchanged (they skip drills). Both freezes stay (owner's replay judges them).
 
 Drill credit (2026-11-05, build "stronger drills"): 0.04 -> **0.1** of a completion per session to every task of the section (owner: drills gave no visible familiarity). Completionist bot Seedling Vaults / Taproot / Shattered Bark: 0.04 -> 10 / 15 / 12; 0.1 -> **9 / 14 / 11**; 0.2 (tested only) -> 8 / 13 / 10. Lean bot skips drills: unchanged.
 

@@ -23,7 +23,7 @@ Build in three stages, each tested and pushed on its own (HARD RULE: confirm the
 - Content:
   - **2x2 interlocking steps before the crossing:** Map the meteor breaches -> Seal the smaller breaches with resin; Brace the split boughs -> Graft living bark over the great wound. Both pairs feed the crossing "Lift the ward-lock on the Hearth Tree's fire".
   - **Other actions:** for example Survey the scars, Coax sap back into the scarred wood.
-  - **Drills (at least 2):** Pressure-seal drills on the outer bark; Grafting drills on dead boughs.
+  - **Drills (at least 2):** Pressure-seal drills on the outer bark; Grafting drills on dead boughs. (One drill per section from 2026-11-05: Grafting drills removed, Pressure-seal drills counts double.)
   - **Energy:** charging station "Charge off the healing sap" and charger upgrade "Root a charger in the healing bark".
   - **Deadwood job:** Strip the shattered bark.
   - **Gear (at least 1):** Bark-mender's kit (work here faster); Resin pressure suit (energy, less hazard).
@@ -38,7 +38,7 @@ Build in three stages, each tested and pushed on its own (HARD RULE: confirm the
 
 **Stage 2: Act II reordered: BUILT** (owner's picks 2026-11-05: progression values re-assigned by route position with The Mending slotted in, Arrival's end unchanged; story text the new order breaks fixed now, years wait for Stage 3)
 - As built: route 9, 10, 11, 12, 6, 7, 8, 16, 13, 14 (`ACT2R`). Kindling leads into The Long Current; Reach the turnover point is a crossing into Turnover; Drop out of relativistic speed is the long-watch finale (part B) into Bark Breach; Cut the hive loose is a crossing into The Mending; Rekindle the Hearthfire is the Boarders finale (part A) into the Tessaly System; Establish a safe orbit stays part C. Runs stop at 5, 12, 16, 14.
-- The Mending (id 16): tally, cutscars, clearhusks, resapline, groveheal, emberbed, mendcharger (3.40), ws16, finale rekindle (650); drills menddrill, emberdrill; jobs mendsap (cells 0.19), husktrim (grafts 0.19); gear mendframe (260, The Mending 30% faster); records hearthlog (Act II wear -10%), watch16 (Stasis watch XIV, 4.5%). About 2,620 units, length factor 1.0, danger 2.51, crossing 39.5%, wear 1.0.
+- The Mending (id 16): tally, cutscars, clearhusks, resapline, groveheal, emberbed, mendcharger (3.40), ws16, finale rekindle (650); drills menddrill, emberdrill (emberdrill removed 2026-11-05: one drill per section); jobs mendsap (cells 0.19), husktrim (grafts 0.19); gear mendframe (260, The Mending 30% faster); records hearthlog (Act II wear -10%), watch16 (Stasis watch XIV, 4.5%). About 2,620 units, length factor 1.0, danger 2.51, crossing 39.5%, wear 1.0.
 - Legacy reveals by route position: Storage optimization at The Drift, Dampening at Turnover, Echo at Contested Boughs, Hardened grain at The Mending, Overclock at the Tessaly System. Revealed themes are kept in the save (`a2run.lrev`); saves keep what the old rule revealed.
 1. **The long watch:** The Long Current, The Drift, The Long Dark, **Turnover** (moves here: the flip is at the midpoint).
 2. **Boarders** (2-3 years before Tessaly, while braking): Bark Breach, Contested Boughs, The Hive Ship, **new: The Mending**. The Mending repairs the boarders' damage: lighter than the meteor shower (shorter, lower hazards). Its finale is **"Rekindle the Hearthfire"**.
