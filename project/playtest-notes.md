@@ -66,7 +66,8 @@ Seedlings = seedlings that first reached the next section minus those that first
 | 14 | Tessaly Orbit | 0.756 | 2.60 | 35 | 10 | 44% | 2 | |
 
 Lean bot totals:
-- Build "Act II reordered" (2026-11-05, current): Act I 5.70 h, 79 seedlings (unchanged); Act II **8.69 h** (long watch 4.89, Boarders 2.41, Arrival 1.39), 53 deaths (unchanged). The long watch now comes first, before any Act II part is finished (each finished part lowers the Act II familiarity threshold) and with Storage optimization and Dampening revealed early, so it takes most of the time; Boarders and Arrival got faster.
+- Build "crossing fill" (2026-11-05, current): Act I **5.40 h, 65 seedlings** (Seedling Vaults 4, Taproot 23, Shattered Bark 14, Heartwood 9, Canopy 9, Ember Crown 6); Act II **7.30 h** (long watch 3.98, Boarders 2.29, Arrival 1.03). Completionist: Seedling Vaults 10, Taproot 15, Shattered Bark 12. The bots queue their crossings, so they do use the hold: arriving with full deadwood starts each section's gear at once.
+- Build "Act II reordered" (2026-11-05): Act I 5.70 h, 79 seedlings (unchanged); Act II **8.69 h** (long watch 4.89, Boarders 2.41, Arrival 1.39), 53 deaths (unchanged). The long watch now comes first, before any Act II part is finished (each finished part lowers the Act II familiarity threshold) and with Storage optimization and Dampening revealed early, so it takes most of the time; Boarders and Arrival got faster.
 - Build "the Shattered Bark" (2026-11-05): Act I **5.70 h, 79 seedlings** (Seedling Vaults 4, Taproot 23, Shattered Bark 21, Heartwood 16, Canopy 8, Ember Crown 6); Act II 7.72 h (Boarders 3.49, Long Watch 2.46, Arrival 1.78), 53 deaths. Completionist: Seedling Vaults 10 (unchanged), Taproot 16, Shattered Bark 14. With Hardened grain forced on (revealed at Contested Boughs, test only): level 2.47, wear x0.67, Act II 8.20 h (its sets add Act I work).
 - Build "cleanup": Act I 4.71 h in-game, 66 seedlings; Act II 7.84 h, 62 seedlings.
 - Build "stasis tuning": Act I 4.50 h, 63 seedlings; Act II 7.00 h (Boarders 3.12, Long Watch 2.01, Arrival 1.87), 44 deaths.
@@ -84,6 +85,7 @@ Act II progression values (danger, crossing cost, wear, charger and workshop tie
 - User playtest on "retune 1": 9 seedlings. Re-run on "Act II danger +18%": 9 seedlings (below). User froze it.
 
 ### Frozen sections
+Note 2026-11-05 (build "crossing fill"): crossings fill deadwood to full carry again before moving on (base design; Act I had lost it on 2026-11-04 06:07). Both freezes below were played without it. They stay frozen; the owner replays the whole game from the start to judge whether a retune is needed.
 - **1 · Seedling Vaults: FROZEN 2026-11-04** (build "Act II danger +18%"; unchanged by the renames). Requirement: every action, both drills 4/4 and all four gear done, root-lock iris forced by about seedling 9-10. Values: length factor 2.212, drills base 25, danger 1.00, cell storage 5, station reserve 15, Stasis watch I = -1% drain.
 - **2 · Taproot Galleries: FROZEN 2026-11-05** (build "voyage clock"; untouched since "the Hearth Tree"). Requirement: every action, both drills 4/4 and all four gear (baton, doser, chitinarm, lace) done, crossing by about seedling 14 of the section. Values: length factor 1.158, danger 1.05, cell storage 20, station reserve 10, crossing cost in 8%, Stasis watch II = -1.5% drain.
 

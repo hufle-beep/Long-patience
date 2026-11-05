@@ -77,7 +77,7 @@ Notes:
 - Deadwood doubles as grafts in Act II. Wear builds as a seedling works: a little in the Boarders, more over the Long Watch, most in Arrival (Grafter's toolkit x0.7). Each point of wear adds 8% drain.
 - Repair: removes 1.5 wear for a fixed number of grafts (more in later sections), then a cooldown. Auto-repair (default on) and a Repair button under Grafts.
 - Workshops: one action per Act II section (ws6..ws14), each shortens the repair cooldown, costs three repairs' worth of grafts, paid when work starts.
-- Graft jobs are the forage: auto-scavenge (default on) works the best one when grafts run low. Fill-before-crossing tops up as before.
+- Graft jobs are the forage: auto-scavenge (default on) works the best one when grafts run low. Fill-before-crossing fills grafts to full carry (see Section runs).
 - Running out of grafts lets wear climb; a death with drain x2 or more from wear reads "Worn down with the ship".
 
 ## Legacy tasks (replace the old Act I reward points)
@@ -90,6 +90,7 @@ Notes:
 - Quartermaster's cache: unlocked the first time the Hearth Tree is kindled.
 
 ## Section runs
+- **Crossing fill (base design, restored 2026-11-05):** a queued or automated crossing stops just short of finishing; the seedling finishes automated actions/drills, builds affordable automated gear, tops sap cells up to the auto-charge stop level, then **fills deadwood (grafts in Act II) to full carry**, so the next section's gear can start at once. It costs energy; that is the point. Safety net: a seedling with under 1 sap cell and energy under the charge threshold skips the deadwood and crosses. Tapping the crossing yourself crosses at once. (From 2026-11-04 06:07, `da78682`, until this fix, Act I crossings filled no deadwood: a regression.)
 - "Always run sections once ready" (global): a run starts by itself whenever the current section is fully automated, clears the queue's leftovers for its sections and is pinned at the top of the queue. Runs still stop at act ends.
 
 ## Honours: removed from the game (2026-11-04)

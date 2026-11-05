@@ -10,6 +10,7 @@ Last updated: 2026-11-05. Update in every push.
 5. **Then either Act III, or publishing** on Google Play, itch.io and galaxy.click (see "Later" below).
 
 ## Next up
+- **Full replay from the start (owner, 2026-11-05)** on build "crossing fill" (deadwood filled to full carry at crossings), to see whether the frozen sections and the rest need a retune.
 - **Meteor shower redesign (approved 2026-11-04, see design.md):** **All three stages built 2026-11-05** (The Shattered Bark, ward-lock, Hardened grain; Act II reordered with The Mending; 480-year voyage clock and timeline texts). Was: Stage 2 Act II reordered (long watch with Turnover first, Boarders + new The Mending with Rekindle the Hearthfire, then Arrival); Stage 3 480-year voyage clock and texts. Confirm each stage's exact changes before building.
 - Section retune: the Taproot Galleries FROZEN 2026-11-05 (owner, 14 seedlings). Next: the Shattered Bark (untuned: lean bot 21 seedlings, completionist 14), waiting for the owner's playtest save. Act II retune order now follows the new route (The Long Current first); The Mending is new and untuned. Lean bot Act II went from 7.72 h to 8.69 h with the reorder (long watch 4.89 h).
 
@@ -42,6 +43,7 @@ Last updated: 2026-11-05. Update in every push.
 See design.md: colony content held back from Act II, the Act II legacy themes from the old Honours, and four open questions.
 
 ## Done recently (see changelog.md for all)
+- 2026-11-05: crossing fill restored: queued/automated crossings fill deadwood (grafts) to full carry, with a low-energy safety net.
 - 2026-11-05: Taproot Galleries frozen (owner, 14 seedlings completionist).
 - 2026-11-05: meteor shower Stage 3: voyage clock (year and share of the voyage in section headers), timeline texts, FAQ "Selene's voyage".
 - 2026-11-05: meteor shower Stage 2: Act II reordered (long watch, Boarders with The Mending, Arrival), progression by route, legacy reveals by route.

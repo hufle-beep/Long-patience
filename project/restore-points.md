@@ -8,7 +8,8 @@ The **Restore points** workflow (`.github/workflows/restore-points.yml`) runs on
 What the recent commits are (newest first):
 | Commit | What it is |
 |---|---|
-| (next) | Taproot Galleries frozen (docs only) |
+| (next) | Fix: crossings fill deadwood to full carry again |
+| `9bacd4f` | Taproot Galleries frozen (docs only) |
 | `edb1d3f` | Meteor shower Stage 3: voyage clock and timeline texts |
 | `af19a30` | Meteor shower Stage 2: Act II reordered, The Mending |
 | `d9a6eb3` | Meteor shower Stage 1: The Shattered Bark, ward-lock, Hardened grain (hidden); route-based section order |
