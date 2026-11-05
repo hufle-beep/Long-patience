@@ -4,7 +4,7 @@
 const test = require('node:test'), assert = require('node:assert'), fs = require('fs');
 const {logicSrc, GAME} = require('./_game');
 const G = new Function(logicSrc() + `
-  return {TASKS, ZONES, ROUTE, ACT1, ACT2R, ACT_ENDS, PERKS, ITEMS, T, DANGER, CROSS_COST, STORE_CAP, ZDAYS, TARGETS, nextZone};`)();
+  return {TASKS, ZONES, ROUTE, ACT1, ACT2R, ACT_ENDS, PERKS, ITEMS, T, DANGER, STORE_CAP, ZDAYS, TARGETS, nextZone};`)();
 const html = fs.readFileSync(GAME, 'utf8'), ui = html.match(/<script id="ui">([\s\S]*?)<\/script>/)[1];
 const routeIdx = z => G.ROUTE.indexOf(z), zoneIds = new Set(G.ZONES.map(z => z.id));
 const ends = z => G.TASKS.filter(t => t.z === z && (t.cross || t.finale || t.win));
@@ -65,7 +65,7 @@ test('the route is whole: each end task leads to the next section, every section
   G.ROUTE.forEach((z, i) => {
     const e = ends(z);
     for (const t of e.filter(t => t.cross)) { const to = t.to != null ? t.to : G.nextZone(z); if (to !== G.ROUTE[i + 1]) bad.push(t.id + ' leads to ' + to + ', not ' + G.ROUTE[i + 1]); }
-    for (const [name, tb] of [['DANGER', G.DANGER], ['CROSS_COST', G.CROSS_COST], ['STORE_CAP', G.STORE_CAP], ['ZDAYS', G.ZDAYS], ['TARGETS', G.TARGETS]]) if (!(tb[z] > 0)) bad.push(name + ' has no value for section ' + z);
+    for (const [name, tb] of [['DANGER', G.DANGER], ['STORE_CAP', G.STORE_CAP], ['ZDAYS', G.ZDAYS], ['TARGETS', G.TARGETS]]) if (!(tb[z] > 0)) bad.push(name + ' has no value for section ' + z);
     const zo = G.ZONES.find(x => x.id === z); if (!(zo.yr > 0)) bad.push('section ' + z + ' has no voyage year');
     if (!new RegExp('\\bz' + z + '\\s*:').test(ui)) bad.push('section ' + z + ' has no route icon (GI.z' + z + ')');
     if (i && G.DANGER[z] < G.DANGER[G.ROUTE[i - 1]]) bad.push('danger drops at section ' + z);

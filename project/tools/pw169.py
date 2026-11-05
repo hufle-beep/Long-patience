@@ -1,6 +1,6 @@
 # Route overview, icons and Credits (build "route and icons"): on a fresh game the route shows the first
 # section and '?' for the rest, with no later section names anywhere in it; a late save shows the reached ones
-# and a tap gives year, crossing cost and danger. Icons on tabs, section headers, task groups and the death
+# and a tap gives year and danger (crossings cost no cells since build "free crossings"). Icons on tabs, section headers, task groups and the death
 # screen; the Credits panel in Settings names the icon authors, the licence, the fonts and ZzFX.
 import json
 from playwright.sync_api import sync_playwright
@@ -37,5 +37,5 @@ with sync_playwright() as p:
     t=pg.evaluate("()=>{ const b=document.querySelector('.tipb'); return b && !b.hidden ? b.textContent : '' }")   # a tap opens the route tooltip (build "tooltips trimmed")
     print('late route', late, t)
     if late['known']!=14 or late['cur']!='The Mending': errs.append('late route wrong')
-    if 'Year 478' not in t or 'danger' not in t or 'crossing in costs' not in t: errs.append('route tap info wrong')
+    if 'Year 478' not in t or 'danger' not in t: errs.append('route tap info wrong')
     print('errors', errs); b.close()

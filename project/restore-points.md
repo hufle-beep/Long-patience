@@ -13,7 +13,8 @@ The **Restore points** workflow (`.github/workflows/restore-points.yml`) runs on
 What the recent commits are (newest first):
 | Commit | What it is |
 |---|---|
-| (next) | Gear built when paid (mechanics chunk 5) |
+| (next) | Free crossings (mechanics chunk 3, last of the five) |
+| `9c4965d` | Gear built when paid (mechanics chunk 5) |
 | `f01b799` | One upgrade: Act II workshops merged into the charger upgrades (mechanics chunk 4) |
 | `0031174` | Automation at practiced (mechanics chunk 2) |
 | `f7df47e` | One food store (code), Now-line fix, article fix (mechanics chunk 1) |

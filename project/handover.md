@@ -1,6 +1,6 @@
 # Handover: Selene: Tidelocked
 
-Last updated: 2026-11-05 16:50 (build "gear built when paid": mechanics chunk 5 of 5; chunk 3 (no crossing cell cost) waits for the owner's call on the Safe harbour record, owner 15:00 picks G1 A, G2 A, G3 A, G4 A, G5 keep, G6 keep, G7 keep, G8 A and both finds; go 15:07. **Hard reset point before the mechanics changes: branch `fallback/2026-11-05-before-mechanics` (`e26d83d`), never delete.** owner 14:01 "go with your suggestions for all"). Next: the owner's replay saves (the Shattered Bark next). Seedling Vaults retuned (freeze again when the owner says), Taproot Galleries FROZEN. Fallback build on branch `fallback/2026-11-05-embedded-fonts`. Update this file in every push.
+Last updated: 2026-11-05 17:10 (build "free crossings": mechanics consolidation done, all five chunks; owner 15:52: Safe harbour +25% station reserve (1A), new seedling counts accepted, judged on the replay (2A), owner 15:00 picks G1 A, G2 A, G3 A, G4 A, G5 keep, G6 keep, G7 keep, G8 A and both finds; go 15:07. **Hard reset point before the mechanics changes: branch `fallback/2026-11-05-before-mechanics` (`e26d83d`), never delete.** owner 14:01 "go with your suggestions for all"). Next: the owner's replay saves (the Shattered Bark next). Seedling Vaults retuned (freeze again when the owner says), Taproot Galleries FROZEN. Fallback build on branch `fallback/2026-11-05-embedded-fonts`. Update this file in every push.
 
 ## 1. What the game is
 An incremental "clone-loop" game in one HTML file (like Increlution/Incremortal). You are K-7, a **seedling** (disposable drone of WARDEN and the Hearth Tree) aboard **Selene**, a living-wood colony ship of the Root-Kin of Earth. Each seedling works tasks until its energy runs out; familiarity, records and automation carry over to the next one.
@@ -47,7 +47,7 @@ Play: https://hufle-beep.github.io/Long-patience/ · Android APK: release `andro
   - Cells are stored in `L.food.ration` (store id `ration`, display name "Sap cells"); storage is `STORE_CAP` per section. Since build "one food store" there is no food table: the helpers (`jobFood`, `foodQ`, `mealCd`, `mealHp`, `readyFoods`, `nextFood`, `eatRate`, `nextMealIn`) work on the one store and ignore their food argument.
   - Charging stations are `kind:'job'` tasks with `prod.rations`. Each holds `stationMax(z)` (RESERVE_K 0.15, Act II x0.5).
   - Recharges have a cooldown `MEAL_CD`; charger upgrades (`MEAL_UP`) shorten it.
-  - Crossings cost `crossCost(z)` of the cells carried: an explicit table `CROSS_COST` by section id (Shattered Bark 9.5%).
+  - Crossings cost no sap cells since build "free crossings" (`CROSS_COST`, `crossCost`, the `crossCost` effect are gone); the station reserve is the energy limit per section. Supply manifests keeps +20% charging speed; Safe harbour gives `stationRes` x1.25.
   - Auto-charge (`S.set.autoFood`, on by default) covers both auto-forage (cells under `foodPct`) and `feedJob` (energy low but recoverable); the old separate "Charge when needed" (`autoFeed`) was merged into it in build "settings merged" (old values map to Auto-charge on, in `loadPrefs` and `mergeState`).
 - **Deadwood and grafts:**
   - Stored in `L.salvage`. `salW(z)` gives the display word: "deadwood" in Act I, "grafts" in Act II.
