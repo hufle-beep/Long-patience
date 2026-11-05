@@ -12,7 +12,8 @@ The **Restore points** workflow (`.github/workflows/restore-points.yml`) runs on
 What the recent commits are (newest first):
 | Commit | What it is |
 |---|---|
-| (next) | Queue chunk A: preset triggers, skip toggles, pause before the forecast death |
+| (next) | Queue chunk B: life summary, next-automation line, time per task |
+| `d6aa739` | Queue chunk A: preset triggers, skip toggles, pause before the forecast death |
 | `8b924e8` | Queue forecast, Undo, queue as text, named presets, regression tests |
 | `9c61ac5` | Fonts embedded in the game (offline, same look). **Fallback branch** `fallback/2026-11-05-embedded-fonts` |
 | `660a99a` | Fix: Tasks tab flicker (familiarity updates in place) |

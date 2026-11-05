@@ -212,6 +212,10 @@ button.zh.zhb{margin:14px 0 6px}
 .qps .qpl.nn small{grid-column:auto}
 .qps .qpn i{color:var(--faint);font-style:normal}
 .qps.qtx{border-top:1px dashed var(--line);padding-top:6px}
+.zh .nxa{flex-basis:100%;font-size:12px;color:var(--dim)}
+.zh .nxa:empty{display:none}
+.zh .nxa .ok{color:var(--green)}.zh .nxa .neg{color:var(--red)}
+.sktm{font-size:11px;color:var(--dim);margin-top:2px}
 .qrow .qtn{width:auto;height:auto;border:0;padding:0;font:inherit;color:inherit;text-align:left;cursor:pointer}
 .qrow.qskip{opacity:.55;border-style:dashed}
 .qrow.qskip .qtn{text-decoration:line-through}
@@ -526,7 +530,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
 // Renamed from Long Patience: move this device's old storage keys to the new 'selene.' names once
 try { const old = []; for (let n = 0; n < localStorage.length; n++) old.push(localStorage.key(n)); old.forEach(k => { if (k && k.indexOf('long-patience.') === 0) { const nk = 'selene.' + k.slice(14); if (localStorage.getItem(nk) == null) localStorage.setItem(nk, localStorage.getItem(k)); localStorage.removeItem(k); } }); } catch(e) {}
 /* ===== Game data and rules (no DOM) ===== */
-const BUILD = '2026-11-05 · queue triggers';   // shown in the main menu, to tell which version is loaded
+const BUILD = '2026-11-05 · queue summaries';   // shown in the main menu, to tell which version is loaded
 const DPS = 8;             // simulation ticks per real second at 1x (doubled for the test version: same balance, half the real time)
 // Time is simulated in ticks. 80 ticks make one day unit (18 minutes each), so a day lasts
 // 20 real seconds at 1x and Players only ever see in-game time and real time, never days.
@@ -1279,6 +1283,8 @@ function newLife(s){
   const L = {day:0, hp:100, rations:p.decant?3:0, food:{ration:p.decant?3:0}, salvage:0,
     done:{}, prog:{}, cyc:{}, bat:{}, visited:{1:1}, qdone:[], meal:0, sec:1, job:null, queue:[], owned:{}, order:[], foraging:false, cur:null, dead:false, cause:''};
   L.fam0 = Object.assign({}, s.fam || {});   // familiarity at the start of this life, for the death screen
+  L.prac0 = Object.assign({}, s.prac || {});   // automation progress at the start of this life (life summary)
+  L.perk0 = Object.keys(s.perks || {}).concat(Object.keys((s.a2 || {}).perks || {}));   // records held at the start of this life
   return L;
 }
 function defaultState(){
@@ -1953,6 +1959,7 @@ function scavJob(){
 function shopNeed(){ const L = S.life; let n = 0; TASKS.forEach(t => { if (t.parts && t.z === (L.sec || 1) && !complete(t) && !(L.paid || {})[t.id] && t.req.every(reqMet)) n += t.parts; }); return n; }
 function work(t, dt, chained){
   const L = S.life;
+  (L.tt = L.tt || {})[t.id] = (L.tt[t.id] || 0) + dt; (S.tt = S.tt || {})[t.id] = (S.tt[t.id] || 0) + dt;   // time spent per task (Mastery tab)
   {
     const sp = speedOf(t) * (chained ? flowMul() : 1);
     if (chained) S.flow = (S.flow || 0) + dt;   // chain flow grows with every tick of chained work
@@ -3322,7 +3329,7 @@ function renderTasks(){
     const lk = zt.filter(t => locked.includes(t.id));
     const cleared = TASKS.filter(t => t.z === z.id && complete(t)).length;
     if (!zchains.length && !jobs.length && !acts.length && !trains.length && !lk.length && !cleared) return;
-    h += `<section class="zone"><header class="zh"><h2>${z.name}</h2><span>${z.sub}</span><span class="yr">${voyTxt(z)}</span>${cleared ? `<em>${cleared} done</em>` : ''}</header>`;
+    h += `<section class="zone"><header class="zh"><h2>${z.name}</h2><span>${z.sub}</span><span class="yr">${voyTxt(z)}</span><span class="nxa" id="nxa">${nextAutoHtml(z.id)}</span>${cleared ? `<em>${cleared} done</em>` : ''}</header>`;
     if (zchains.length) {
       h += '<div class="sub">Chains \u00b7 linked tasks work as one, faster with chain flow</div>';
       zchains.forEach(k => { h += chainCard(k); });
@@ -3396,6 +3403,7 @@ const shown = {id:null, main:null, since:0}, FOOD_BLIP_MS = 1200;
 function updateTasks(){
   const L = S.life;
   updateQueueFc();   // forecast marks on queue rows, in place
+  if (performance.now() - nxaT > 400) { nxaT = performance.now(); const el = document.getElementById('nxa'); if (el) setH(el, nextAutoHtml(L.sec || 1)); }
   chainRefs.forEach(r => {
     const w = chainWork(r.k), fm = flowMul();
     r.f.style.width = (w.tot ? (1 - w.left / w.tot) * 100 : 0).toFixed(1) + '%';
@@ -3477,6 +3485,23 @@ function updateGearEta(){
     }
     setH(el, h); });
 }
+// Next automation in a section: the unautomated task closest to it, how many completions are missing, and
+// whether this seedling gets there (from the forecast's end state) or about how many more seedlings it takes
+// (one life finishes an action's reps, or a drill's sessions).
+function nextAuto(z){
+  const L = S.life, fc = fcOk() ? fcShow : null;
+  const ts = TASKS.filter(t => t.z === z && (t.kind === 'act' || t.kind === 'train') && !t.cross && legacyOpen(t) && !practiced(t) && ((S.seen || {})[t.id] || (S.ever || {})[t.id]));
+  if (!ts.length) return null;
+  const fr = t => (S.prac[t.id] || 0) / autoNeed(t);
+  const t = ts.sort((a, b) => fr(b) - fr(a) || chainOrd(a) - chainOrd(b))[0], need = autoNeed(t), have = S.prac[t.id] || 0;
+  const end = fc ? ((fc.s.prac || {})[t.id] || 0) : have, per = t.kind === 'train' ? TRAIN_CAP : (t.reps || 1);
+  return {t, need, have, now:fc && end >= need, more:Math.max(1, Math.ceil((need - Math.max(end, have)) / per)), fc:!!fc};
+}
+function nextAutoHtml(z){
+  const n = nextAuto(z); if (!n) return '';
+  return 'Next automation: ' + esc(n.t.name) + ', ' + Math.floor(n.have) + '/' + n.need + ' completions \u00b7 ' + (n.now ? '<span class="ok">this seedling</span>' : '<span class="neg">about ' + n.more + ' more seedling' + (n.more > 1 ? 's' : '') + '</span>');
+}
+let nxaT = 0;
 // Queue forecast (see fcRun): restarted when the plan changes, refreshed every few seconds (the real
 // clock steps in smaller slices, so small differences build up), computed a few ms per frame.
 // fcShow is the last finished forecast for the current queue: rows are only marked from that.
@@ -3645,7 +3670,7 @@ function renderSkills(){
     if (fz) return;
     ts.forEach(t => { const fr = masteryFrac(t);
       h += `<div class="sk fam"><div class="skh"><h3>${esc(t.name)}</h3><b>\u00d7${fmt(masteryF(t))}</b></div><div class="bar xp"><i style="width:${(fr * 100).toFixed(1)}%"></i></div>
-        <div class="skm num"><span>${chips(t)}</span><span>${fmt((S.fam || {})[t.id] || 0)}/${fmt(famNeed(t))}${t.kind === 'job' ? ' batches' : ''}</span></div>${t.kind === 'job' ? '' : '<div class="skeff">' + (effectHtml(t, true) || '<span class="eff">no effect</span>') + '</div>'}</div>`; });
+        <div class="skm num"><span>${chips(t)}</span><span>${fmt((S.fam || {})[t.id] || 0)}/${fmt(famNeed(t))}${t.kind === 'job' ? ' batches' : ''}</span></div>${(S.tt || {})[t.id] ? `<div class="sktm num">Time spent: this seedling ${clkG((L.tt || {})[t.id] || 0)} \u00b7 all seedlings ${clkG(S.tt[t.id])}</div>` : ''}${t.kind === 'job' ? '' : '<div class="skeff">' + (effectHtml(t, true) || '<span class="eff">no effect</span>') + '</div>'}</div>`; });
     const gs = ITEMS.filter(i => gearZone(i) === z.id && ((S.ever || {})[i.req] || gearKnown(i)));
     if (gs.length) h += '<div class="sub asub">Gear</div>';
     gs.forEach(i => { const bt = BT[i.id], fr = masteryFrac(bt);
@@ -4084,7 +4109,7 @@ const FAQ_ALL = [
   ['What are sections?', 'Act I is split into six sections. A <b>red</b> action leads to the next one, and the way back is sealed for that seedling, so finish what you need first (records, training, gear). Each new seedling starts back in the Seedling Vaults.'],
   ['What is gear?', 'Gear is built from deadwood (called grafts in Act II: the same store) and lasts for one seedling. Each section has designs to build. Building one pays its deadwood up front, then the seedling spends time <b>assembling</b> it (bigger designs take longer, from a moment for a toolkit to half a minute or so of in-game time for the largest); assembly comes before other work and gets faster with familiarity. The gear works once it is assembled. Deadwood storage is limited; opening up more of the ship raises it.'],
   ['What is familiarity?', 'There are no skills: each task gets faster on its own the more of it your seedlings have done. Familiarity counts work in completions, including attempts a seedling died in the middle of, and is kept between seedlings. Speed rises smoothly from ×1 to ×10 once you have done enough of a task: in a first run, 90 lives’ worth of it (90 finishes of an action, 1800 batches of a job). Each level of the <b>Echo</b> legacy theme lowers that for Act I tasks. Familiar tasks also hurt less (hazard damage up to ÷4), and a familiar charging station charges faster. <b>Drills</b> spread familiarity to every task in their section. The Mastery tab lists every task.'],
-  ['How does automation work?', 'Every completion counts: finish an action 10 times (a multi-rep action 10 times its reps), or a training session 40 times, or build a design in 10 lives, and its automation <b>switches on by itself</b>. For Act I tasks these counts shrink along with the familiarity threshold (Echo legacy), never below one; tap <b>AUTO</b> (or its switch in the Auto tab) to turn it off, and it stays off. Automated tasks run by themselves <b>ahead of your queue</b>, in chain order (each after the tasks it needs). Automated tasks <b>link into chains</b> when one requires the other and both are at least ×2 familiar. When every action and crossing of a section is automated and ×5 familiar, and all its gear designs are automated, the whole section becomes <b>one chain</b>: press <b>▶ Run section</b> (above the queue in the Tasks tab) and the seedling works through everything, builds the gear, fills its stores and crosses. The run is pinned at the top of the queue and the queue\u2019s leftovers for its sections are cleared. Pressing it also turns on <b>Always run sections once ready</b> (Auto tab): from then on a run starts by itself whenever the section you are in is ready. Stop turns that off again. Ready sections next to each other link across their crossings into one run (<b>▶ Run 3 sections</b>), up to the end of the act; a run that dies starts again with the next seedling. The option <b>Pause when a section run ends instead</b> keeps a run going through its crossings and pauses once it is over. A chain picks its next step itself each time: gear first, then charger upgrades, then the actions and drills in the order they depend on each other, and the crossing last. When a chain forms or grows, it <b>queues itself</b>, including the chains of sections still ahead, and chain entries are kept in the order they will run: section by section, and within a section the chain that starts earliest first, with the crossing\u2019s chain last, and anything of it you had queued separately is dropped from the queue. If you remove a chain from the queue, it stays out for the rest of that seedling\u2019s life. Work done as part of a chain (a queued chain or a section run) builds <b>chain flow</b>, which makes chained steps up to five times as fast; it is kept for good. Jobs are never automated: auto-forage keeps the charge up, queued and automated gear work the deadwood jobs, and every queued or automated crossing tops the sap cells up and fills deadwood to full carry before the seedling moves on. An automated <b>deadwood</b> job only gathers what gear needs: the next auto-built or queued design that is found and not built yet; it does not top the store up to full (except while filling up before a crossing). Automated <b>crossings</b> are the exception: they wait until your queue is done. A task you tap runs before everything. The <b>Auto</b> tab lists everything unlocked and has extra options: charging when needed, the death screen and starting paused.'],
+  ['How does automation work?', 'Every completion counts: finish an action 10 times (a multi-rep action 10 times its reps), or a training session 40 times, or build a design in 10 lives, and its automation <b>switches on by itself</b>. For Act I tasks these counts shrink along with the familiarity threshold (Echo legacy), never below one; tap <b>AUTO</b> (or its switch in the Auto tab) to turn it off, and it stays off. Automated tasks run by themselves <b>ahead of your queue</b>, in chain order (each after the tasks it needs). Automated tasks <b>link into chains</b> when one requires the other and both are at least ×2 familiar. When every action and crossing of a section is automated and ×5 familiar, and all its gear designs are automated, the whole section becomes <b>one chain</b>: press <b>▶ Run section</b> (above the queue in the Tasks tab) and the seedling works through everything, builds the gear, fills its stores and crosses. The run is pinned at the top of the queue and the queue\u2019s leftovers for its sections are cleared. Pressing it also turns on <b>Always run sections once ready</b> (Auto tab): from then on a run starts by itself whenever the section you are in is ready. Stop turns that off again. Ready sections next to each other link across their crossings into one run (<b>▶ Run 3 sections</b>), up to the end of the act; a run that dies starts again with the next seedling. The option <b>Pause when a section run ends instead</b> keeps a run going through its crossings and pauses once it is over. A chain picks its next step itself each time: gear first, then charger upgrades, then the actions and drills in the order they depend on each other, and the crossing last. When a chain forms or grows, it <b>queues itself</b>, including the chains of sections still ahead, and chain entries are kept in the order they will run: section by section, and within a section the chain that starts earliest first, with the crossing\u2019s chain last, and anything of it you had queued separately is dropped from the queue. If you remove a chain from the queue, it stays out for the rest of that seedling\u2019s life. Work done as part of a chain (a queued chain or a section run) builds <b>chain flow</b>, which makes chained steps up to five times as fast; it is kept for good. Jobs are never automated: auto-forage keeps the charge up, queued and automated gear work the deadwood jobs, and every queued or automated crossing tops the sap cells up and fills deadwood to full carry before the seedling moves on. An automated <b>deadwood</b> job only gathers what gear needs: the next auto-built or queued design that is found and not built yet; it does not top the store up to full (except while filling up before a crossing). Automated <b>crossings</b> are the exception: they wait until your queue is done. A task you tap runs before everything. The <b>Auto</b> tab lists everything unlocked and has extra options: charging when needed, the death screen and starting paused. Each section\u2019s header names its <b>next automation</b>: the task closest to it, its completions, and whether this seedling gets there (from the forecast) or about how many more seedlings it takes. The death screen sums up each life: familiarity gained, records found, tasks that became automatable and the closest ones; the Mastery tab shows the in-game time spent on each task by this seedling and by all of them (counted from build \u201cqueue summaries\u201d).'],
   ['What happens at a crossing with automation?', 'A queued or automated crossing stops just before it finishes and waits while the seedling finishes automated actions and training, builds affordable automated gear and tops sap cells up and fills deadwood (grafts in Act II) to full carry, unless the seedling is out of cells and low on energy. Tap a crossing yourself to go at once.'],
   ['Pause, saving and speed', 'Progress is saved on this device only (this browser or the app); use <b>Save files</b> in the main menu (\u2630) to back it up or move it, and <b>Restart</b> next to the slot there to start this slot over. Pause with the button at the top or the space bar. The game only runs while it is on screen: in another app, a background tab or closed, the clock stops and carries on where it left off. Each <b>Stasis watch</b> record (one for leaving each section the first time) tunes the seedlings\u2019 stasis: energy drains a little slower, more with each one, up to \u221250% in all. The <b>speed menu</b> (\u00bb) at the top appears once Act I has been cleared: \u00d72 then, and \u00d75 once Act II has been cleared. It is a flat speed-up of real time, kept on this device for every save.'],
   ['Save management', 'The game saves itself every few seconds on this device. <b>Save Management</b> in the \u2630 menu holds: the five <b>save slots</b> (give each a name when you start a new game or save into it, or with <b>Rename</b>; load one, copy your current game into another as a save state with \u201cSave here\u201d, or delete one); under each used slot, its <b>death save</b>, written automatically at every death in that slot (load it to go back to that death; playing it never changes the regular slot. If it is too far gone, load the regular slot again from there, which deletes that death save. Deleting or starting over a slot removes its death save too); <b>Restart</b>, next to the slot you are playing, which starts that slot over; and <b>Save files and transfer</b>: export a save file, import one, copy the save as text to move it between devices, or share it to the game\u2019s GitHub folder and load shared saves from there.'],
@@ -4158,6 +4183,19 @@ function showIntro(){
     <p class="faqwarn"><b>New to the game?</b> Read the <b>FAQ</b> tab first. It explains tasks, energy, sections, automation and saves.</p>
     <button class="btn pri" data-close>Begin the work cycle</button>`);
 }
+// Life summary on the death screen: records found, tasks that became automatable, and the closest automations
+function lifeSummary(L){
+  const had = new Set(L.perk0 || []), p0 = L.prac0 || {};
+  const found = PERKS.filter(p => hasPerk(p) && !had.has(p.id) && L.perk0);
+  const auto = TASKS.filter(t => t.kind !== 'job' && L.prac0 && (p0[t.id] || 0) < autoNeed(t) && practiced(t));
+  const near = !L.prac0 ? [] : TASKS.filter(t => t.kind !== 'job' && !practiced(t) && (S.prac[t.id] || 0) > (p0[t.id] || 0) && legacyOpen(t))
+    .sort((a, b) => (S.prac[b.id] || 0) / autoNeed(b) - (S.prac[a.id] || 0) / autoNeed(a)).slice(0, 3);
+  let h = '';
+  if (found.length) h += '<p class="d"><b>Records found:</b> ' + found.map(p => esc(p.name)).join(', ') + '</p>';
+  if (auto.length) h += '<p class="d"><b>Now automatable:</b> <span class="up">' + auto.map(t => esc(t.name)).join(', ') + '</span></p>';
+  if (near.length) h += '<p class="d"><b>Closest automations:</b> ' + near.map(t => esc(t.name) + ' ' + Math.floor(S.prac[t.id] || 0) + '/' + autoNeed(t)).join(', ') + '</p>';
+  return h;
+}
 function showDeath(){
   const L = S.life;
   const age = L.day / TPD;
@@ -4167,7 +4205,7 @@ function showDeath(){
   showModal(`<h2>Seedling ${S.gen} terminated</h2>
     <p>${esc(L.cause)}.</p><p class="d">Lived ${clkG(L.day)} in-game \u00b7 ${clkR(L.real || 0)} real \u00b7 ${L.order.length} actions completed</p>
     <p class="d">WARDEN analysed this run and the seedling\u2019s memory and pushed an efficiency patch: <span class="up">energy now drains \u00f7${vitDiv().toFixed(2)}</span> for every future seedling${vitDiv() >= 1 + VIT_K - 1e-9 ? ' (fully optimized)' : ''}.</p>
-    <table class="dt">${rows}</table>
+    <table class="dt">${rows}</table>${lifeSummary(L)}
     ${S.perks.engram && S.engramT && T[S.engramT.id] ? '<p class="d">Engram recorder: the next seedling starts \u201c' + T[S.engramT.id].name + '\u201d ' + Math.round(Math.min(S.engramT.p, ENGRAM_SHARE * T[S.engramT.id].days) / T[S.engramT.id].days * 100) + '% done.</p>' : ''}
     <button class="btn pri" data-decant>Sprout seedling ${S.gen + 1}</button>`);
 }
