@@ -8,7 +8,8 @@ The **Restore points** workflow (`.github/workflows/restore-points.yml`) runs on
 What the recent commits are (newest first):
 | Commit | What it is |
 |---|---|
-| (next) | Fix: Tasks tab flicker (familiarity updates in place) |
+| (next) | Fonts embedded in the game (offline, same look) |
+| `660a99a` | Fix: Tasks tab flicker (familiarity updates in place) |
 | `f5f7ed6` | Stronger drills, gain shown, familiarity with one decimal |
 | `a3e3259` | Fix: crossings fill deadwood to full carry again |
 | `9bacd4f` | Taproot Galleries frozen (docs only) |

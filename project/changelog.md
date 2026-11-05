@@ -2,7 +2,8 @@
 
 Every commit, newest first (from git history; Android build numbers are GitHub Actions run numbers). Generated before each push.
 
-- 2026-11-05 02:00 · Fix: the Tasks tab no longer flickers: familiarity and auto % on task and gear cards update in place instead of rebuilding the whole list each time they tick up (early lives and drills rebuilt it several times a second); the list now rebuilds only when its contents change
+- 2026-11-05 02:15 · Fonts embedded in the game (trimmed, renamed OFL copies of Saira Condensed and IBM Plex Sans/Mono, ~160 KB): no Google Fonts request, same look offline and on first launch; licences in project/fonts, rebuild tool project/tools/fontpack.py; handover notes on reaching public GitHub repos and release downloads
+- 2026-11-05 02:00 · `660a99a` · Fix: the Tasks tab no longer flickers: familiarity and auto % on task and gear cards update in place instead of rebuilding the whole list each time they tick up (early lives and drills rebuilt it several times a second); the list now rebuilds only when its contents change
 - 2026-11-05 01:40 · `f5f7ed6` · Stronger drills: each session adds 0.1 of a completion's familiarity to every task in its section (was 0.04); the drill card shows the gain per session; familiarity on task cards has one decimal
 - 2026-11-05 01:25 · `a3e3259` · Fix: queued and automated crossings fill deadwood (grafts in Act II) to full carry again before moving on (base design; Act I had lost it), skipped when out of sap cells with energy under the charge threshold; FAQ wording
 - 2026-11-05 01:10 · `9bacd4f` · Taproot Galleries frozen (owner's completionist run: 14 seedlings); docs only

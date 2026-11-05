@@ -1,6 +1,6 @@
 # Handover: Selene: Tidelocked
 
-Last updated: 2026-11-05 02:00 (build "no flicker"). The Tasks tab no longer flickers (familiarity updates in place). Drills give 2.5x more familiarity, and show it. Crossings fill deadwood to full carry again (base design); the owner replays the whole game from the start to see if a retune is needed. Meteor shower redesign complete (Stages 1-3 built). Seedling Vaults and Taproot Galleries FROZEN. Next: the Shattered Bark retune from the owner's playtest save (playtest-notes.md, roadmap.md). Update this file in every push.
+Last updated: 2026-11-05 02:15 (build "embedded fonts"). The fonts are embedded in index.html (offline, no Google Fonts request). The Tasks tab no longer flickers (familiarity updates in place). Drills give 2.5x more familiarity, and show it. Crossings fill deadwood to full carry again (base design); the owner replays the whole game from the start to see if a retune is needed. Meteor shower redesign complete (Stages 1-3 built). Seedling Vaults and Taproot Galleries FROZEN. Next: the Shattered Bark retune from the owner's playtest save (playtest-notes.md, roadmap.md). Update this file in every push.
 
 ## 1. What the game is
 An incremental "clone-loop" game in one HTML file (like Increlution/Incremortal). You are K-7, a **seedling** (disposable drone of WARDEN and the Hearth Tree) aboard **Selene**, a living-wood colony ship of the Root-Kin of Earth. Each seedling works tasks until its energy runs out; familiarity, records and automation carry over to the next one.
@@ -12,7 +12,7 @@ An incremental "clone-loop" game in one HTML file (like Increlution/Incremortal)
 Play: https://hufle-beep.github.io/Long-patience/ · Android APK: release `android-latest`, file `LongPatience.apk`.
 
 ## 2. Repository
-- `index.html`: the whole game (~4,100 lines, ~340 KB). Three scripts:
+- `index.html`: the whole game (~4,100 lines, ~535 KB, of which ~160 KB is the embedded fonts in `<style id="fonts">` at the top). Three scripts:
   - `<script id="logic">` (from ~line 486): data and simulation. The test bots eval this block.
   - `<script id="audio">` (~2084): music and sound.
   - `<script id="ui">` (~2253): rendering, saves, menus.
@@ -85,7 +85,7 @@ Play: https://hufle-beep.github.io/Long-patience/ · Android APK: release `andro
 - **FAQ:** unfolds with progress. `FAQ_GATE` maps each entry to an unlock (`start`, `queue`, `death`, `gear`, `sections`, `auto`, `won`, `a2`); `FAQ_TEST` checks them about every 2 s. Unlocks and opened entries are kept on the device (`selene.faq.v1`), never in a save, so a new game keeps them; loading a save unlocks what it reached. The tab gets a dot and entries a "new" tag until opened.
 - **Reset** (bottom of Settings): "Reset settings and unlocks, keep saves" clears `SOFT_KEYS`; "Reset everything" clears every `selene.*` / `long-patience.*` key after two warnings and an "Export all saves first" option (`exportAll()`: one file with every slot and death save; importing it restores them all). `wiping` stops saves being written back before the reload. In the test version every speed stays open.
 - **Palette:** "Amber resin" brown base (`--bg #1a140c`, `--panel #241b10`, `--panel2 #2e2316`, `--line #4a3920`, `--fg #f2e6c9`, `--dim #b39b6c`). The bright accents are unchanged. The Android `colors.xml` and WebView background match.
-- **Fonts:** Saira Condensed, IBM Plex Sans and IBM Plex Mono from Google Fonts. The cloud workspace cannot load them, so its screenshots use fallback fonts.
+- **Fonts (embedded since build "embedded fonts"):** `<style id="fonts">` holds WOFF2 copies as data URIs: Selene Display (Saira Condensed 500/600/700), Selene Text (IBM Plex Sans 400/500/600), Selene Mono (IBM Plex Mono 400/500), used through `--f-disp`, `--f-body`, `--f-mono`. They are trimmed to ASCII, Latin-1 and the game's other characters and renamed, because "Saira" and "Plex" are OFL Reserved Font Names; licences and details in `project/fonts/`. **Rerun `python3 project/tools/fontpack.py` when new texts add characters** (it rewrites the block in place). No outside request at startup; the page looks the same offline.
 
 ## 4. Balance state (details in playtest-notes.md)
 - Lean bot (build "stronger drills", current; it skips drills, so same as "crossing fill"): Act I 5.40 h, 65 seedlings; Act II 7.30 h (long watch 3.98, Boarders 2.29, Arrival 1.03). Completionist: 9 / 14 / 11 for the first three sections (was 10 / 15 / 12 with drill credit 0.04).
@@ -98,6 +98,10 @@ Play: https://hufle-beep.github.io/Long-patience/ · Android APK: release `andro
 Set up in a fresh workspace:
 1. Clone the repo to `/home/claude/long-patience`.
 2. Copy `project/tools/*` and `project/tools/fixtures/*` to `/tmp/claude-0/sim/`. The scripts use these paths; the bots accept `F=<path to index.html>`.
+3. Fonts for true-to-phone screenshots and for `fontpack.py`: the game embeds its own fonts, so screenshots already render right. To rebuild the font block you need the source fonts and brotli:
+   - `GIT_LFS_SKIP_SMUDGE=1 git clone -q --depth 1 --filter=blob:none --sparse https://github.com/google/fonts /home/claude/google/fonts && git -C /home/claude/google/fonts sparse-checkout set ofl/sairacondensed ofl/ibmplexsans ofl/ibmplexmono` (fontpack.py does this itself if missing; the full repo is several GB, never clone it whole).
+   - brotli (PyPI has none here): `git clone -q --depth 1 --branch v1.1.0 https://github.com/google/brotli <scratch>/brotli-src && pip install -q --break-system-packages --no-build-isolation <scratch>/brotli-src`.
+   - Optional: copy the `.ttf` files to `~/.fonts` and run `fc-cache -f` so other pages can use them too.
 
 The tools:
 - `node sim11c.js`: lean Act I bot. It prints `TOTAL in-game h` and death causes.
@@ -112,6 +116,7 @@ The tools:
   
   It also checks that every `data-*` button marker has code that reacts to it, and really taps the intro, story, death, menu and settings buttons. It must print `page errors: none`, `text problems: none`, `data markers without a handler: none` and all pop-up taps `ok`.
   Lesson (2026-11-04): a text-renaming pass once renamed the death button's marker (`data-decant`), which trapped every player at the first death; calling functions directly in tests did not catch it.
+- `python3 fontpack.py`: rebuilds the embedded font block in index.html (see Fonts in §3 and step 3 above).
 - `python3 shots.py`: screenshots of every screen to `/home/claude/shots`, at device scale 2.
 - `pw161.py`: test speed switch (x5 open, no unlock written).
 - `pw162.py`: FAQ unfolding, both resets, export-all and restore-all.
@@ -127,8 +132,9 @@ node -e "const fs=require('fs');const h=fs.readFileSync('index.html','utf8');[..
 
 ## 6. Environment gotchas (cloud workspace)
 - Network allowlist:
-  - **Works:** GitHub (git, `gh api` REST) and PyPI.
-  - **Blocked:** Google, Maven, Gradle (so the APK can't be built locally), npm DNS, Google Fonts, itch.io and the GitHub GraphQL API.
+  - **Works:** GitHub (git, `gh api` REST) and PyPI. **Any public GitHub repo can be cloned** (anonymous reads through the proxy; use sparse, blob-less clones for big ones), and **GitHub release downloads** (`github.com/<owner>/<repo>/releases/download/...`) work, so prebuilt tools from release pages and libraries built from source are available. `gh api` only covers repos attached to the session (this one; attach others with push access through the session if ever needed).
+  - **Blocked:** Google, Maven, Gradle (so the APK can't be built locally: Gradle and the Android SDK don't come from GitHub), npm DNS, Google Fonts, itch.io, the GitHub GraphQL API, raw.githubusercontent.com and codeload.github.com (source zips): use git clone instead.
+  - **Pushing:** if `git push` is refused by the git proxy ("not in this session's authorized repository set"), attach hufle-beep/Long-patience to the session with push access, then push again.
   - **Through this workspace's GitHub access:** the Pages builds API, workflow dispatch, creating tags (git push of tags and the refs API) and cancelling queued runs are all blocked.
   - **Pages deploys can fail with "in progress deployment"** after an outage. The next push (or an empty commit, with the owner's OK) republishes.
 - Use `gh api repos/hufle-beep/Long-patience/...` (REST), not `gh run list`/`gh release view` (GraphQL).
