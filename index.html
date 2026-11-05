@@ -551,7 +551,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
 // Renamed from Long Patience: move this device's old storage keys to the new 'selene.' names once
 try { const old = []; for (let n = 0; n < localStorage.length; n++) old.push(localStorage.key(n)); old.forEach(k => { if (k && k.indexOf('long-patience.') === 0) { const nk = 'selene.' + k.slice(14); if (localStorage.getItem(nk) == null) localStorage.setItem(nk, localStorage.getItem(k)); localStorage.removeItem(k); } }); } catch(e) {}
 /* ===== Game data and rules (no DOM) ===== */
-const BUILD = '2026-11-05 · folds kept';   // shown in the main menu, to tell which version is loaded
+const BUILD = '2026-11-05 · effects shown';   // shown in the main menu, to tell which version is loaded
 const DPS = 8;             // simulation ticks per real second at 1x (doubled for the test version: same balance, half the real time)
 // Time is simulated in ticks. 80 ticks make one day unit (18 minutes each), so a day lasts
 // 20 real seconds at 1x and Players only ever see in-game time and real time, never days.
@@ -2664,6 +2664,9 @@ const SPEEDS = [1, 2, 5], SPD_KEY = 'selene.speeds.v1';
 // TEST VERSION ONLY: every speed is open from the start, as if Act II had been cleared once.
 // Nothing is written to saves or the device for it. Set to false for the final version (see project/roadmap.md).
 const TEST_ALL_SPEEDS = true;
+// TEST VERSION ONLY: task cards and the Mastery tab show what every task gives and opens from the start
+// (archive records stay unnamed until found). Set to false for the final version: effects show '?' until first finished.
+const TEST_SHOW_EFFECTS = true;
 let spdUnl = 1; try { spdUnl = +(localStorage.getItem(SPD_KEY) || 1) || 1; } catch(e) {}
 const spdHave = () => Math.max(spdUnl, (S && S.spdUnl) || 1);   // the device's unlocks or the save's, whichever is higher
 function speedOpen(x){ return x === 1 || TEST_ALL_SPEEDS || earnedSpeed(x); }
@@ -3325,9 +3328,9 @@ function toast(msg, gold){
 }
 
 /* ----- task list ----- */
-// What finishing an action does, shown once it has been finished in this save; until then just '?'
+// What finishing an action does, shown once it has been finished in this save (or always, with TEST_SHOW_EFFECTS); until then just '?'
 function effectHtml(t, full){
-  if (!(S.ever || {})[t.id]) return '<span class="eff">?</span>';
+  if (!TEST_SHOW_EFFECTS && !(S.ever || {})[t.id]) return '<span class="eff">?</span>';
   const {life, kept, rest} = rewardBits(t);
   if (t.kind === 'train') {
     // what one session adds to each task it trains (the same share for every one of them)

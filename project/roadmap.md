@@ -1,6 +1,6 @@
 # Roadmap: Selene: Tidelocked
 
-Last updated: 2026-11-05 (build "save safety"). Update in every push.
+Last updated: 2026-11-05 (build "effects shown"). Update in every push.
 
 ## Order of work (owner, 2026-11-04)
 1. **Section-by-section playtesting and tuning** (now). Sections 1 and 2 frozen; next the Shattered Bark, then sections 3-14 one by one: the owner plays and uploads a save after each crossing, Claude proposes options for that section's knobs only, the owner freezes it.
@@ -32,6 +32,7 @@ Last updated: 2026-11-05 (build "save safety"). Update in every push.
 
 ## Before release (final version)
 - Turn **`TEST_ALL_SPEEDS`** off (index.html, next to `SPEEDS`): in the test version x1/x2/x5 are open from the start; the final version unlocks x2 after Act I and x5 after Act II again. The switch never writes unlocks into saves or devices, so nothing leaks into the final version.
+- Turn **`TEST_SHOW_EFFECTS`** off (index.html, under `TEST_ALL_SPEEDS`): in the test version task cards and the Mastery tab show every effect and "opens:" from the start; the final version shows "?" until a task is first finished (owner, 2026-11-05). Archive records stay hidden until found either way.
 - Replace the five per-slot death saves with **one global death save** (owner's decision; per-slot is for testing only).
 - Re-check every section freeze and the Act I/Act II totals.
 
@@ -49,6 +50,7 @@ Last updated: 2026-11-05 (build "save safety"). Update in every push.
 See design.md: colony content held back from Act II, the Act II legacy themes from the old Honours, and four open questions.
 
 ## Done recently (see changelog.md for all)
+- 2026-11-05: test version shows every task's effects and what it opens from the start (switch `TEST_SHOW_EFFECTS`, off before release).
 - 2026-11-05: Auto and Mastery folds remembered on the device.
 - 2026-11-05: Map sections fold (by tap, and by themselves once fully mapped; kept on the device).
 - 2026-11-05: pause all automation, welcome back, Log filters with record/automation events, screen-reader announcements.

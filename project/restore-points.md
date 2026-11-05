@@ -12,7 +12,8 @@ The **Restore points** workflow (`.github/workflows/restore-points.yml`) runs on
 What the recent commits are (newest first):
 | Commit | What it is |
 |---|---|
-| (next) | Folds kept: Auto and Mastery folds remembered on the device |
+| (next) | Effects shown (test switch): task effects visible from the start |
+| `5436a94` | Folds kept: Auto and Mastery folds remembered on the device |
 | `dbbdd2f` | Map folds: foldable Map sections, folded by themselves once fully mapped |
 | `b7e6119` | Publishing set: pause all automation, welcome back, Log filters, screen-reader announcements |
 | `f768d3b` | Route overview, game-icons.net icons, Credits |
