@@ -369,6 +369,7 @@ button.zh.zhb{margin:14px 0 6px}
 .row{display:flex;justify-content:space-between;align-items:center;gap:12px}
 .row p{margin:0;font-size:13px}
 .row small{display:block;color:var(--dim);font-size:12px}
+.fld>p{margin:0;font-size:13px}.fld>p small{display:block;color:var(--dim);font-size:12px}.fld .lchips{margin:2px 0 0}
 .tog{width:46px;height:26px;border-radius:13px;background:var(--panel2);border:1px solid var(--line);position:relative;flex:0 0 auto}
 .tog::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:var(--dim);transition:transform .15s}
 .tog.on{background:var(--amber-fill);border-color:var(--amber)}
@@ -596,7 +597,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
 // Renamed from Long Patience: move this device's old storage keys to the new 'selene.' names once
 try { const old = []; for (let n = 0; n < localStorage.length; n++) old.push(localStorage.key(n)); old.forEach(k => { if (k && k.indexOf('long-patience.') === 0) { const nk = 'selene.' + k.slice(14); if (localStorage.getItem(nk) == null) localStorage.setItem(nk, localStorage.getItem(k)); localStorage.removeItem(k); } }); } catch(e) {}
 /* ===== Game data and rules (no DOM) ===== */
-const BUILD = '2026-11-05 · round 5 credits';   // shown in the main menu, to tell which version is loaded
+const BUILD = '2026-11-05 · settings merged';   // shown in the main menu, to tell which version is loaded
 const DPS = 8;             // simulation ticks per real second at 1x (doubled for the test version: same balance, half the real time)
 // Time is simulated in ticks. 80 ticks make one day unit (18 minutes each), so a day lasts
 // 20 real seconds at 1x and Players only ever see in-game time and real time, never days.
@@ -1327,8 +1328,8 @@ const HOOK = {presetRow(){}, repaired(){}, legacy(){}, legacyAvail(){}, autoRun(
 // Player preferences (switches, thresholds, boost speed) are stored once for the device, not per save:
 // a new game or another slot starts with the same settings.
 const PREF_KEY = 'selene.prefs.v1';
-const PREF_KEYS = ['speed','autoRun','autoRepair','autoScav','partsDays','autoFood','autoEat','foodPct','keepQueue','deathScreen','deathPause','startPaused','pauseCross','pauseRunEnd','pauseDone','replay','fillCross','autoFeed','deathQueue','pauseDeath','pauseQueue','pauseFirst','showFormulas'];
-function loadPrefs(){ try { const p = JSON.parse(localStorage.getItem(PREF_KEY) || '{}'); const o = {}; PREF_KEYS.forEach(k => { if (p[k] !== undefined) o[k] = p[k]; }); return o; } catch(e) { return {}; } }
+const PREF_KEYS = ['speed','autoRun','autoRepair','autoScav','partsDays','autoFood','autoEat','foodPct','keepQueue','deathScreen','deathPause','startPaused','pauseCross','pauseRunEnd','pauseDone','replay','fillCross','deathQueue','pauseDeath','pauseQueue','pauseFirst','showFormulas'];
+function loadPrefs(){ try { const p = JSON.parse(localStorage.getItem(PREF_KEY) || '{}'); const o = {}; PREF_KEYS.forEach(k => { if (p[k] !== undefined) o[k] = p[k]; }); if (p.autoFeed && p.autoFood === false) o.autoFood = true; return o; } catch(e) { return {}; } }   // the old Charge when needed is part of Auto-charge now
 function savePrefs(){ try { if (!S || !S.set) return; const o = {}; PREF_KEYS.forEach(k => { if (S.set[k] !== undefined) o[k] = S.set[k]; }); localStorage.setItem(PREF_KEY, JSON.stringify(o)); } catch(e) {} }
 function newLife(s){
   const p = s.perks;
@@ -1341,7 +1342,7 @@ function newLife(s){
 }
 function defaultState(){
   const s = {v:1, tv:3, fav:{}, hide:{}, qpresets:[[], [], [], [], []], gprac:{}, gauto:{}, gprio:{}, ev:2, rv:4, sv:2, pv:3, vv:3, gen:1, prio:{}, fam:{}, ever:{}, prac:{}, auto:{}, echo:{}, perks:{}, seen:{}, logged:{}, log:[], lastOrder:[], lastJob:null,
-    set:Object.assign({speed:1, autoFood:true, autoEat:true, foodDays:2, foodPct:40, keepQueue:true, autoRun:false, autoRepair:true, autoScav:true, partsDays:2, deathScreen:true, deathPause:true, startPaused:false, pauseCross:false, pauseRunEnd:false, pauseDone:false, replay:true, fillCross:false, autoFeed:false, deathQueue:false, pauseDeath:false, pauseQueue:false, pauseFirst:true, showFormulas:false}, loadPrefs()),
+    set:Object.assign({speed:1, autoFood:true, autoEat:true, foodDays:2, foodPct:40, keepQueue:true, autoRun:false, autoRepair:true, autoScav:true, partsDays:2, deathScreen:true, deathPause:true, startPaused:false, pauseCross:false, pauseRunEnd:false, pauseDone:false, replay:true, fillCross:false, deathQueue:false, pauseDeath:false, pauseQueue:false, pauseFirst:true, showFormulas:false}, loadPrefs()),
     stats:{bestAge:0, deaths:0, daysLived:0, played:0}, a2:{open:false, hon:0, lv:{}, perks:{}, fin:0}, branch:null, merge:null, a2run:{reached:{}, done:{}}, pr:{n:0, pts:0, growth:0, drain:0, hp:0, speed:0, carry:0, runs:[]}, won:false, winGen:0, bank:0, saved:Date.now(), intro:false};
   s.life = newLife(s);
   return s;
@@ -1809,12 +1810,12 @@ function autoBuy(){
     .sort((a, b) => ITEMS.indexOf(a) - ITEMS.indexOf(b));
   if (c.length && L.salvage >= c[0].cost) buyItem(c[0].id, true);
 }
-// Feed when needed (Auto tab option, automated charging station only): interrupt whatever is running when
+// Part of Auto-charge (merged with the old "Charge when needed"): interrupt whatever is running when
 // food is short, or when health is low but recharges can still out-heal the current drain; refill to the
 // level needed, then let the interrupted task carry on where it stopped.
 function feedJob(){
   const L = S.life;
-  if (!S.set.autoFeed) { L.feeding = false; return null; }
+  if (!S.set.autoFood) { L.feeding = false; return null; }
   let job = null, br = 0;
   for (const t of TASKS) if (t.kind === 'job' && t.prod && t.prod.rations && available(t) && !jobFull(t)) {
     const r = t.prod.rations * speedOf(t) * foodQ(jobFood(t)); if (r > br) { br = r; job = t; }
@@ -2218,7 +2219,6 @@ const FC_TRY = [
   {k:'autoEat', on:true, txt:'turning on Auto-recharge'},
   {k:'autoFood', on:true, txt:'turning on Auto-charge'},
   {k:'foodPct', min:60, txt:'a charge threshold of 60%', need:s => s.autoFood},
-  {k:'autoFeed', on:true, txt:'turning on Charge when needed'},
   {k:'autoScav', on:true, txt:'turning on Auto-scavenge', a2:true},
   {k:'autoRepair', on:true, txt:'turning on Auto-repair', a2:true}];
 function fcTries(f){
@@ -3295,6 +3295,7 @@ function mergeState(raw){
   const s = Object.assign(d, raw);
   const hadPrefs = (() => { try { return !!localStorage.getItem(PREF_KEY); } catch(e) { return false; } })();
   s.set = Object.assign(defaultState().set, raw.set || {}, loadPrefs());   // device-wide preferences win over the save's copy
+  if (s.set.autoFeed && s.set.autoFood === false && loadPrefs().autoFood === undefined) s.set.autoFood = true; delete s.set.autoFeed;   // merged into Auto-charge
   if (!hadPrefs) { const keep = S; S = s; savePrefs(); S = keep; }   // first run: adopt this save's settings as the device's
   s.stats = Object.assign(defaultState().stats, raw.stats || {});
   if (raw.stats && raw.stats.played == null) s.stats.played = (raw.hist || []).reduce((a, e) => a + (e.r || 0), 0) + ((raw.life && !raw.life.dead && raw.life.real) || 0);
@@ -3837,6 +3838,7 @@ const BUILD_NOTES = [
   ['information', 'A strip under the section name shows what this seedling has done; Pin (Edit list) shows what a task or gear design still needs; familiarity steps Practiced, Skilled, Mastered; tooltips show time to the next step, automation progress and what makes up the drain.'],
   ['guidance', 'A next-step line and hints in the Log for the first sections; the Ship log can be read as a journal; this note after updates.'],
   ['runs', 'Best runs: what the seedling that crossed a section did there is kept (up to three per section, pin one to keep it) and can be loaded into the queue; section headers compare your seedling count with your other games on this device; the Auto tab can switch a whole section on or off.'],
+  ['settings merged', 'Fewer, clearer settings: Auto-charge now also covers charging when energy runs low (the separate Charge when needed is gone); Settings has one choice for what happens at a death, one for pausing at crossings, and a row of Pause when… chips.'],
 ];
 const buildKey = () => BUILD.split('\u00b7').pop().trim();
 function whatsNew(){
@@ -5230,27 +5232,23 @@ function foodSettingsHtml(){
   let h = '';
   h += `<div class="row"><p>Auto-recharge<small>Use a sap cell whenever the recharge cooldown is over and energy has room for it.</small></p><button class="tog${S.set.autoEat ? ' on' : ''}" data-set="autoEat" aria-label="Auto-recharge" aria-pressed="${S.set.autoEat}"></button></div>`;
   {
-    h += `<div class="row"><p>Auto-charge<small>Switch to the best charging station when your sap cells run below the threshold, and stay until they reach twice that.</small></p><button class="tog${S.set.autoFood ? ' on' : ''}" data-set="autoFood" aria-label="Auto-charge" aria-pressed="${S.set.autoFood}"></button></div>
+    h += `<div class="row"><p>Auto-charge<small>Switch to the best charging station when your sap cells run below the threshold (and stay until they reach twice that), or when energy is low and recharges can still restore it faster than it drains; then the interrupted task carries on.</small></p><button class="tog${S.set.autoFood ? ' on' : ''}" data-set="autoFood" aria-label="Auto-charge" aria-pressed="${S.set.autoFood}"></button></div>
       <div><div class="row"><p>Charge threshold<small>Share of your cell storage capacity. When the cells you carry drop below it, charging stations step in; they stop at twice this level (or when storage is full).</small></p></div><div class="pctin"><input type="number" id="fd-n" inputmode="numeric" min="1" max="99" step="1" value="${S.set.foodPct || 40}" aria-label="Charge threshold percent"><span>%</span></div><input type="range" id="fd" min="1" max="99" step="1" value="${S.set.foodPct || 40}" aria-label="Charge threshold, percent of cell storage capacity"></div>`;
   }
   return h;
 }
 // Clock and pause options (in the settings menu)
 function pauseSettingsHtml(){
-  const L = S.life;
-  return `    ${decantUnlocked()
-      ? `<div class="row"><p>Show the death screen<small>On: the game stops at each death until you sprout the next seedling. Off: the next seedling is sprouted at once and the run keeps going; a short message sums up the death.</small></p><button class="tog${S.set.deathScreen !== false ? ' on' : ''}" data-set="deathScreen" aria-label="Show the death screen" aria-pressed="${S.set.deathScreen !== false}"></button></div>`
-      : `<div class="fld"><label>Death screen</label><small class="note">Automatic sprouting unlocks after ${AUTO_LIVES} seedlings have died (${S.stats.deaths || 0}/${AUTO_LIVES}). Until then the game stops at each death.</small></div>`}
-    <div class="row"><p>Start new seedlings paused<small>With the death screen on, the seedling you sprout from it waits paused until you press Resume, so you can plan its life first.</small></p><button class="tog${S.set.deathPause !== false ? ' on' : ''}" data-set="deathPause" aria-label="Start new seedlings paused" aria-pressed="${S.set.deathPause !== false}"></button></div>
-    ${decantUnlocked() ? `<div class="row"><p>Stop at the death screen if the queue wasn\u2019t finished<small>With the death screen off, a seedling that dies with rows still in its queue stops at the death screen anyway, so you can rethink the plan. Automated rows don\u2019t count.</small></p><button class="tog${S.set.deathQueue ? ' on' : ''}" data-set="deathQueue" aria-label="Stop at the death screen if the queue wasn't finished" aria-pressed="${!!S.set.deathQueue}"></button></div>` : ''}
-    <div class="row"><p>Always run sections once ready<small>Whenever the section a seedling is in is fully automated, a section run starts by itself: the queue\u2019s leftovers for its sections are cleared and the run is pinned at the top of the queue. Pressing Run section turns this on; Stop turns it off.</small></p><button class="tog${S.set.autoRun ? ' on' : ''}" data-set="autoRun" aria-label="Always run sections once ready" aria-pressed="${!!S.set.autoRun}"></button></div>
-    <div class="row"><p>Pause on first reaching a section<small>The first time any seedling reaches a section, the clock stops once, so you can read its new tasks before automation runs on.</small></p><button class="tog${S.set.pauseFirst !== false ? ' on' : ''}" data-set="pauseFirst" aria-label="Pause on first reaching a section" aria-pressed="${S.set.pauseFirst !== false}"></button></div>
-    <div class="row"><p>Pause after each new section<small>When a seedling crosses into the next section, the clock stops until you press Resume, so you can plan the new section first.</small></p><button class="tog${S.set.pauseCross ? ' on' : ''}" data-set="pauseCross" aria-label="Pause after each new section" aria-pressed="${!!S.set.pauseCross}"></button></div>
-    <div class="row"><p>Pause when a section run ends instead<small>Overrides the pause above during a section run: a run across several sections keeps going through its crossings, and the clock stops once the run finishes or stops by itself. Your own Stop doesn\u2019t pause.</small></p><button class="tog${S.set.pauseRunEnd ? ' on' : ''}" data-set="pauseRunEnd" aria-label="Pause when a section run ends instead" aria-pressed="${!!S.set.pauseRunEnd}"></button></div>
-    <div class="row need2"><p>Pause just before the forecast death<small>Once per seedling, the clock stops when the forecast says it has 5 s (in-game) left, so you can fit in a last action. The forecast plays out the queue and automation as they stand.</small></p><button class="tog${S.set.pauseDeath ? ' on' : ''}" data-set="pauseDeath" aria-label="Pause just before the forecast death" aria-pressed="${!!S.set.pauseDeath}"></button></div>
-    <div class="row"><p>Pause when a task finishes<small>The clock stops whenever a task is done: an action (all its repeats), a rest, a drill once all its sessions for this life are done, or a job once its storage is full. Automated tasks count too.</small></p><button class="tog${S.set.pauseDone ? ' on' : ''}" data-set="pauseDone" aria-label="Pause when a task finishes" aria-pressed="${!!S.set.pauseDone}"></button></div>
-    <div class="row need2"><p>Pause when the queue is finished<small>The clock stops with a short chime once the seedling has worked through the last queue row you set (automated and skipped rows don\u2019t count). Clearing the queue yourself doesn\u2019t pause.</small></p><button class="tog${S.set.pauseQueue ? ' on' : ''}" data-set="pauseQueue" aria-label="Pause when the queue is finished" aria-pressed="${!!S.set.pauseQueue}"></button></div>
-    <div class="row"><p>Start the game paused<small>When you open the game, the clock waits until you press Resume.</small></p><button class="tog${S.set.startPaused ? ' on' : ''}" data-set="startPaused" aria-label="Start the game paused" aria-pressed="${!!S.set.startPaused}"></button></div>
+  const st = S.set, seg = (lbl, opts, cur) => `<div class="seg" role="group" aria-label="${lbl}">${opts.map(([v, txt, to]) => `<button data-setto="${to}" class="${cur === v ? 'on' : ''}" aria-pressed="${cur === v}">${txt}</button>`).join('')}</div>`;
+  const chip = (k, txt, lbl, cls = '') => `<button data-set="${k}" class="${(k === 'deathPause' ? st[k] !== false : !!st[k]) ? 'on' : ''}${cls}" aria-pressed="${k === 'deathPause' ? st[k] !== false : !!st[k]}" aria-label="${lbl}">${txt}</button>`;
+  const dm = st.deathScreen !== false ? 's' : st.deathQueue ? 'q' : 'g', cm = st.pauseCross ? 'e' : st.pauseFirst !== false ? 'f' : 'n';
+  return (decantUnlocked()
+      ? `<div class="fld"><p>At a death<small>Stop: the game waits at the death screen until you sprout the next seedling. Carry on: the next seedling sprouts at once and a short message sums up the death; with “If queue unfinished” it still stops when rows you set were left (automated rows don’t count).</small></p>${seg('At a death', [['s', 'Stop', 'deathScreen=true,deathQueue=false'], ['q', 'If queue unfinished', 'deathScreen=false,deathQueue=true'], ['g', 'Carry on', 'deathScreen=false,deathQueue=false']], dm)}</div>`
+      : `<div class="fld"><label>Death screen</label><small class="note">Automatic sprouting unlocks after ${AUTO_LIVES} seedlings have died (${S.stats.deaths || 0}/${AUTO_LIVES}). Until then the game stops at each death.</small></div>`) + `
+    <div class="row"><p>Always run sections once ready<small>Whenever the section a seedling is in is fully automated, a section run starts by itself: the queue’s leftovers for its sections are cleared and the run is pinned at the top of the queue. Pressing Run section turns this on; Stop turns it off.</small></p><button class="tog${st.autoRun ? ' on' : ''}" data-set="autoRun" aria-label="Always run sections once ready" aria-pressed="${!!st.autoRun}"></button></div>
+    <div class="fld"><p>Pause at crossings<small>First time: the clock stops once the first time any seedling reaches a section, so you can read its new tasks. Every crossing: whenever a seedling crosses, so you can plan the new section.</small></p>${seg('Pause at crossings', [['n', 'Never', 'pauseFirst=false,pauseCross=false'], ['f', 'First time', 'pauseFirst=true,pauseCross=false'], ['e', 'Every crossing', 'pauseFirst=true,pauseCross=true']], cm)}</div>
+    <div class="row"><p>During section runs, pause only when the run ends<small>A run across several sections keeps going through its crossings, and the clock stops once the run finishes or stops by itself. Your own Stop doesn’t pause.</small></p><button class="tog${st.pauseRunEnd ? ' on' : ''}" data-set="pauseRunEnd" aria-label="During section runs, pause only when the run ends" aria-pressed="${!!st.pauseRunEnd}"></button></div>
+    <div class="fld"><p>Pause when…<small>A task finishes: an action with all its repeats, a drill’s sessions for this life, or a job once its storage is full (automated tasks too). The queue is done: the last row you set (a short chime; clearing it yourself doesn’t count). Before the forecast death: once per seedling, 5 s (in-game) before it. The game opens, or a seedling sprouts from the death screen: the clock waits for Resume.</small></p><div class="lchips">${chip('pauseDone', 'A task finishes', 'Pause when a task finishes')}${chip('pauseQueue', 'The queue is done', 'Pause when the queue is finished', ' need2')}${chip('pauseDeath', 'Before the forecast death', 'Pause just before the forecast death', ' need2')}${chip('startPaused', 'The game opens', 'Start the game paused')}${chip('deathPause', 'A seedling sprouts', 'Start new seedlings paused')}</div></div>
 `;
 }
 function renderAuto(){
@@ -5260,11 +5258,10 @@ function renderAuto(){
   // not yet automatable, but met in this save: shown with what is still needed
   const plist = TASKS.filter(t => !practiced(t) && (t.kind === 'act' || t.kind === 'train') && ((S.ever || {})[t.id] || (S.seen || {})[t.id]) && (!t.legacy || legacyOpen(t)));
   const pglist = ITEMS.filter(i => !gearPracticed(i) && ((S.ever || {})[i.req] || gearKnown(i)));
-  const key = plist.map(t => t.id + (S.prac[t.id] || 0)).join() + '|' + pglist.map(i => i.id + ((S.gprac || {})[i.id] || 0)).join() + '|' + JSON.stringify(secFold) + (S.life.sec || 1) + !!S.won + a2Done() + list.map(t => t.id + (S.auto[t.id] ? '*' : '') + (masteryF(t) >= SECTION_F ? 5 : masteryF(t) >= LINK_F ? 2 : 1)).join() + '|' + glist.map(i => i.id + (S.gauto[i.id] ? '*' : '')).join() + '|' + (S.life.chainRun ? 'R' : '') + '|' + L.sec + '|' + S.gen + '|' + !!S.set.fillCross + !!S.set.autoFeed + '|' + (S.set.deathScreen !== false) + (S.set.deathPause !== false) + !!S.set.startPaused + !!S.set.pauseCross + decantUnlocked() + (S.stats.deaths || 0);
+  const key = plist.map(t => t.id + (S.prac[t.id] || 0)).join() + '|' + pglist.map(i => i.id + ((S.gprac || {})[i.id] || 0)).join() + '|' + JSON.stringify(secFold) + (S.life.sec || 1) + !!S.won + a2Done() + list.map(t => t.id + (S.auto[t.id] ? '*' : '') + (masteryF(t) >= SECTION_F ? 5 : masteryF(t) >= LINK_F ? 2 : 1)).join() + '|' + glist.map(i => i.id + (S.gauto[i.id] ? '*' : '')).join() + '|' + (S.life.chainRun ? 'R' : '') + '|' + L.sec + '|' + S.gen + '|' + !!S.set.fillCross + '|' + (S.set.deathScreen !== false) + (S.set.deathPause !== false) + !!S.set.startPaused + !!S.set.pauseCross + decantUnlocked() + (S.stats.deaths || 0);
   if (key === autoKey) return; autoKey = key;
   let h = `<div class="panel"><span class="h2">Automation</span><button class="sub secfold aintro" data-secfold="au:intro" aria-expanded="${!!secFold['au:intro']}">${secFold['au:intro'] ? '\u25be' : '\u25b8'} How automation works</button>${secFold['au:intro'] ? `<p class="note">Tasks finished often enough can run by themselves (${autoScale() < 1 ? 'this run needs ' + Math.round(autoScale() * 100) + '% of' : ''} 10 lives' worth: an action 10 times, a training session 40 times), and gear built in ${AUTO_LIVES} lives can be built automatically (in ship order; the seedling saves up for the next one). Switch them on here. They run in chain order: each after the tasks it needs. Linked tasks form chains, and a fully chained section can be run with one click. Automated tasks run ahead of your queue; automated crossings wait until the queue is done.</p>` : ''}
     ${foodSettingsHtml()}${partsSettingsHtml()}
-    <div class="row"><p>Charge when needed<small>Charging stations step in when sap cells run low, or when energy is low and recharges can still restore it faster than it drains. They refill to what is needed, then the interrupted task carries on.</small></p><button class="tog${S.set.autoFeed ? ' on' : ''}" data-set="autoFeed" aria-label="Charge when needed" aria-pressed="${!!S.set.autoFeed}"></button></div>
 </div>`;
   if (!list.length && !glist.length && !plist.length && !pglist.length) {
     h += `<p class="note">Nothing unlocked yet. Finish an action 10 times (a multi-rep action 10 times its reps), a training session 40 times, or work a job for ${AUTO_LIVES * JOB_UNIT} batches, and it will appear here. Gear counts once built in ${AUTO_LIVES} different lives.</p>`;
@@ -5751,7 +5748,8 @@ document.addEventListener('click', e => {
   }
   if (d.gauto) { S.gauto[d.gauto] = !S.gauto[d.gauto]; autoKey = ''; gearKey = ''; taskKey = ''; toast((S.gauto[d.gauto] ? 'Auto-build on: ' : 'Auto-build off: ') + IT[d.gauto].name); renderView(); return; }
   if (d.gsetprio) { S.gprio[d.gsetprio] = +d.n; autoKey = ''; gearKey = ''; toast('Priority ' + d.n + ': ' + IT[d.gsetprio].name); renderView(); return; }
-  if (d.set) { S.set[d.set] = !S.set[d.set]; savePrefs(); if (d.set === 'autoRun') { if (S.set.autoRun) autoRunCheck(); else if (L.chainRun) { L.chainRun = false; L.runFrom = null; } taskKey = ''; } autoKey = ''; renderArchive(true); if (tab === 'auto') renderAuto(); if (settingsFrom && !$('#modal').hidden && b.closest('#modal')) showSettings(settingsFrom); return; }
+  if (d.setto) { d.setto.split(',').forEach(kv => { const [k, v] = kv.split('='); S.set[k] = v === 'true'; }); }   // a choice that sets several switches at once
+  if (d.set || d.setto) { if (d.set) S.set[d.set] = d.set === 'deathPause' ? S.set.deathPause === false : !S.set[d.set]; savePrefs(); if (d.set === 'autoRun') { if (S.set.autoRun) autoRunCheck(); else if (L.chainRun) { L.chainRun = false; L.runFrom = null; } taskKey = ''; } autoKey = ''; renderArchive(true); if (tab === 'auto') renderAuto(); if (settingsFrom && !$('#modal').hidden && b.closest('#modal')) showSettings(settingsFrom); return; }
   if (d.confirm) {
     const k = d.confirm;
     if (!confirmT[k]) {

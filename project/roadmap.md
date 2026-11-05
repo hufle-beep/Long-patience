@@ -1,6 +1,6 @@
 # Roadmap: Selene: Tidelocked
 
-Last updated: 2026-11-05 (build "round 5 credits"). Update in every push.
+Last updated: 2026-11-05 14:20 (build "settings merged"). Update in every push.
 
 ## Order of work (owner, 2026-11-04)
 1. **Section-by-section playtesting and tuning** (now). Sections 1 and 2 frozen; next the Shattered Bark, then sections 3-14 one by one: the owner plays and uploads a save after each crossing, Claude proposes options for that section's knobs only, the owner freezes it.
@@ -12,6 +12,7 @@ Last updated: 2026-11-05 (build "round 5 credits"). Update in every push.
 **Owner decision (2026-11-05):** polishing can come before tuning when its gains are immediate.
 
 ## Next up
+- **Cleanup and streamlining (owner 13:54, picks 14:01: all of Claude's suggestions, M10 kept), six chunks, each pushed on its own:** 1 settings merges BUILT (M1 one Auto-charge, M2 Pause at crossings choice, M3 At a death choice, M4 Pause when… chips). 2 guidance and pop-ups (M5 drop the idle and automation hints, M6 drop the Journal, M7 Welcome back and What's new in one pop-up). 3 tooltips and header (M8 card tooltips without the card text, M9 route tap opens the tooltip, M11 compact Tasks header). 4 orphan sweep (old priority and Map-fold code, dead handlers, unused settings, constants and HOOK stubs, stale texts and comments). 5 logic-script tightening. 6 UI-script and CSS tightening. No behaviour or balance change except the merges.
 - **Research round 5 (owner 12:55: build all of R1-R39): BUILT in seven chunks** (1 robustness, 2 test tooling, 3 phone comfort and the Made with AI note, 4 queue tools, 5 information, 6 guidance, 7 runs) plus chunk 8 (Inspired by adds only Terraformental, research.md). **R14 forecast cache: dropped** (owner 13:45, pick B: a tail-only re-simulation can't be exact, and the time-sliced forecast is cheap enough).
 - **Seedling Vaults retuned (owner's pick B, 2026-11-05 11:32):** length factor 2.212 -> 2.81 after the owner's 6-seedling replay (bot 7 -> 10, aiming at the owner's 9). Freeze again when the owner says. Button review BUILT (owner 11:46: all of B1-B4 and P1-P5, build "clearer buttons"). Tooltips BUILT (owner 12:00: H1 one game-styled bubble, C2 cards, icons, header, key buttons, route; L1 the + keeps its long-press). Ship log order and folds BUILT (owner 12:13: O1+O2, F1, M2, X2; build "folds"). **Next:** the owner's next replay saves (the Shattered Bark next; the Seedling Vaults freeze again when the owner says).
 - **Research round 4 picks (owner 2026-11-05 10:23: all; go 10:25), six chunks, each pushed on its own:** 1 credits and docs BUILT (full ZzFX MIT text, Plex Sans 2017-2019, "Inspired by" line, research.md round 4). 2 UI performance BUILT (10 Hz text, 2 Hz paused, task-list change counter, no unchanged writes, forecast slices, autosave 15 s, no bold title weight). 3 BUILT: sound (one 2 s reverb, audio sleeps) and Android pauseTimers. 4 BUILT: save safety (checksum, save version, recovery screen) and export (Android share sheet, file names with build and time). 5 BUILT: queue and info (load a past queue, speed breakdown, pause when the queue is finished, completions per real minute, merged death lines). 6 BUILT: section targets (target seedlings per section, badge only). **All six chunks built.** **Then (owner 10:31, corrected 10:48):** buttons that deserve emphasis get brown text on yellow like the menu's Continue button (only where it makes sense; weigh every button in the game), slightly larger like the main screen; go through every menu and offer further interface polish (options first).
@@ -53,6 +54,7 @@ Last updated: 2026-11-05 (build "round 5 credits"). Update in every push.
 See design.md: colony content held back from Act II, the Act II legacy themes from the old Honours, and four open questions.
 
 ## Done recently (see changelog.md for all)
+- 2026-11-05: settings merged: one Auto-charge switch (Charge when needed folded in), At a death and Pause at crossings choices, Pause when… chips.
 - 2026-11-05: R14 forecast cache dropped (owner, pick B); round 5 closed.
 - 2026-11-05: round 5 write-up in research.md; Inspired by adds Terraformental.
 - 2026-11-05: runs: best section runs kept and loadable (pin one), splits against your other games on this device, All on / All off per section in the Auto tab.
