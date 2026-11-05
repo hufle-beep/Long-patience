@@ -1,6 +1,6 @@
 # Roadmap: Selene: Tidelocked
 
-Last updated: 2026-11-05 (build "queue forecast"). Update in every push.
+Last updated: 2026-11-05 (build "auto-gear gathers"). Update in every push.
 
 ## Order of work (owner, 2026-11-04)
 1. **Section-by-section playtesting and tuning** (now). Sections 1 and 2 frozen; next the Shattered Bark, then sections 3-14 one by one: the owner plays and uploads a save after each crossing, Claude proposes options for that section's knobs only, the owner freezes it.
@@ -14,7 +14,7 @@ Last updated: 2026-11-05 (build "queue forecast"). Update in every push.
 ## Next up
 - **Queue chunks (owner go-ahead 2026-11-05 02:54: "Go A-C, commit and push between chunks"):** A built (preset triggers, skip toggles, pause before the forecast death). B built (life summary on the death screen; next-automation line in each section header; time per task, this seedling and all, on the Mastery tab). C built (Now-line reasons, safe import, arrow keys, Least familiar sort, long-press + for copies). All three chunks done. Dropped as not fitting: pending bar, record column, do once now.
 - **Research round 1c (owner's priority, 2026-11-05 03:09): Increlution, Your Chronicle, Idling to Rule the Gods, Terraformental** studied (all closed source: ideas only); write-up and combined top 8 in research.md, waiting for the owner's picks. Then rounds 2 and 3.
-- **Ideas from other games (research.md):** round 1 (Idle Loops, wrtsc) and round 1b (Immortality Idle, Progress Knight Quest: owner's priority) studied. Built from them: queue forecast, undo, queue as text, named presets, death-screen-if-unfinished setting, "new" marks, regression tests. Open, best value first: preset triggers, per-goal ETA ("next automation in about N seedlings"), life summary at death, pause before the forecast death, repeat counts. Next rounds: 2 (Antimatter Dimensions, Trimps), 3 (The Modding Tree, ZzFX, game-icons.net).
+- **Ideas from other games (research.md):** round 1 (Idle Loops, wrtsc) and round 1b (Immortality Idle, Progress Knight Quest: owner's priority) studied. Built from them: queue forecast, undo, queue as text, named presets, death-screen-if-unfinished setting, "new" marks, regression tests. Also built: preset triggers, per-goal ETA (the next-automation line), life summary at death, pause before the forecast death, long-press + for copies. Open: repeat counts on queue entries; round 1c picks. Next rounds: 2 (Antimatter Dimensions, Trimps), 3 (The Modding Tree, ZzFX, game-icons.net).
 - **Full replay from the start (owner, 2026-11-05)** on build "embedded fonts" (deadwood filled to full carry at crossings; drills 2.5x stronger), to see whether the frozen sections and the rest need a retune.
 - **Meteor shower redesign (approved 2026-11-04, see design.md):** **All three stages built 2026-11-05** (The Shattered Bark, ward-lock, Hardened grain; Act II reordered with The Mending; 480-year voyage clock and timeline texts). Was: Stage 2 Act II reordered (long watch with Turnover first, Boarders + new The Mending with Rekindle the Hearthfire, then Arrival); Stage 3 480-year voyage clock and texts. Confirm each stage's exact changes before building.
 - Section retune: the Taproot Galleries FROZEN 2026-11-05 (owner, 14 seedlings). Next: the Shattered Bark (untuned: lean bot 21 seedlings, completionist 14), waiting for the owner's playtest save. Act II retune order now follows the new route (The Long Current first); The Mending is new and untuned. Lean bot Act II went from 7.72 h to 8.69 h with the reorder (long watch 4.89 h).
@@ -48,6 +48,7 @@ Last updated: 2026-11-05 (build "queue forecast"). Update in every push.
 See design.md: colony content held back from Act II, the Act II legacy themes from the old Honours, and four open questions.
 
 ## Done recently (see changelog.md for all)
+- 2026-11-05: fix: automated gear gathers its own deadwood during the life again (lost on 2026-11-04 06:07); crossing stop and fill unchanged.
 - 2026-11-05: queue chunk C: Now-line reasons, safe import, arrow keys for tabs, Least familiar sort, long-press + for copies.
 - 2026-11-05: queue chunk B: life summary at death, next-automation line per section, time spent per task.
 - 2026-11-05: queue chunk A: preset triggers, skip toggles on queue rows, pause just before the forecast death.
