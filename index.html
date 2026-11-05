@@ -551,7 +551,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
 // Renamed from Long Patience: move this device's old storage keys to the new 'selene.' names once
 try { const old = []; for (let n = 0; n < localStorage.length; n++) old.push(localStorage.key(n)); old.forEach(k => { if (k && k.indexOf('long-patience.') === 0) { const nk = 'selene.' + k.slice(14); if (localStorage.getItem(nk) == null) localStorage.setItem(nk, localStorage.getItem(k)); localStorage.removeItem(k); } }); } catch(e) {}
 /* ===== Game data and rules (no DOM) ===== */
-const BUILD = '2026-11-05 · map folds';   // shown in the main menu, to tell which version is loaded
+const BUILD = '2026-11-05 · folds kept';   // shown in the main menu, to tell which version is loaded
 const DPS = 8;             // simulation ticks per real second at 1x (doubled for the test version: same balance, half the real time)
 // Time is simulated in ticks. 80 ticks make one day unit (18 minutes each), so a day lasts
 // 20 real seconds at 1x and Players only ever see in-game time and real time, never days.
@@ -4111,7 +4111,10 @@ function nowWhy(cur, blip){
 }
 /* ----- other views ----- */
 // Sections behind the current seedling fold into one line (tap to open); 'au:3' / 'sk:3' -> open
-const secFold = {};
+// Auto and Mastery folds: sections behind the seedling fold by default; a section you open stays open
+// (kept on the device in selene.secfold.v1, like the Map folds; only opened ones are stored)
+const SECFOLD_KEY = 'selene.secfold.v1';
+const secFold = (() => { try { const o = JSON.parse(localStorage.getItem(SECFOLD_KEY) || '{}'); return o && typeof o === 'object' ? o : {}; } catch(e) { return {}; } })();
 const folded = (tabk, z) => zBefore(z, S.life.sec || 1) && !secFold[tabk + ':' + z];
 function renderSkills(){
   const L = S.life;
@@ -5016,7 +5019,7 @@ document.addEventListener('click', e => {
     if (sp) toast((sp.length > 1 ? 'Running ' + sp.length + ' sections as one chain: ' + sp.map(z => ZN(z).name).join(' \u2192 ') : 'Running the ' + ZN(L.sec || 1).name + ' as one chain') + '. Sections now run by themselves once ready.');
     taskKey = ''; autoKey = ''; renderView(); return; }
   if ('secstop' in d) { L.chainRun = false; L.runFrom = null; S.set.autoRun = false; savePrefs(); save(); toast('Section run stopped. Sections no longer run by themselves (turn it back on with Run section or in the Auto tab).'); taskKey = ''; autoKey = ''; renderView(); return; }
-  if (d.secfold) { secFold[d.secfold] = !secFold[d.secfold]; autoKey = ''; renderView(true); return; }
+  if (d.secfold) { if (secFold[d.secfold]) delete secFold[d.secfold]; else secFold[d.secfold] = true; try { localStorage.setItem(SECFOLD_KEY, JSON.stringify(secFold)); } catch(e) {} autoKey = ''; renderView(true); return; }
   if ('logfold' in d) { logTables = !logTables; logKey = ''; renderView(true); return; }
   if (d.copen) { cOpen[d.copen] = !cOpen[d.copen]; taskKey = ''; renderView(); return; }
   if (d.qopen) { qOpen[d.qopen] = !qOpen[d.qopen]; taskKey = ''; renderView(); return; }
@@ -5177,7 +5180,7 @@ function showSettings(from){
     <button class="btn pri" data-settingsclose>${from === 'menu' ? 'Back to menu' : 'Close'}</button>`);
 }
 // Reset: like a fresh install. 'soft' keeps the save slots; 'full' clears everything the game keeps on this device.
-const SOFT_KEYS = ['selene.mapfold.v1', 'selene.prefs.v1', 'selene.audio.v1', 'selene.speeds.v1', 'selene.faq.v1', 'selene.layout.v1', 'selene.sharename.v1', 'selene.update.v1'];
+const SOFT_KEYS = ['selene.secfold.v1', 'selene.mapfold.v1', 'selene.prefs.v1', 'selene.audio.v1', 'selene.speeds.v1', 'selene.faq.v1', 'selene.layout.v1', 'selene.sharename.v1', 'selene.update.v1'];
 function creditsPanel(){
   return `<div class="panel set mpanel"><span class="h2">Credits</span>
     <p class="note"><b>Icons</b> made by Lorc, Delapouite and Skoll. Available on <a href="https://game-icons.net" target="_blank" rel="noopener">game-icons.net</a>. Licensed under <a href="https://creativecommons.org/licenses/by/3.0/" target="_blank" rel="noopener">CC BY 3.0</a>; recoloured and simplified. The authors and game-icons.net do not endorse this game.</p>
@@ -5222,7 +5225,7 @@ function exportAll(){
 }
 function askReset(kind){
   const back = () => showSettings(settingsFrom);
-  if (kind === 'soft') return askOverwrite('Reset settings and unlocks?', 'Settings, sound, layout, folded map sections, the share name, app-update options, unlocked game speeds and unlocked FAQ entries go back to a fresh install. Your save slots and death saves are kept. The game reloads.',
+  if (kind === 'soft') return askOverwrite('Reset settings and unlocks?', 'Settings, sound, layout, folded sections (Map, Auto, Mastery), the share name, app-update options, unlocked game speeds and unlocked FAQ entries go back to a fresh install. Your save slots and death saves are kept. The game reloads.',
     [['Reset settings and unlocks', 'warn', () => { save(); wipeAndReload(SOFT_KEYS); }]], back);
   const n = Object.keys(allSaves().slots).length;
   askOverwrite('Reset everything?', 'This erases everything the game keeps on this device: ' + n + ' save' + (n === 1 ? '' : 's') + ' (slots and death saves), all settings and all unlocks, as if the game had just been installed. Export your saves first if you may want them back. This can’t be undone.',

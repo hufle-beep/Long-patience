@@ -49,6 +49,7 @@ Last updated: 2026-11-05 (build "save safety"). Update in every push.
 See design.md: colony content held back from Act II, the Act II legacy themes from the old Honours, and four open questions.
 
 ## Done recently (see changelog.md for all)
+- 2026-11-05: Auto and Mastery folds remembered on the device.
 - 2026-11-05: Map sections fold (by tap, and by themselves once fully mapped; kept on the device).
 - 2026-11-05: pause all automation, welcome back, Log filters with record/automation events, screen-reader announcements.
 - 2026-11-05: route overview on the Map tab, game-icons.net icons, Credits in Settings.
