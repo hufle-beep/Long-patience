@@ -12,7 +12,8 @@ The **Restore points** workflow (`.github/workflows/restore-points.yml`) runs on
 What the recent commits are (newest first):
 | Commit | What it is |
 |---|---|
-| (next) | Orphans swept: dead code, settings, handlers, CSS, data fields (cleanup chunk 4) |
+| (next) | Logic tightened: no-op functions, constant modifiers, stale comments (cleanup chunk 5) |
+| `1306f0e` | Orphans swept: dead code, settings, handlers, CSS, data fields (cleanup chunk 4) |
 | `d00cfee` | Tooltips trimmed: card tooltips without card text, route tap tooltip, compact headers (cleanup chunk 3) |
 | `d95a56a` | Pop-ups merged: What's new inside Welcome back; Journal and two hints dropped (cleanup chunk 2) |
 | `4012298` | Settings merged: one Auto-charge, death and crossing choices, Pause when chips (cleanup chunk 1) |
