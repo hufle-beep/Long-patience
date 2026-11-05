@@ -95,7 +95,6 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--amber);outline-
 .surv em{font-style:normal;color:var(--dim)}
 .surv .plan{flex-basis:100%;color:var(--cyan)}
 .surv .plan.over{color:var(--amber)}
-.task.rest .tm{border-style:dashed}
 .task.train .tm{border-style:dotted}
 .mn.train .mb{stroke-dasharray:1 3}
 .surv.warn b,.surv.warn em{color:var(--red-t)}
@@ -107,7 +106,6 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--amber);outline-
 .eat{flex-basis:100%;margin-top:4px;font-size:12px;padding:5px 8px;border:1px solid var(--green);color:var(--green);border-radius:4px;text-align:center}
 .eat:disabled{border-color:var(--line);color:var(--faint);cursor:default}
 .eat:not(:disabled),.eat.rep:not(:disabled){background:var(--amber);border-color:var(--amber);color:var(--bg);font-weight:600}   /* ready: the action of the moment */
-.res .fq{display:block;font-size:11px;color:var(--green);font-family:var(--f-mono);font-weight:400;margin-top:2px}
 .res small{font-size:11px;margin-left:auto;white-space:nowrap}
 .res small#t-wear{white-space:normal}
 .pos{color:var(--green)} .neg{color:var(--red-t)}
@@ -319,11 +317,6 @@ button.zh.zhb{margin:14px 0 6px}
 .ta{flex:0 0 52px;border:1px solid var(--line);border-radius:5px;font-family:var(--f-mono);font-size:10.5px;letter-spacing:.06em;color:var(--dim);padding:6px 0}
 .side .ta{flex:0 0 auto}
 .ta.on{background:var(--cyan-soft);border-color:var(--cyan);color:var(--cyan)}
-.prio{display:grid;gap:8px;padding:10px;margin-top:-2px;border:1px solid var(--amber);border-radius:5px;background:var(--panel2);font-size:12px;color:var(--dim)}
-.prio b{color:var(--fg);font-weight:500}
-.prio-btns{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
-.prio-btns button{font-family:var(--f-mono);font-size:14px;padding:8px 0;border:1px solid var(--line);border-radius:4px;color:var(--fg)}
-.prio-btns button.on{background:var(--amber);border-color:var(--amber);color:var(--bg)}
 .tq:not(.in){color:var(--amber);background:var(--panel2);border-color:var(--line2)}
 .tq.in{color:var(--amber);border-color:var(--amber);font-size:12px}
 .task.lock .tm{opacity:.45;cursor:default;border-style:dashed}
@@ -346,11 +339,9 @@ button.zh.zhb{margin:14px 0 6px}
 .item>div{flex:1;min-width:0}
 .item h3{margin:0;font-size:14.5px;font-weight:500}
 .item p{margin:2px 0 0;font-size:12px;color:var(--dim)}
-.buy{font-family:var(--f-mono);font-size:12px;padding:8px 10px;border-radius:4px;border:1px solid var(--amber);color:var(--amber);white-space:nowrap;min-width:84px}
 .tq small{display:block;font-size:10px;line-height:1;opacity:.8}
 .gqb{flex:0 0 auto;width:40px;height:40px;margin-left:6px}
 .item.lockd h3{color:var(--dim)}
-.buy:disabled{border-color:var(--line);color:var(--faint);cursor:default}
 .owned{font-family:var(--f-mono);font-size:12px;color:var(--green);min-width:84px;text-align:center}
 
 /* archive */
@@ -425,7 +416,6 @@ html.mopen,html.mopen body{overflow:hidden;overscroll-behavior:none}
 .fld textarea{min-height:64px;resize:vertical;word-break:break-all}
 .btns{display:flex;gap:8px;flex-wrap:wrap}
 .ghst{font-size:12px;color:var(--dim);min-height:1.4em}
-.ghst.err{color:var(--red-t)} .ghst.ok{color:var(--green)}
 .note a{color:var(--cyan)}
 .menub{font-size:18px;line-height:1;padding:4px 8px 5px;border:1px solid var(--line);border-radius:4px;color:var(--fg);align-self:center}
 .mbtns{display:grid;gap:8px}
@@ -454,7 +444,6 @@ html.mopen,html.mopen body{overflow:hidden;overscroll-behavior:none}
 .mn .mf{fill:var(--amber-soft)}
 .mn text{fill:var(--fg);font-family:var(--f-body);font-size:11.5px;font-weight:500}
 .mn .ms{fill:var(--dim);font-family:var(--f-mono);font-size:9.5px;font-weight:400}
-.mn.rest .mb{stroke-dasharray:4 3}
 .mn.done .mb{stroke:var(--amber)}
 .mn.done .mf{fill:var(--amber-fill)}
 .mn.cur .mb{stroke:var(--amber);stroke-width:2}
@@ -595,7 +584,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
 // Renamed from Long Patience: move this device's old storage keys to the new 'selene.' names once
 try { const old = []; for (let n = 0; n < localStorage.length; n++) old.push(localStorage.key(n)); old.forEach(k => { if (k && k.indexOf('long-patience.') === 0) { const nk = 'selene.' + k.slice(14); if (localStorage.getItem(nk) == null) localStorage.setItem(nk, localStorage.getItem(k)); localStorage.removeItem(k); } }); } catch(e) {}
 /* ===== Game data and rules (no DOM) ===== */
-const BUILD = '2026-11-05 · tooltips trimmed';   // shown in the main menu, to tell which version is loaded
+const BUILD = '2026-11-05 · orphans swept';   // shown in the main menu, to tell which version is loaded
 const DPS = 8;             // simulation ticks per real second at 1x (doubled for the test version: same balance, half the real time)
 // Time is simulated in ticks. 80 ticks make one day unit (18 minutes each), so a day lasts
 // 20 real seconds at 1x and Players only ever see in-game time and real time, never days.
@@ -603,13 +592,8 @@ const TPD = 80;
 const JOB_CYCLE = 8;       // in-game days of base work per job batch
 const MEAL_CD = 40;        // ticks between recharges: one recharge per cooldown
 const HUNGER = 0.15;       // base health lost per tick, always, while time runs
-// Strain: the body wears down. The hunger drain is multiplied by strain, which climbs
-// (The fault is gone: energy drain no longer grows over a seedling's life.)
-const MAX_DRAIN = 1.2;     // most health a young seedling can lose per tick (the cap grows with age, see drainNow)
-// Difficulty: the drain cap doubles every CAP_DOUBLE day units (10 s in-game each) of a seedling's life, so strain always wins in
-// the end (good feeding buys time, not immortality); and each section is a little more dangerous than the
-// one before (hunger and hazards x DANGER), with a step up at the start of Act II.
-const CAP_DOUBLE = 30;
+const MAX_DRAIN = 1.2;     // most energy a seedling can lose per tick before danger and the other factors (see drainNow)
+// Difficulty: each section is a little more dangerous than the one before (hunger and hazards x DANGER), with a step up at the start of Act II.
 const DANGER = {1:1.0, 2:1.05, 15:1.075, 3:1.1, 4:1.15, 5:1.2, 9:2.12, 10:2.18, 11:2.24, 12:2.3, 6:2.36, 7:2.42, 8:2.48, 16:2.51, 13:2.54, 14:2.6};   // Act II by route: the long watch, the Boarders (The Mending slotted in), Arrival
 const danger = z => DANGER[z] || 1;
 function drainNow(haz, wear, z){ const k = danger(z); return Math.min((HUNGER + (haz || 0)) * k, MAX_DRAIN * k) * DRAIN_X * (1 - Math.min(0.9, (M && M.stasis) || 0)) / drainDiv() / vitDiv(); }   // stasis tuning (watch records) cuts the drain
@@ -688,29 +672,27 @@ const MEAL_REGEN = 0.05;
 const VOYAGE = 480;
 const voyTxt = z => z && z.yr ? `Year ${z.yr} \u00b7 ${Math.round(z.yr / VOYAGE * 100)}% of the voyage` : '';
 const ZONES = [
-  {id:1, name:'Seedling Vaults',            sub:'Root deck · seedling stock',          tier:1, yr:120},
-  {id:2, name:'Taproot Galleries',   sub:'Power · the sap flow',                   tier:1.6, yr:120},
-  {id:15, name:'The Shattered Bark',  sub:'Hull · the meteor wounds',                 tier:2, yr:120},   // new id: ids 1-14 never change (saves keep progress by them)
-  {id:3, name:'The Heartwood',  sub:'Navigation and WARDEN\u2019s mind',                 tier:2.4, yr:120},
-  {id:4, name:'Canopy Gardens',       sub:'Food · the hydroponic crown',  tier:3.4, yr:120},
-  {id:5, name:'Ember Crown',         sub:'Propulsion · the Hearth Tree\u2019s fire',                     tier:4.6, yr:120},
+  {id:1, name:'Seedling Vaults',            sub:'Root deck · seedling stock',          yr:120},
+  {id:2, name:'Taproot Galleries',   sub:'Power · the sap flow',                   yr:120},
+  {id:15, name:'The Shattered Bark',  sub:'Hull · the meteor wounds',                 yr:120},   // new id: ids 1-14 never change (saves keep progress by them)
+  {id:3, name:'The Heartwood',  sub:'Navigation and WARDEN\u2019s mind',                 yr:120},
+  {id:4, name:'Canopy Gardens',       sub:'Food · the hydroponic crown',  yr:120},
+  {id:5, name:'Ember Crown',         sub:'Propulsion · the Hearth Tree\u2019s fire',                     yr:120},
   // Act II: after the Hearth Tree is kindled. Route: the long watch (9-12), the Boarders (6-8, 16), Arrival (13-14).
-  {id:6, name:'Bark Breach',        sub:'Act II \u00b7 Boarders',        tier:5, yr:477, act:2, br:'A'},
-  {id:7, name:'Contested Boughs',    sub:'Act II \u00b7 Boarders',        tier:5, yr:477, act:2, br:'A'},
-  {id:8, name:'The Hive Ship',      sub:'Act II \u00b7 Boarders',        tier:5, yr:478, act:2, br:'A'},
-  {id:9, name:'The Long Current',         sub:'Act II \u00b7 The long watch',  tier:5, yr:120, act:2, br:'B'},
-  {id:10, name:'The Drift',         sub:'Act II \u00b7 The long watch',  tier:5, yr:160, act:2, br:'B'},
-  {id:11, name:'The Long Dark',     sub:'Act II \u00b7 The long watch',  tier:5, yr:200, act:2, br:'B'},
-  {id:12, name:'Turnover',          sub:'Act II \u00b7 The long watch',  tier:5, yr:240, act:2, br:'B'},
-  {id:16, name:'The Mending',       sub:'Act II \u00b7 Boarders',        tier:5, yr:478, act:2, br:'A'},   // new id: repairs the boarders' damage
-  {id:13, name:'The Tessaly System', sub:'Act II \u00b7 Arrival',        tier:5, yr:479, act:2, br:'C'},
-  {id:14, name:'Tessaly Orbit',     sub:'Act II \u00b7 Arrival',         tier:5, yr:480, act:2, br:'C'},
+  {id:6, name:'Bark Breach',        sub:'Act II \u00b7 Boarders',        yr:477, act:2},
+  {id:7, name:'Contested Boughs',    sub:'Act II \u00b7 Boarders',        yr:477, act:2},
+  {id:8, name:'The Hive Ship',      sub:'Act II \u00b7 Boarders',        yr:478, act:2},
+  {id:9, name:'The Long Current',         sub:'Act II \u00b7 The long watch',  yr:120, act:2},
+  {id:10, name:'The Drift',         sub:'Act II \u00b7 The long watch',  yr:160, act:2},
+  {id:11, name:'The Long Dark',     sub:'Act II \u00b7 The long watch',  yr:200, act:2},
+  {id:12, name:'Turnover',          sub:'Act II \u00b7 The long watch',  yr:240, act:2},
+  {id:16, name:'The Mending',       sub:'Act II \u00b7 Boarders',        yr:478, act:2},   // new id: repairs the boarders' damage
+  {id:13, name:'The Tessaly System', sub:'Act II \u00b7 Arrival',        yr:479, act:2},
+  {id:14, name:'Tessaly Orbit',     sub:'Act II \u00b7 Arrival',         yr:480, act:2},
 ];
-const ZT = {}; ZONES.forEach(z => ZT[z.id] = z.tier);
 const ZBY = {}; ZONES.forEach(z => ZBY[z.id] = z);
 const ZN = id => ZBY[id];
 const zoneThe = z => /^The /.test(ZN(z).name) ? 'the ' + ZN(z).name.slice(4) : 'the ' + ZN(z).name;   // 'the Seedling Vaults', 'The Long Current'
-const ACT2 = 6;   // first Act II section id
 const isA2 = z => !!(ZBY[z] && ZBY[z].act === 2);
 // The route through the ship: Act I, then Act II in order (the long watch, the Boarders, Arrival)
 const ACT1 = [1, 2, 15, 3, 4, 5];   // Act I in route order (by section id)
@@ -1079,7 +1061,7 @@ const TASKS = [
   {id:'patch', z:9, kind:'act', name:'Graft over micrometeor holes', days:167, reps:3, req:['leaks'],
     log:'The voyage is long and Selene is old. Something in her always splits, and every split costs grafts. WARDEN assigns you to keep it from mattering.'},
   {id:'beds', z:9, kind:'job', name:'Tap the cruise sap line', prod:{rations:0.17}, req:['leaks']},
-  {id:'trim', z:9, kind:'job', upkeep:true, name:'Trim the Hearthfire', prod:{salvage:0.12}, req:[]},
+  {id:'trim', z:9, kind:'job', name:'Trim the Hearthfire', prod:{salvage:0.12}, req:[]},
   {id:'watchdrill', z:9, kind:'train', name:'Damage-control drills', days:40, req:['patch']},
   {id:'podscan', z:9, kind:'act', name:'Scan the stasis pods', days:205, req:['patch'], split:'recal'},
   {id:'recal', z:9, kind:'act', name:'Recalibrate the stasis pods', days:469, req:['podscan'], perk:'podtel'},
@@ -1095,7 +1077,7 @@ const TASKS = [
   // The Drift
   {id:'driftfix', z:10, kind:'act', name:'Measure the drift', days:285, req:[], split:'drift'},
   {id:'drift', z:10, kind:'act', name:'Correct the drift', days:651, req:['driftfix'], perk:'driftrec'},
-  {id:'rounds', z:10, kind:'job', upkeep:true, name:'Run the upkeep rounds', prod:{salvage:0.15}, req:[]},
+  {id:'rounds', z:10, kind:'job', name:'Run the upkeep rounds', prod:{salvage:0.15}, req:[]},
   {id:'stores', z:10, kind:'job', name:'Draw from the drift-bough sap stores', prod:{rations:0.19}, req:['drift']},
   {id:'navdrill', z:10, kind:'train', name:'Burn-plotting drills', days:40, req:['drift']},
   {id:'podfind', z:10, kind:'act', name:'Find the failing pod', days:256, req:['drift'], split:'failpod'},
@@ -1120,7 +1102,7 @@ const TASKS = [
   {id:'turnplot', z:11, kind:'act', name:'Plot the turnover point', days:576, req:['vaultseal','creepbrace'], split:'turnpoint'},
   {id:'darkmess', z:11, kind:'act', meal:true, name:'Stretch the reserve with trickle charging', days:400, req:['podalarm']},   // charger upgrade: recharges come more often
   {id:'ws11', z:11, kind:'act', shop:true, name:'Teach the tender drones bark repair', days:400, req:['podalarm']},   // workshop: repairs come more often (costs grafts)
-  {id:'upkeep11', z:11, kind:'job', upkeep:true, name:'Keep the stasis groves running', prod:{salvage:0.18}, req:[]},
+  {id:'upkeep11', z:11, kind:'job', name:'Keep the stasis groves running', prod:{salvage:0.18}, req:[]},
   {id:'darkration', z:11, kind:'job', name:'Ration the stasis-grove reserve sap cells', prod:{rations:0.18}, req:['podalarm']},
   {id:'memdrill', z:11, kind:'train', name:'Memory-bank checks', days:40, req:['memmap']},
   {id:'turnpoint', z:11, kind:'act', cross:true, to:12, name:'Reach the turnover point', days:921, req:[],
@@ -1140,7 +1122,7 @@ const TASKS = [
   {id:'burnmess', z:12, kind:'act', meal:true, name:'Grow a charger that works under thrust', days:400, req:['burncalc']},   // charger upgrade
   {id:'ws12', z:12, kind:'act', shop:true, name:'Brace the frames for the braking burn', days:400, req:['burncalc']},   // workshop: repairs come more often (costs grafts)
   {id:'burnration', z:12, kind:'job', name:'Bleed charge from the braking burn', prod:{rations:0.19}, req:['burncalc']},
-  {id:'shieldpatch', z:12, kind:'job', upkeep:true, name:'Patch the ward-shields', prod:{salvage:0.19}, req:[]},
+  {id:'shieldpatch', z:12, kind:'job', name:'Patch the ward-shields', prod:{salvage:0.19}, req:[]},
   {id:'shielddrill', z:12, kind:'train', name:'Turnover drills', days:40, req:['shieldrig']},
   {id:'relslow', z:12, kind:'act', finale:'B', name:'Drop out of relativistic speed', days:785, lifeEff:{salCap:100}, req:[],
     log:'Two hundred and thirty-seven years of braking later, the stars stop crowding the bow and spread back across the sky. Tessaly’s sun is a sun again, not a point of light.'},
@@ -1193,7 +1175,7 @@ const TASKS = [
   {id:'feast', z:14, kind:'act', meal:true, name:'Plug into the orbital array', days:400, req:['insert']},   // charger upgrade
   {id:'ws14', z:14, kind:'act', shop:true, name:'Grow an orbital repair dock', days:400, req:['insert']},   // workshop: repairs come more often (costs grafts)
   {id:'meatvats', z:14, kind:'job', name:'Charge from the orbital sun-leaves', prod:{rations:0.16}, req:['insertplan']},
-  {id:'orbitkeep', z:14, kind:'job', upkeep:true, name:'Keep the stasis groves cold', prod:{salvage:0.2}, req:[]},
+  {id:'orbitkeep', z:14, kind:'job', name:'Keep the stasis groves cold', prod:{salvage:0.2}, req:[]},
   {id:'trimdrill', z:14, kind:'train', name:'Station-keeping drills', days:40, req:['insert']},
   {id:'safeorbit', z:14, kind:'act', finale:'C', name:'Establish a safe orbit over Tessaly', days:937, req:[], perk:'harbour',
     log:'Selene settles into a stable orbit. Below, Tessaly turns: oceans, cloud, a long brown coast. Three thousand people are still asleep. They are home, nearly. WARDEN holds the wake cycle. Someone has to look at the ground first.'},
@@ -1321,12 +1303,12 @@ ITEMS.forEach(i => { const t = {id:'b:' + i.id, gear:i.id, z:gearZone(i), kind:'
 
 let S, M;
 let HALT = false;   // set by the UI to stop the clock in the middle of a catch-up (e.g. pause on task completion)
-const HOOK = {presetRow(){}, repaired(){}, legacy(){}, legacyAvail(){}, autoRun(){}, ngpEarn(){}, assembling(){}, taskDone(){}, log(){}, perk(){}, die(){}, win(){}, change(){}, stopped(){}, practiced(){}, done(){}, rested(){}, crossed(){}, bought(){}, qfull(){}, merge(){}, kit(){}, runEnd(){}, trig(){}};
+const HOOK = {presetRow(){}, legacy(){}, legacyAvail(){}, autoRun(){}, assembling(){}, taskDone(){}, log(){}, perk(){}, die(){}, win(){}, change(){}, stopped(){}, practiced(){}, done(){}, crossed(){}, bought(){}, qfull(){}, kit(){}, runEnd(){}, trig(){}};
 
 // Player preferences (switches, thresholds, boost speed) are stored once for the device, not per save:
 // a new game or another slot starts with the same settings.
 const PREF_KEY = 'selene.prefs.v1';
-const PREF_KEYS = ['speed','autoRun','autoRepair','autoScav','partsDays','autoFood','autoEat','foodPct','keepQueue','deathScreen','deathPause','startPaused','pauseCross','pauseRunEnd','pauseDone','replay','fillCross','deathQueue','pauseDeath','pauseQueue','pauseFirst','showFormulas'];
+const PREF_KEYS = ['speed','autoRun','autoRepair','autoScav','autoFood','autoEat','foodPct','keepQueue','deathScreen','deathPause','startPaused','pauseCross','pauseRunEnd','pauseDone','deathQueue','pauseDeath','pauseQueue','pauseFirst','showFormulas'];
 function loadPrefs(){ try { const p = JSON.parse(localStorage.getItem(PREF_KEY) || '{}'); const o = {}; PREF_KEYS.forEach(k => { if (p[k] !== undefined) o[k] = p[k]; }); if (p.autoFeed && p.autoFood === false) o.autoFood = true; return o; } catch(e) { return {}; } }   // the old Charge when needed is part of Auto-charge now
 function savePrefs(){ try { if (!S || !S.set) return; const o = {}; PREF_KEYS.forEach(k => { if (S.set[k] !== undefined) o[k] = S.set[k]; }); localStorage.setItem(PREF_KEY, JSON.stringify(o)); } catch(e) {} }
 function newLife(s){
@@ -1339,8 +1321,8 @@ function newLife(s){
   return L;
 }
 function defaultState(){
-  const s = {v:1, tv:3, fav:{}, hide:{}, qpresets:[[], [], [], [], []], gprac:{}, gauto:{}, gprio:{}, ev:2, rv:4, sv:2, pv:3, vv:3, gen:1, prio:{}, fam:{}, ever:{}, prac:{}, auto:{}, echo:{}, perks:{}, seen:{}, logged:{}, log:[], lastOrder:[], lastJob:null,
-    set:Object.assign({speed:1, autoFood:true, autoEat:true, foodDays:2, foodPct:40, keepQueue:true, autoRun:false, autoRepair:true, autoScav:true, partsDays:2, deathScreen:true, deathPause:true, startPaused:false, pauseCross:false, pauseRunEnd:false, pauseDone:false, replay:true, fillCross:false, deathQueue:false, pauseDeath:false, pauseQueue:false, pauseFirst:true, showFormulas:false}, loadPrefs()),
+  const s = {v:1, tv:3, fav:{}, hide:{}, qpresets:[[], [], [], [], []], gprac:{}, gauto:{}, ev:2, rv:4, sv:2, pv:3, vv:3, gen:1, fam:{}, ever:{}, prac:{}, auto:{}, echo:{}, perks:{}, seen:{}, logged:{}, log:[], lastOrder:[], lastJob:null,
+    set:Object.assign({speed:1, autoFood:true, autoEat:true, foodPct:40, keepQueue:true, autoRun:false, autoRepair:true, autoScav:true, deathScreen:true, deathPause:true, startPaused:false, pauseCross:false, pauseRunEnd:false, pauseDone:false, deathQueue:false, pauseDeath:false, pauseQueue:false, pauseFirst:true, showFormulas:false}, loadPrefs()),
     stats:{bestAge:0, deaths:0, daysLived:0, played:0}, a2:{open:false, hon:0, lv:{}, perks:{}, fin:0}, branch:null, merge:null, a2run:{reached:{}, done:{}}, pr:{n:0, pts:0, growth:0, drain:0, hp:0, speed:0, carry:0, runs:[]}, won:false, winGen:0, bank:0, saved:Date.now(), intro:false};
   s.life = newLife(s);
   return s;
@@ -1380,9 +1362,6 @@ const LEGACY_LOG = {
 const LEGACY_FAM = 2;   // legacy bonuses need twice the usual familiarity
 const legacyShare = t => Math.min(1, ((S.fam || {})[t.id] || 0) / (LEGACY_FAM * FAM_N0 * compUnit(t)));
 const ngpLv = id => { const L = S && S.life; if (!L || !LEGACY_T[id]) return 0; let v = 0; LEGACY_T[id].forEach(t => { if (L.done && L.done[t.id]) v += legacyShare(t) / LEGACY_T[id].length; }); return NGP_MAX * v; };   // one final per Act I section (six)
-const ngpPts = () => { const pr = S.pr || {}; return pr.pts != null ? pr.pts : (pr.n || 0); };
-const ngpSpent = () => NGP.reduce((a, r) => a + ngpLv(r.id), 0);
-function ngpEarn(n, why){ S.pr = S.pr || {n:0, pts:0}; S.pr.pts = ngpPts() + n; HOOK.ngpEarn(n, why); }
 const drainDiv = () => S && S.life && isA2(S.life.sec || 1) ? 1 + (drainAt(ngpLv('drain')) - 1) * A2_SHARE : drainAt(ngpLv('drain'));   // Act I reward: drain dampener (Act II: 10%)
 const ngpSpeed = () => speedAt(ngpLv('speed'));    // Act I reward: overclock, flat game speed for the whole game, free
 function mods(){
@@ -1432,7 +1411,7 @@ function frailty(){ return 1; }   // ageing slowdown removed
 // No task types any more: gear and records speed up the work of a whole section
 function tagF(t){ return (M.zsp && M.zsp[t.z]) || 1; }
 function speedOf(t){ return masteryF(t) * tagF(t) * M.spd * frailty() * (t.prod && t.prod.rations ? M.foodSpd * ((M.fspd && M.fspd[t.id]) || 1) : 1); }
-// Automation still counts real completions: every finished action (each rep), drill session, rest or
+// Automation still counts real completions: every finished action (each rep), drill session or
 // job batch adds one; a task's "unit" is one life's worth of it, and AUTO_LIVES units unlock it.
 const MASTER_MIN = 0.1;   // x10 at full familiarity
 const JOB_UNIT = 20;      // about what a life of steady work on a job delivers
@@ -1643,7 +1622,6 @@ function storeRatio(t){ return t.prod && t.prod.rations ? (S.life.food[jobFood(t
 const DEPTH = {};
 function depthOf(t){ if (DEPTH[t.id] != null) return DEPTH[t.id]; DEPTH[t.id] = 0; return DEPTH[t.id] = t.req.length ? 1 + Math.max(...t.req.map(r => depthOf(T[r]))) : 0; }
 const chainOrd = t => depthOf(t) * 1000 + TASKS.indexOf(t);
-const prioOf = t => 3;   // kept for old callers; priorities are gone
 // Chains: two automated tasks of a section link when one requires the other and both are at least
 // x2 familiar. When every task of a section (actions, crossing, jobs ; drills are optional)
 // is automated and at least x5 familiar, the whole section becomes one chain you can run with one click.
@@ -1782,7 +1760,6 @@ function crossHeld(t){ return (S.life.prog[t.id] || 0) >= t.days - CROSS_HOLD - 
 // Gear automation: a design built in AUTO_LIVES different lives can be built automatically.
 // Automated designs are built in priority order; the top one is saved up for before cheaper ones.
 const gearPracticed = it => ((S.gprac || {})[it.id] || 0) >= gearNeed(it);
-const gearPrio = it => (S.gprio && S.gprio[it.id]) || 3;
 function buyItem(id, auto){
   const L = S.life, it = IT[id];
   if (!it || L.owned[id] || assembling(id) || !isDone(it.req) || L.salvage < it.cost) return false;
@@ -1998,7 +1975,7 @@ function recordBest(L){
 function die(cause){
   const L = S.life, dt0 = L.cur && T[L.cur];
   S.engramT = dt0 && dt0.kind !== 'job' && !complete(dt0) && (L.prog[dt0.id] || 0) > 0 ? {id:dt0.id, p:L.prog[dt0.id]} : null;   // for the Engram recorder
-  L.dead = true; L.cause = cause; L.cur = null; L.cur2 = null;
+  L.dead = true; L.cause = cause; L.cur = null;
   const age = L.day / TPD;
   // Hardened genome: every full day a seedling survives adds 0.8 max health to all later seedlings (base caps at 500).
   L.vitGain = Math.floor(L.day / TPD) * 0.8;
@@ -2021,7 +1998,6 @@ function step(dt){
   const L = S.life;
   L.viaChain = false;
   const t = active(); L.cur = t ? t.id : null;
-  const t2 = null; L.cur2 = null;
   if (!t) return false;      // nothing running: time stands still, like Increlution
   work(t, dt, L.viaChain);
   if (M.pRat) FOODS.forEach(f => { if (M.pFood[f.id]) addFood(f.id, M.pFood[f.id] * dt); });
@@ -2029,7 +2005,7 @@ function step(dt){
   clampRes();
   autoBuy();
   // Energy drains all the time; hazards add to it. Recharges put some back. (Legacy levels can damp it.)
-  const h1 = t.haz ? hazDmg(t) : 0, h2 = 0, ht = t;
+  const h1 = t.haz ? hazDmg(t) : 0;
   L.wear = (L.wear || 0) + dt;
   // Act II: the ship slowly wears out; wear adds to the drain until grafts repair it
   if (wearsHere(L.sec)) L.shipWear = (L.shipWear || 0) + dt / TPD * wearRate(L.sec || 1);
@@ -2042,7 +2018,7 @@ function step(dt){
   if (S.set.autoEat) readyFoods().forEach(f => { if (wantsMeal(f)) eat(f); });
   if (L.hp <= 0) {
     L.hp = 0;
-    die(!nextFood() ? 'Ran out of energy' : (wearMul() >= 2 ? 'Worn down with the ship' : h1 || h2 ? 'Killed while trying to ' + ht.name.charAt(0).toLowerCase() + ht.name.slice(1) : 'Drained faster than it could recharge'));
+    die(!nextFood() ? 'Ran out of energy' : (wearMul() >= 2 ? 'Worn down with the ship' : h1 ? 'Killed while trying to ' + t.name.charAt(0).toLowerCase() + t.name.slice(1) : 'Drained faster than it could recharge'));
     return;
   }
   L.day += dt;
@@ -2076,14 +2052,15 @@ function repair(){
   const L = S.life; if (!canRepair()) return 0;
   const a = Math.min(REPAIR_AMT, L.shipWear || 0); L.salvage -= repairCost(null, a); L.shipWear = Math.max(0, (L.shipWear || 0) - a); L.rcd = repairCd(); return a;
 }
-// Parts jobs step in when grafts run low (like auto-forage): below partsDays of repairs, until twice that
+// Parts jobs step in when grafts run low (like auto-forage): below PARTS_DAYS day units of repairs, until twice that
+const PARTS_DAYS = 2;
 function scavJob(){
   const L = S.life;
   if (!S.set.autoScav || !wearsHere()) { L.scav = false; return null; }
   let job = null, br = 0;
   for (const t of TASKS) if (t.kind === 'job' && t.prod && t.prod.salvage && available(t) && !jobFull(t)) { const r = t.prod.salvage * speedOf(t); if (r > br) { br = r; job = t; } }
   if (!job) { L.scav = false; return null; }
-  const low = Math.min(M.salCap * 0.5, partsPerDay() * (S.set.partsDays || 2) + shopNeed());
+  const low = Math.min(M.salCap * 0.5, partsPerDay() * PARTS_DAYS + shopNeed());
   if (L.salvage < low) L.scav = true;
   if (L.scav && L.salvage >= Math.min(M.salCap - 0.01, low * 2)) L.scav = false;
   return L.scav ? job : null;
@@ -2854,20 +2831,18 @@ function setT(el, t){ t = String(t); if (el && el.textContent !== t) { el.textCo
 function setW(el, w){ w = String(w); if (el && el._w !== w) { el._w = w; const f = Math.max(0, Math.min(1, (parseFloat(w) || 0) / 100)); el.style.transform = 'scaleX(' + f + ')';
   const pb = el.parentElement; if (pb && pb.getAttribute('role') === 'progressbar') { const v = String(Math.round(f * 100)); if (pb.getAttribute('aria-valuenow') !== v) pb.setAttribute('aria-valuenow', v); } } }   // live bars (#b-hp, .nf, .tf): w is a width like '42.5%'   // live bars (#b-hp, .nf, .tf): w is a width like '42.5%'
 function setTi(el, t){ if (!el || (el.dataset.tip || '') === t) return; if (t) el.dataset.tip = t; else delete el.dataset.tip; }   // the game's own tooltip (see Tooltips)
-// In-game time this seedling has left at the current hunger and strain (from the HUD's survival forecast)
+// In-game time this seedling has left, as shown last (the forecast's, or survival()'s before it is ready)
 let lastSvT = Infinity;
 const tooLong = days => isFinite(lastSvT) && days > lastSvT + 1e-6;
 const OVER_TIP = 'More than this seedling has left at the current energy use';
 // Net ration and deadwood change per day if task t is the one being worked
-function rates(t, t2){
+function rates(j){
   let rr = M.pRat - eatRate(), sr = M.pSal;
-  [t, t2].forEach(j => {
-    if (j && j.kind === 'job' && j.prod) {
-      const sp = speedOf(j);
-      if (j.prod.rations) rr += j.prod.rations * sp;
-      if (j.prod.salvage) sr += j.prod.salvage * sp;
-    }
-  });
+  if (j && j.kind === 'job' && j.prod) {
+    const sp = speedOf(j);
+    if (j.prod.rations) rr += j.prod.rations * sp;
+    if (j.prod.salvage) sr += j.prod.salvage * sp;
+  }
   return {rr, sr};
 }
 function storeEta(val, cap, rate){
@@ -2875,16 +2850,16 @@ function storeEta(val, cap, rate){
   if (rate < -1e-9) return val <= 0.01 ? {txt:'empty', days:0} : {txt:'empty in', days:val / -rate};
   return {txt:'steady', days:Infinity};
 }
-// How long the seedling lives if the current task keeps going: strain, starvation or injuries
+// Quick fallback until the queue forecast is ready: how long the seedling lives if the current task keeps going
 function survival(){
-  const L = S.life, cur = L.cur ? T[L.cur] : null, cur2 = L.cur2 ? T[L.cur2] : null;
+  const L = S.life, cur = L.cur ? T[L.cur] : null;
   const lifeLeft = 300 * TPD;   // look ahead at most 300 days
-  // Step forward assuming the current task(s) keep running and no rest is taken.
-  const haz = Math.max(cur && cur.haz ? hazDmg(cur) : 0, cur2 && cur2.haz ? hazDmg(cur2) : 0);
+  // Step forward assuming the current task keeps running.
+  const haz = cur && cur.haz ? hazDmg(cur) : 0;
   // each cell type: stock, gain per tick (jobs running + passive), cooldown, heal per recharge
   const fs = FOODS.map(f => {
     let gain = M.pFood[f.id] || 0;
-    [cur, cur2].forEach(j => { if (j && jobFood(j) === f.id) gain += j.prod.rations * speedOf(j); });
+    if (cur && cur.prod && cur.prod.rations && jobFood(cur) === f.id) gain += cur.prod.rations * speedOf(cur);
     return {stock:L.food[f.id] || 0, cap:M.fcap[f.id], gain, cd:(L.mcd || {})[f.id] || 0, full:mealCd(f.id), hp:mealHp(f.id)};
   }).reverse();
   let hp = L.hp, t = 0, why = '';
@@ -2904,7 +2879,6 @@ function survival(){
 }
 const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
 
-const showLocked = {};
 let tab = 'tasks', taskKey = '', gearKey = '', archKey = '', logKey = '', paused = false, refs = [];
 let newLog = false, newPerk = false;
 
@@ -3342,7 +3316,7 @@ function mergeState(raw){
   if (s.life && !Array.isArray(s.life.qdone)) { const q = s.life.queue || []; s.life.qdone = (s.life.qplan || []).filter(id => !q.includes(id)); delete s.life.qplan; }
   WATCH.forEach(p => { if ((s.ever || {})[p.secEnd] || (s.logged || {})[p.secEnd] || (p.secEnd === 'ignite' && s.won) || (s.life && s.life.done && s.life.done[p.secEnd])) s.perks[p.id] = true; });
   delete s.perks.service1; delete s.perks.service2;
-  if (!s.gprac) s.gprac = {}; if (!s.gauto) s.gauto = {}; if (!s.gprio) s.gprio = {};
+  if (!s.gprac) s.gprac = {}; if (!s.gauto) s.gauto = {};
   if (!s.fav || typeof s.fav !== 'object') s.fav = {}; if (!s.hide || typeof s.hide !== 'object') s.hide = {};   // favourite and hidden task cards
   if (!s.a2 || typeof s.a2 !== 'object') s.a2 = {open:false, hon:0, lv:{}, perks:{}, fin:0};
   ['lv','perks'].forEach(k => { if (!s.a2[k]) s.a2[k] = {}; });
@@ -3367,7 +3341,7 @@ function mergeState(raw){
   if (!s.autoDef) { s.autoDef = 1; const P = s.prac || {}; s.auto = s.auto || {};
     TASKS.forEach(t => { const u = t.kind === 'job' ? JOB_UNIT : t.kind === 'train' ? TRAIN_CAP : (t.reps || 1); if ((P[t.id] || 0) >= AUTO_LIVES * u && s.auto[t.id] == null) s.auto[t.id] = true; });
     ITEMS.forEach(i => { if ((s.gprac[i.id] || 0) >= AUTO_LIVES && s.gauto[i.id] == null) s.gauto[i.id] = true; }); }
-  if (!s.prac) s.prac = {}; if (!s.auto) s.auto = {}; if (!s.prio) s.prio = {};
+  if (!s.prac) s.prac = {}; if (!s.auto) s.auto = {};
   if (!s.drv1) {   // one drill per section: the kept drill takes the higher automation count of the pair
     s.drv1 = 1;
     DRILL_MERGE.forEach(([k, g]) => {
@@ -3385,12 +3359,11 @@ function mergeState(raw){
   }
   if ((raw.pv || 0) < 3) TASKS.forEach(t => { if (s.prac[t.id] != null) s.prac[t.id] = Math.round(s.prac[t.id] * compUnit(t)); });   // v3: practice in completions
   s.pv = 3;
-  if (!raw.rv) { s.set.foodDays = Math.max(2, Math.round(s.set.foodDays / 2)); if (s.life) s.life.rations = (s.life.rations || 0) / 2; }
+  if (!raw.rv && s.life) s.life.rations = (s.life.rations || 0) / 2;
   if ((raw.rv || 0) < 3) {   // v3: cells x0.4, deadwood x0.25
-    s.set.foodDays = Math.max(1, Math.round(s.set.foodDays * 0.4));
     if (s.life) { s.life.rations = (s.life.rations || 0) * 0.4; s.life.salvage = (s.life.salvage || 0) * 0.25; }
   }
-  if ((raw.rv || 0) < 4) { s.set.foodDays = Math.max(1, Math.round(s.set.foodDays / 2)); if (s.life) s.life.rations = (s.life.rations || 0) / 2; }   // v4: cells halved
+  if ((raw.rv || 0) < 4 && s.life) s.life.rations = (s.life.rations || 0) / 2;   // v4: cells halved
   s.rv = 4;
   if (s.life && !s.life.food) {   // v5: separate food stores; old cells become this section's food
     s.life.food = {}; s.life.mcd = {};
@@ -3459,7 +3432,6 @@ function showMenu(view){
     }
     h += '</div><button class="btn" data-menu="back">Back</button>';
   } else if (view === 'saves') {
-    const cur2 = cur;
     h += '<span class="lbl">Save slots</span><div class="slots">';
     for (let i = 1; i <= SLOTS; i++) {
       const r = readSlot(i), act = i === slot, dmg = !r && !!slotText(i);
@@ -3468,7 +3440,7 @@ function showMenu(view){
       if (r) h += `<button class="btn" data-rename="${i}">Rename</button>`;
       const fromD = slot === 'd' + i;   // playing this slot's own death save
       if (!act && r) h += fromD ? `<button class="btn" data-loadslot="${i}" data-leaved="1">Load slot ${i} (leave the death save)</button>` : `<button class="btn" data-loadslot="${i}">Load</button>`;
-      if (!act && cur2 && !dmg) h += `<button class="btn" data-saveto="${i}">${fromD ? 'Copy this death save into slot ' + i : r ? 'Save over' : 'Save here'}</button>`;
+      if (!act && cur && !dmg) h += `<button class="btn" data-saveto="${i}">${fromD ? 'Copy this death save into slot ' + i : r ? 'Save over' : 'Save here'}</button>`;
       if (!act && r) h += `<button class="btn warn" data-delslot="${i}">Delete</button>`;
       if (Object.keys(readBk(i)).length) h += `<button class="btn" data-bkslot="${i}">Backups</button>`;
       if (act) h += '<span class="ghst">Saves automatically every few seconds.</span><button class="btn warn" data-askreset="">Restart</button>';
@@ -3528,7 +3500,6 @@ function showStory(){
 }
 HOOK.done = t => sfx('complete');
 HOOK.qfull = () => { sfx('error'); toast('The queue is full (' + QMAX + ' items). Remove something first.'); };
-HOOK.ngpEarn = (n, why) => { archKey = ''; toast('Act I reward point' + (n > 1 ? 's +' + n : ' +1') + ' for ' + why + '. Spend ' + (n > 1 ? 'them' : 'it') + ' in the Legacy tab.', true); };
 HOOK.legacy = k => { legKey = ''; taskKey = ''; toast('New legacy tasks: ' + LEG_NAME[k] + ', five parts in every Act I section, needed for its crossing (see the Legacy tab).', true); };
 HOOK.autoRun = sp => { taskKey = ''; autoKey = ''; toast('Section run started by itself: ' + sp.map(z => ZN(z).name).join(' \u2192 ') + '.'); };
 HOOK.legacyAvail = ts => { taskKey = ''; legKey = ''; sfx('perk');
@@ -3645,7 +3616,6 @@ function rewardBits(t){
   if (t.win) rest.push('<span class="star">the end of the voyage</span>');
   return {life:b, kept, rest};
 }
-let openPrio = null;
 const qOpen = {};   // which chain entries are folded open in the queue
 // A merged chain as one task card: the remaining work of all its steps at
 // chain-flow speed, and a bar for how much of the chain is done. Tap: run it now; +: queue it.
@@ -3702,12 +3672,6 @@ function autoBtn(t){
   const on = !!S.auto[t.id];
   return `<button class="ta${on ? ' on' : ''}" data-auto="${t.id}" aria-pressed="${on}" aria-label="Automate ${esc(t.name)}">AUTO</button>` +
 ''; 
-}
-function prioPick(t){
-  return '';   // priorities were replaced by chains
-  if (openPrio !== t.id || !practiced(t)) return '';
-  return `<div class="prio"><span>Automation priority for <b>${esc(t.name)}</b>. 1 runs first.</span><div class="prio-btns">` +
-    [1,2,3,4,5].map(n => `<button data-setprio="${t.id}" data-n="${n}" class="${prioOf(t) === n ? 'on' : ''}">${n}</button>`).join('') + '</div></div>';
 }
 function chips(t){ return ''; }
 // Favourite and hidden task cards (kept in the save); "Edit list" shows the toggles
@@ -4061,7 +4025,6 @@ HOOK.trig = (i, r) => { taskKey = ''; toast('Trigger ' + (i + 1) + ': loaded pre
 // The queue + keeps its long-press (queue every copy), so it shows its tooltip on hover only.
 const TIP_HOVER = 400, TIP_HOLD = 500, TIP_STAY = 4000;
 let tipEl = null, tipT = null, tipHideT = null, tipSrc = null, tipTouch = null, tipSwallow = false, tipAnchor = null;
-const stripTags = s => String(s || '').replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
 function tipText(el){
   if (el.matches('[data-tip]') && el.dataset.tip) return el.dataset.tip;
   if (el.matches('.task[data-id]') && T[el.dataset.id]) { const t = T[el.dataset.id], op = opensOf(t), sv = masteryFrac(t) > 0 ? famSaved(t) : 0;
@@ -4153,7 +4116,7 @@ document.addEventListener('pointerleave', e => { if (e.target.closest && e.targe
 document.addEventListener('click', e => { if (lpXDone && e.target.closest && e.target.closest('button[data-unqi]')) { lpXDone = false; e.stopImmediatePropagation(); e.preventDefault(); } }, true);
 // Tap guard (round 5): a second tap within TAP_GUARD ms on the same button that spends, crosses or confirms is ignored,
 // so a double tap can't build, repair, recharge, cross or confirm twice ("Tap again" needs a real second tap).
-const TAP_GUARD = 400, GUARD_SEL = '[data-gdo],[data-repair],[data-eat],[data-confirm],[data-skiphold],[data-decant],[data-buy]';
+const TAP_GUARD = 400, GUARD_SEL = '[data-gdo],[data-repair],[data-eat],[data-confirm],[data-skiphold],[data-decant]';
 let guardK = '', guardT = -1e9;
 function tapGuardKey(b){
   if (b.matches(GUARD_SEL)) return JSON.stringify(Object.assign({}, b.dataset));
@@ -4208,8 +4171,8 @@ let tkSig = '', tkFullT = 0;
 function tkQuickSig(){
   const L = S.life; let ds = 0; for (const k in L.done) ds += L.done[k];
   let ga = 0; if (L.queue.some(isGQ) || ITEMS.some(i => assembling(i.id))) ITEMS.forEach(i => { ga += Math.floor((L.prog['b:' + i.id] || 0) / BT[i.id].days * 20); });
-  return [uiN, S.gen, L.sec, L.cur, L.cur2, L.now, L.job, L.held, !!L.chainRun, L.dead, L.queue.length, L.queue[0], L.queue[L.queue.length - 1], (L.qdone || []).length, ds,
-    Object.keys(L.owned).length, ga, L.queue.some(isGQ) ? Math.floor(L.salvage) : '', Object.keys(S.perks).length, editList, openPrio].join('|');
+  return [uiN, S.gen, L.sec, L.cur, L.now, L.job, L.held, !!L.chainRun, L.dead, L.queue.length, L.queue[0], L.queue[L.queue.length - 1], (L.qdone || []).length, ds,
+    Object.keys(L.owned).length, ga, L.queue.some(isGQ) ? Math.floor(L.salvage) : '', Object.keys(S.perks).length, editList].join('|');
 }
 function renderTasks(){
   if (qDrag) return;   // don't rebuild the list under the finger
@@ -4224,7 +4187,7 @@ function renderTasks(){
     if (av && !complete(t)) vis.push(t.id);
     else if (!av && S.seen[t.id] && legacyOpen(t)) locked.push(t.id);
   });
-  const key = vis.join() + '|' + JSON.stringify(S.fav || {}) + JSON.stringify(S.hide || {}) + editList + JSON.stringify(showHid) + '|' + locked.join() + '|' + [...chainedIds()].join() + JSON.stringify(cOpen) + JSON.stringify(qOpen) + JSON.stringify(L.cjd || {}) + L.queue.filter(isCQ).map(id => cSteps(id).filter(x => cStepDone(id, x)).length).join() + (L.now || '') + (L.chainRun ? 'R' : '') + runSpan(L.sec || 1).join('') + JSON.stringify(sectionGate(L.sec || 1)) + ITEMS.filter(i => isDone(i.req)).map(i => i.id + (L.owned[i.id] ? 'o' : assembling(i.id) ? 'a' + Math.floor((L.prog['b:' + i.id] || 0) / BT[i.id].days * 20) : L.salvage >= i.cost ? 'y' : 'n') + (gearAuto(i) ? '*' : '') + ((S.gprac || {})[i.id] || 0)).join() + '|' + L.queue.join() + (L.queue.some(isGQ) ? Math.floor(L.salvage) + '/' + M.salCap + Object.keys(L.owned).join() : '') + '|' + L.job + '|' + Object.keys(S.perks).join() + '|' + S.gen + '|' + JSON.stringify(showLocked) + '|' + L.sec + '|' + (L.held || '') + holdList().join() + '|' + JSON.stringify(S.qpresets) + (L.qdone || []).length + (S.set.keepQueue !== false) + '|' + TASKS.filter(t => practiced(t)).map(t => t.id + (S.auto[t.id] ? '*' : '') + prioOf(t)).join() + '|' + openPrio + '|' + JSON.stringify(L.qskip || {}) + JSON.stringify(S.qtrig || []) + '|' + !!(qUndo && qUndo.gen === S.gen) + JSON.stringify(S.qpnames || []);
+  const key = vis.join() + '|' + JSON.stringify(S.fav || {}) + JSON.stringify(S.hide || {}) + editList + JSON.stringify(showHid) + '|' + locked.join() + '|' + [...chainedIds()].join() + JSON.stringify(cOpen) + JSON.stringify(qOpen) + JSON.stringify(L.cjd || {}) + L.queue.filter(isCQ).map(id => cSteps(id).filter(x => cStepDone(id, x)).length).join() + (L.now || '') + (L.chainRun ? 'R' : '') + runSpan(L.sec || 1).join('') + JSON.stringify(sectionGate(L.sec || 1)) + ITEMS.filter(i => isDone(i.req)).map(i => i.id + (L.owned[i.id] ? 'o' : assembling(i.id) ? 'a' + Math.floor((L.prog['b:' + i.id] || 0) / BT[i.id].days * 20) : L.salvage >= i.cost ? 'y' : 'n') + (gearAuto(i) ? '*' : '') + ((S.gprac || {})[i.id] || 0)).join() + '|' + L.queue.join() + (L.queue.some(isGQ) ? Math.floor(L.salvage) + '/' + M.salCap + Object.keys(L.owned).join() : '') + '|' + L.job + '|' + Object.keys(S.perks).join() + '|' + S.gen + '|' + L.sec + '|' + (L.held || '') + holdList().join() + '|' + JSON.stringify(S.qpresets) + (L.qdone || []).length + (S.set.keepQueue !== false) + '|' + TASKS.filter(t => practiced(t)).map(t => t.id + (S.auto[t.id] ? '*' : '')).join() + '|' + JSON.stringify(L.qskip || {}) + JSON.stringify(S.qtrig || []) + '|' + !!(qUndo && qUndo.gen === S.gen) + JSON.stringify(S.qpnames || []);
   const gk = JSON.stringify(sectionGate(L.sec || 1)) + runSpan(L.sec || 1).join() + !!L.chainRun + '|' + vis.map(id => (S.ever || {})[id] ? 'e' : '').join() + '|' + ITEMS.map(i => (gearKnown(i) ? 'k' : '') + (gearPracticed(i) ? 'p' : '')).join();   // familiarity and auto % update in place (updateTasks), so they never rebuild the list
   if (key + gk === taskKey) return;
   taskKey = key + gk;
@@ -4308,7 +4271,7 @@ function renderTasks(){
             <div class="th"><span class="tn">${esc(t.name)}</span><span class="te num"></span></div>
             <div class="tx">${chips(t)}<span class="num rp"></span><span class="num pp">${progHtml(t, autoFrac(t))}</span>${effectHtml(t)}</div>
           </button>
-          <div class="side">${editList ? edBtns(t) : tqBtn(t) + autoBtn(t)}</div></div>` + prioPick(t);
+          <div class="side">${editList ? edBtns(t) : tqBtn(t) + autoBtn(t)}</div></div>`;
       });
     }
     if (acts.length) {
@@ -4320,7 +4283,7 @@ function renderTasks(){
             <div class="th"><span class="tn">${esc(t.name)}${tIcons(t)}</span><span class="te num"></span></div>
             <div class="tx">${chips(t)}${t.reps > 1 ? `<span class="num rp"></span>` : ''}${t.haz ? '<span class="haz">▲ hazard</span>' : ''}<span class="num pp">${progHtml(t, autoFrac(t))}</span>${effectHtml(t)}</div>
           </button>
-          <div class="side">${editList ? edBtns(t) : tqBtn(t) + autoBtn(t)}</div></div>` + prioPick(t);
+          <div class="side">${editList ? edBtns(t) : tqBtn(t) + autoBtn(t)}</div></div>`;
       });
     }
     {
@@ -4372,7 +4335,7 @@ function updateTasks(){
   });
   gRefs.forEach(r => setH(r.pp, progHtml(BT[r.i.id], gearAutoFrac(r.i))));   // gear familiarity / auto %, in place
   refs.forEach(r => {
-    const t = r.t, on = L.cur === t.id || L.cur2 === t.id;
+    const t = r.t, on = L.cur === t.id;
     if (r.pp) setH(r.pp, progHtml(t, autoFrac(t)));   // familiarity / auto %, in place (no list rebuild)
     r.el.classList.toggle('on', shown.id ? shown.id === t.id : on);
     const sp = speedOf(t);
@@ -4562,8 +4525,8 @@ function updateHud(){
   setW($('#b-hp'), Math.max(0, L.hp / M.maxHp * 100) + '%');
   if (!L.dead && L.hp < M.maxHp * 0.15) { if (lowWarn !== S.gen) { lowWarn = S.gen; sfx('low'); } }   // once per seedling
   setT($('#t-hp'), Math.ceil(L.hp) + ' / ' + M.maxHp);
-  let cur = L.cur ? T[L.cur] : null; const cur2 = L.cur2 ? T[L.cur2] : null;
-  const {rr, sr} = rates(cur, cur2);
+  let cur = L.cur ? T[L.cur] : null;
+  const {rr, sr} = rates(cur);
   const sv = survival(), surv = $('#surv');
   // the forecast replaces the rough estimate once it is ready: it plays out the queue, automation, recharges and crossings
   const fc = fcOk() ? fcShow : null;
@@ -4767,7 +4730,7 @@ function renderGear(){
   const L = S.life;
   const av = ITEMS.filter(i => isDone(i.req));
   const known = ITEMS.filter(i => !isDone(i.req) && ((S.gprac || {})[i.id] || 0) > 0 && !zBefore(gearZone(i), L.sec || 1));
-  const key = M.salCap + '|' + L.queue.filter(isGQ).join() + '|' + known.map(i => i.id).join() + '|' + av.map(i => i.id + (L.owned[i.id] ? 'o' : assembling(i.id) ? 'a' + Math.floor((L.prog['b:' + i.id] || 0) / BT[i.id].days * 20) : (L.salvage >= i.cost ? 'y' : 'n')) + ((S.gprac || {})[i.id] || 0) + (S.gauto && S.gauto[i.id] ? '*' : '') + gearPrio(i)).join();
+  const key = M.salCap + '|' + L.queue.filter(isGQ).join() + '|' + known.map(i => i.id).join() + '|' + av.map(i => i.id + (L.owned[i.id] ? 'o' : assembling(i.id) ? 'a' + Math.floor((L.prog['b:' + i.id] || 0) / BT[i.id].days * 20) : (L.salvage >= i.cost ? 'y' : 'n')) + ((S.gprac || {})[i.id] || 0) + (S.gauto && S.gauto[i.id] ? '*' : '')).join();
   if (key === gearKey) return; gearKey = key;
   let h = '<div class="panel"><span class="h2">Fabricator</span><p class="note">' + (salW() === 'grafts' ? 'Gear is grown from grafts and lasts for this seedling only. New designs appear as you explore. Graft storage is limited; opening up more of the ship raises it.' : 'Gear is built from deadwood and lasts for this seedling only. New designs appear as you explore. Deadwood storage is limited; opening up more of the ship raises it.') + '</p></div><div>';
   if (!av.length) h += '<p class="note">Nothing to build yet. Climb out of the seed pod first.</p>';
@@ -5093,21 +5056,12 @@ function tgtHtml(z){
 // been done at least once (fully mapped), except the section the seedling is in. Choices are kept on the device
 // (selene.mapfold.v1: id -> 'o' open / 'c' closed, overriding the default).
 const MAPFOLD_KEY = 'selene.mapfold.v1';
-let mapFold = null;
-function mapFoldGet(){ if (!mapFold) { try { mapFold = JSON.parse(localStorage.getItem(MAPFOLD_KEY) || '{}') || {}; } catch(e) { mapFold = {}; } } return mapFold; }
 const mapAll = z => TASKS.filter(t => t.kind !== 'job' && t.kind !== 'build' && !(t.legacy && t.kind === 'train') && t.z === z && legacyOpen(t));   // optional legacy drills don't count
 const mapFull = z => { const ev = S.ever || {}, a = mapAll(z); return a.length > 0 && a.every(t => ev[t.id]); };
 try { const old = JSON.parse(localStorage.getItem(MAPFOLD_KEY) || '{}') || {}; let n = 0; for (const z in old) if (!(('mp:' + z) in secFold)) { secFold['mp:' + z] = old[z]; n++; } if (n) localStorage.setItem(SECFOLD_KEY, JSON.stringify(secFold)); localStorage.removeItem(MAPFOLD_KEY); } catch(e) {}   // Map folds now share selene.secfold.v1
-function mapFolded(z){ const f = mapFoldGet()[z]; return f === 'c' ? true : f === 'o' ? false : z !== (S.life.sec || 1) && mapFull(z); }
-function mapFoldToggle(z){
-  const want = !mapFolded(z), def = z !== (S.life.sec || 1) && mapFull(z), f = mapFoldGet();
-  if (want === def) delete f[z]; else f[z] = want ? 'c' : 'o';   // only differences from the default are kept
-  try { localStorage.setItem(MAPFOLD_KEY, JSON.stringify(f)); } catch(e) {}
-  mapKey = ''; renderView(true);
-}
 function renderMap(){
   const ever = S.ever || {};
-  const key = Object.keys(ever).join() + '|' + S.gen + '|' + JSON.stringify((S.a2run || {}).reached || {}) + '|' + (S.life.sec || 1) + JSON.stringify(S.life.visited || {}) + Object.keys(S.firstAt || {}).join() + JSON.stringify(mapFoldGet());
+  const key = Object.keys(ever).join() + '|' + S.gen + '|' + JSON.stringify((S.a2run || {}).reached || {}) + '|' + (S.life.sec || 1) + JSON.stringify(S.life.visited || {}) + Object.keys(S.firstAt || {}).join() + JSON.stringify(secFold);
   if (key === mapKey) return; mapKey = key;
   let h = '<div class="panel"><span class="h2">Ship map</span><p class="note">Every action your seedlings have ever performed, by section. Lines show what each one needs. Filled boxes are done in this life; the glowing one is in progress. Tap an action to work on it.</p></div>';
   h = `<p class="note tuned">${TUNED_TXT}</p>` + routeHtml() + h;
@@ -5167,7 +5121,7 @@ function renderMap(){
 function updateMap(){
   const L = S.life;
   mapRefs.forEach(r => {
-    const t = r.t, av = available(t), done = complete(t), cur = L.cur === t.id || L.cur2 === t.id;
+    const t = r.t, av = available(t), done = complete(t), cur = L.cur === t.id;
     r.g.classList.toggle('done', done); r.g.classList.toggle('cur', cur); r.g.classList.toggle('lock', !av && !done); r.g.classList.toggle('passed', zBefore(t.z, L.sec) && !done);
     let p = done ? 1 : (L.prog[t.id] || 0) / t.days;
     r.f.setAttribute('width', (Math.min(1, p) * r.w).toFixed(1));
@@ -5214,7 +5168,7 @@ function bindFoodPct(){
 function partsSettingsHtml(){
   if (!(S.a2 && S.a2.open)) return '';
   let h = `<div class="row"><p>Auto-repair<small>Act II: spend grafts on Selene whenever her wear reaches a full repair and the repair cooldown is over.</small></p><button class="tog${S.set.autoRepair ? ' on' : ''}" data-set="autoRepair" aria-label="Auto-repair" aria-pressed="${!!S.set.autoRepair}"></button></div>`;
-  h += `<div class="row"><p>Auto-scavenge<small>Act II: work the best graft job when grafts drop below ${(S.set.partsDays || 2) * TPD / DPS} seconds of repairs (plus any workshop you are about to build), and stay until twice that.</small></p><button class="tog${S.set.autoScav ? ' on' : ''}" data-set="autoScav" aria-label="Auto-scavenge" aria-pressed="${!!S.set.autoScav}"></button></div>`;
+  h += `<div class="row"><p>Auto-scavenge<small>Act II: work the best graft job when grafts drop below ${PARTS_DAYS * TPD / DPS} seconds of repairs (plus any workshop you are about to build), and stay until twice that.</small></p><button class="tog${S.set.autoScav ? ' on' : ''}" data-set="autoScav" aria-label="Auto-scavenge" aria-pressed="${!!S.set.autoScav}"></button></div>`;
   return h;
 }
 function foodSettingsHtml(){
@@ -5247,7 +5201,7 @@ function renderAuto(){
   // not yet automatable, but met in this save: shown with what is still needed
   const plist = TASKS.filter(t => !practiced(t) && (t.kind === 'act' || t.kind === 'train') && ((S.ever || {})[t.id] || (S.seen || {})[t.id]) && (!t.legacy || legacyOpen(t)));
   const pglist = ITEMS.filter(i => !gearPracticed(i) && ((S.ever || {})[i.req] || gearKnown(i)));
-  const key = plist.map(t => t.id + (S.prac[t.id] || 0)).join() + '|' + pglist.map(i => i.id + ((S.gprac || {})[i.id] || 0)).join() + '|' + JSON.stringify(secFold) + (S.life.sec || 1) + !!S.won + a2Done() + list.map(t => t.id + (S.auto[t.id] ? '*' : '') + (masteryF(t) >= SECTION_F ? 5 : masteryF(t) >= LINK_F ? 2 : 1)).join() + '|' + glist.map(i => i.id + (S.gauto[i.id] ? '*' : '')).join() + '|' + (S.life.chainRun ? 'R' : '') + '|' + L.sec + '|' + S.gen + '|' + !!S.set.fillCross + '|' + (S.set.deathScreen !== false) + (S.set.deathPause !== false) + !!S.set.startPaused + !!S.set.pauseCross + decantUnlocked() + (S.stats.deaths || 0);
+  const key = plist.map(t => t.id + (S.prac[t.id] || 0)).join() + '|' + pglist.map(i => i.id + ((S.gprac || {})[i.id] || 0)).join() + '|' + JSON.stringify(secFold) + (S.life.sec || 1) + !!S.won + a2Done() + list.map(t => t.id + (S.auto[t.id] ? '*' : '') + (masteryF(t) >= SECTION_F ? 5 : masteryF(t) >= LINK_F ? 2 : 1)).join() + '|' + glist.map(i => i.id + (S.gauto[i.id] ? '*' : '')).join() + '|' + (S.life.chainRun ? 'R' : '') + '|' + L.sec + '|' + S.gen + '|' + '|' + (S.set.deathScreen !== false) + (S.set.deathPause !== false) + !!S.set.startPaused + !!S.set.pauseCross + decantUnlocked() + (S.stats.deaths || 0);
   if (key === autoKey) return; autoKey = key;
   let h = `<div class="panel"><span class="h2">Automation</span><button class="sub secfold aintro" data-secfold="au:intro" aria-expanded="${!!secFold['au:intro']}">${secFold['au:intro'] ? '\u25be' : '\u25b8'} How automation works</button>${secFold['au:intro'] ? `<p class="note">Tasks finished often enough can run by themselves (${autoScale() < 1 ? 'this run needs ' + Math.round(autoScale() * 100) + '% of' : ''} 10 lives' worth: an action 10 times, a training session 40 times), and gear built in ${AUTO_LIVES} lives can be built automatically (in ship order; the seedling saves up for the next one). Switch them on here. They run in chain order: each after the tasks it needs. Linked tasks form chains, and a fully chained section can be run with one click. Automated tasks run ahead of your queue; automated crossings wait until the queue is done.</p>` : ''}
     ${foodSettingsHtml()}${partsSettingsHtml()}
@@ -5463,10 +5417,9 @@ function showWin(){
 const confirmT = {};
 document.addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b) return;
-  audioStart(); sfx(b.classList.contains('tog') || b.classList.contains('ta') ? 'toggle' : b.dataset.buy ? 'buy' : 'click');
+  audioStart(); sfx(b.classList.contains('tog') || b.classList.contains('ta') ? 'toggle' : 'click');
   const L = S.life, d = b.dataset;
   if (d.tab) return setTab(d.tab);
-  if (d.speed) { S.set.speed = +d.speed; S.set.paused = false; renderSpeed(); return; }
   if ('pause' in d) { togglePause(); return; }
 
   if ('skiphold' in d) { skipHold(); taskKey = ''; toast('Crossing now.'); renderView(); return; }
@@ -5500,7 +5453,6 @@ document.addEventListener('click', e => {
   }
   if (d.ow) { const f = owActs[d.ow]; owActs = {}; if (f) f(); return; }
   if (d.reset) return askReset(d.reset);
-  if (d.mapfold) return mapFoldToggle(+d.mapfold);
   if (d.fold) return foldTap(d.fold);
   if ('autopause' in d) {
     S.set.autoPaused = !S.set.autoPaused; HOOK.change(); taskKey = ''; autoKey = ''; renderSpeed(); save();
@@ -5592,7 +5544,6 @@ document.addEventListener('click', e => {
   }
   if (d.layout) { setLayout(d.layout); return; }
   if (d.tsize) { setTextSize(d.tsize); return; }
-  if ('flip' in d) { setLayout(isHoriz() ? 'vertical' : 'horizontal'); toast(isHoriz() ? 'Horizontal layout' : 'Vertical layout'); return; }
   if (d.atog) {
     ASET[d.atog] = !ASET[d.atog]; asave(); audioVolumes();
     document.querySelectorAll(`[data-atog="${d.atog}"]`).forEach(x => { x.classList.toggle('on', ASET[d.atog]); x.setAttribute('aria-pressed', ASET[d.atog]); });
@@ -5630,7 +5581,6 @@ document.addEventListener('click', e => {
     try { navigator.clipboard.writeText(code).then(() => toast('Save code copied'), fallback); } catch(e) { fallback(); }
     return;
   }
-  if ('ngp' in d) return;   // restarting Act I was removed
   if (L.dead && !d.confirm) return;
   if (d.gdo) {   // tapping a gear card: build it now, gathering deadwood first if needed (not queued)
     const it = IT[d.gdo]; if (!it || !gearTap(it)) return;
@@ -5668,10 +5618,7 @@ document.addEventListener('click', e => {
     }
     taskKey = ''; gearKey = ''; renderView(); return;
   }
-  if (d.prio) { openPrio = openPrio === d.prio ? null : d.prio; taskKey = ''; renderView(); return; }
-  if (d.setprio) { S.prio[d.setprio] = +d.n; openPrio = null; autoKey = ''; toast('Priority ' + d.n + ': ' + T[d.setprio].name); taskKey = ''; renderView(); return; }
   if (d.auto) { autoKey = ''; taskKey = ''; S.auto[d.auto] = !S.auto[d.auto]; toast((S.auto[d.auto] ? 'Automated: ' : 'Automation off: ') + T[d.auto].name); taskKey = ''; renderView(); return; }
-  if (d.showlock) { showLocked[d.showlock] = !showLocked[d.showlock]; taskKey = ''; renderView(); return; }
   if ('qundo' in d) { const u = qUndoNow(); toast(u ? 'Undone: ' + u.toLowerCase() : 'Nothing to undo'); taskKey = ''; gearKey = ''; renderView(); return; }
   if ('qtext' in d) { qTextPanel(); return; }
   if ('editlist' in d) { editList = !editList; taskKey = ''; renderView(); return; }
@@ -5729,12 +5676,7 @@ document.addEventListener('click', e => {
     L.queue = keep ? [keep] : []; L.qdone = []; if (L.held && L.held !== keep) L.held = null;
     toast(keep ? 'Queue cleared; the current task stays. Undo puts it back.' : 'Queue cleared. Undo puts it back.'); taskKey = ''; renderView(); return;
   }
-  if (d.buy) {
-    if (buyItem(d.buy, false)) renderView();
-    return;
-  }
   if (d.gauto) { S.gauto[d.gauto] = !S.gauto[d.gauto]; autoKey = ''; gearKey = ''; taskKey = ''; toast((S.gauto[d.gauto] ? 'Auto-build on: ' : 'Auto-build off: ') + IT[d.gauto].name); renderView(); return; }
-  if (d.gsetprio) { S.gprio[d.gsetprio] = +d.n; autoKey = ''; gearKey = ''; toast('Priority ' + d.n + ': ' + IT[d.gsetprio].name); renderView(); return; }
   if (d.setto) { d.setto.split(',').forEach(kv => { const [k, v] = kv.split('='); S.set[k] = v === 'true'; }); }   // a choice that sets several switches at once
   if (d.set || d.setto) { if (d.set) S.set[d.set] = d.set === 'deathPause' ? S.set.deathPause === false : !S.set[d.set]; savePrefs(); if (d.set === 'autoRun') { if (S.set.autoRun) autoRunCheck(); else if (L.chainRun) { L.chainRun = false; L.runFrom = null; } taskKey = ''; } autoKey = ''; renderArchive(true); if (tab === 'auto') renderAuto(); if (settingsFrom && !$('#modal').hidden && b.closest('#modal')) showSettings(settingsFrom); return; }
   if (d.confirm) {
@@ -5958,7 +5900,7 @@ function boot(data){
   M = mods();
   if (!raw) S.life.hp = M.maxHp;
   if (S.set.startPaused && !S.life.dead) S.set.paused = true;   // option: open the game paused
-  delete S.bank; delete S.set.boost; delete S.set.boostX; delete S.set.bgPause;   // removed: banked time, the stasis boost, background pause
+  delete S.bank; delete S.prio; delete S.gprio; ['boost', 'boostX', 'bgPause', 'replay', 'fillCross', 'foodDays', 'partsDays'].forEach(k => delete S.set[k]);   // removed: banked time, the stasis boost, background pause, priorities, unused switches
   pinChains();
   unlockSpeeds(true);
   setTab('tasks');
