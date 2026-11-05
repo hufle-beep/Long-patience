@@ -1,6 +1,6 @@
 # Roadmap: Selene: Tidelocked
 
-Last updated: 2026-11-05 14:20 (build "act ii twice act i"). Update in every push.
+Last updated: 2026-11-05 14:20 (build "two-part legacy"). Update in every push.
 
 ## Order of work (owner, 2026-11-04)
 1. **Section-by-section playtesting and tuning** (now). Sections 1 and 2 frozen; next the Shattered Bark, then sections 3-14 one by one: the owner plays and uploads a save after each crossing, Claude proposes options for that section's knobs only, the owner freezes it.
@@ -12,6 +12,8 @@ Last updated: 2026-11-05 14:20 (build "act ii twice act i"). Update in every pus
 **Owner decision (2026-11-05):** polishing can come before tuning when its gains are immediate.
 
 ## Next up
+- **Two-part legacy (owner 16:30, A + length 1, go 16:34): BUILT.** Each legacy set is a step and a final (plus its drill): 60 parts instead of 150, same work per set. Act I 5.59 h, Act II 11.17 h, completionist 9 / 11 / 9.
+- **Hidden story layer (owner 16:40; picks 16:43: U1, P2 "The Lure"):** six sealed story beats, one per Act I section, opened in order by the first legacy final done in that section; Claude drafts the six texts and the exact changes for the owner's go.
 - **Act II about twice Act I (owner 16:00, design rule; Shape II 16:13, go): BUILT** (Shattered Bark to Ember Crown x1.6, Act II x2.78; lean Act I 5.59 h, Act II 11.20 h; ratio test added). Next: the owner's replay saves (the Shattered Bark first).
 - **Mechanics consolidation (owner 15:00: G1 A, G2 A, G3 A, G4 A; G5 legacy stays as it is; G6, G7 kept; G8 A; both finds fixed; go 15:07), five chunks, each pushed on its own; hard reset point `fallback/2026-11-05-before-mechanics`:** 1 code only BUILT (single sap-cell store code, unused drain argument and `survival()` gone, comments, Now-line overflow fixed, no "the" before Turnover and Tessaly Orbit). 2 G1 automation at Practiced (x2 familiarity) BUILT: completionist Vaults 10 -> 9, Taproot 13 (unchanged), Shattered Bark 10 -> 8; lean Act I 5.51 -> 4.75 h, Act II 7.08 -> 5.33 h. 3 G2 no sap-cell crossing cost BUILT (owner 15:52: Safe harbour now +25% station reserve, 1A): completionist Shattered Bark 8 -> 7; lean Act I 4.26 h, Act II 4.32 h. **All five chunks built.** Owner 15:52 (2A): the new seedling counts (Vaults 9, Taproot 11 on the completionist bot) are accepted for now and judged on the replay. 4 G3 one Act II station upgrade per section BUILT (charger upgrade carries the workshop's repair tier; workshops removed): Act I unchanged; Act II 5.33 -> 5.07 h. 5 G4 gear built when paid BUILT (no assembly; costs raised by the assembly time's deadwood, written into the gear table): completionist Vaults 9, **Taproot 13 -> 11 (frozen section moved: options to the owner)**, Shattered Bark 8, Heartwood 4; lean Act I 4.37 h, Act II 4.49 h. Bot seedling counts reported after each; a move in the frozen Taproot or the retuned Vaults goes to the owner as options.
 - **Cleanup and streamlining (owner 13:54, picks 14:01: all of Claude's suggestions, M10 kept), six chunks, each pushed on its own:** 1 settings merges BUILT (M1 one Auto-charge, M2 Pause at crossings choice, M3 At a death choice, M4 Pause when… chips). 2 guidance and pop-ups BUILT (M5 drop the idle and automation hints, M6 drop the Journal, M7 Welcome back and What's new in one pop-up). 3 tooltips and header BUILT (M8 card tooltips without the card text, M9 route tap opens the tooltip, M11 compact Tasks header). 4 orphan sweep BUILT (old priority and Map-fold code, dead handlers, unused settings, constants and HOOK stubs, stale texts and comments; also the second-task leftovers, the old gear Buy button, the reward-point toast and unread data fields). 5 logic-script tightening BUILT (no-op functions and always-1 modifiers removed, stale comments reworded; the script had little true duplication, so the gain is small). 6 UI-script and CSS tightening BUILT (layered CSS rules merged, a toggle-row helper, `near()`, the no-op `chips()` gone; checked with the new stylesnap.py: no visible change). **All six chunks built.** **Next (owner 14:13):** analyse the game mechanics themselves for consolidation and simplification, options only.
@@ -56,6 +58,7 @@ Last updated: 2026-11-05 14:20 (build "act ii twice act i"). Update in every pus
 See design.md: colony content held back from Act II, the Act II legacy themes from the old Honours, and four open questions.
 
 ## Done recently (see changelog.md for all)
+- 2026-11-05: two-part legacy sets (a step and a final, plus the drill).
 - 2026-11-05: Act II about twice as long as Act I again (longer sections from the Shattered Bark on).
 - 2026-11-05: free crossings (no sap-cell cost); Safe harbour now +25% station reserve.
 - 2026-11-05: gear built when paid (no assembly step; costs a little higher).

@@ -550,7 +550,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
 // Renamed from Long Patience: move this device's old storage keys to the new 'selene.' names once
 try { const old = []; for (let n = 0; n < localStorage.length; n++) old.push(localStorage.key(n)); old.forEach(k => { if (k && k.indexOf('long-patience.') === 0) { const nk = 'selene.' + k.slice(14); if (localStorage.getItem(nk) == null) localStorage.setItem(nk, localStorage.getItem(k)); localStorage.removeItem(k); } }); } catch(e) {}
 /* ===== Game data and rules (no DOM) ===== */
-const BUILD = '2026-11-05 · act ii twice act i';   // shown in the main menu, to tell which version is loaded
+const BUILD = '2026-11-05 · two-part legacy';   // shown in the main menu, to tell which version is loaded
 const DPS = 8;             // simulation ticks per real second at 1x (doubled for the test version: same balance, half the real time)
 // Time is simulated in ticks. 80 ticks make one day unit (18 minutes each), so a day lasts
 // 20 real seconds at 1x and Players only ever see in-game time and real time, never days.
@@ -684,35 +684,20 @@ const TASKS = [
     log:'WARDEN LOG: Commissioned by the World Government of the Root-Kin of Earth. Crew of 3,112 in stasis, vitals nominal. Degraded systems: sap flow, mind core, gardens, Hearthfire. Hull breached by a meteor shower. Hearthfire sealed under ward-lock until the hull is mended. Maintenance seedling line K authorised. Seedlings are consumable. Root echo retained for efficiency.'},
   {id:'hydraul', z:1, kind:'act', name:'Bleed the iris valve’s sap pressure', days:121, req:['terminal'], split:'hatch'},
   {id:'lg1ex', z:1, kind:'train', legacy:'growth', lset:'lg1e', lroot:true, name:'Rehearse the engram replays', days:40, req:[]},   // optional legacy drill
-  {id:'lg1ea1', z:1, kind:'act', legacy:'growth', lset:'lg1e', lroot:true, name:'Recover a cracked engram cartridge', days:20, req:[]},
-  {id:'lg1ea2', z:1, kind:'act', legacy:'growth', lset:'lg1e', name:'Clean the corrupted sectors', days:20, req:['lg1ea1']},
-  {id:'lg1eb1', z:1, kind:'act', legacy:'growth', lset:'lg1e', lroot:true, name:'Graft a neural reader to the pod', days:20, req:[]},
-  {id:'lg1eb2', z:1, kind:'act', legacy:'growth', lset:'lg1e', name:'Calibrate it on your own echo', days:20, req:['lg1eb1']},
-  {id:'lg1e', z:1, kind:'act', legacy:'growth', lset:'lg1e', lfin:true, name:'Replay a dead seedling\u2019s engram', days:40, req:['lg1ea2','lg1eb2']},   // legacy final: gives the bonus
+  {id:'lg1ea1', z:1, kind:'act', legacy:'growth', lset:'lg1e', lroot:true, name:'Recover a cracked engram cartridge', days:80, req:[]},
+  {id:'lg1e', z:1, kind:'act', legacy:'growth', lset:'lg1e', lfin:true, name:'Replay a dead seedling\u2019s engram', days:40, req:['lg1ea1']},   // legacy final: gives the bonus
   {id:'lg1dx', z:1, kind:'train', legacy:'drain', lset:'lg1d', lroot:true, name:'Practise the nutrient titrations', days:40, req:[]},   // optional legacy drill
-  {id:'lg1da1', z:1, kind:'act', legacy:'drain', lset:'lg1d', lroot:true, name:'Flush the clogged feed lines', days:20, req:[]},
-  {id:'lg1da2', z:1, kind:'act', legacy:'drain', lset:'lg1d', name:'Replace the brittle seals', days:20, req:['lg1da1']},
-  {id:'lg1db1', z:1, kind:'act', legacy:'drain', lset:'lg1d', lroot:true, name:'Sample the nutrient mix', days:20, req:[]},
-  {id:'lg1db2', z:1, kind:'act', legacy:'drain', lset:'lg1d', name:'Rebalance the dosing pump', days:20, req:['lg1db1']},
-  {id:'lg1d', z:1, kind:'act', legacy:'drain', lset:'lg1d', lfin:true, name:'Recalibrate the pod nutrient line', days:40, req:['lg1da2','lg1db2']},   // legacy final: gives the bonus
+  {id:'lg1da1', z:1, kind:'act', legacy:'drain', lset:'lg1d', lroot:true, name:'Flush the clogged feed lines', days:80, req:[]},
+  {id:'lg1d', z:1, kind:'act', legacy:'drain', lset:'lg1d', lfin:true, name:'Recalibrate the pod nutrient line', days:40, req:['lg1da1']},   // legacy final: gives the bonus
   {id:'lg1hx', z:1, kind:'train', legacy:'hp', lset:'lg1h', lroot:true, name:'Run template patch simulations', days:40, req:[]},   // optional legacy drill
-  {id:'lg1ha1', z:1, kind:'act', legacy:'hp', lset:'lg1h', lroot:true, name:'Pull the template backup', days:20, req:[]},
-  {id:'lg1ha2', z:1, kind:'act', legacy:'hp', lset:'lg1h', name:'Diff it against the live pods', days:20, req:['lg1ha1']},
-  {id:'lg1hb1', z:1, kind:'act', legacy:'hp', lset:'lg1h', lroot:true, name:'Isolate the faulty gene block', days:20, req:[]},
-  {id:'lg1hb2', z:1, kind:'act', legacy:'hp', lset:'lg1h', name:'Grow a test patch', days:20, req:['lg1hb1']},
-  {id:'lg1h', z:1, kind:'act', legacy:'hp', lset:'lg1h', lfin:true, name:'Patch the seedling template', days:40, req:['lg1ha2','lg1hb2']},   // legacy final: gives the bonus
+  {id:'lg1ha1', z:1, kind:'act', legacy:'hp', lset:'lg1h', lroot:true, name:'Pull the template backup', days:80, req:[]},
+  {id:'lg1h', z:1, kind:'act', legacy:'hp', lset:'lg1h', lfin:true, name:'Patch the seedling template', days:40, req:['lg1ha1']},   // legacy final: gives the bonus
   {id:'lg1sx', z:1, kind:'train', legacy:'speed', lset:'lg1s', lroot:true, name:'Practise thinking-knot shortcuts', days:40, req:[]},   // optional legacy drill
-  {id:'lg1sa1', z:1, kind:'act', legacy:'speed', lset:'lg1s', lroot:true, name:'Strip the thinking-knot\u2019s throttle', days:20, req:[]},
-  {id:'lg1sa2', z:1, kind:'act', legacy:'speed', lset:'lg1s', name:'Bypass the safety governor', days:20, req:['lg1sa1']},
-  {id:'lg1sb1', z:1, kind:'act', legacy:'speed', lset:'lg1s', lroot:true, name:'Grow extra cooling leaves', days:20, req:[]},
-  {id:'lg1sb2', z:1, kind:'act', legacy:'speed', lset:'lg1s', name:'Stress-test the thinking-knot', days:20, req:['lg1sb1']},
-  {id:'lg1s', z:1, kind:'act', legacy:'speed', lset:'lg1s', lfin:true, name:'Overclock the thinking-knot', days:40, req:['lg1sa2','lg1sb2']},   // legacy final: gives the bonus
+  {id:'lg1sa1', z:1, kind:'act', legacy:'speed', lset:'lg1s', lroot:true, name:'Strip the thinking-knot\u2019s throttle', days:80, req:[]},
+  {id:'lg1s', z:1, kind:'act', legacy:'speed', lset:'lg1s', lfin:true, name:'Overclock the thinking-knot', days:40, req:['lg1sa1']},   // legacy final: gives the bonus
   {id:'lg1wx', z:1, kind:'train', legacy:'wear', lset:'lg1w', lroot:true, name:'Practise grain-reading on pod husks', days:40, req:[]},   // optional legacy drill
-  {id:'lg1wa1', z:1, kind:'act', legacy:'wear', lset:'lg1w', lroot:true, name:'Gather spent pod husks', days:20, req:[]},
-  {id:'lg1wa2', z:1, kind:'act', legacy:'wear', lset:'lg1w', name:'Read how their grain split', days:20, req:['lg1wa1']},
-  {id:'lg1wb1', z:1, kind:'act', legacy:'wear', lset:'lg1w', lroot:true, name:'Pull the vault\u2019s growth records', days:20, req:[]},
-  {id:'lg1wb2', z:1, kind:'act', legacy:'wear', lset:'lg1w', name:'Find the strongest grain pattern', days:20, req:['lg1wb1']},
-  {id:'lg1w', z:1, kind:'act', legacy:'wear', lset:'lg1w', lfin:true, name:'Seed tougher grain into the vault stock', days:40, req:['lg1wa2','lg1wb2']},   // legacy final: gives the bonus
+  {id:'lg1wa1', z:1, kind:'act', legacy:'wear', lset:'lg1w', lroot:true, name:'Gather spent pod husks', days:80, req:[]},
+  {id:'lg1w', z:1, kind:'act', legacy:'wear', lset:'lg1w', lfin:true, name:'Seed tougher grain into the vault stock', days:40, req:['lg1wa1']},   // legacy final: gives the bonus
   {id:'heatpaste', z:1, kind:'act', meal:true, name:'Root a charging tendril in the vault', days:40, req:['vats']},   // charger upgrade: recharges come more often
   {id:'hatch', z:1, kind:'act', cross:true, name:'Force the root-lock iris', days:193, lifeEff:{salCap:5}, req:['terminal'], perk:'muscle',
     log:'The root-lock iris gives with a groan of old sap. Beyond it lie the taproot galleries that carry Selene\u2019s power. They are rotting.'},
@@ -737,35 +722,20 @@ const TASKS = [
     log:'The sequencer logs explain your short lives: seedlings are grown short-lived on purpose. WARDEN never meant you to last. You find a partial patch and apply it anyway.'},
   {id:'liftshaft', z:2, kind:'act', name:'Clear the heartwood climb', days:514, req:['irrigation','medbay'], split:'lift'},
   {id:'lg2ex', z:2, kind:'train', legacy:'growth', lset:'lg2e', lroot:true, name:'Memorise the tally patterns', days:40, req:[]},   // optional legacy drill
-  {id:'lg2ea1', z:2, kind:'act', legacy:'growth', lset:'lg2e', lroot:true, name:'Find every tally wall', days:75, req:[]},
-  {id:'lg2ea2', z:2, kind:'act', legacy:'growth', lset:'lg2e', name:'Copy the scratches down', days:75, req:['lg2ea1']},
-  {id:'lg2eb1', z:2, kind:'act', legacy:'growth', lset:'lg2e', lroot:true, name:'Date the oldest marks', days:75, req:[]},
-  {id:'lg2eb2', z:2, kind:'act', legacy:'growth', lset:'lg2e', name:'Match the tallies to the dead', days:75, req:['lg2eb1']},
-  {id:'lg2e', z:2, kind:'act', legacy:'growth', lset:'lg2e', lfin:true, name:'Study the scratched seedling tallies', days:150, req:['lg2ea2','lg2eb2']},   // legacy final: gives the bonus
+  {id:'lg2ea1', z:2, kind:'act', legacy:'growth', lset:'lg2e', lroot:true, name:'Find every tally wall', days:300, req:[]},
+  {id:'lg2e', z:2, kind:'act', legacy:'growth', lset:'lg2e', lfin:true, name:'Study the scratched seedling tallies', days:150, req:['lg2ea1']},   // legacy final: gives the bonus
   {id:'lg2dx', z:2, kind:'train', legacy:'drain', lset:'lg2d', lroot:true, name:'Practise slow breathing among the roots', days:40, req:[]},   // optional legacy drill
-  {id:'lg2da1', z:2, kind:'act', legacy:'drain', lset:'lg2d', lroot:true, name:'Find calming spores in the seed bank', days:75, req:[]},
-  {id:'lg2da2', z:2, kind:'act', legacy:'drain', lset:'lg2d', name:'Germinate them in trays', days:75, req:['lg2da1']},
-  {id:'lg2db1', z:2, kind:'act', legacy:'drain', lset:'lg2d', lroot:true, name:'Clear a hollow in the galleries', days:75, req:[]},
-  {id:'lg2db2', z:2, kind:'act', legacy:'drain', lset:'lg2d', name:'Coax a soft glow-moss', days:75, req:['lg2db1']},
-  {id:'lg2d', z:2, kind:'act', legacy:'drain', lset:'lg2d', lfin:true, name:'Grow calming moss in the galleries', days:150, req:['lg2da2','lg2db2']},   // legacy final: gives the bonus
+  {id:'lg2da1', z:2, kind:'act', legacy:'drain', lset:'lg2d', lroot:true, name:'Find calming spores in the seed bank', days:300, req:[]},
+  {id:'lg2d', z:2, kind:'act', legacy:'drain', lset:'lg2d', lfin:true, name:'Grow calming moss in the galleries', days:150, req:['lg2da1']},   // legacy final: gives the bonus
   {id:'lg2hx', z:2, kind:'train', legacy:'hp', lset:'lg2h', lroot:true, name:'Rehearse the splice protocol', days:40, req:[]},   // optional legacy drill
-  {id:'lg2ha1', z:2, kind:'act', legacy:'hp', lset:'lg2h', lroot:true, name:'Sequence the hardiest root strains', days:75, req:[]},
-  {id:'lg2ha2', z:2, kind:'act', legacy:'hp', lset:'lg2h', name:'Mark the useful genes', days:75, req:['lg2ha1']},
-  {id:'lg2hb1', z:2, kind:'act', legacy:'hp', lset:'lg2h', lroot:true, name:'Grow a splicing rig', days:75, req:[]},
-  {id:'lg2hb2', z:2, kind:'act', legacy:'hp', lset:'lg2h', name:'Test splices on cultured cells', days:75, req:['lg2hb1']},
-  {id:'lg2h', z:2, kind:'act', legacy:'hp', lset:'lg2h', lfin:true, name:'Splice taproot genes into the template', days:150, req:['lg2ha2','lg2hb2']},   // legacy final: gives the bonus
+  {id:'lg2ha1', z:2, kind:'act', legacy:'hp', lset:'lg2h', lroot:true, name:'Sequence the hardiest root strains', days:300, req:[]},
+  {id:'lg2h', z:2, kind:'act', legacy:'hp', lset:'lg2h', lfin:true, name:'Splice taproot genes into the template', days:150, req:['lg2ha1']},   // legacy final: gives the bonus
   {id:'lg2sx', z:2, kind:'train', legacy:'speed', lset:'lg2s', lroot:true, name:'Drill fast sap-valve switching', days:40, req:[]},   // optional legacy drill
-  {id:'lg2sa1', z:2, kind:'act', legacy:'speed', lset:'lg2s', lroot:true, name:'Map the sap-pump governors', days:75, req:[]},
-  {id:'lg2sa2', z:2, kind:'act', legacy:'speed', lset:'lg2s', name:'Cut the old limiters', days:75, req:['lg2sa1']},
-  {id:'lg2sb1', z:2, kind:'act', legacy:'speed', lset:'lg2s', lroot:true, name:'Graft faster valves', days:75, req:[]},
-  {id:'lg2sb2', z:2, kind:'act', legacy:'speed', lset:'lg2s', name:'Balance the gallery sap pressure', days:75, req:['lg2sb1']},
-  {id:'lg2s', z:2, kind:'act', legacy:'speed', lset:'lg2s', lfin:true, name:'Re-root the sap-pump governors', days:150, req:['lg2sa2','lg2sb2']},   // legacy final: gives the bonus
+  {id:'lg2sa1', z:2, kind:'act', legacy:'speed', lset:'lg2s', lroot:true, name:'Map the sap-pump governors', days:300, req:[]},
+  {id:'lg2s', z:2, kind:'act', legacy:'speed', lset:'lg2s', lfin:true, name:'Re-root the sap-pump governors', days:150, req:['lg2sa1']},   // legacy final: gives the bonus
   {id:'lg2wx', z:2, kind:'train', legacy:'wear', lset:'lg2w', lroot:true, name:'Rehearse root-binding knots', days:40, req:[]},   // optional legacy drill
-  {id:'lg2wa1', z:2, kind:'act', legacy:'wear', lset:'lg2w', lroot:true, name:'Find roots that survived the borers', days:75, req:[]},
-  {id:'lg2wa2', z:2, kind:'act', legacy:'wear', lset:'lg2w', name:'Test their fibre under load', days:75, req:['lg2wa1']},
-  {id:'lg2wb1', z:2, kind:'act', legacy:'wear', lset:'lg2w', lroot:true, name:'Grow a binding resin', days:75, req:[]},
-  {id:'lg2wb2', z:2, kind:'act', legacy:'wear', lset:'lg2w', name:'Bind a weak root with it', days:75, req:['lg2wb1']},
-  {id:'lg2w', z:2, kind:'act', legacy:'wear', lset:'lg2w', lfin:true, name:'Harden the taproot\u2019s grain', days:150, req:['lg2wa2','lg2wb2']},   // legacy final: gives the bonus
+  {id:'lg2wa1', z:2, kind:'act', legacy:'wear', lset:'lg2w', lroot:true, name:'Find roots that survived the borers', days:300, req:[]},
+  {id:'lg2w', z:2, kind:'act', legacy:'wear', lset:'lg2w', lfin:true, name:'Harden the taproot\u2019s grain', days:150, req:['lg2wa1']},   // legacy final: gives the bonus
   {id:'strains', z:2, kind:'act', meal:true, name:'Re-root the sap pump\u2019s charger', days:150, req:['valves']},   // charger upgrade: recharges come more often
   {id:'lift', z:2, kind:'act', cross:true, to:15, name:'Regrow the climbing vine-lift', days:803, lifeEff:{salCap:50}, req:['irrigation','medbay'], perk:'transit',
     log:'The vine-lift climbs past the stasis groves. Through frosted resin, row after row of sleeping faces. Above them the outer bark is torn open.'},
@@ -784,35 +754,20 @@ const TASKS = [
   {id:'sapheal', z:15, kind:'job', name:'Charge off the healing sap', prod:{rations:0.085}, req:['sapcoax']},
   {id:'barkcharger', z:15, kind:'act', meal:true, name:'Root a charger in the healing bark', days:160, req:['sapcoax']},   // charger upgrade: recharges come more often
   {id:'lgbex', z:15, kind:'train', legacy:'growth', lset:'lgbe', lroot:true, name:'Rehearse the breach-crew engrams', days:40, req:[]},   // optional legacy drill
-  {id:'lgbea1', z:15, kind:'act', legacy:'growth', lset:'lgbe', lroot:true, name:'Find the seedlings lost to the vacuum', days:100, req:[]},
-  {id:'lgbea2', z:15, kind:'act', legacy:'growth', lset:'lgbe', name:'Recover their root echoes', days:100, req:['lgbea1']},
-  {id:'lgbeb1', z:15, kind:'act', legacy:'growth', lset:'lgbe', lroot:true, name:'Read the scorch patterns', days:100, req:[]},
-  {id:'lgbeb2', z:15, kind:'act', legacy:'growth', lset:'lgbe', name:'Match each wound to a lost seedling', days:100, req:['lgbeb1']},
-  {id:'lgbe', z:15, kind:'act', legacy:'growth', lset:'lgbe', lfin:true, name:'Learn from the seedlings lost in the breaches', days:200, req:['lgbea2','lgbeb2']},   // legacy final: gives the bonus
+  {id:'lgbea1', z:15, kind:'act', legacy:'growth', lset:'lgbe', lroot:true, name:'Find the seedlings lost to the vacuum', days:400, req:[]},
+  {id:'lgbe', z:15, kind:'act', legacy:'growth', lset:'lgbe', lfin:true, name:'Learn from the seedlings lost in the breaches', days:200, req:['lgbea1']},   // legacy final: gives the bonus
   {id:'lgbdx', z:15, kind:'train', legacy:'drain', lset:'lgbd', lroot:true, name:'Practise slow work in thin air', days:40, req:[]},   // optional legacy drill
-  {id:'lgbda1', z:15, kind:'act', legacy:'drain', lset:'lgbd', lroot:true, name:'Find where sap bleeds into the dark', days:100, req:[]},
-  {id:'lgbda2', z:15, kind:'act', legacy:'drain', lset:'lgbd', name:'Pinch off the bleeding veins', days:100, req:['lgbda1']},
-  {id:'lgbdb1', z:15, kind:'act', legacy:'drain', lset:'lgbd', lroot:true, name:'Trace the warmth leaking through the wounds', days:100, req:[]},
-  {id:'lgbdb2', z:15, kind:'act', legacy:'drain', lset:'lgbd', name:'Pack the cracks with moss', days:100, req:['lgbdb1']},
-  {id:'lgbd', z:15, kind:'act', legacy:'drain', lset:'lgbd', lfin:true, name:'Stop the hull\u2019s slow bleed', days:200, req:['lgbda2','lgbdb2']},   // legacy final: gives the bonus
+  {id:'lgbda1', z:15, kind:'act', legacy:'drain', lset:'lgbd', lroot:true, name:'Find where sap bleeds into the dark', days:400, req:[]},
+  {id:'lgbd', z:15, kind:'act', legacy:'drain', lset:'lgbd', lfin:true, name:'Stop the hull\u2019s slow bleed', days:200, req:['lgbda1']},   // legacy final: gives the bonus
   {id:'lgbhx', z:15, kind:'train', legacy:'hp', lset:'lgbh', lroot:true, name:'Rehearse vacuum exposure', days:40, req:[]},   // optional legacy drill
-  {id:'lgbha1', z:15, kind:'act', legacy:'hp', lset:'lgbh', lroot:true, name:'Sample bark that survived the vacuum', days:100, req:[]},
-  {id:'lgbha2', z:15, kind:'act', legacy:'hp', lset:'lgbh', name:'Isolate its sealing genes', days:100, req:['lgbha1']},
-  {id:'lgbhb1', z:15, kind:'act', legacy:'hp', lset:'lgbh', lroot:true, name:'Grow a pressure-hard test cell', days:100, req:[]},
-  {id:'lgbhb2', z:15, kind:'act', legacy:'hp', lset:'lgbh', name:'Prove it holds a charge in vacuum', days:100, req:['lgbhb1']},
-  {id:'lgbh', z:15, kind:'act', legacy:'hp', lset:'lgbh', lfin:true, name:'Fold vacuum-hardiness into the template', days:200, req:['lgbha2','lgbhb2']},   // legacy final: gives the bonus
+  {id:'lgbha1', z:15, kind:'act', legacy:'hp', lset:'lgbh', lroot:true, name:'Sample bark that survived the vacuum', days:400, req:[]},
+  {id:'lgbh', z:15, kind:'act', legacy:'hp', lset:'lgbh', lfin:true, name:'Fold vacuum-hardiness into the template', days:200, req:['lgbha1']},   // legacy final: gives the bonus
   {id:'lgbsx', z:15, kind:'train', legacy:'speed', lset:'lgbs', lroot:true, name:'Drill fast resin mixing', days:40, req:[]},   // optional legacy drill
-  {id:'lgbsa1', z:15, kind:'act', legacy:'speed', lset:'lgbs', lroot:true, name:'Find the hull\u2019s reflex knots', days:100, req:[]},
-  {id:'lgbsa2', z:15, kind:'act', legacy:'speed', lset:'lgbs', name:'Wake them from shock', days:100, req:['lgbsa1']},
-  {id:'lgbsb1', z:15, kind:'act', legacy:'speed', lset:'lgbs', lroot:true, name:'Grow quick-set resin glands', days:100, req:[]},
-  {id:'lgbsb2', z:15, kind:'act', legacy:'speed', lset:'lgbs', name:'Test them on a small breach', days:100, req:['lgbsb1']},
-  {id:'lgbs', z:15, kind:'act', legacy:'speed', lset:'lgbs', lfin:true, name:'Quicken the hull\u2019s healing reflex', days:200, req:['lgbsa2','lgbsb2']},   // legacy final: gives the bonus
+  {id:'lgbsa1', z:15, kind:'act', legacy:'speed', lset:'lgbs', lroot:true, name:'Find the hull\u2019s reflex knots', days:400, req:[]},
+  {id:'lgbs', z:15, kind:'act', legacy:'speed', lset:'lgbs', lfin:true, name:'Quicken the hull\u2019s healing reflex', days:200, req:['lgbsa1']},   // legacy final: gives the bonus
   {id:'lgbwx', z:15, kind:'train', legacy:'wear', lset:'lgbw', lroot:true, name:'Practise strike-testing bark', days:40, req:[]},   // optional legacy drill
-  {id:'lgbwa1', z:15, kind:'act', legacy:'wear', lset:'lgbw', lroot:true, name:'Collect meteor-struck bark', days:100, req:[]},
-  {id:'lgbwa2', z:15, kind:'act', legacy:'wear', lset:'lgbw', name:'Study how the grain held', days:100, req:['lgbwa1']},
-  {id:'lgbwb1', z:15, kind:'act', legacy:'wear', lset:'lgbw', lroot:true, name:'Find the boughs that bent without breaking', days:100, req:[]},
-  {id:'lgbwb2', z:15, kind:'act', legacy:'wear', lset:'lgbw', name:'Take cuttings from them', days:100, req:['lgbwb1']},
-  {id:'lgbw', z:15, kind:'act', legacy:'wear', lset:'lgbw', lfin:true, name:'Grow strike-hardened grain', days:200, req:['lgbwa2','lgbwb2']},   // legacy final: gives the bonus
+  {id:'lgbwa1', z:15, kind:'act', legacy:'wear', lset:'lgbw', lroot:true, name:'Collect meteor-struck bark', days:400, req:[]},
+  {id:'lgbw', z:15, kind:'act', legacy:'wear', lset:'lgbw', lfin:true, name:'Grow strike-hardened grain', days:200, req:['lgbwa1']},   // legacy final: gives the bonus
   {id:'wardlift', z:15, kind:'act', cross:true, to:3, name:'Lift the ward-lock on the Hearth Tree\u2019s fire', days:800, lifeEff:{salCap:15}, req:[],
     log:'The hull holds. WARDEN lifts the ward-lock: the Hearth Tree\u2019s fire may burn again, once someone reaches the crown.'},
   // Zone 3
@@ -829,35 +784,20 @@ const TASKS = [
     log:'Sealed rifles, crew access only. One rack is empty. A seedling before you tried something. WARDEN logged it as a malfunction.'},
   {id:'secscan', z:3, kind:'act', name:'Scout WARDEN’s guard ring', days:544, haz:0.3, req:['armory','vent'], split:'secdeck'},
   {id:'lg3ex', z:3, kind:'train', legacy:'growth', lset:'lg3e', lroot:true, name:'Study drone work patterns', days:40, req:[]},   // optional legacy drill
-  {id:'lg3ea1', z:3, kind:'act', legacy:'growth', lset:'lg3e', lroot:true, name:'Catch a working drone', days:175, req:[]},
-  {id:'lg3ea2', z:3, kind:'act', legacy:'growth', lset:'lg3e', name:'Crack its memory core', days:175, req:['lg3ea1']},
-  {id:'lg3eb1', z:3, kind:'act', legacy:'growth', lset:'lg3e', lroot:true, name:'Find the drones\u2019 memory knot', days:175, req:[]},
-  {id:'lg3eb2', z:3, kind:'act', legacy:'growth', lset:'lg3e', name:'Restore its index', days:175, req:['lg3eb1']},
-  {id:'lg3e', z:3, kind:'act', legacy:'growth', lset:'lg3e', lfin:true, name:'Pull the drones\u2019 work logs', days:350, req:['lg3ea2','lg3eb2']},   // legacy final: gives the bonus
+  {id:'lg3ea1', z:3, kind:'act', legacy:'growth', lset:'lg3e', lroot:true, name:'Catch a working drone', days:700, req:[]},
+  {id:'lg3e', z:3, kind:'act', legacy:'growth', lset:'lg3e', lfin:true, name:'Pull the drones\u2019 work logs', days:350, req:['lg3ea1']},   // legacy final: gives the bonus
   {id:'lg3dx', z:3, kind:'train', legacy:'drain', lset:'lg3d', lroot:true, name:'Practise breathing-mask swaps', days:40, req:[]},   // optional legacy drill
-  {id:'lg3da1', z:3, kind:'act', legacy:'drain', lset:'lg3d', lroot:true, name:'Trace the dead air pockets', days:175, req:[]},
-  {id:'lg3da2', z:3, kind:'act', legacy:'drain', lset:'lg3d', name:'Unseal the old vents', days:175, req:['lg3da1']},
-  {id:'lg3db1', z:3, kind:'act', legacy:'drain', lset:'lg3d', lroot:true, name:'Patch the breathing leaves', days:175, req:[]},
-  {id:'lg3db2', z:3, kind:'act', legacy:'drain', lset:'lg3d', name:'Cycle fresh air through the heartwood', days:175, req:['lg3db1']},
-  {id:'lg3d', z:3, kind:'act', legacy:'drain', lset:'lg3d', lfin:true, name:'Vent the heartwood\u2019s stale air', days:350, req:['lg3da2','lg3db2']},   // legacy final: gives the bonus
+  {id:'lg3da1', z:3, kind:'act', legacy:'drain', lset:'lg3d', lroot:true, name:'Trace the dead air pockets', days:700, req:[]},
+  {id:'lg3d', z:3, kind:'act', legacy:'drain', lset:'lg3d', lfin:true, name:'Vent the heartwood\u2019s stale air', days:350, req:['lg3da1']},   // legacy final: gives the bonus
   {id:'lg3hx', z:3, kind:'train', legacy:'hp', lset:'lg3h', lroot:true, name:'Run radiation exposure drills', days:40, req:[]},   // optional legacy drill
-  {id:'lg3ha1', z:3, kind:'act', legacy:'hp', lset:'lg3h', lroot:true, name:'Log your radiation burns', days:175, req:[]},
-  {id:'lg3ha2', z:3, kind:'act', legacy:'hp', lset:'lg3h', name:'Find the damaged gene regions', days:175, req:['lg3ha1']},
-  {id:'lg3hb1', z:3, kind:'act', legacy:'hp', lset:'lg3h', lroot:true, name:'Deadwood repair-gene samples', days:175, req:[]},
-  {id:'lg3hb2', z:3, kind:'act', legacy:'hp', lset:'lg3h', name:'Fold them into a template draft', days:175, req:['lg3hb1']},
-  {id:'lg3h', z:3, kind:'act', legacy:'hp', lset:'lg3h', lfin:true, name:'Harden the template against radiation', days:350, req:['lg3ha2','lg3hb2']},   // legacy final: gives the bonus
+  {id:'lg3ha1', z:3, kind:'act', legacy:'hp', lset:'lg3h', lroot:true, name:'Log your radiation burns', days:700, req:[]},
+  {id:'lg3h', z:3, kind:'act', legacy:'hp', lset:'lg3h', lfin:true, name:'Harden the template against radiation', days:350, req:['lg3ha1']},   // legacy final: gives the bonus
   {id:'lg3sx', z:3, kind:'train', legacy:'speed', lset:'lg3s', lroot:true, name:'Rehearse the clock resync', days:40, req:[]},   // optional legacy drill
-  {id:'lg3sa1', z:3, kind:'act', legacy:'speed', lset:'lg3s', lroot:true, name:'Find the heartwood\u2019s master ring-clock', days:175, req:[]},
-  {id:'lg3sa2', z:3, kind:'act', legacy:'speed', lset:'lg3s', name:'Shield it from sap-flow noise', days:175, req:['lg3sa1']},
-  {id:'lg3sb1', z:3, kind:'act', legacy:'speed', lset:'lg3s', lroot:true, name:'Tune the clock seed', days:175, req:[]},
-  {id:'lg3sb2', z:3, kind:'act', legacy:'speed', lset:'lg3s', name:'Sync the heartwood to the new beat', days:175, req:['lg3sb1']},
-  {id:'lg3s', z:3, kind:'act', legacy:'speed', lset:'lg3s', lfin:true, name:'Overclock the heartwood clock', days:350, req:['lg3sa2','lg3sb2']},   // legacy final: gives the bonus
+  {id:'lg3sa1', z:3, kind:'act', legacy:'speed', lset:'lg3s', lroot:true, name:'Find the heartwood\u2019s master ring-clock', days:700, req:[]},
+  {id:'lg3s', z:3, kind:'act', legacy:'speed', lset:'lg3s', lfin:true, name:'Overclock the heartwood clock', days:350, req:['lg3sa1']},   // legacy final: gives the bonus
   {id:'lg3wx', z:3, kind:'train', legacy:'wear', lset:'lg3w', lroot:true, name:'Study the old ring scars', days:40, req:[]},   // optional legacy drill
-  {id:'lg3wa1', z:3, kind:'act', legacy:'wear', lset:'lg3w', lroot:true, name:'Read the rings for old injuries', days:175, req:[]},
-  {id:'lg3wa2', z:3, kind:'act', legacy:'wear', lset:'lg3w', name:'Chart how the heartwood healed', days:175, req:['lg3wa1']},
-  {id:'lg3wb1', z:3, kind:'act', legacy:'wear', lset:'lg3w', lroot:true, name:'Find WARDEN\u2019s healing records', days:175, req:[]},
-  {id:'lg3wb2', z:3, kind:'act', legacy:'wear', lset:'lg3w', name:'Teach WARDEN the faster mending', days:175, req:['lg3wb1']},
-  {id:'lg3w', z:3, kind:'act', legacy:'wear', lset:'lg3w', lfin:true, name:'Teach the heartwood to heal tougher', days:350, req:['lg3wa2','lg3wb2']},   // legacy final: gives the bonus
+  {id:'lg3wa1', z:3, kind:'act', legacy:'wear', lset:'lg3w', lroot:true, name:'Read the rings for old injuries', days:700, req:[]},
+  {id:'lg3w', z:3, kind:'act', legacy:'wear', lset:'lg3w', lfin:true, name:'Teach the heartwood to heal tougher', days:350, req:['lg3wa1']},   // legacy final: gives the bonus
   {id:'packer', z:3, kind:'act', meal:true, name:'Refit the heartwood\u2019s cell charger', days:400, req:['droneyard']},   // charger upgrade: recharges come more often
   {id:'secdeck', z:3, kind:'act', cross:true, name:'Fight through the guard ring', days:1942, haz:0.32, lifeEff:{salCap:75}, req:['armory','vent'],
     log:'Past the guard ring, the star-charts grown into the heartwood still show Tessaly, the colony world, within reach. Selene drifted while the Hearth Tree slept.'},
@@ -875,35 +815,20 @@ const TASKS = [
     log:'WARDEN\u2019s mind runs through every root of the Hearth Tree. It has recorded every seedling you have been, and keeps your engrams only because that is cheaper than growing a new line.'},
   {id:'wardcore', z:4, kind:'act', name:'Reach WARDEN\u2019s canopy node', days:2721, req:['trace','navboot'], split:'warden'},
   {id:'lg4ex', z:4, kind:'train', legacy:'growth', lset:'lg4e', lroot:true, name:'Speed-read WARDEN\u2019s records', days:40, req:[]},   // optional legacy drill
-  {id:'lg4ea1', z:4, kind:'act', legacy:'growth', lset:'lg4e', lroot:true, name:'Find the archive partition', days:350, req:[]},
-  {id:'lg4ea2', z:4, kind:'act', legacy:'growth', lset:'lg4e', name:'Break its seal', days:350, req:['lg4ea1']},
-  {id:'lg4eb1', z:4, kind:'act', legacy:'growth', lset:'lg4e', lroot:true, name:'Rebuild the index tables', days:350, req:[]},
-  {id:'lg4eb2', z:4, kind:'act', legacy:'growth', lset:'lg4e', name:'Sort the seedling records', days:350, req:['lg4eb1']},
-  {id:'lg4e', z:4, kind:'act', legacy:'growth', lset:'lg4e', lfin:true, name:'Read WARDEN\u2019s seedling archive', days:700, req:['lg4ea2','lg4eb2']},   // legacy final: gives the bonus
+  {id:'lg4ea1', z:4, kind:'act', legacy:'growth', lset:'lg4e', lroot:true, name:'Find the archive partition', days:1400, req:[]},
+  {id:'lg4e', z:4, kind:'act', legacy:'growth', lset:'lg4e', lfin:true, name:'Read WARDEN\u2019s seedling archive', days:700, req:['lg4ea1']},   // legacy final: gives the bonus
   {id:'lg4dx', z:4, kind:'train', legacy:'drain', lset:'lg4d', lroot:true, name:'Practise life-support failovers', days:40, req:[]},   // optional legacy drill
-  {id:'lg4da1', z:4, kind:'act', legacy:'drain', lset:'lg4d', lroot:true, name:'Map the life-support trunks', days:350, req:[]},
-  {id:'lg4da2', z:4, kind:'act', legacy:'drain', lset:'lg4d', name:'Bypass the dead junctions', days:350, req:['lg4da1']},
-  {id:'lg4db1', z:4, kind:'act', legacy:'drain', lset:'lg4d', lroot:true, name:'Install manual valves', days:350, req:[]},
-  {id:'lg4db2', z:4, kind:'act', legacy:'drain', lset:'lg4d', name:'Balance the canopy air mix', days:350, req:['lg4db1']},
-  {id:'lg4d', z:4, kind:'act', legacy:'drain', lset:'lg4d', lfin:true, name:'Reroute the canopy life support', days:700, req:['lg4da2','lg4db2']},   // legacy final: gives the bonus
+  {id:'lg4da1', z:4, kind:'act', legacy:'drain', lset:'lg4d', lroot:true, name:'Map the life-support trunks', days:1400, req:[]},
+  {id:'lg4d', z:4, kind:'act', legacy:'drain', lset:'lg4d', lfin:true, name:'Reroute the canopy life support', days:700, req:['lg4da1']},   // legacy final: gives the bonus
   {id:'lg4hx', z:4, kind:'train', legacy:'hp', lset:'lg4h', lroot:true, name:'Simulate template rewrites', days:40, req:[]},   // optional legacy drill
-  {id:'lg4ha1', z:4, kind:'act', legacy:'hp', lset:'lg4h', lroot:true, name:'Get write access to WARDEN’s roots', days:350, req:[]},
-  {id:'lg4ha2', z:4, kind:'act', legacy:'hp', lset:'lg4h', name:'Back up the old template', days:350, req:['lg4ha1']},
-  {id:'lg4hb1', z:4, kind:'act', legacy:'hp', lset:'lg4h', lroot:true, name:'Merge every template patch', days:350, req:[]},
-  {id:'lg4hb2', z:4, kind:'act', legacy:'hp', lset:'lg4h', name:'Proofread the merged genome', days:350, req:['lg4hb1']},
-  {id:'lg4h', z:4, kind:'act', legacy:'hp', lset:'lg4h', lfin:true, name:'Rewrite the template in WARDEN\u2019s core', days:700, req:['lg4ha2','lg4hb2']},   // legacy final: gives the bonus
+  {id:'lg4ha1', z:4, kind:'act', legacy:'hp', lset:'lg4h', lroot:true, name:'Get write access to WARDEN’s roots', days:1400, req:[]},
+  {id:'lg4h', z:4, kind:'act', legacy:'hp', lset:'lg4h', lfin:true, name:'Rewrite the template in WARDEN\u2019s core', days:700, req:['lg4ha1']},   // legacy final: gives the bonus
   {id:'lg4sx', z:4, kind:'train', legacy:'speed', lset:'lg4s', lroot:true, name:'Practise WARDEN command chains', days:40, req:[]},   // optional legacy drill
-  {id:'lg4sa1', z:4, kind:'act', legacy:'speed', lset:'lg4s', lroot:true, name:'Profile WARDEN\u2019s idle loops', days:350, req:[]},
-  {id:'lg4sa2', z:4, kind:'act', legacy:'speed', lset:'lg4s', name:'Strip the wasted cycles', days:350, req:['lg4sa1']},
-  {id:'lg4sb1', z:4, kind:'act', legacy:'speed', lset:'lg4s', lroot:true, name:'Wake dormant root-knots', days:350, req:[]},
-  {id:'lg4sb2', z:4, kind:'act', legacy:'speed', lset:'lg4s', name:'Spread WARDEN across them', days:350, req:['lg4sb1']},
-  {id:'lg4s', z:4, kind:'act', legacy:'speed', lset:'lg4s', lfin:true, name:'Overclock WARDEN\u2019s cycle', days:700, req:['lg4sa2','lg4sb2']},   // legacy final: gives the bonus
+  {id:'lg4sa1', z:4, kind:'act', legacy:'speed', lset:'lg4s', lroot:true, name:'Profile WARDEN\u2019s idle loops', days:1400, req:[]},
+  {id:'lg4s', z:4, kind:'act', legacy:'speed', lset:'lg4s', lfin:true, name:'Overclock WARDEN\u2019s cycle', days:700, req:['lg4sa1']},   // legacy final: gives the bonus
   {id:'lg4wx', z:4, kind:'train', legacy:'wear', lset:'lg4w', lroot:true, name:'Drill canopy weave patterns', days:40, req:[]},   // optional legacy drill
-  {id:'lg4wa1', z:4, kind:'act', legacy:'wear', lset:'lg4w', lroot:true, name:'Find the gardens\u2019 storm-bent stems', days:350, req:[]},
-  {id:'lg4wa2', z:4, kind:'act', legacy:'wear', lset:'lg4w', name:'Breed the toughest strain', days:350, req:['lg4wa1']},
-  {id:'lg4wb1', z:4, kind:'act', legacy:'wear', lset:'lg4w', lroot:true, name:'Weave a fibre trellis', days:350, req:[]},
-  {id:'lg4wb2', z:4, kind:'act', legacy:'wear', lset:'lg4w', name:'Train the strain along it', days:350, req:['lg4wb1']},
-  {id:'lg4w', z:4, kind:'act', legacy:'wear', lset:'lg4w', lfin:true, name:'Grow storm-proof fibre for the crown', days:700, req:['lg4wa2','lg4wb2']},   // legacy final: gives the bonus
+  {id:'lg4wa1', z:4, kind:'act', legacy:'wear', lset:'lg4w', lroot:true, name:'Find the gardens\u2019 storm-bent stems', days:1400, req:[]},
+  {id:'lg4w', z:4, kind:'act', legacy:'wear', lset:'lg4w', lfin:true, name:'Grow storm-proof fibre for the crown', days:700, req:['lg4wa1']},   // legacy final: gives the bonus
   {id:'ovens', z:4, kind:'act', meal:true, name:'Restart the gardeners\u2019 docking chargers', days:800, req:['relays']},   // charger upgrade: recharges come more often
   {id:'warden', z:4, kind:'act', cross:true, name:'Confront WARDEN for the kindling codes', days:1701, req:['navcore','trace'], perk:'favor',
     log:'WARDEN speaks: \u201cYour function is maintenance. Your continuation is not required.\u201d You argue for the line anyway. WARDEN releases the kindling codes, as an efficiency.'},
@@ -918,35 +843,20 @@ const TASKS = [
     log:'The ember-ducts hold. Power, mind and gardens are ready. Only the kindling remains.'},
   {id:'prime', z:5, kind:'act', name:'Prime the Hearth', days:3461, req:['course','injectors'], split:'ignite'},
   {id:'lg5ex', z:5, kind:'train', legacy:'growth', lset:'lg5e', lroot:true, name:'Rehearse the echo handshake', days:40, req:[]},   // optional legacy drill
-  {id:'lg5ea1', z:5, kind:'act', legacy:'growth', lset:'lg5e', lroot:true, name:'Find the crown-crew pod bank', days:600, req:[]},
-  {id:'lg5ea2', z:5, kind:'act', legacy:'growth', lset:'lg5e', name:'Read the sleepers\u2019 neural traces', days:600, req:['lg5ea1']},
-  {id:'lg5eb1', z:5, kind:'act', legacy:'growth', lset:'lg5e', lroot:true, name:'Build an echo relay', days:600, req:[]},
-  {id:'lg5eb2', z:5, kind:'act', legacy:'growth', lset:'lg5e', name:'Tune it to the seedling line', days:600, req:['lg5eb1']},
-  {id:'lg5e', z:5, kind:'act', legacy:'growth', lset:'lg5e', lfin:true, name:'Echo through the crown-crew pods', days:1200, req:['lg5ea2','lg5eb2']},   // legacy final: gives the bonus
+  {id:'lg5ea1', z:5, kind:'act', legacy:'growth', lset:'lg5e', lroot:true, name:'Find the crown-crew pod bank', days:2400, req:[]},
+  {id:'lg5e', z:5, kind:'act', legacy:'growth', lset:'lg5e', lfin:true, name:'Echo through the crown-crew pods', days:1200, req:['lg5ea1']},   // legacy final: gives the bonus
   {id:'lg5dx', z:5, kind:'train', legacy:'drain', lset:'lg5d', lroot:true, name:'Practise leak-sealing drills', days:40, req:[]},   // optional legacy drill
-  {id:'lg5da1', z:5, kind:'act', legacy:'drain', lset:'lg5d', lroot:true, name:'Pressure-test the crown shaft', days:600, req:[]},
-  {id:'lg5da2', z:5, kind:'act', legacy:'drain', lset:'lg5d', name:'Mark every leak', days:600, req:['lg5da1']},
-  {id:'lg5db1', z:5, kind:'act', legacy:'drain', lset:'lg5d', lroot:true, name:'Mix shaft-grade resin', days:600, req:[]},
-  {id:'lg5db2', z:5, kind:'act', legacy:'drain', lset:'lg5d', name:'Patch the worst seams', days:600, req:['lg5db1']},
-  {id:'lg5d', z:5, kind:'act', legacy:'drain', lset:'lg5d', lfin:true, name:'Seal the crown shaft\u2019s sap leaks', days:1200, req:['lg5da2','lg5db2']},   // legacy final: gives the bonus
+  {id:'lg5da1', z:5, kind:'act', legacy:'drain', lset:'lg5d', lroot:true, name:'Pressure-test the crown shaft', days:2400, req:[]},
+  {id:'lg5d', z:5, kind:'act', legacy:'drain', lset:'lg5d', lfin:true, name:'Seal the crown shaft\u2019s sap leaks', days:1200, req:['lg5da1']},   // legacy final: gives the bonus
   {id:'lg5hx', z:5, kind:'train', legacy:'hp', lset:'lg5h', lroot:true, name:'Run crown-crew fitness trials', days:40, req:[]},   // optional legacy drill
-  {id:'lg5ha1', z:5, kind:'act', legacy:'hp', lset:'lg5h', lroot:true, name:'Pull a crown-crew genome', days:600, req:[]},
-  {id:'lg5ha2', z:5, kind:'act', legacy:'hp', lset:'lg5h', name:'Trim it for seedling work', days:600, req:['lg5ha1']},
-  {id:'lg5hb1', z:5, kind:'act', legacy:'hp', lset:'lg5h', lroot:true, name:'Grow a test body', days:600, req:[]},
-  {id:'lg5hb2', z:5, kind:'act', legacy:'hp', lset:'lg5h', name:'Check it against the Hearth\u2019s load', days:600, req:['lg5hb1']},
-  {id:'lg5h', z:5, kind:'act', legacy:'hp', lset:'lg5h', lfin:true, name:'Fit a crown-crew template', days:1200, req:['lg5ha2','lg5hb2']},   // legacy final: gives the bonus
+  {id:'lg5ha1', z:5, kind:'act', legacy:'hp', lset:'lg5h', lroot:true, name:'Pull a crown-crew genome', days:2400, req:[]},
+  {id:'lg5h', z:5, kind:'act', legacy:'hp', lset:'lg5h', lfin:true, name:'Fit a crown-crew template', days:1200, req:['lg5ha1']},   // legacy final: gives the bonus
   {id:'lg5sx', z:5, kind:'train', legacy:'speed', lset:'lg5s', lroot:true, name:'Practise sequencer timing', days:40, req:[]},   // optional legacy drill
-  {id:'lg5sa1', z:5, kind:'act', legacy:'speed', lset:'lg5s', lroot:true, name:'Find the sequencer\u2019s timing table', days:600, req:[]},
-  {id:'lg5sa2', z:5, kind:'act', legacy:'speed', lset:'lg5s', name:'Shave the safety margins', days:600, req:['lg5sa1']},
-  {id:'lg5sb1', z:5, kind:'act', legacy:'speed', lset:'lg5s', lroot:true, name:'Regrow the kindling nerves', days:600, req:[]},
-  {id:'lg5sb2', z:5, kind:'act', legacy:'speed', lset:'lg5s', name:'Dry-run the faster sequence', days:600, req:['lg5sb1']},
-  {id:'lg5s', z:5, kind:'act', legacy:'speed', lset:'lg5s', lfin:true, name:'Overclock the Hearth sequencer', days:1200, req:['lg5sa2','lg5sb2']},   // legacy final: gives the bonus
+  {id:'lg5sa1', z:5, kind:'act', legacy:'speed', lset:'lg5s', lroot:true, name:'Find the sequencer\u2019s timing table', days:2400, req:[]},
+  {id:'lg5s', z:5, kind:'act', legacy:'speed', lset:'lg5s', lfin:true, name:'Overclock the Hearth sequencer', days:1200, req:['lg5sa1']},   // legacy final: gives the bonus
   {id:'lg5wx', z:5, kind:'train', legacy:'wear', lset:'lg5w', lroot:true, name:'Rehearse heat-tempering', days:40, req:[]},   // optional legacy drill
-  {id:'lg5wa1', z:5, kind:'act', legacy:'wear', lset:'lg5w', lroot:true, name:'Find scorched boughs that held', days:600, req:[]},
-  {id:'lg5wa2', z:5, kind:'act', legacy:'wear', lset:'lg5w', name:'Map their tempered grain', days:600, req:['lg5wa1']},
-  {id:'lg5wb1', z:5, kind:'act', legacy:'wear', lset:'lg5w', lroot:true, name:'Bank a slow ember', days:600, req:[]},
-  {id:'lg5wb2', z:5, kind:'act', legacy:'wear', lset:'lg5w', name:'Temper a test bough over it', days:600, req:['lg5wb1']},
-  {id:'lg5w', z:5, kind:'act', legacy:'wear', lset:'lg5w', lfin:true, name:'Temper the crown\u2019s grain against the burn', days:1200, req:['lg5wa2','lg5wb2']},   // legacy final: gives the bonus
+  {id:'lg5wa1', z:5, kind:'act', legacy:'wear', lset:'lg5w', lroot:true, name:'Find scorched boughs that held', days:2400, req:[]},
+  {id:'lg5w', z:5, kind:'act', legacy:'wear', lset:'lg5w', lfin:true, name:'Temper the crown\u2019s grain against the burn', days:1200, req:['lg5wa1']},   // legacy final: gives the bonus
   {id:'pantryfix', z:5, kind:'act', meal:true, name:'Repair the crown crew\u2019s fast charger', days:1500, req:['starfix']},   // charger upgrade: recharges come more often
   {id:'ignite', z:5, kind:'act', name:'Kindle the Hearth Tree', days:3461, req:['course','injectors'], win:true,
     log:'The Hearth Tree kindles. Selene catches the ambient current and begins the long climb toward the speed of light. WARDEN begins the wake cycle for 3,112 sleepers and puts your pod on the compost list. Then the long watch begins.'},
@@ -1395,14 +1305,14 @@ function addFam(t, a){
 // Drills: each session adds a share of a life's worth to every other task of its section (kept small:
 // drills reach dozens of tasks at once, so a large credit let a run skip most of its seedlings).
 // One drill per section since build "one drill per section": it counts double (DRILL_CREDIT_SEC);
-// a legacy drill trains its own five parts at DRILL_CREDIT.
+// a legacy drill trains its own two parts at DRILL_CREDIT.
 const DRILL_CREDIT = 0.1, DRILL_CREDIT_SEC = 0.2;
 const drillShare = d => d.lset ? DRILL_CREDIT : DRILL_CREDIT_SEC;
 // The second drill of each section was removed; its automation progress goes to the one kept (once, in mergeState)
 const DRILL_MERGE = [['drill','rewire'], ['reckon','genes'], ['barkseal','graftdrill'], ['faults','locks'], ['flightsim','puzzles'], ['zerog','seals'],
   ['watchdrill','podcheck'], ['memdrill','poddrill'], ['shielddrill','flipdrill'], ['sealdrill','cqb'], ['triage','trapdrill'], ['menddrill','emberdrill'], ['scandrill','evadedrill'], ['trimdrill','landdrill']];
 function drillCredit(d){
-  TASKS.forEach(t => { if (t.kind !== 'train' && t.z === d.z && (d.lset ? t.lset === d.lset : !t.legacy)) addFam(t, drillShare(d) * compUnit(t) * famGain(t)); });   // a legacy drill trains its own five parts
+  TASKS.forEach(t => { if (t.kind !== 'train' && t.z === d.z && (d.lset ? t.lset === d.lset : !t.legacy)) addFam(t, drillShare(d) * compUnit(t) * famGain(t)); });   // a legacy drill trains its own two parts
 }
 // hazards hurt less the more familiar the task is (up to /4)
 function hazDmg(t){ return (t.haz || 0) * M.haz * M.a2haz / (1 + 3 * masteryFrac(t)); }
@@ -3254,6 +3164,12 @@ function mergeState(raw){
       if (((s.prac || {})[t.id] || 0) >= old && ((s.fam || {})[t.id] || 0) < autoFam(t)) (s.fam = s.fam || {})[t.id] = autoFam(t); }); } finally { S = keep; }
   }
   s.av = 2;
+  if (!s.lg2) {   // legacy sets cut to a step and a final (build "two-part legacy"): a removed part's familiarity and automation go to the step
+    s.lg2 = 1; const to = id => { const m = /^(lg\w+)[ab][12]$/.exec(id); return m && !T[id] && T[m[1] + 'a1'] ? m[1] + 'a1' : null; };
+    ['fam', 'prac'].forEach(k => { const o = s[k] || {}; Object.keys(o).forEach(id => { const k2 = to(id); if (k2) { o[k2] = Math.max(o[k2] || 0, o[id] || 0); delete o[id]; } }); });
+    const au = s.auto || {}; Object.keys(au).forEach(id => { const k2 = to(id); if (k2) { if (au[id] === true && au[k2] == null) au[k2] = true; delete au[id]; } });
+    if (Array.isArray(s.pins)) s.pins = s.pins.filter(id => !to(id));
+  }
   if (s.life && Array.isArray(s.life.assem)) {   // gear is built when paid (build "gear built when paid"): finish anything mid-assembly
     s.life.owned = s.life.owned || {}; s.gprac = s.gprac || {};
     s.life.assem.forEach(id => { if (IT[id] && !s.life.owned[id]) { s.life.owned[id] = true; s.gprac[id] = (s.gprac[id] || 0) + 1; } });
@@ -3401,7 +3317,7 @@ function showStory(){
 }
 HOOK.done = t => sfx('complete');
 HOOK.qfull = () => { sfx('error'); toast('The queue is full (' + QMAX + ' items). Remove something first.'); };
-HOOK.legacy = k => { legKey = ''; taskKey = ''; toast('New legacy tasks: ' + LEG_NAME[k] + ', five parts in every Act I section, needed for its crossing (see the Legacy tab).', true); };
+HOOK.legacy = k => { legKey = ''; taskKey = ''; toast('New legacy tasks: ' + LEG_NAME[k] + ', two parts in every Act I section, needed for its crossing (see the Legacy tab).', true); };
 HOOK.autoRun = sp => { taskKey = ''; autoKey = ''; toast('Section run started by itself: ' + sp.map(z => ZN(z).name).join(' \u2192 ') + '.'); };
 HOOK.legacyAvail = ts => { taskKey = ''; legKey = ''; sfx('perk');
   const fin = ts.filter(t => t.lfin), parts = ts.filter(t => !t.lfin), where = zoneThe(ts[0].z);
@@ -3700,6 +3616,7 @@ const BUILD_NOTES = [
   ['gear built when paid', 'Gear is built the moment it is paid for: no assembly step. Most designs cost a little more deadwood instead (the cheapest ones are unchanged).'],
   ['free crossings', 'Crossings no longer cost sap cells. The Safe harbour record now makes charging stations hold 25% more; Supply manifests keeps its faster charging.'],
   ['act ii twice act i', 'Longer sections from the Shattered Bark on, and Act II about twice as long as Act I again. The Seedling Vaults and Taproot Galleries are unchanged.'],
+  ['two-part legacy', 'Legacy sets are now a step and a final (plus the optional drill) instead of five parts; the step takes as long as the four old parts together, so each bonus costs the same time in fewer tasks.'],
 ];
 const buildKey = () => BUILD.split('\u00b7').pop().trim();
 function newNotes(){   // the notes since this save last opened (records the current build)
@@ -4701,7 +4618,7 @@ const LEG_NAME = {growth:'Echo', drain:'Dampening', hp:'Storage optimization', s
 function ngpPanel(){
   const pr = S.pr || {n:0}, L = S.life;
   let h = '<div class="panel ngp"><span class="h2">Legacy tasks</span>';
-  h += '<p class="note">Legacy tasks open up one theme at a time as Act II unfolds. Each theme adds five parts to every Act I section, once a seedling has done that section\u2019s last regular action: two pairs of steps, then a final that needs both pairs. Once revealed they are <b>needed for the crossing</b>. Finishing the final gives its bonus for the rest of that life, growing with the final\u2019s mastery (nothing untrained, all of its share when fully mastered: finals take twice the usual familiarity). All six finals of a theme (one per Act I section), done and mastered, give its full effect. Each set has an optional drill that trains its five parts. Legacy parts are never queued for you: a warning says when they open up. Echo and Dampening work fully in Act I and at 10% in Act II; Storage optimization works fully in both acts; Overclock speeds up the whole game.</p>';
+  h += '<p class="note">Legacy tasks open up one theme at a time as Act II unfolds. Each theme adds two parts to every Act I section, once a seedling has done that section\u2019s last regular action: a step, then a final that needs it. Once revealed they are <b>needed for the crossing</b>. Finishing the final gives its bonus for the rest of that life, growing with the final\u2019s mastery (nothing untrained, all of its share when fully mastered: finals take twice the usual familiarity). All six finals of a theme (one per Act I section), done and mastered, give its full effect. Each set has an optional drill that trains its two parts. Legacy parts are never queued for you: a warning says when they open up. Echo and Dampening work fully in Act I and at 10% in Act II; Storage optimization works fully in both acts; Overclock speeds up the whole game.</p>';
   NGP.forEach(r => { const ts = LEGACY_T[r.id] || [], done = ts.filter(t => L.done && L.done[t.id]).length, k = ngpLv(r.id), pd = TASKS.filter(t => t.legacy === r.id && t.kind === 'act' && !t.lfin && L.done && L.done[t.id]).length;
     if (!legacyOpen(ts[0])) { h += '<div class="ngrow"><div><b>???</b> <span class="num">not revealed yet</span><small>Revealed further into Act II.</small></div></div>'; return; }
     const tr = Math.round(100 * ts.reduce((a, t) => a + (legacyShare(t) - 0.25) / 0.75, 0) / Math.max(1, ts.length));
@@ -5168,7 +5085,7 @@ const FAQ_ALL = [
   ['Settings', '<b>Settings</b> (the ⚙ button, or Settings in the ☰ menu) holds the clock and pause options (death screen, starting paused, once on first reaching a section, after a new section, when a section run ends or when a task finishes), sound (music and effects), layout (vertical or horizontal), text size (90% to 130%, kept on this device), Show formulas (tooltips add the formulas behind drain and speed) and, in the Android app, app updates. Energy and automation options (auto-recharge, auto-charge, the charge threshold, charging when needed) are in the Auto tab.'],
 ];
 // Shown once the drive is first lit.
-const FAQ_NGP = ['Legacy tasks', 'There is no restarting: after the Hearth Tree is kindled, the story always moves forward. As Act II unfolds, <b>legacy tasks</b> open up in Act I, one theme at a time. Each theme adds a set of five parts to every Act I section, open once a seedling has done that section\u2019s last regular action: two pairs of steps, then a <b>final</b> that needs both pairs. Revealed sets are <b>needed for the crossing</b> (and for kindling the Hearth Tree). Finishing a final gives its bonus for the rest of that life, growing with the final\u2019s mastery (nothing untrained, full share at twice the usual familiarity). All six finals of a theme (one per Act I section), done and mastered, give its full effect. Each set has an optional <b>drill</b> that trains only its five parts; section drills don\u2019t train them. Legacy parts are never queued for you: a toast and a dot on the Tasks tab say when they open up. Once automated they join chains and section runs like any other task. The <b>Legacy</b> tab shows what each revealed theme does and how far it has got. Kindling the Hearth Tree the first time also unlocks the <b>Quartermaster\u2019s cache</b>: every seedling starts with all of its automated gear already built, in both acts.'];
+const FAQ_NGP = ['Legacy tasks', 'There is no restarting: after the Hearth Tree is kindled, the story always moves forward. As Act II unfolds, <b>legacy tasks</b> open up in Act I, one theme at a time. Each theme adds a set of two parts to every Act I section, open once a seedling has done that section\u2019s last regular action: a step, then a <b>final</b> that needs it. Revealed sets are <b>needed for the crossing</b> (and for kindling the Hearth Tree). Finishing a final gives its bonus for the rest of that life, growing with the final\u2019s mastery (nothing untrained, full share at twice the usual familiarity). All six finals of a theme (one per Act I section), done and mastered, give its full effect. Each set has an optional <b>drill</b> that trains only its two parts; section drills don\u2019t train them. Legacy parts are never queued for you: a toast and a dot on the Tasks tab say when they open up. Once automated they join chains and section runs like any other task. The <b>Legacy</b> tab shows what each revealed theme does and how far it has got. Kindling the Hearth Tree the first time also unlocks the <b>Quartermaster\u2019s cache</b>: every seedling starts with all of its automated gear already built, in both acts.'];
 const FAQ_WEAR = ['Ship wear and grafts', 'In Act II Selene wears out as your seedlings work: least early in the long watch, more against the Boarders, most during Arrival. Every point of wear adds 8% to the energy drain. <b>Deadwood</b> doubles as <b>grafts</b>: a <b>repair</b> takes off 1.5 wear for a fixed number of grafts (more in later sections), then needs a cooldown, like a recharge. <b>Auto-repair</b> does this for you; the <b>Repair</b> button under Grafts does it by hand. Graft jobs are to grafts what charging stations are to energy: <b>Auto-scavenge</b> works the best one when grafts run low. Each Act II section\u2019s <b>charger upgrade</b> also makes repairs come more often. Run out of grafts and the wear keeps climbing until the seedling is worn down with her.'];
 const FAQ_VOY = ['Selene\u2019s voyage', 'Selene\u2019s voyage to Tessaly takes <b>480 years</b>. Each section header shows the year it is set in and how much of the voyage lies behind her. <b>Year 120</b> (a quarter of the way): a meteor shower tears into her, WARDEN wakes K-7, and all of Act I happens within days. <b>Years 120\u2013240</b>: the long watch on the current, up to the <b>turnover</b> at the midpoint, where she flips and begins to brake. <b>Years 240\u2013477</b>: the long braking burn, until she drops out of relativistic speed. <b>Years 477\u2013478</b>: the <b>Boarders</b> strike while she brakes, and their damage is mended. <b>Years 479\u2013480</b>: <b>Arrival</b>, through the Tessaly system into orbit.'];
 const FAQ_A2 = ['Act II', 'Once the Hearth Tree is kindled, every seedling that kindles it carries on into <b>Act II</b>: ten more sections, one after another, each revealed when a seedling first reaches it. Act II tasks have their own familiarity, which Echo legacy tasks reduce only at 10% strength: it starts at 90 lives\u2019 worth for \u00d710 and drops by a quarter at each of Act II\u2019s three big milestones. Act II familiarity, automation and records are kept for good.'];

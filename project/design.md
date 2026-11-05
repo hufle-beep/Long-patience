@@ -84,10 +84,10 @@ Notes:
 ## Legacy tasks (replace the old Act I reward points)
 - Five themes, each with a set in every Act I section: Echo (Act I familiarity), Dampening (drain), Storage optimization (max energy), Overclock (game speed), Hardened grain (Act II wear, revealed at The Mending from Stage 2).
 - Themes are revealed as Act II sections are first reached (route positions 2, 4, 6, 8, 9) and stay revealed.
-- Each set = five actions: two pairs (A1 -> A2, B1 -> B2), then a final that needs A2 and B2. Only the final gives the bonus. A1, B1 need the section's last regular action. LEGACY_LEN 0.6.
+- Each set = two actions (owner 2026-11-05, build "two-part legacy": about as many legacy parts as regular actions): a step (as long as the four old parts together), then the final that needs it. Only the final gives the bonus. The step needs the section's last regular action. LEGACY_LEN 0.6.
 - Mandatory: once a theme is revealed, its finals are required for the section's crossing (and for kindling the Hearth Tree). Unrevealed themes don't block.
 - Not auto-queued: a toast when parts first open in a life, and a dot on the Tasks tab. Once automated they join chains and section runs.
-- One optional drill per set, training only that set's five parts.
+- One optional drill per set, training only that set's two parts.
 - Quartermaster's cache: unlocked the first time the Hearth Tree is kindled.
 
 ## Section runs

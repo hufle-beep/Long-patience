@@ -92,3 +92,16 @@ test('every gear design fits the deadwood storage its section can reach', () => 
     return ITEMS.filter(i => i.cost > cap[gearZone(i)]).map(i => i.id + ' costs ' + i.cost + ', storage reaches ' + cap[gearZone(i)]);`)();
   assert.deepStrictEqual(R, []);
 });
+
+test('every legacy set is a step, a final that needs it, and one drill', () => {
+  // owner 2026-11-05 (build "two-part legacy"): about as many legacy parts as regular actions; one drill per set kept
+  const sets = {}, bad = [];
+  for (const t of G.TASKS) if (t.lset) (sets[t.lset] = sets[t.lset] || []).push(t);
+  for (const [s, ts] of Object.entries(sets)) {
+    const steps = ts.filter(t => t.kind === 'act' && !t.lfin), fins = ts.filter(t => t.lfin), drills = ts.filter(t => t.kind === 'train');
+    if (steps.length !== 1 || fins.length !== 1 || drills.length !== 1) bad.push(s + ': ' + steps.length + ' steps, ' + fins.length + ' finals, ' + drills.length + ' drills');
+    else if (fins[0].req.length !== 1 || fins[0].req[0] !== steps[0].id) bad.push(s + ': the final must need exactly its step');
+  }
+  assert.deepStrictEqual(bad, []);
+  assert.strictEqual(Object.keys(sets).length, 30, 'five themes in each of the six Act I sections');
+});

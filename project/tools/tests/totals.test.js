@@ -8,9 +8,9 @@ test('lean bot: Act I total 5.59 h in-game', () => {
   const m = act1().match(/TOTAL in-game h ([\d.]+)/); assert.ok(m, 'no TOTAL line');
   near(+m[1], 5.59, 0.02, 'Act I hours');
 });
-test('Act II bot: long watch 6.36, Boarders 3.31, Arrival 1.53 h', {skip: process.env.QUICK ? 'QUICK=1 skips the 1-minute Act II run' : false}, () => {
+test('Act II bot: long watch 6.36, Boarders 3.27, Arrival 1.54 h', {skip: process.env.QUICK ? 'QUICK=1 skips the 1-minute Act II run' : false}, () => {
   const m = act2().match(/long watch h ([\d.]+) boarders h ([\d.]+) arrival h ([\d.]+) act2 h ([\d.]+)/); assert.ok(m, 'no Act II line');
-  near(+m[1], 6.36, 0.02, 'long watch'); near(+m[2], 3.31, 0.02, 'Boarders'); near(+m[3], 1.53, 0.02, 'Arrival'); near(+m[4], 11.20, 0.03, 'Act II');
+  near(+m[1], 6.36, 0.02, 'long watch'); near(+m[2], 3.27, 0.02, 'Boarders'); near(+m[3], 1.54, 0.02, 'Arrival'); near(+m[4], 11.17, 0.03, 'Act II');
 });
 // Design rule (owner 2026-11-05): Act II takes about twice as long as Act I (lean bots, in-game hours)
 test('Act II takes about twice as long as Act I (1.8-2.2)', {skip: process.env.QUICK ? 'QUICK=1 skips the 1-minute Act II run' : false}, () => {
