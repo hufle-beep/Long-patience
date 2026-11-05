@@ -396,6 +396,8 @@ html.mopen,html.mopen body{overflow:hidden;overscroll-behavior:none}
 #toasts{position:fixed;left:0;right:0;bottom:calc(58px + env(safe-area-inset-bottom,0px));z-index:15;display:grid;justify-items:center;gap:6px;pointer-events:none;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
 .toast{background:var(--panel2);border:1px solid var(--line);border-radius:5px;padding:8px 12px;font-size:13px;max-width:420px;animation:tin .2s ease-out}
 .toast.gold{border-color:var(--amber);color:var(--amber)}
+#errbar{position:fixed;left:max(8px,env(safe-area-inset-left,0px));right:max(8px,env(safe-area-inset-right,0px));bottom:calc(58px + env(safe-area-inset-bottom,0px));z-index:40;background:var(--panel2);border:1px solid var(--red);border-radius:6px;padding:8px 10px;font-size:13px;max-width:560px;margin:0 auto}
+#errbar p{margin:0 0 6px}#errbar .btns{display:flex;gap:6px;flex-wrap:wrap}
 @keyframes tin{from{transform:translateY(8px);opacity:0}}
 .fld{display:grid;gap:4px}
 .fld label{font-size:12px;color:var(--dim)}
@@ -573,7 +575,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
 // Renamed from Long Patience: move this device's old storage keys to the new 'selene.' names once
 try { const old = []; for (let n = 0; n < localStorage.length; n++) old.push(localStorage.key(n)); old.forEach(k => { if (k && k.indexOf('long-patience.') === 0) { const nk = 'selene.' + k.slice(14); if (localStorage.getItem(nk) == null) localStorage.setItem(nk, localStorage.getItem(k)); localStorage.removeItem(k); } }); } catch(e) {}
 /* ===== Game data and rules (no DOM) ===== */
-const BUILD = '2026-11-05 · folds';   // shown in the main menu, to tell which version is loaded
+const BUILD = '2026-11-05 · robustness';   // shown in the main menu, to tell which version is loaded
 const DPS = 8;             // simulation ticks per real second at 1x (doubled for the test version: same balance, half the real time)
 // Time is simulated in ticks. 80 ticks make one day unit (18 minutes each), so a day lasts
 // 20 real seconds at 1x and Players only ever see in-game time and real time, never days.
@@ -2894,15 +2896,63 @@ function slotCheck(i){
 function stashDamaged(r){ try { localStorage.setItem('selene.damaged.' + r.s, JSON.stringify({t:Date.now(), why:r.why || 'checksum', txt:r.txt})); } catch(e) {} }
 function deathSave(){
   if (!S || recovering || !saveOk()) return;
-  try { localStorage.setItem(slotKey(deathKey(slot)), saveJson(S)); } catch(e) {}
+  try { localStorage.setItem(slotKey(deathKey(slot)), saveJson(S)); } catch(e) { saveFailed(e); }
 }
 let wiping = false;   // set while a reset clears storage, so nothing writes it back before the reload
 function save(){
   if (!S || wiping || recovering || !saveOk()) return;
-  try { S.saved = Date.now(); localStorage.setItem(slotKey(slot), saveJson(S)); localStorage.setItem(ACTIVE_KEY, slot); } catch(e) {}
+  const t0 = S.saved;
+  try { S.saved = Date.now(); localStorage.setItem(slotKey(slot), saveJson(S)); localStorage.setItem(ACTIVE_KEY, slot); saveGoodN++; }
+  catch(e) { S.saved = t0; saveFailed(e); return; }   // 'last saved' moves only when the write worked
   savePrefs();
   bkTick();
+  expRemind();
 }
+/* ----- save failures (round 5): say why, offer the export, never pretend it worked -----
+   A toast at most once a minute; the first failure of the session also opens a pop-up with the export. */
+let saveGoodN = 0, saveFailN = 0, saveFailT = -1e9, saveFailShown = false;
+function saveWhy(e){
+  const s = ((e && e.name) || '') + ' ' + ((e && e.message) || (e ? String(e) : ''));
+  return /quota/i.test(s) ? 'the browser’s storage for this game is full'
+    : /secur|denied|disabled|not allowed/i.test(s) ? 'the browser is blocking storage for this page'
+    : 'the browser refused to write it (' + (s.trim() || 'unknown error') + ')';
+}
+function saveFailed(e){
+  saveFailN++; const why = saveWhy(e), now = performance.now();
+  if (now - saveFailT > 60000) { saveFailT = now; toast('Couldn’t save: ' + why + '. Export the save to keep a copy.'); }
+  if (!saveFailShown && typeof showModal === 'function' && $('#modal').hidden) { saveFailShown = true; showSaveFail(why); }
+}
+function showSaveFail(why){
+  paused = true;
+  showModal(`<h2>The game couldn’t be saved</h2><p>${esc(why[0].toUpperCase() + why.slice(1))}. Progress since the last successful save is only on this screen. Export it now to keep a copy; the game keeps trying to save every few seconds.</p>
+    <div class="mbtns"><button class="btn pri" data-exportjson>Export save file</button><button class="btn" data-copysave>Copy the save as text</button><button class="btn" data-close>Carry on</button></div><textarea id="save-code" rows="2" readonly aria-label="Save text"></textarea>`);
+}
+/* ----- export reminder (round 5): after an hour of play and a day since the last export or reminder ----- */
+const EXP_KEY = 'selene.exp.v1', EXP_PLAY = 3600, EXP_WAIT = 86400000;
+function expState(){ try { const o = JSON.parse(localStorage.getItem(EXP_KEY) || '{}'); return o && typeof o === 'object' ? o : {}; } catch(e) { return {}; } }
+function expWrite(o){ try { localStorage.setItem(EXP_KEY, JSON.stringify(o)); } catch(e) {} }
+function expMark(){ const o = expState(); o.t = Date.now(); o.pl = (S && S.stats && S.stats.played) || 0; expWrite(o); }   // an export (or a reminder) restarts both counts
+function expRemind(){
+  if (!S || !S.intro) return; const o = expState(); if (o.off) return;
+  const pl = (S.stats && S.stats.played) || 0, now = Date.now();
+  if (o.t == null || o.t > now) { o.t = now; o.pl = pl; expWrite(o); return; }   // first visit, or the clock went back
+  if (o.pl == null || o.pl > pl) { o.pl = pl; expWrite(o); return; }             // another (shorter) game: count from here
+  if (now - o.t < EXP_WAIT || pl - o.pl < EXP_PLAY) return;
+  expMark(); toast('No save exported for over a day. ☰ → Save Management → Export save file keeps a copy off this device.', true);
+}
+/* ----- error catcher (round 5): one bar per new error; the game loop keeps running ----- */
+let errN = 0, errLast = '';
+const errSeen = {};
+function gameError(msg, stack){
+  const k = String(msg || 'Unknown error').slice(0, 160); if (errSeen[k] || errN >= 5) return; errSeen[k] = 1; errN++;
+  errLast = 'Selene: Tidelocked ' + BUILD + '\n' + k + '\n' + (stack || '') + '\nSeedling ' + (S ? S.gen : '?') + ', section ' + (S && S.life ? S.life.sec : '?') + ', ' + (navigator.userAgent || '');
+  let bar = document.getElementById('errbar');
+  if (!bar) { bar = document.createElement('div'); bar.id = 'errbar'; bar.setAttribute('role', 'alert'); document.body.appendChild(bar); }
+  bar.innerHTML = `<p><b>Something went wrong:</b> ${esc(k)}. The game keeps running; copying the details helps fix it.</p><div class="btns"><button class="btn" data-errcopy>Copy details</button><button class="btn" data-exportjson>Export save</button><button class="btn" data-errclose aria-label="Close">✕</button></div>`;
+  bar.hidden = false;
+}
+window.addEventListener('error', e => gameError(e.message, e.error && e.error.stack));
+window.addEventListener('unhandledrejection', e => { const r = e.reason; gameError(r && r.message || String(r), r && r.stack); });
 /* ----- rolling backups: four per slot, packed ('LPZ1:'), in selene.bk.<slot> -----
    m5 / m30 / h2 are rewritten after 5 min / 30 min / 2 h of play in that save; 'pre' is written just before
    anything replaces or deletes the slot (load, import, restore, restart, new game, save over, delete). */
@@ -3009,7 +3059,7 @@ function exportText(name, text, toFile){
   } catch(e) { toast('This browser can’t save files. Use “Copy as JSON” instead.'); }
 }
 function exportJson(toFile){
-  save();
+  save(); expMark();
   exportText(saveFileName(), JSON.stringify(JSON.parse(saveJson(S)), null, 1), toFile);   // with its checksum, pretty-printed
 }
 // Packed saves: 'LPZ1:' + base64 of the gzipped JSON, about a fifth of the size (used for sharing)
@@ -3146,6 +3196,7 @@ function savePanel(){
     <p class="note">Export this slot as a JSON file to keep a backup or send it to another device, and import one to continue from it. Importing replaces the game in the current slot.</p>
     <div class="btns"><button class="btn pri" data-exportjson>Export save file</button>${window.AndroidBridge && AndroidBridge.shareFile ? '<button class="btn" data-exportfile>Save to a file</button>' : ''}<button class="btn" data-confirm="importfile">Import save file</button></div>
     <input type="file" id="import-file" accept=".json,application/json,text/plain" hidden>
+    <div class="row"><p>Remind me to export<small>A note after an hour of play and a day without an exported save. Browser storage can be cleared by the browser or the system; an exported file is the copy that survives.</small></p><button class="tog${expState().off ? '' : ' on'}" data-expremind aria-label="Remind me to export" aria-pressed="${!expState().off}"></button></div>
   </div>
   <div class="panel set"><span class="h2">Save as text</span>
     <p class="note">The same save as text you can copy and paste. JSON is readable; the save code is shorter. The box below accepts either.</p>
@@ -3863,6 +3914,21 @@ document.addEventListener('pointerdown', e => {
 });
 ['pointerup', 'pointercancel', 'pointerleave'].forEach(k => document.addEventListener(k, () => clearTimeout(lpT)));
 document.addEventListener('click', e => { if (lpDone && e.target.closest && e.target.closest('button[data-q]')) { lpDone = false; e.stopImmediatePropagation(); e.preventDefault(); } }, true);   // the long-press already queued: no extra copy
+// Tap guard (round 5): a second tap within TAP_GUARD ms on the same button that spends, crosses or confirms is ignored,
+// so a double tap can't build, repair, recharge, cross or confirm twice ("Tap again" needs a real second tap).
+const TAP_GUARD = 400, GUARD_SEL = '[data-gdo],[data-repair],[data-eat],[data-confirm],[data-skiphold],[data-decant],[data-buy]';
+let guardK = '', guardT = -1e9;
+function tapGuardKey(b){
+  if (b.matches(GUARD_SEL)) return JSON.stringify(Object.assign({}, b.dataset));
+  const t = b.dataset.do && typeof T !== 'undefined' && T[b.dataset.do]; return t && t.cross ? 'do:' + t.id : '';
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest && e.target.closest('button'); if (!b) return;
+  const k = tapGuardKey(b); if (!k) return;
+  const now = performance.now();
+  if (k === guardK && now - guardT < TAP_GUARD) { e.stopImmediatePropagation(); e.preventDefault(); return; }
+  guardK = k; guardT = now;
+}, true);
 let qDrag = null;
 document.addEventListener('pointerdown', e => {
   const hnd = e.target.closest && e.target.closest('[data-qdrag]');
@@ -4966,7 +5032,7 @@ const FAQ_ALL = [
   ['How does automation work?', 'Every completion counts: finish an action 10 times (a multi-rep action 10 times its reps), or a training session 40 times, or build a design in 10 lives, and its automation <b>switches on by itself</b>. For Act I tasks these counts shrink along with the familiarity threshold (Echo legacy), never below one; tap <b>AUTO</b> (or its switch in the Auto tab) to turn it off, and it stays off. Automated tasks run by themselves <b>ahead of your queue</b>, in chain order (each after the tasks it needs). Automated tasks <b>link into chains</b> when one requires the other and both are at least ×2 familiar. When every action and crossing of a section is automated and ×5 familiar, and all its gear designs are automated, the whole section becomes <b>one chain</b>: press <b>▶ Run section</b> (above the queue in the Tasks tab) and the seedling works through everything, builds the gear, fills its stores and crosses. The run is pinned at the top of the queue and the queue\u2019s leftovers for its sections are cleared. Pressing it also turns on <b>Always run sections once ready</b> (Auto tab): from then on a run starts by itself whenever the section you are in is ready. Stop turns that off again. Ready sections next to each other link across their crossings into one run (<b>▶ Run 3 sections</b>), up to the end of the act; a run that dies starts again with the next seedling. The option <b>Pause when a section run ends instead</b> keeps a run going through its crossings and pauses once it is over. A chain picks its next step itself each time: gear first, then charger upgrades, then the actions and drills in the order they depend on each other, and the crossing last. When a chain forms or grows, it <b>queues itself</b>, including the chains of sections still ahead, and chain entries are kept in the order they will run: section by section, and within a section the chain that starts earliest first, with the crossing\u2019s chain last, and anything of it you had queued separately is dropped from the queue. If you remove a chain from the queue, it stays out for the rest of that seedling\u2019s life. Work done as part of a chain (a queued chain or a section run) builds <b>chain flow</b>, which makes chained steps up to five times as fast; it is kept for good. Jobs are never automated: auto-forage keeps the charge up, queued gear works the deadwood jobs, and every queued or automated crossing tops the sap cells up and fills deadwood to full carry before the seedling moves on. <b>Automated gear gathers its own deadwood</b> during the life: the next automated design that is found, not built and fits in storage; it gathers only what that design costs and does not top the store up to full (except while filling up before a crossing). Automated <b>crossings</b> are the exception: they wait until your queue is done. A task you tap runs before everything. The <b>Auto</b> tab lists everything unlocked and has extra options: charging when needed, the death screen and starting paused. Each section\u2019s header names its <b>next automation</b>: the task closest to it, its completions, and whether this seedling gets there (from the forecast) or about how many more seedlings it takes. The death screen sums up each life: familiarity gained, records found, tasks that became automatable and the closest ones; the Mastery tab shows the in-game time spent on each task by this seedling and by all of them (counted from build \u201cqueue summaries\u201d). The <b>gears switch</b> next to Pause (shown once something is automated) pauses all automation at once: automated tasks, auto-built gear and section runs wait, while the queue, tapped tasks and auto-charge keep working. Tap it again to resume.'],
   ['What happens at a crossing with automation?', 'A queued or automated crossing stops just before it finishes and waits while the seedling finishes automated actions and training, builds affordable automated gear and tops sap cells up and fills deadwood (grafts in Act II) to full carry, unless the seedling is out of cells and low on energy. Tap a crossing yourself to go at once.'],
   ['Pause, saving and speed', 'Progress is saved on this device only (this browser or the app); use <b>Save files</b> in the main menu (\u2630) to back it up or move it, and <b>Restart</b> next to the slot there to start this slot over. Pause with the button at the top or the space bar. The game only runs while it is on screen: in another app, a background tab or closed, the clock stops and carries on where it left off. Each <b>Stasis watch</b> record (one for leaving each section the first time) tunes the seedlings\u2019 stasis: energy drains a little slower, more with each one, up to \u221250% in all. The <b>speed menu</b> (\u00bb) at the top appears once Act I has been cleared: \u00d72 then, and \u00d75 once Act II has been cleared. It is a flat speed-up of real time, kept on this device for every save. Opening a save you haven\u2019t played for more than a day shows a short <b>Welcome back</b> recap. The <b>Log</b> tab has filters (Deaths, Records, Automation, Story); records and automation are listed there as they happen. Messages are also read out by screen readers.'],
-  ['Save management', 'The game saves itself every few seconds on this device. <b>Save Management</b> in the \u2630 menu holds: the five <b>save slots</b> (give each a name when you start a new game or save into it, or with <b>Rename</b>; load one, copy your current game into another as a save state with \u201cSave here\u201d, or delete one); under each used slot, its <b>death save</b>, written automatically at every death in that slot (load it to go back to that death; playing it never changes the regular slot. If it is too far gone, load the regular slot again from there, which deletes that death save. Deleting or starting over a slot removes its death save too); <b>Backups</b> under each slot, kept by themselves after 5 minutes, 30 minutes and 2 hours of play and just before a slot is replaced or deleted (tap Restore to bring one back; what the slot held is backed up first; \u201cExport all saves\u201d takes them along); <b>Restart</b>, next to the slot you are playing, which starts that slot over; and <b>Save files and transfer</b>: export a save file, import one, copy the save as text to move it between devices, or share it to the game\u2019s GitHub folder and load shared saves from there. A game that holds a broken number is never saved over your last good save: a message says so instead.'],
+  ['Save management', 'The game saves itself every few seconds on this device. <b>Save Management</b> in the \u2630 menu holds: the five <b>save slots</b> (give each a name when you start a new game or save into it, or with <b>Rename</b>; load one, copy your current game into another as a save state with \u201cSave here\u201d, or delete one); under each used slot, its <b>death save</b>, written automatically at every death in that slot (load it to go back to that death; playing it never changes the regular slot. If it is too far gone, load the regular slot again from there, which deletes that death save. Deleting or starting over a slot removes its death save too); <b>Backups</b> under each slot, kept by themselves after 5 minutes, 30 minutes and 2 hours of play and just before a slot is replaced or deleted (tap Restore to bring one back; what the slot held is backed up first; \u201cExport all saves\u201d takes them along); <b>Restart</b>, next to the slot you are playing, which starts that slot over; and <b>Save files and transfer</b>: export a save file, import one, copy the save as text to move it between devices, or share it to the game\u2019s GitHub folder and load shared saves from there. A game that holds a broken number is never saved over your last good save: a message says so instead. If the browser refuses to save (storage full or blocked), a message says why and offers the export at once. After an hour of play and a day without an exported save, a note reminds you to export one (turn it off under Save file).'],
   ['Settings', '<b>Settings</b> (the ⚙ button, or Settings in the ☰ menu) holds the clock and pause options (death screen, starting paused, after a new section, when a section run ends or when a task finishes), sound (music and effects), layout (vertical or horizontal) and, in the Android app, app updates. Energy and automation options (auto-recharge, auto-charge, the charge threshold, charging when needed) are in the Auto tab.'],
 ];
 // Shown once the drive is first lit.
@@ -5004,7 +5070,7 @@ const FAQ_TEST = {
   won: () => !!S.won,
   a2: () => !!(S.a2 && S.a2.open),
 };
-let faqState = null, faqCheckT = 0;
+let faqState = null, faqCheckT = -1e9;
 function faqLoad(){
   if (faqState) return faqState;
   let st = null; try { st = JSON.parse(localStorage.getItem(FAQ_KEY) || 'null'); } catch(e) {}
@@ -5014,7 +5080,7 @@ function faqLoad(){
 function faqSave(){ try { localStorage.setItem(FAQ_KEY, JSON.stringify({u:faqState.u, seen:faqState.seen})); } catch(e) {} }
 const faqAll = () => FAQ_ALL.concat([FAQ_KEYS, FAQ_NGP, FAQ_A2, FAQ_VOY, FAQ_WEAR]);
 function faqCheck(force){
-  if (!S || (!force && Date.now() - faqCheckT < 2000)) return; faqCheckT = Date.now();
+  if (!S || (!force && Math.abs(performance.now() - faqCheckT) < 2000)) return; faqCheckT = performance.now();
   const st = faqLoad(); let changed = false;
   for (const k in FAQ_TEST) if (!st.u[k] && FAQ_TEST[k]()) { st.u[k] = 1; changed = true; }
   if (st.fresh) { faqAll().forEach(([q]) => { if (st.u[FAQ_GATE[q] || 'start']) st.seen[q] = 1; }); st.fresh = false; changed = true; }   // first run of this feature: nothing already unlocked counts as new
@@ -5177,8 +5243,9 @@ document.addEventListener('click', e => {
     if (ck.ckBad && !d.ckok) return askOverwrite('This save was changed outside the game', slotLabel(i) + ': its checksum doesn\u2019t match, so it may be damaged or edited by hand.',
       [['Load it anyway', 'warn', () => { const b = document.createElement('button'); b.dataset.loadslot = d.loadslot; if (d.leaved) b.dataset.leaved = d.leaved; b.dataset.ckok = '1'; b.hidden = true; document.body.appendChild(b); b.click(); b.remove(); }]], 'saves');
     const load = drop => {
-      awayMs = r.saved ? Date.now() - r.saved : 0;
-      save(); if (drop) bkBefore('d' + i, 'before it was overwritten'); if (recovering) { if (recovering.s === i) stashDamaged(recovering); recovering = null; } slot = i; S = mergeState(r); M = mods(); resetViews(); save();
+      awayMs = r.saved ? Math.max(0, Date.now() - r.saved) : 0;
+      let nS; try { nS = mergeState(r); } catch(e) { toast('Couldn\u2019t open ' + slotLabel(i) + ': ' + (e && e.message || 'error') + '. Nothing was changed.'); return; }   // never switch slots with the old game still loaded
+      save(); if (drop) bkBefore('d' + i, 'before it was overwritten'); if (recovering) { if (recovering.s === i) stashDamaged(recovering); recovering = null; } slot = i; S = nS; M = mods(); resetViews(); save();
       if (drop) try { localStorage.removeItem(slotKey('d' + i)); } catch(e) {}
       toast(drop ? 'Back in slot ' + i + '; its death save was overwritten' : 'Loaded ' + slotLabel(i));
       startGame();
@@ -5246,6 +5313,9 @@ document.addEventListener('click', e => {
   if ('repair' in d) { const a = repair(); if (a) { sfx('toggle'); toast('Repaired ' + fmt(a) + ' wear.'); } return; }
   if ('eat' in d) { const f = readyFoods()[0], h0 = L.hp; if (f && eat(f)) sfx('eat'), toast('Recharged. +' + fmt(L.hp - h0) + ' energy'); return; }
   if ('exportjson' in d) { exportJson(); return; }
+  if ('errcopy' in d) { const fb = () => exportText('selene-error-' + fileStamp() + '.txt', errLast); try { navigator.clipboard.writeText(errLast).then(() => toast('Error details copied'), fb); } catch(e2) { fb(); } return; }
+  if ('errclose' in d) { const eb = document.getElementById('errbar'); if (eb) eb.hidden = true; return; }
+  if ('expremind' in d) { const o = expState(); o.off = !o.off; expWrite(o); b.classList.toggle('on', !o.off); b.setAttribute('aria-pressed', String(!o.off)); toast(o.off ? 'Export reminder off' : 'Export reminder on'); return; }
   if ('exportfile' in d) { exportJson(true); return; }
   if (d.histq) {   // the Log's recent seedlings: put that seedling's starting queue in the queue
     const e = (S.hist || []).find(x => x.g === +d.histq); if (!e || !e.q) return;
@@ -5421,7 +5491,7 @@ function simulate(dt){
 }
 function tick(now){
   let dt = (now - last) / 1000; last = now;
-  if (document.hidden) dt = 0; else if (dt > 1) dt = 1;   // no away time: the game only runs while it is on screen
+  if (document.hidden || !(dt > 0) || dt > 1) dt = 0;   // no away time: the game only runs while it is on screen; a stall, a resumed app or a clock jump counts nothing
   simulate(dt);
   if (pendingDecant) { autoDecant(); simulate(0); }
   saveT += dt;
@@ -5435,6 +5505,7 @@ const UI_MS = 100, UI_IDLE_MS = 500;
 let uiT = -1e9, uiN = 0, uiSeen = -1;
 ['pointerdown', 'pointerup', 'click', 'keydown', 'change', 'input'].forEach(ev => document.addEventListener(ev, () => { uiN++; }, true));
 function frame(now){
+  requestAnimationFrame(frame);   // first, so an error further down never stops the game loop
   const dt = tick(now);
   fcTick();
   viewT += dt;
@@ -5446,7 +5517,6 @@ function frame(now){
     if (tab === 'map') { renderMap(); updateMap(); }
   }
   if (viewT > 0.4) { viewT = 0; renderView(false, true); }
-  requestAnimationFrame(frame);
 }
 // No away time: the clock stops whenever the game is not on screen and carries on where it left off.
 document.addEventListener('visibilitychange', () => {
@@ -5551,6 +5621,7 @@ function allSaves(){
   return {seleneAllSaves:1, saved:Date.now(), active:String(slot), slots, backups};
 }
 function exportAll(){
+  expMark();
   save();
   const json = JSON.stringify(allSaves()), name = 'selene-all-saves-' + fileStamp() + '.json';
   if (window.AndroidBridge && (AndroidBridge.shareFile || AndroidBridge.exportFile)) { exportText(name, json); return; }
@@ -5577,7 +5648,7 @@ function boot(data){
   if (UPD.auto) setTimeout(() => checkAppUpdate(false), 2500);
   let raw = data && data.S;
   if (!raw) { loadSaved(); const c = slotCheck(slot); if (c.why || c.ckBad) recovering = c; raw = c.why ? null : c.raw; }
-  awayMs = raw && raw.saved ? Date.now() - raw.saved : 0;
+  awayMs = raw && raw.saved ? Math.max(0, Date.now() - raw.saved) : 0;
   S = mergeState(raw);
   M = mods();
   if (!raw) S.life.hp = M.maxHp;
