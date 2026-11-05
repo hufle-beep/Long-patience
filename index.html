@@ -552,7 +552,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
 // Renamed from Long Patience: move this device's old storage keys to the new 'selene.' names once
 try { const old = []; for (let n = 0; n < localStorage.length; n++) old.push(localStorage.key(n)); old.forEach(k => { if (k && k.indexOf('long-patience.') === 0) { const nk = 'selene.' + k.slice(14); if (localStorage.getItem(nk) == null) localStorage.setItem(nk, localStorage.getItem(k)); localStorage.removeItem(k); } }); } catch(e) {}
 /* ===== Game data and rules (no DOM) ===== */
-const BUILD = '2026-11-05 · lighter redraws';   // shown in the main menu, to tell which version is loaded
+const BUILD = '2026-11-05 · quieter audio';   // shown in the main menu, to tell which version is loaded
 const DPS = 8;             // simulation ticks per real second at 1x (doubled for the test version: same balance, half the real time)
 // Time is simulated in ticks. 80 ticks make one day unit (18 minutes each), so a day lasts
 // 20 real seconds at 1x and Players only ever see in-game time and real time, never days.
@@ -2440,7 +2440,7 @@ function impulse(ctx, secs, decay){
   return b;
 }
 function audioStart(){
-  if (A.ctx) { if (A.ctx.state === 'suspended') A.ctx.resume(); return; }
+  if (A.ctx) { audioWake(); return; }
   const C = window.AudioContext || window.webkitAudioContext; if (!C) return;
   let ctx; try { ctx = A.ctx = new C(); } catch(e) { return; }
   const comp = ctx.createDynamicsCompressor(); comp.threshold.value = -16; comp.ratio.value = 4; comp.connect(ctx.destination);
@@ -2450,10 +2450,10 @@ function audioStart(){
   A.music.connect(A.mfilt); A.mfilt.connect(A.master);
   A.sfx = ctx.createGain(); A.sfx.gain.value = 0; A.sfx.connect(A.master);
   A.noise = noiseBuf(ctx, 2);
-  const ir = impulse(ctx, 3.4, 2.4);
-  A.verb = ctx.createConvolver(); A.verb.buffer = ir; A.verbIn = ctx.createGain(); A.verbIn.gain.value = 0.55;
-  A.verbIn.connect(A.verb); A.verb.connect(A.music);
-  const sv = ctx.createConvolver(); sv.buffer = ir; A.sverb = ctx.createGain(); A.sverb.gain.value = 0.35; A.sverb.connect(sv); sv.connect(A.sfx);
+  // One reverb (2 s) shared by music and sounds; each send has its own level that follows the music or sound volume
+  A.verb = ctx.createConvolver(); A.verb.buffer = impulse(ctx, 2, 2.4); A.verb.connect(A.mfilt);
+  A.verbIn = ctx.createGain(); A.verbIn.gain.value = 0.55; A.mvs = ctx.createGain(); A.mvs.gain.value = 0; A.verbIn.connect(A.mvs); A.mvs.connect(A.verb);
+  A.sverb = ctx.createGain(); A.sverb.gain.value = 0.35; A.svs = ctx.createGain(); A.svs.gain.value = 0; A.sverb.connect(A.svs); A.svs.connect(A.verb);
   A.dly = ctx.createDelay(2); A.dly.delayTime.value = S16 * 3;
   const fb = ctx.createGain(); fb.gain.value = 0.4; const dlp = ctx.createBiquadFilter(); dlp.type = 'lowpass'; dlp.frequency.value = 2000;
   A.dly.connect(dlp); dlp.connect(fb); fb.connect(A.dly); dlp.connect(A.music); dlp.connect(A.verbIn);
@@ -2470,12 +2470,28 @@ function audioStart(){
   audioVolumes();
   A.nextT = ctx.currentTime + 0.15; A.step = 0;
   A.timer = setInterval(schedule, 25);
+  A.lastSnd = performance.now(); setInterval(audioNap, 1000);
+}
+// Audio sleeps when music is off and no sound has played for 10 s (the graph costs CPU even when silent);
+// the next sound, turning music on or a tap wakes it.
+const NAP_MS = 10000;
+function audioNap(){
+  if (!A.ctx || A.slept || document.hidden || ASET.musicOn || A.ctx.state !== 'running' || performance.now() - (A.lastSnd || 0) < NAP_MS) return;
+  A.slept = true; clearInterval(A.timer); A.timer = null; A.ctx.suspend();
+}
+function audioWake(){
+  if (!A.ctx) return Promise.resolve();
+  A.lastSnd = performance.now();
+  if (A.slept) { A.slept = false; if (!A.timer) A.timer = setInterval(schedule, 25); }
+  return A.ctx.state === 'running' || document.hidden ? Promise.resolve() : A.ctx.resume();
 }
 function audioVolumes(){
   if (!A.ctx) return;
   const t = A.ctx.currentTime;
-  A.music.gain.setTargetAtTime(ASET.musicOn ? Math.pow(ASET.musicVol, 2) * 0.9 : 0, t, 0.15);
-  A.sfx.gain.setTargetAtTime(ASET.sfxOn ? Math.pow(ASET.sfxVol, 2) * 1.2 : 0, t, 0.05);
+  const mv = ASET.musicOn ? Math.pow(ASET.musicVol, 2) * 0.9 : 0, sv = ASET.sfxOn ? Math.pow(ASET.sfxVol, 2) * 1.2 : 0;
+  A.music.gain.setTargetAtTime(mv, t, 0.15); A.mvs.gain.setTargetAtTime(mv, t, 0.15);
+  A.sfx.gain.setTargetAtTime(sv, t, 0.05); A.svs.gain.setTargetAtTime(sv, t, 0.05);
+  if (ASET.musicOn) audioWake();
 }
 // Called every frame: hp fraction 0..1, and whether the game is paused or in a menu
 function audioMood(hpFrac, muffled){
@@ -2564,7 +2580,10 @@ function blip(type, f0, f1, dur, peak, t, verb){
   o.start(t); o.stop(t + dur + 0.05);
 }
 function sfx(kind){
-  if (!A.ctx || !ASET.sfxOn || A.ctx.state !== 'running') return;
+  if (!A.ctx || !ASET.sfxOn) return;
+  if (A.slept) { audioWake().then(() => sfx(kind)); return; }   // asleep: wake, then play
+  if (A.ctx.state !== 'running') return;
+  A.lastSnd = performance.now();
   const t = A.ctx.currentTime + 0.005;
   if (ZZ[kind]) return zzPlay(kind);
   if (kind === 'click') blip('square', 1500, 900, 0.04, 0.05, t);
@@ -2655,7 +2674,7 @@ function zzPlay(k){
 }
 document.addEventListener('pointerdown', audioStart, {passive:true});
 document.addEventListener('keydown', audioStart);
-document.addEventListener('visibilitychange', () => { if (!A.ctx) return; if (document.hidden) A.ctx.suspend(); else A.ctx.resume(); });
+document.addEventListener('visibilitychange', () => { if (!A.ctx) return; if (document.hidden) A.ctx.suspend(); else if (!A.slept) A.ctx.resume(); });
 </script>
 
 <script id="ui">

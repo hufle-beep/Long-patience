@@ -12,7 +12,8 @@ The **Restore points** workflow (`.github/workflows/restore-points.yml`) runs on
 What the recent commits are (newest first):
 | Commit | What it is |
 |---|---|
-| (next) | Lighter redraws: 10 Hz screen, 2 Hz paused, transform bars, autosave 15 s, no 700 face |
+| (next) | Quieter audio: one reverb, audio sleeps, Android pauseTimers |
+| `c5adfeb` | Lighter redraws: 10 Hz screen, 2 Hz paused, transform bars, autosave 15 s, no 700 face |
 | `5f65d9a` | Credits: full ZzFX MIT text, Plex year, Inspired by; research round 4 |
 | `a39673d` | Effects shown (test switch): task effects visible from the start |
 | `5436a94` | Folds kept: Auto and Mastery folds remembered on the device |

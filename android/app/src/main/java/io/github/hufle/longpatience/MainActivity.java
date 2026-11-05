@@ -249,10 +249,15 @@ public class MainActivity extends Activity {
         web.evaluateJavascript(js, null);
     }
 
+    // True while the app is in the background: WebView timers are paused once the save has run
+    private boolean inBackground = false;
+
     @Override
     protected void onPause() {
-        // Make sure the game writes its save before Android may stop the app
-        if (web != null) web.evaluateJavascript("try{save()}catch(e){}", null);
+        // Make sure the game writes its save before Android may stop the app, then pause all
+        // WebView timers (no wake-ups in the background). Skipped if the app came back meanwhile.
+        inBackground = true;
+        if (web != null) web.evaluateJavascript("try{save()}catch(e){}", v -> { if (inBackground && web != null) web.pauseTimers(); });
         super.onPause();
         if (web != null) web.onPause();
     }
@@ -260,7 +265,8 @@ public class MainActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
-        if (web != null) web.onResume();
+        inBackground = false;
+        if (web != null) { web.resumeTimers(); web.onResume(); }
     }
 
     @Override
