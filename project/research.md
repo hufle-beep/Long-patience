@@ -5,11 +5,25 @@ Ideas only unless the licence allows reuse. Nothing here is approved until the o
 ## Licences at a glance
 | Game | Repo | Licence | What we may take |
 |---|---|---|---|
-| Idle Loops | (round 1) | none | ideas only |
-| wrtsc | (round 1) | MIT | ideas; code with the MIT notice |
+| Idle Loops | github.com/dmchurch/omsi-loops (active fork; older lloyd-delacroix/omsi-loops) | none in either fork | ideas only |
+| wrtsc | github.com/deifactor/wrtsc | MIT (c) 2022 Ash | ideas; code with the MIT notice |
 | Immortality Idle | github.com/immortalityidle/immortalityidle.github.io | no LICENSE file; README asks derived code to stay open | ideas only (unless Selene goes open source) |
 | Progress Knight Quest | github.com/indomit/progress_knight_2 | no LICENSE file | ideas only |
 | Progress Knight (original) | github.com/ihtasham42/progress-knight | Unlicense (public domain) | ideas and code |
+| Antimatter Dimensions | github.com/IvarK/AntimatterDimensionsSourceCode | MIT (c) 2017 IvarK | ideas; code with the MIT notice |
+| Trimps | github.com/Trimps/Trimps.github.io | GPL (license.txt says v2, main.js header says v3 or later) | ideas only |
+| The Modding Tree | github.com/Acamaeda/The-Modding-Tree | MIT (c) 2020 Acamaeda, plus Prestige Tree MIT (c) 2020 Jacorb | ideas; code with both notices |
+| ZzFX | github.com/KilledByAPixel/ZzFX | MIT (c) 2019 Frank Force | **used** (generator in the audio script, full MIT notice in the code, credited in Settings > Credits) |
+| game-icons.net | github.com/game-icons/icons | CC BY 3.0 (Lorc, Delapouite, Skoll); CC0 only where marked | **used** (32 icons, credited in Settings > Credits and project/icons/README.md) |
+| Fonts | github.com/google/fonts | SIL OFL 1.1 | **used** (renamed subsets; copyright and licence kept in each font's name table, credited in Credits) |
+| Synergism | github.com/Pseudo-Corp/SynergismOfficial | MIT | ideas; code with the notice |
+| Evolve | github.com/pmotschmann/Evolve | MPL-2.0 (file-level copyleft) | ideas only |
+| Bitburner | github.com/bitburner-official/bitburner-src | Apache-2.0 + Commons Clause (no selling) | ideas only |
+| Gooboo | github.com/Tendsty/gooboo | GPL-3.0-or-later | ideas only |
+| Shark Game | github.com/Toby222/SharkGame | MIT | ideas; code with the notice |
+| Kittens Game | github.com/nuclear-unicorn/kittensgame | "WET PAWS" (no derivative works, no commercial use) | ideas only, copy nothing |
+| A Dark Room | github.com/doublespeakgames/adarkroom | MPL-2.0 | ideas only |
+| Prestige Tree | github.com/Jacorb90/Prestige-Tree | MIT | ideas; code with the notice |
 
 ## Round 1 (Idle Loops, wrtsc), best value first
 1. **Queue preview / forecast**: BUILT (build "queue forecast", 2026-11-05).
@@ -78,3 +92,45 @@ Ranked (🟢 worth it now · 🟡 maybe later · 🔴 not worth it · ⚪ alread
 - ⚪ Named slots, a save prefix (`LPZ1:`), import summary, tab dots, toasts, FAQ unfolding with progress, overwrite panels, the Map tab, preset triggers, life summary, run history.
 
 Avoid (seen there): lossy editor conversions (AD text to blocks drops lines with errors), a second copy of every setting per act (Trimps U2), explanations behind a Shift key, magic-number settings, UIs built from huge HTML strings, oversized flavour systems, offline-progress machinery, caps shown only by hiding a button, scripting creep.
+
+## Round 4 (2026-11-05): licence recheck, new repos, performance
+Owner's picks (2026-11-05 10:23): **all** (C1-C3, P1-P9, U1-U8, D1), built in six chunks: 1 credits and docs, 2 UI performance, 3 sound and Android timers, 4 save safety and export, 5 queue and info, 6 section targets.
+
+### Credits audit
+- What Selene ships from others: ZzFXMicro 1.4.0 (MIT), 32 game-icons.net icons (CC BY 3.0), three OFL font families. No code from any game.
+- ZzFX: MIT requires the full permission notice in copies; the code comment had a paraphrase. Fixed (C1): full MIT text in the comment.
+- Fonts: all 8 embedded faces keep name IDs 0 (copyright), 13 (licence) and 14 (licence URL), which OFL clause 2 allows; renamed as OFL 2.6 requires. IBM Plex Sans 3.201 says (c) 2019, Credits said 2017: fixed (C2) to 2017-2019.
+- Icons: Credits name the authors, the site, the licence link, the changes and no endorsement, as CC BY 3.0 and game-icons.net ask.
+- Ideas need no credit; a courtesy line "Inspired by Increlution (Gniller), Idle Loops, Immortality Idle and Progress Knight" was added (C3), as is usual for loop games (wrtsc credits Idle Loops the same way).
+
+### Rechecked repos: notable since round 1-3
+- Idle Loops (dmchurch fork, 3P.1.3, 2026-10-29): forecast in a Web Worker (`predictor-worker.js`); pause before restart / on failed loop / on complete (`driver.js` `prepareRestart`); per-minute rate of a tracked stat (`predictor.js` `trackedStats`); merged repeated log lines (`actionLog.js`).
+- Immortality Idle (2026-11-04): mobile work; clearer messages when a task can't be queued.
+- Progress Knight Quest 2.7.0: offline progress bar that stops on death; save migration fixes; mobile layout.
+- Antimatter Dimensions: buy-10 toggle, iOS app. Trimps: ScreenReader.html mode. ZzFX 1.4.0 is current.
+
+### New repos: ideas
+- Synergism: reset history table with "load this setup" (`src/History.ts`); export file names with version and time; Android share export (`ImportExport.ts`).
+- Evolve: blocker shown per queue item (`functions.js` `timeCheck`); this run / all time stats.
+- Bitburner: compare saves before import (`ImportSaveComparison.tsx`); recovery mode when loading crashes (`RecoveryRoot.tsx`); what's new on version change.
+- Gooboo: save checksum and refusing newer-version saves (`savefile.js`); stat breakdown (`StatBreakdown.vue`); backup reminder by play time; short unlock notes.
+- Shark Game: par time per world with a reward (`gateway.js` `getPar`); death text by progress.
+- Kittens Game: capped queue rows marked; warning before a self-defeating action.
+- A Dark Room: messages held per screen; swipe navigation.
+
+### Performance (measured headless, 412x900, x5 speed; "4x" = CPU slowed four times, like a phone)
+- The UI redrew at 60 fps whether or not anything changed, also while paused (paused 933 ms/s of main-thread work vs running 908 at 4x). Late save (Contested Boughs, 39 queued) at 4x: 37 fps, 41 long tasks over 50 ms in 20 s. The simulation (`step`) is about 3% of samples.
+- A 10 Hz UI: 908 -> 271 ms/s (-70%), same simulation rate.
+- `renderTasks` spent 70-99% of its time building its 2-3 KB change key (rebuilds were rare); it was also called twice every 0.4 s.
+- 19-27 DOM writes per frame of unchanged values (HUD, Now line, buttons, card titles), one layout per frame.
+- Forecast slices overshot (up to 33 ms at 4x; clock checked every 4 steps); `JSON.stringify(S.set)` every frame.
+- `save()` 9.4 ms at 4x every 5 s; storage about 110 K characters per full slot with backups (far under quota). gzip (CompressionStream) is fine; lz-string not worth it.
+- Audio: the music graph runs even with music off; the two convolver reverbs are 87% of its cost (about 12% of a core).
+- Startup 876 ms to DOMContentLoaded at 4x; fonts cost about 94 ms; the 700 weight of Selene Display is used only by the header title.
+- Android: `hardwareAccelerated` on; `onPause` never calls `pauseTimers()`.
+- Others: Antimatter Dimensions (MIT) batches UI updates per tick and saves every 30 s; Synergism (MIT) updates the HUD every 100 ms on mobile; Trimps and Evolve stagger slower work over longer loops; Evolve ticks in a Web Worker.
+
+### Avoid (round 4)
+Huge flat stat lists, hover-only tooltips, two parallel layouts, many reset layers and currencies, pacing-changing modes (hyper mode), cloud sync tied to one provider.
+
+Sources: [Idle Loops fork](https://github.com/dmchurch/omsi-loops), [wrtsc](https://github.com/deifactor/wrtsc), [Synergism](https://github.com/Pseudo-Corp/SynergismOfficial), [Evolve](https://github.com/pmotschmann/Evolve), [Bitburner](https://github.com/bitburner-official/bitburner-src), [Gooboo](https://github.com/Tendsty/gooboo), [Shark Game](https://github.com/Toby222/SharkGame), [Kittens Game](https://github.com/nuclear-unicorn/kittensgame), [A Dark Room](https://github.com/doublespeakgames/adarkroom), [ZzFX](https://github.com/KilledByAPixel/ZzFX), [game-icons.net about](https://game-icons.net/about.html), [OFL FAQ mirror](https://www.github.com/theleagueof/licenses/blob/master/OFL-FAQ.md), [WebView onPause vs pauseTimers](https://plateaukao.github.io/blog/posts/differences-between-onpause-and-pausetimers-for-android-webview/).

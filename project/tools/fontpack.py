@@ -105,7 +105,7 @@ def main():
         rules.append("@font-face{font-family:'%s';font-style:normal;font-weight:%d;font-display:swap;src:url(data:font/woff2;base64,%s) format('woff2')}"
                      % (family, weight, base64.b64encode(data).decode()))
     block = (START + '\n/* Fonts, embedded so the game looks right offline. Trimmed and renamed copies of SIL Open Font License 1.1 fonts '
-             '(github.com/google/fonts): Selene Display = Saira Condensed, (c) 2016 The Saira Project Authors; Selene Text = IBM Plex Sans and '
+             '(github.com/google/fonts): Selene Display = Saira Condensed, (c) 2016 The Saira Project Authors; Selene Text = IBM Plex Sans, (c) 2017-2019 IBM Corp.; '
              'Selene Mono = IBM Plex Mono, (c) 2017 IBM Corp. Renamed because "Saira" and "Plex" are Reserved Font Names. '
              'Licences: project/fonts/ in the repo. Rebuilt by project/tools/fontpack.py. */\n' + '\n'.join(rules) + '\n' + END)
     if START in html:

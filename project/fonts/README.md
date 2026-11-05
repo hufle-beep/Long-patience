@@ -5,7 +5,7 @@ The game embeds three fonts in `index.html` (`<style id="fonts">`), so it looks 
 | In the game | Original | Weights | Copyright |
 |---|---|---|---|
 | Selene Display | Saira Condensed | 500, 600, 700 | 2016 The Saira Project Authors |
-| Selene Text | IBM Plex Sans | 400, 500, 600 (fixed weights cut from the variable font) | 2017 IBM Corp. |
+| Selene Text | IBM Plex Sans | 400, 500, 600 (fixed weights cut from the variable font) | 2017-2019 IBM Corp. |
 | Selene Mono | IBM Plex Mono | 400, 500 | 2017 IBM Corp. |
 
 Changes from the originals: trimmed to printable ASCII, Latin-1 and the other characters the game uses, converted to WOFF2, and renamed, because "Saira" and "Plex" are Reserved Font Names under the OFL and a modified copy may not use them. The copyright and licence fields inside each font are kept.

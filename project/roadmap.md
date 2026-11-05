@@ -1,6 +1,6 @@
 # Roadmap: Selene: Tidelocked
 
-Last updated: 2026-11-05 (build "effects shown"). Update in every push.
+Last updated: 2026-11-05 (build "credits"). Update in every push.
 
 ## Order of work (owner, 2026-11-04)
 1. **Section-by-section playtesting and tuning** (now). Sections 1 and 2 frozen; next the Shattered Bark, then sections 3-14 one by one: the owner plays and uploads a save after each crossing, Claude proposes options for that section's knobs only, the owner freezes it.
@@ -12,6 +12,7 @@ Last updated: 2026-11-05 (build "effects shown"). Update in every push.
 **Owner decision (2026-11-05):** polishing can come before tuning when its gains are immediate.
 
 ## Next up
+- **Research round 4 picks (owner 2026-11-05 10:23: all; go 10:25), six chunks, each pushed on its own:** 1 credits and docs BUILT (full ZzFX MIT text, Plex Sans 2017-2019, "Inspired by" line, research.md round 4). 2 UI performance (10 Hz text, 2 Hz paused, task-list change counter, no unchanged writes, forecast slices, autosave 15 s, no bold title weight). 3 sound (one 2 s reverb, audio sleeps) and Android pauseTimers. 4 save safety (checksum, save version, recovery screen) and export (Android share sheet, file names with build and time). 5 queue and info (load a past queue, speed breakdown, pause when the queue is finished, completions per real minute, merged death lines). 6 section targets (target seedlings per section, badge only).
 - **Research rounds 2 and 3 picks (owner 2026-11-05 08:36: all green and yellow except challenges; go 08:41), five chunks, each pushed on its own:** 1 save safety BUILT (rolling backups, broken-number guard, paste tips, average row). 2 sound BUILT (ZzFX generator: crossing, sprout, gear built, low energy at 15% once per seedling). 3 BUILT: trigger table (on/off, from/through section, every N seedlings, priority) and FAQ (search, opens on the current tab, Keys entry from one hotkey table). 4 BUILT: route overview on the Map tab (unreached sections hidden), game-icons.net icons, Credits in Settings. 5 BUILT: welcome-back recap, Log filter chips, screen-reader announcements, pause all automation. **All five chunks built.**
 - **Round 1c picks (owner go-ahead 2026-11-05 07:54: "go, P3 yes"), two chunks:** chunk 1 BUILT (forecast names a starving setting, Clear queue keeps the current row, icons on task cards, effects grouped This seedling / Kept, "· P3" removed). Chunk 2 BUILT: a queue row "Load preset: name" (fires once every row above it is done, replaces itself and the rows below with the preset), favourite and hide filters (Edit list, favourites first in their section, hidden tasks fold into "N hidden", still run; crossings can't be hidden; kept in the save). Then research rounds 2 and 3.
 - **Queue chunks (owner go-ahead 2026-11-05 02:54: "Go A-C, commit and push between chunks"):** A built (preset triggers, skip toggles, pause before the forecast death). B built (life summary on the death screen; next-automation line in each section header; time per task, this seedling and all, on the Mastery tab). C built (Now-line reasons, safe import, arrow keys, Least familiar sort, long-press + for copies). All three chunks done. Dropped as not fitting: pending bar, record column, do once now.
@@ -50,6 +51,7 @@ Last updated: 2026-11-05 (build "effects shown"). Update in every push.
 See design.md: colony content held back from Act II, the Act II legacy themes from the old Honours, and four open questions.
 
 ## Done recently (see changelog.md for all)
+- 2026-11-05: credits fixed (full ZzFX MIT text, Plex Sans year, Inspired by line); research round 4 written up.
 - 2026-11-05: test version shows every task's effects and what it opens from the start (switch `TEST_SHOW_EFFECTS`, off before release).
 - 2026-11-05: Auto and Mastery folds remembered on the device.
 - 2026-11-05: Map sections fold (by tap, and by themselves once fully mapped; kept on the device).
