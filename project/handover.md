@@ -1,6 +1,6 @@
 # Handover: Selene: Tidelocked
 
-Last updated: 2026-11-05 01:00 (build "voyage clock"). Meteor shower redesign complete (Stages 1-3 built). Next: the section retune, starting with the Taproot Galleries from the owner's playtest save (design.md, roadmap.md). Update this file in every push.
+Last updated: 2026-11-05 01:10 (build "voyage clock"). Meteor shower redesign complete (Stages 1-3 built). Seedling Vaults and Taproot Galleries FROZEN. Next: the Shattered Bark retune from the owner's playtest save (playtest-notes.md, roadmap.md). Update this file in every push.
 
 ## 1. What the game is
 An incremental "clone-loop" game in one HTML file (like Increlution/Incremortal). You are K-7, a **seedling** (disposable drone of WARDEN and the Hearth Tree) aboard **Selene**, a living-wood colony ship of the Root-Kin of Earth. Each seedling works tasks until its energy runs out; familiarity, records and automation carry over to the next one.
@@ -89,7 +89,8 @@ Play: https://hufle-beep.github.io/Long-patience/ · Android APK: release `andro
 ## 4. Balance state (details in playtest-notes.md)
 - Lean bot (build "Act II reordered"): Act I 5.70 h in-game, 79 seedlings (Shattered Bark 21 of them, untuned); Act II 8.69 h (long watch 4.89, Boarders 2.41, Arrival 1.39), 53 deaths. Build "the Shattered Bark" had Act II 7.72 h in the old order. Before the new section: Act I 4.50 h / 63, Act II 7.45 h.
 - Section 1 (Seedling Vaults) is **FROZEN**: completionist clears at seedling 10; the owner cleared it with 9.
-- Next: section 2 (Taproot Galleries) retune, from the owner's playtest save; then the Shattered Bark (completionist 14 seedlings now).
+- Section 2 (Taproot Galleries) is **FROZEN** (2026-11-05): the owner cleared it completionist with 14 seedlings (bot 16).
+- Next: the Shattered Bark (completionist bot 14 seedlings, untuned), from the owner's playtest save.
 
 ## 5. Tools and how to run them (project/tools)
 Set up in a fresh workspace:

@@ -49,8 +49,8 @@ Seedlings = seedlings that first reached the next section minus those that first
 | # | Section | Length factor | Danger | Cell storage | Station reserve | Crossing cost in | Bot seedlings | Status |
 |---|---|---|---|---|---|---|---|---|
 | 1 | Seedling Vaults | 2.212 (drills base 25) | 1.00 | 5 | 15 | - | completionist 10, lean 4-5; **user 9** | **FROZEN 2026-11-04** |
-| 2 | Taproot Galleries | 1.158 | 1.05 | 20 | 10 | 8% | 23 | next to retune |
-| 15 | **The Shattered Bark** (new, after the Taproot) | 1.0 | 1.075 | 25 | 10 | 9.5% | lean 21, completionist 14 | new, untuned |
+| 2 | Taproot Galleries | 1.158 | 1.05 | 20 | 10 | 8% | lean 23, completionist 16; **user 14** | **FROZEN 2026-11-05** |
+| 15 | **The Shattered Bark** (new, after the Taproot) | 1.0 | 1.075 | 25 | 10 | 9.5% | lean 21, completionist 14 | new, untuned; next to retune |
 | 3 | The Heartwood | 0.686 | 1.10 | 35 | 15 | 11% | 21 | |
 | 4 | Canopy Gardens | 0.606 | 1.15 | 60 | 30 | 14% | 10 | |
 | 5 | Ember Crown | 0.372 | 1.20 | 90 | 30 | 17% | 7 | |
@@ -85,8 +85,17 @@ Act II progression values (danger, crossing cost, wear, charger and workshop tie
 
 ### Frozen sections
 - **1 · Seedling Vaults: FROZEN 2026-11-04** (build "Act II danger +18%"; unchanged by the renames). Requirement: every action, both drills 4/4 and all four gear done, root-lock iris forced by about seedling 9-10. Values: length factor 2.212, drills base 25, danger 1.00, cell storage 5, station reserve 15, Stasis watch I = -1% drain.
+- **2 · Taproot Galleries: FROZEN 2026-11-05** (build "voyage clock"; untouched since "the Hearth Tree"). Requirement: every action, both drills 4/4 and all four gear (baton, doser, chitinarm, lace) done, crossing by about seedling 14 of the section. Values: length factor 1.158, danger 1.05, cell storage 20, station reserve 10, crossing cost in 8%, Stasis watch II = -1.5% drain.
 
 ---
+
+## 2026-11-05 · Taproot Galleries freeze run (build "voyage clock")
+Save: `saves/hufle2-2026-11-05-0101-clone24.txt` (fresh test save "test1"). User verdict: **14 is fine for a completionist first run; freeze it.**
+
+- Seedling 10 reached the Taproot Galleries (Seedling Vaults took 9 again). **Seedling 24 crossed into the Shattered Bark** 3:02 in-game into its life, with everything done: all actions, both drills 4/4, all four Taproot gear (plus the Vaults gear). Arrived with 21.8 energy, 0.14 sap cells, almost no deadwood.
+- Seedlings 10-23 died in the section: 12 ran out of energy, 2 killed while harvesting deadwood (seedlings 10 and 18). Lives (in-game): seedlings 10-18 about 1:48-1:59; seedlings 19-23 about 2:55-3:09.
+- Section time: 33:34 in-game / 16:47 real (x2). Run total to the Shattered Bark: 46:47 in-game / 23:24 real.
+- Records so far: watch1, watch2, seedbank, chitin, medrec, telomere, transit and the Vaults records. Efficiency patch at vit 199.2. Settings: x2, charge threshold 62%, always run sections.
 
 ## 2026-11-04 · Seedling Vaults freeze run (build "Act II danger +18%", then called the Vat Bay)
 Save: `saves/hufle2-2026-11-04-1241-clone10.txt`. User verdict: **freeze this as the Section 1 requirement.**

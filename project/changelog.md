@@ -2,7 +2,8 @@
 
 Every commit, newest first (from git history; Android build numbers are GitHub Actions run numbers). Generated before each push.
 
-- 2026-11-05 01:00 · Meteor shower Stage 3: voyage clock (each section header shows its year and share of the 480-year voyage), timeline texts (Heartwood chronometer, intro, kindling screen, halfway, flip, drop out of relativistic speed), FAQ "Selene's voyage" (opens with Act II); FAQ "Act II" says ten sections
+- 2026-11-05 01:10 · Taproot Galleries frozen (owner's completionist run: 14 seedlings); docs only
+- 2026-11-05 01:00 · `edb1d3f` · Meteor shower Stage 3: voyage clock (each section header shows its year and share of the 480-year voyage), timeline texts (Heartwood chronometer, intro, kindling screen, halfway, flip, drop out of relativistic speed), FAQ "Selene's voyage" (opens with Act II); FAQ "Act II" says ten sections
 - 2026-11-05 00:45 · `af19a30` · Meteor shower Stage 2: Act II reordered (the long watch with Turnover first, then the Boarders with the new section The Mending and its finale Rekindle the Hearthfire, then Arrival); progression values by route; legacy reveals by route position and kept in the save; win screen and logs fit the new order; Act II bot reports the new parts
 - 2026-11-05 00:20 · `d9a6eb3` · Meteor shower Stage 1: new Act I section The Shattered Bark (id 15, after the Taproot Galleries), WARDEN's ward-lock on the kindling, fifth legacy theme Hardened grain (built, hidden until The Mending), Shattered Bark sets for every theme, Stasis watch ladder re-spread, Tessaly's promise +10 energy, route-based section order, old seedling tables migrated; bots and sanity check updated
 - 2026-11-04 23:40 · `01d6b4a` · Archive hides unrecovered records (counts kept); Longest life in in-game time; last drive wording fixed; meteor shower redesign approved and written down

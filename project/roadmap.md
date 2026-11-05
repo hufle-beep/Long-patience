@@ -3,7 +3,7 @@
 Last updated: 2026-11-05. Update in every push.
 
 ## Order of work (owner, 2026-11-04)
-1. **Section-by-section playtesting and tuning** (now). Section 1 frozen; next the Taproot Galleries, then sections 3-14 one by one: the owner plays and uploads a save after each crossing, Claude proposes options for that section's knobs only, the owner freezes it.
+1. **Section-by-section playtesting and tuning** (now). Sections 1 and 2 frozen; next the Shattered Bark, then sections 3-14 one by one: the owner plays and uploads a save after each crossing, Claude proposes options for that section's knobs only, the owner freezes it.
 2. **A full play of all available content**, start to end.
 3. **Polishing: mechanics first.**
 4. **Texts and story:** a friend of the owner will write texts and story to replace the AI-generated ones (then the owner's own story beats and flavour texts fit in here too).
@@ -11,7 +11,7 @@ Last updated: 2026-11-05. Update in every push.
 
 ## Next up
 - **Meteor shower redesign (approved 2026-11-04, see design.md):** **All three stages built 2026-11-05** (The Shattered Bark, ward-lock, Hardened grain; Act II reordered with The Mending; 480-year voyage clock and timeline texts). Was: Stage 2 Act II reordered (long watch with Turnover first, Boarders + new The Mending with Rekindle the Hearthfire, then Arrival); Stage 3 480-year voyage clock and texts. Confirm each stage's exact changes before building.
-- Section 2 (Taproot Galleries) retune: waiting for the owner's playtest save. The Shattered Bark (untuned: lean bot 21 seedlings, completionist 14) comes next in the retune order. Act II retune order now follows the new route (The Long Current first); The Mending is new and untuned. Lean bot Act II went from 7.72 h to 8.69 h with the reorder (long watch 4.89 h).
+- Section retune: the Taproot Galleries FROZEN 2026-11-05 (owner, 14 seedlings). Next: the Shattered Bark (untuned: lean bot 21 seedlings, completionist 14), waiting for the owner's playtest save. Act II retune order now follows the new route (The Long Current first); The Mending is new and untuned. Lean bot Act II went from 7.72 h to 8.69 h with the reorder (long watch 4.89 h).
 
 ## Decided
 - **No iOS app** (owner, 2026-11-04): share the web link instead; iPhones play it in Safari. Don't propose a home-screen web app or a TestFlight build again unless the owner asks.
@@ -42,6 +42,7 @@ Last updated: 2026-11-05. Update in every push.
 See design.md: colony content held back from Act II, the Act II legacy themes from the old Honours, and four open questions.
 
 ## Done recently (see changelog.md for all)
+- 2026-11-05: Taproot Galleries frozen (owner, 14 seedlings completionist).
 - 2026-11-05: meteor shower Stage 3: voyage clock (year and share of the voyage in section headers), timeline texts, FAQ "Selene's voyage".
 - 2026-11-05: meteor shower Stage 2: Act II reordered (long watch, Boarders with The Mending, Arrival), progression by route, legacy reveals by route.
 - 2026-11-05: meteor shower Stage 1: The Shattered Bark, the ward-lock, Hardened grain (hidden), six legacy finals per theme, route-based section order.
