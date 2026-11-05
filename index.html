@@ -237,6 +237,10 @@ button.zh.zhb{margin:14px 0 6px}
 .rn[data-routez]{cursor:pointer}.ract{font-family:var(--f-disp);font-size:12px;letter-spacing:.06em;fill:var(--dim);text-transform:uppercase}
 .re{fill:none;stroke-width:2}.re.lit{stroke:var(--cyan)}.re.ever{stroke:var(--sand);opacity:.6}.re.unk{stroke:var(--faint);stroke-dasharray:4 3}
 .rk{white-space:nowrap;padding:0 4px;border:1px solid var(--line);border-radius:3px}.rk.cur{border-color:var(--amber)}.rk.life{border-color:var(--cyan)}.rk.ever{border-color:var(--sand)}
+.spd .apz{display:flex;align-items:center;gap:3px;color:var(--cyan)}.spd .apz .gi{margin:0;width:16px;height:16px}.spd.a5{grid-template-columns:44px 44px 44px 1fr 94px}.spd .apz{padding:0;justify-content:center}.spd .apz.on{color:var(--red);border-color:var(--red);background:none;flex-direction:column;gap:0}.spd .apz.on span{font-size:9px;line-height:1}.spd .apz span{font-size:11px;text-transform:uppercase}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap}
+.lchips{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 12px}.lchips button{border:1px solid var(--line);border-radius:14px;padding:5px 12px;font-size:13px;color:var(--dim)}.lchips button.on{color:var(--fg);border-color:var(--amber);background:var(--panel2)}
+.evl{list-style:none;margin:6px 0 0;padding:0}.evl li{padding:5px 0;border-top:1px dashed var(--line);font-size:14px}.evl li span{color:var(--dim);font-size:12.5px}
 .gi{width:1.05em;height:1.05em;fill:currentColor;vertical-align:-.16em;margin-right:.35em;flex:none}
 #tabs button .tic{display:block;width:17px;height:17px;margin:0 auto 3px;opacity:.85}
 .dcause{display:flex;gap:10px;align-items:center}.dcause .dico{width:30px;height:30px;color:var(--red);margin:0}
@@ -540,13 +544,14 @@ tr.pttot td{font-weight:600;color:var(--amber)}
 </nav>
 
 <div id="toasts"></div>
-<div id="modal" hidden><div class="mbox" id="mbox"></div></div>
+<div id="modal" hidden><div class="mbox" id="mbox" role="dialog" aria-modal="true"></div></div>
+<div id="sr" class="sr" role="status" aria-live="polite"></div>
 
 <script id="logic">
 // Renamed from Long Patience: move this device's old storage keys to the new 'selene.' names once
 try { const old = []; for (let n = 0; n < localStorage.length; n++) old.push(localStorage.key(n)); old.forEach(k => { if (k && k.indexOf('long-patience.') === 0) { const nk = 'selene.' + k.slice(14); if (localStorage.getItem(nk) == null) localStorage.setItem(nk, localStorage.getItem(k)); localStorage.removeItem(k); } }); } catch(e) {}
 /* ===== Game data and rules (no DOM) ===== */
-const BUILD = '2026-11-05 · route and icons';   // shown in the main menu, to tell which version is loaded
+const BUILD = '2026-11-05 · publishing set';   // shown in the main menu, to tell which version is loaded
 const DPS = 8;             // simulation ticks per real second at 1x (doubled for the test version: same balance, half the real time)
 // Time is simulated in ticks. 80 ticks make one day unit (18 minutes each), so a day lasts
 // 20 real seconds at 1x and Players only ever see in-game time and real time, never days.
@@ -1485,7 +1490,7 @@ function active(ex){
   // One-click section run: everything in the section in chain order, then the crossing (no waiting).
   // Food, feeding  still look after the seedling. It carries on across the crossing into the next
   // section when that section's chain is ready too (see runSpan), up to the end of the act.
-  if (L.chainRun) {
+  if (L.chainRun && !autoPaused()) {   // a section run waits while automation is paused
     const z = L.sec || 1, g = sectionGate(z), end = sectionEnd(z);
     if (!g.ready || !end || complete(end)) endRun(L, !end || complete(end) ? 'done' : 'notready');
     else {
@@ -1569,7 +1574,10 @@ const AUTO_LIVES = 10, JOB_PRAC_BATCHES = 10;
 function practiced(t){ return (S.prac[t.id] || 0) >= autoNeed(t); }
 // Automation switches itself on when a task is unlocked, unless you switched it off before
 function addPractice(t, n){ const b = S.prac[t.id] || 0, need = autoNeed(t); S.prac[t.id] = b + (n || 1); if (b < need && S.prac[t.id] >= need) { if (S.auto[t.id] !== false) S.auto[t.id] = true; HOOK.practiced(t); } }
-function isAuto(t){ return t.kind !== 'job' && !!S.auto[t.id] && practiced(t); }   // jobs aren't automated: auto-forage, gear and the crossing top-up run them
+// "Pause all automation" (S.set.autoPaused, header switch): automated tasks, auto-built gear, section runs and
+// the crossing wrap-up's automated work all wait; the queue, tapped tasks and auto-charge/forage keep working.
+const autoPaused = () => !!(S.set && S.set.autoPaused);
+function isAuto(t){ return !autoPaused() && t.kind !== 'job' && !!S.auto[t.id] && practiced(t); }   // jobs aren't automated: auto-forage, gear and the crossing top-up run them
 function storeRatio(t){ return t.prod && t.prod.rations ? (S.life.food[jobFood(t)] || 0) / M.fcap[jobFood(t)] : t.prod && t.prod.salvage ? S.life.salvage / M.salCap : 0; }
 // No priorities: automated tasks run in chain order, which follows the ship's requirements (a task
 // after the ones it needs; ties in ship order).
@@ -1594,7 +1602,7 @@ function chainsOf(z){
 const sectionTasks = z => TASKS.filter(t => t.z === z && t.kind !== 'train' && t.kind !== 'job' && legacyOpen(t));   // revealed legacy parts are part of the section
 const sectionEnd = z => TASKS.find(t => t.z === z && (t.cross || t.win || t.finale));
 const sectionGear = z => ITEMS.filter(i => gearZone(i) === z);
-const gearAuto = i => !!(S.gauto && S.gauto[i.id]) && gearPracticed(i);
+const gearAuto = i => !autoPaused() && !!(S.gauto && S.gauto[i.id]) && gearPracticed(i);
 function sectionGate(z){
   const ts = sectionTasks(z), gs = sectionGear(z);
   const ok = ts.filter(t => isAuto(t) && masteryF(t) >= SECTION_F).length + gs.filter(gearAuto).length;
@@ -1623,7 +1631,7 @@ function pruneRunQueue(){
 }
 // "Always run sections once ready": start a run by itself whenever the section you are in is ready
 function autoRunCheck(){
-  const L = S.life; if (!S.set.autoRun || L.chainRun || L.dead) return;
+  const L = S.life; if (!S.set.autoRun || L.chainRun || L.dead || autoPaused()) return;
   const sp = startRun(); if (sp) HOOK.autoRun(sp);
 }
 function endRun(L, why){ if (!L.chainRun) return; const from = L.runFrom || L.sec || 1; L.chainRun = false; L.runFrom = null; HOOK.change(); HOOK.runEnd(from, L.sec || 1, why); }
@@ -1662,7 +1670,7 @@ function pendingActs(){
 function pendingGearJob(){
   const L = S.life;
   if (!S.gauto) return null;
-  const want = ITEMS.filter(it => S.gauto[it.id] && gearPracticed(it) && !L.owned[it.id] && !assembling(it.id) && isDone(it.req) && it.cost <= M.salCap)
+  const want = ITEMS.filter(it => gearAuto(it) && !L.owned[it.id] && !assembling(it.id) && isDone(it.req) && it.cost <= M.salCap)
     .sort((a, b) => ITEMS.indexOf(a) - ITEMS.indexOf(b))[0];
   if (!want || L.salvage >= want.cost) return null;
   let job = null, br = 0;
@@ -1701,7 +1709,7 @@ function skipHold(){
 function holdList(){
   const L = S.life; if (!L.held) return [];
   const out = pendingActs().map(t => t.name);
-  const g = ITEMS.filter(it => S.gauto && S.gauto[it.id] && gearPracticed(it) && !L.owned[it.id] && !assembling(it.id) && isDone(it.req) && it.cost <= M.salCap)
+  const g = ITEMS.filter(it => gearAuto(it) && !L.owned[it.id] && !assembling(it.id) && isDone(it.req) && it.cost <= M.salCap)
     .sort((a, b) => ITEMS.indexOf(a) - ITEMS.indexOf(b))[0];
   if (g && pendingGearJob()) out.push('build ' + g.name);
   if (fillJob()) out.push('refill storage');
@@ -1737,7 +1745,7 @@ function gearBuilt(id){
 function autoBuy(){
   if (!S.gauto) return;
   const L = S.life;
-  const c = ITEMS.filter(it => S.gauto[it.id] && gearPracticed(it) && !L.owned[it.id] && !assembling(it.id) && isDone(it.req) && it.cost <= M.salCap)
+  const c = ITEMS.filter(it => gearAuto(it) && !L.owned[it.id] && !assembling(it.id) && isDone(it.req) && it.cost <= M.salCap)
     .sort((a, b) => ITEMS.indexOf(a) - ITEMS.indexOf(b));
   if (c.length && L.salvage >= c[0].cost) buyItem(c[0].id, true);
 }
@@ -2271,7 +2279,7 @@ function chainedIds(){
 function salvageNeed(){
   const L = S.life, fits = it => it && !L.owned[it.id] && !assembling(it.id) && isDone(it.req) && it.cost <= M.salCap;
   let need = 0;
-  ITEMS.forEach(it => { if (S.gauto && S.gauto[it.id] && gearPracticed(it) && fits(it)) need = need || it.cost; });
+  ITEMS.forEach(it => { if (gearAuto(it) && fits(it)) need = need || it.cost; });
   for (const id of L.queue) {
     if (L.qskip && L.qskip[id]) continue;
     const xs = isCQ(id) ? cSteps(id).filter(x => !cStepDone(id, x)) : [id];
@@ -2292,7 +2300,7 @@ function bestSalvageJob(ok){
 }
 // Is this queued item automated (and switched on)? Those are left out of the next seedling's queue.
 function qAutomated(id){
-  if (isGQ(id)) { const it = qItem(id); return !!(it && S.gauto && S.gauto[it.id] && gearPracticed(it)); }
+  if (isGQ(id)) { const it = qItem(id); return !!(it && gearAuto(it)); }
   const t = T[id]; return !!(t && isAuto(t));
 }
 // The queue may hold the same task several times. A task queued once runs until it is done; with
@@ -3056,6 +3064,7 @@ function mergeState(raw){
   refreshLog(s);
   if (!Array.isArray(s.qpresets)) s.qpresets = [];
   while (s.qpresets.length < QPRESETS) s.qpresets.push([]);
+  if (!Array.isArray(s.evlog)) s.evlog = [];   // Log events (s.ev is the save-version marker)
   if (!Array.isArray(s.qtrig)) s.qtrig = []; s.qtrig = s.qtrig.filter(r => r && (r.when === 'new' || (r.when === 'sec' && ZN(r.z))) && r.p >= 0 && r.p < QPRESETS).slice(0, QTRIG);
   s.qtrig.forEach(r => {   // the trigger table's fields (build "trigger table"): on/off, through, every n-th seedling
     if (r.on !== false) delete r.on;
@@ -3141,10 +3150,28 @@ function loadSaved(){
   return readSlot(slot);
 }
 function resetViews(){ taskKey = ''; archKey = ''; logKey = ''; gearKey = ''; }
+let awayMs = 0;   // how long the save being opened had not been played (set when it is read, before the game saves again)
 function startGame(){
   paused = false; hideModal(); setTab('tasks');
+  if (awayMs > 864e5 && S.intro) { const ms = awayMs; awayMs = 0; return showWelcome(ms); }
+  awayMs = 0;
   if (S.life.dead) showDeath();
   else if (!S.intro) showIntro();
+}
+// Welcome back: a short recap when a save is opened after more than a day
+function showWelcome(ms){
+  paused = true;
+  const L = S.life, z = ZN(L.sec || 1), d = Math.round(ms / 864e5);
+  const at = Object.keys(S.auto).filter(k => S.auto[k] && T[k] && practiced(T[k])).length, ag = Object.keys(S.gauto || {}).filter(k => S.gauto[k] && IT[k] && gearPracticed(IT[k])).length;
+  const pre = (S.qpresets || []).map((p, i) => (p || []).length ? (qpName(i) || 'preset ' + (i + 1)) : '').filter(Boolean);
+  const trig = (S.qtrig || []).filter(r => r.on !== false).length;
+  const li = [
+    'Seedling ' + S.gen + (L.dead ? ' has died (' + esc((L.cause || '').toLowerCase()) + '); the next one is ready to sprout.' : ' is in ' + esc(zoneThe(z.id)) + ' (' + esc(z.sub) + ', ' + voyTxt(z) + '), ' + Math.ceil(L.hp) + '/' + M.maxHp + ' energy.'),
+    'Queue: ' + (L.queue.length ? L.queue.length + ' row' + (L.queue.length > 1 ? 's' : '') : 'empty') + (L.chainRun ? '; a section run is on' : '') + '.',
+    'Automated and switched on: ' + at + ' task' + (at === 1 ? '' : 's') + ', ' + ag + ' gear design' + (ag === 1 ? '' : 's') + (S.set.autoPaused ? ' (automation is paused: the switch by Pause turns it back on)' : '') + '.',
+    pre.length ? 'Presets: ' + esc(pre.join(', ')) + (trig ? '; ' + trig + ' trigger' + (trig > 1 ? 's' : '') + ' on.' : '; no triggers on.') : 'No presets saved yet.'];
+  owActs = {}; owActs.c0 = () => { hideModal(); paused = false; if (S.life.dead) showDeath(); };
+  showModal(`<h2>Welcome back</h2><p class="d">${d <= 1 ? 'A day' : d + ' days'} since this save was last played. Time didn\u2019t pass aboard while you were away.</p><ul class="evl wb">${li.map(x => '<li>' + x + '</li>').join('')}</ul><button class="btn pri" data-ow="c0">Carry on</button>`);
 }
 
 /* ----- main menu and save slots ----- */
@@ -3239,6 +3266,7 @@ HOOK.assembling = (it, auto) => { gearKey = ''; taskKey = ''; toast((auto ? 'Aut
 HOOK.bought = (it, auto, unlocked) => {
   sfx('gear'); gearKey = ''; taskKey = ''; autoKey = '';
   toast((auto ? 'Auto-built: ' : 'Built: ') + it.name);
+  if (unlocked) logEvt('auto', it.name + ' (gear)');
   if (unlocked) toast('Automated: ' + it.name + (S.gauto[it.id] ? ' is now built automatically (switch it off with AUTO).' : ' can now be built automatically.'), true);
 };
 HOOK.crossed = z => { sfx('cross'); taskKey = ''; mapKey = ''; toast('You enter ' + zoneThe(z) + '. The way back is sealed.', true);
@@ -3253,15 +3281,18 @@ HOOK.runEnd = (from, to, why) => { taskKey = ''; autoKey = '';
   const msg = why === 'act' ? 'Run finished at the end of the act.' : why === 'done' || from !== to ? 'Run finished: ' + span + '.' + (last !== to ? ' Now in ' + zoneThe(to) + ', which isn\u2019t ready to run yet.' : '') : 'Run stopped: ' + zoneThe(to) + ' isn\u2019t ready to run yet.';
   if (S.set.pauseRunEnd) { S.set.paused = true; toast(msg + ' Paused; press Resume to carry on.', true); }
   else toast(msg); };
-HOOK.perk = p => { sfx('perk'); toast('Archive record: ' + p.name, true); if (tab !== 'archive') newPerk = true; archKey = ''; };
+// Log events for the Records and Automation filters (kept in the save, newest 100; counted from build "publishing set")
+function logEvt(k, t){ const L = S.life; (S.evlog = S.evlog || []).push({k, g:S.gen, a:+(L.day / TPD).toFixed(1), t}); if (S.evlog.length > 100) S.evlog.shift(); logKey = ''; }
+HOOK.perk = p => { logEvt('rec', p.name); sfx('perk'); toast('Archive record: ' + p.name, true); if (tab !== 'archive') newPerk = true; archKey = ''; };
 HOOK.change = () => { taskKey = ''; gearKey = ''; if (S && S.life) pinChains(); };
-HOOK.practiced = t => { sfx('perk'); taskKey = ''; autoKey = ''; toast('Automated: \u201c' + t.name + '\u201d' + (S.auto[t.id] ? ' now runs by itself (tap AUTO to switch it off).' : ' can run by itself (tap AUTO).'), true); };
+HOOK.practiced = t => { logEvt('auto', t.name); sfx('perk'); taskKey = ''; autoKey = ''; toast('Automated: \u201c' + t.name + '\u201d' + (S.auto[t.id] ? ' now runs by itself (tap AUTO to switch it off).' : ' can run by itself (tap AUTO).'), true); };
 HOOK.stopped = j => { sfx('error'); taskKey = ''; toast((j.prod.rations ? FD[jobFood(j)].name : 'Deadwood') + ' storage full. Stopped \u201c' + j.name + '\u201d; time is stopped.'); };
 // Death screen (on by default): the game waits on it until you sprout. Once AUTO_LIVES seedlings have died
 // it can be switched off, and the next seedling is sprouted straight away and keeps running.
 const decantUnlocked = () => (S.stats.deaths || 0) >= AUTO_LIVES;
 let pendingDecant = false;
 HOOK.die = () => {
+  announce('Seedling ' + S.gen + ' terminated: ' + (S.life.cause || '') + '.');
   sfx('death'); save(); deathSave();
   const qLeft = S.set.deathQueue && S.life.queue.some(id => !qAutomated(id));   // stop at the death screen when the queue wasn't finished
   if (decantUnlocked() && S.set.deathScreen === false && !qLeft) { pendingDecant = true; return; }
@@ -3278,7 +3309,14 @@ HOOK.win = () => { save(); showWin(); };
 HOOK.kit = () => { sfx('perk'); toast('Quartermaster\u2019s cache unlocked: every seedling now starts with all of its automated gear.', true); archKey = ''; };
 
 
+// Screen readers: messages added to a polite live region (#sr), each removed after a while
+function announce(msg){
+  const box = $('#sr'); if (!box || !msg) return;
+  const el = document.createElement('div'); el.textContent = msg; box.appendChild(el);
+  setTimeout(() => el.remove(), 6000);
+}
 function toast(msg, gold){
+  announce(msg);
   const el = document.createElement('div');
   el.className = 'toast' + (gold ? ' gold' : '');
   el.textContent = msg;
@@ -3680,7 +3718,7 @@ function renderTasks(){
       const why = pq ? ((S.qpresets[+id.slice(2)] || []).length ? 'loads once the rows above are done; replaces the rows below' : 'preset is empty: it will just be used up') : g ? (!isDone(it.req) ? 'after: ' + T[it.req].name : it.cost > M.salCap ? 'needs bigger ' + salW() + ' storage' : fmt(Math.min(L.salvage, it.cost)) + '/' + fmt(it.cost) + ' ' + salW() + (L.salvage < it.cost && !bestSalvageJob() ? ' \u00b7 no ' + salW() + ' job here yet' : ''))
         : L.held === id ? 'on hold: wrapping up the section' : !bl ? '' : zAfter(t.z, L.sec) ? 'waits for ' + zoneThe(t.z) : zBefore(t.z, L.sec) ? 'left behind' : 'waiting for its requirements';
       const sk = !!(L.qskip || {})[id];
-      return `<li class="qrow${bl ? ' blocked' : ''}${g ? ' gq' : ''}${pq ? ' pq' : ''}${sk ? ' qskip' : ''}" data-qid="${id}"><span class="qdrag" data-qdrag="${i}" aria-hidden="true" title="Drag to reorder">⠇</span><span class="qn">${i + 1}.</span><span class="qt"><button class="qtn" data-qskip="${i}" aria-pressed="${sk}" title="${sk ? 'Skipped: tap to run it again' : 'Tap to skip (it stays in the queue)'}">${esc(t.name)}</button>${t.kind === 'job' ? ' <small>until full</small>' : ''}${sk ? ' <small>skipped \u00b7 tap the name to run it</small>' : why ? ` <small>${why}</small>` : ''}<small class="qfc" data-qf="${i}"></small></span>
+      return `<li class="qrow${bl ? ' blocked' : ''}${g ? ' gq' : ''}${pq ? ' pq' : ''}${sk ? ' qskip' : ''}" data-qid="${id}"><span class="qdrag" data-qdrag="${i}" aria-hidden="true" title="Drag to reorder">⠇</span><span class="qn">${i + 1}.</span><span class="qt"><button class="qtn" data-qskip="${i}" aria-pressed="${sk}" aria-label="${sk ? 'Skipped: ' : 'Skip '}${esc(t.name)}" title="${sk ? 'Skipped: tap to run it again' : 'Tap to skip (it stays in the queue)'}">${esc(t.name)}</button>${t.kind === 'job' ? ' <small>until full</small>' : ''}${sk ? ' <small>skipped \u00b7 tap the name to run it</small>' : why ? ` <small>${why}</small>` : ''}<small class="qfc" data-qf="${i}"></small></span>
         <button data-qmove="${i}" data-dir="-1" ${i <= qPinned() ? 'disabled' : ''} aria-label="Move ${esc(t.name)} up">\u2191</button><button data-qmove="${i}" data-dir="1" ${i === L.queue.length - 1 ? 'disabled' : ''} aria-label="Move ${esc(t.name)} down">\u2193</button><button data-unqi="${i}" aria-label="Remove ${esc(t.name)} from queue">\u2715</button></li>`;
     }).join('') + '</ol>';
   } else {
@@ -3845,9 +3883,12 @@ let lastSpd = '';
 function renderSpeed(){
   // Pause, plus the game-speed menu once a faster speed has been unlocked
   let h = `<button data-settings="hud" class="flip" aria-label="Settings" title="Settings">\u2699</button><button data-atog="musicOn" class="mus${ASET.musicOn ? ' on' : ''}" aria-label="Music ${ASET.musicOn ? 'on' : 'off'}">\u266a</button><button data-pause class="pause${S.set.paused ? ' on' : ''}" aria-label="${S.set.paused ? 'Resume' : 'Pause'}">${S.set.paused ? '\u25b6 Resume' : '\u275a\u275a Pause'}</button>`;
+  // Pause all automation: shown once anything is automated (or while paused)
+  if (autoPaused() || Object.keys(S.auto).some(k => S.auto[k]) || Object.keys(S.gauto || {}).some(k => S.gauto[k]))
+    h = h.replace('<button data-pause', `<button data-autopause class="apz${autoPaused() ? ' on' : ''}" aria-pressed="${autoPaused()}" aria-label="${autoPaused() ? 'Automation paused: tap to resume it' : 'Pause all automation'}" title="${autoPaused() ? 'Automation paused: tap to resume it' : 'Pause all automation (the queue keeps working)'}">${ico('auto')}${autoPaused() ? '<span>off</span>' : ''}</button><button data-pause`);
   const open = SPEEDS.filter(speedOpen), cur = gameSpeed();
   h += `<label class="bsel${cur > 1 ? ' on' : ''}${open.length > 1 ? '' : ' off'}" title="${open.length > 1 ? 'Game speed' : 'Game speed: faster speeds unlock later'}"><select id="spd-sel" aria-label="Game speed" ${open.length > 1 ? '' : 'disabled'}>${open.map(x => `<option value="${x}"${x === cur ? ' selected' : ''}>\u00d7${x}${x === 1 ? ' Normal' : ''}</option>`).join('')}</select></label>`;
-  if (h !== lastSpd) { lastSpd = h; $('#h-spd').innerHTML = h; }
+  if (h !== lastSpd) { lastSpd = h; $('#h-spd').innerHTML = h; $('#h-spd').classList.toggle('a5', h.includes('data-autopause')); }
 }
 let lastHg = '', planT = 0, lastQEta = '';   // the queue box is rebuilt on changes: it starts from the last estimate, so nothing blinks
 // A gear card can be tapped (like a task) when the design is found, fits the storage and isn't built yet
@@ -4218,6 +4259,8 @@ function renderArchive(force){
   $('#v-archive').innerHTML = h;
 }
 let histAll = false, logTables = false;
+const LOG_F = [['dead', 'Deaths'], ['rec', 'Records'], ['auto', 'Automation'], ['story', 'Story']];
+const logShow = {dead:1, rec:1, auto:1, story:1};   // Log filter chips (this session)
 // Save-wide numbers (top of the Log)
 function statsGrid(){
   let h = '';
@@ -4241,7 +4284,7 @@ function histAvg(hist, histName, gameT, realT){
   return `<tr class="havg"><td>Average<small>${n} seedlings</small></td><td>${esc(top)}<small>most often (${cnt[top]}/${n})</small></td><td>${gameT(fmtDays(d))}</td><td>${realT(r)}</td></tr>`;
 }
 function renderLog(){
-  const key = Math.floor((S.stats.played || 0) / 60) + '|' + [S.stats.bestDays, Math.floor(S.vit || 0), TASKS.filter(t => masteryFrac(t) >= 1).length, S.winGen].join() + '|' + S.log.length + '|' + (S.log.length ? S.log[S.log.length-1].t : '') + '|' + (S.hist ? S.hist.length : 0) + '|' + JSON.stringify(S.bestSec || 0) + JSON.stringify(S.bestAll || 0) + '|' + histAll + logTables + '|' + S.gen + '|' + JSON.stringify(S.best || {});
+  const key = Math.floor((S.stats.played || 0) / 60) + '|' + [S.stats.bestDays, Math.floor(S.vit || 0), TASKS.filter(t => masteryFrac(t) >= 1).length, S.winGen].join() + '|' + S.log.length + '|' + (S.log.length ? S.log[S.log.length-1].t : '') + '|' + (S.hist ? S.hist.length : 0) + '|' + JSON.stringify(S.bestSec || 0) + JSON.stringify(S.bestAll || 0) + '|' + histAll + logTables + '|' + S.gen + '|' + JSON.stringify(S.best || {}) + JSON.stringify(logShow) + (S.evlog || []).length;
   if (key === logKey) return; logKey = key;
   const secName = n => n > ACT1.length ? 'Hearth kindled' : ZN(ACT1[n - 1]).name;
   const histName = e => e.z && isA2(e.z) ? ZN(e.z).name : secName(e.sec);
@@ -4253,6 +4296,8 @@ function renderLog(){
   let h = statsGrid() + `<div class="panel"><span class="h2">Play time</span><p class="note">Real time the clock has run in this save.</p><div class="rtab"><table class="dt"><tbody>`;
   h += `<tr><td>This run</td><td>${S.gen} seedling${S.gen === 1 ? '' : 's'} so far</td><td>${fmtHours(tot)}</td></tr>`;
   h += `<tr class="pttot"><td>Total</td><td></td><td>${fmtHours(tot)}</td></tr></tbody></table></div></div>`;
+  h += '<div class="lchips" role="group" aria-label="Show in the log">' + LOG_F.map(([k, l]) => `<button data-logf="${k}" aria-pressed="${!!logShow[k]}" class="${logShow[k] ? 'on' : ''}">${l}</button>`).join('') + '</div>';
+  const d0 = h.length;
   h += '<div class="panel"><span class="h2">Recent seedlings</span>';
   const lastH = allH[allH.length - 1];
   if (!lastH) h += '<p class="note">No seedling has died yet.</p>';
@@ -4277,12 +4322,21 @@ function renderLog(){
   const b = S.best;
   h += b ? `<p class="best"><span class="lbl">Best run</span> Seedling ${b.g} ${b.z && isA2(b.z) ? 'reached ' + ZN(b.z).name : b.sec > ACT1.length ? 'kindled the Hearth Tree' : 'reached ' + zoneThe(ACT1[b.sec - 1])} after ${gameT(fmtDays(b.d) + ' in-game')} \u00b7 ${realT(b.r)} <span class="trl">real</span></p>` : '';
   h += '</div>';
+  if (!logShow.dead) h = h.slice(0, d0);
+  const evs = (S.evlog || []).slice().reverse();
+  [['rec', 'Records found', 'Archive records as they were found. Every record you hold is in the Archive tab.'], ['auto', 'Automation', 'Tasks and gear as they became automatable.']].forEach(([k, title, note]) => {
+    if (!logShow[k]) return;
+    const list = evs.filter(e => e.k === k);
+    h += `<div class="panel"><span class="h2">${title}</span><p class="note">${note}</p>` + (list.length ? '<ul class="evl">' + list.map(e => `<li><b>${esc(e.t)}</b> <span>seedling ${e.g} \u00b7 at ${fmtDays((e.a || 0) * TPD)}</span></li>`).join('') + '</ul>' : '<p class="note">None yet (counted from this version of the game).</p>') + '</div>';
+  });
+  const s0 = h.length;
   h += '<div class="panel"><span class="h2">Ship log</span><p class="note">What your seedlings have learned about Selene, her sleeping crew and WARDEN.</p></div><div>';
   if (!S.log.length) h += '<p class="note">Nothing yet.</p>';
   S.log.slice().reverse().forEach(e => {
     h += `<article class="le"><header><h3>${esc(e.t)}</h3><time>Seedling ${e.g} · at ${fmtDays((e.a || 0) * TPD)}</time></header><p>${esc(e.x)}</p></article>`;
   });
   h += '</div>';
+  if (!logShow.story) h = h.slice(0, s0);
   $('#v-log').innerHTML = h;
 }
 // Tab icons, added once (the labels stay the buttons' text)
@@ -4574,9 +4628,9 @@ const FAQ_ALL = [
   ['What are sections?', 'Act I is split into six sections. The <b>Route</b> at the top of the Map tab shows them all in order (sections no seedling has reached show as ?); tap one for its year, crossing cost and danger. A <b>red</b> action leads to the next one, and the way back is sealed for that seedling, so finish what you need first (records, training, gear). Each new seedling starts back in the Seedling Vaults.'],
   ['What is gear?', 'Gear is built from deadwood (called grafts in Act II: the same store) and lasts for one seedling. Each section has designs to build. Building one pays its deadwood up front, then the seedling spends time <b>assembling</b> it (bigger designs take longer, from a moment for a toolkit to half a minute or so of in-game time for the largest); assembly comes before other work and gets faster with familiarity. The gear works once it is assembled. Deadwood storage is limited; opening up more of the ship raises it.'],
   ['What is familiarity?', 'There are no skills: each task gets faster on its own the more of it your seedlings have done. Familiarity counts work in completions, including attempts a seedling died in the middle of, and is kept between seedlings. Speed rises smoothly from ×1 to ×10 once you have done enough of a task: in a first run, 90 lives’ worth of it (90 finishes of an action, 1800 batches of a job). Each level of the <b>Echo</b> legacy theme lowers that for Act I tasks. Familiar tasks also hurt less (hazard damage up to ÷4), and a familiar charging station charges faster. <b>Drills</b> spread familiarity to every task in their section. The Mastery tab lists every task.'],
-  ['How does automation work?', 'Every completion counts: finish an action 10 times (a multi-rep action 10 times its reps), or a training session 40 times, or build a design in 10 lives, and its automation <b>switches on by itself</b>. For Act I tasks these counts shrink along with the familiarity threshold (Echo legacy), never below one; tap <b>AUTO</b> (or its switch in the Auto tab) to turn it off, and it stays off. Automated tasks run by themselves <b>ahead of your queue</b>, in chain order (each after the tasks it needs). Automated tasks <b>link into chains</b> when one requires the other and both are at least ×2 familiar. When every action and crossing of a section is automated and ×5 familiar, and all its gear designs are automated, the whole section becomes <b>one chain</b>: press <b>▶ Run section</b> (above the queue in the Tasks tab) and the seedling works through everything, builds the gear, fills its stores and crosses. The run is pinned at the top of the queue and the queue\u2019s leftovers for its sections are cleared. Pressing it also turns on <b>Always run sections once ready</b> (Auto tab): from then on a run starts by itself whenever the section you are in is ready. Stop turns that off again. Ready sections next to each other link across their crossings into one run (<b>▶ Run 3 sections</b>), up to the end of the act; a run that dies starts again with the next seedling. The option <b>Pause when a section run ends instead</b> keeps a run going through its crossings and pauses once it is over. A chain picks its next step itself each time: gear first, then charger upgrades, then the actions and drills in the order they depend on each other, and the crossing last. When a chain forms or grows, it <b>queues itself</b>, including the chains of sections still ahead, and chain entries are kept in the order they will run: section by section, and within a section the chain that starts earliest first, with the crossing\u2019s chain last, and anything of it you had queued separately is dropped from the queue. If you remove a chain from the queue, it stays out for the rest of that seedling\u2019s life. Work done as part of a chain (a queued chain or a section run) builds <b>chain flow</b>, which makes chained steps up to five times as fast; it is kept for good. Jobs are never automated: auto-forage keeps the charge up, queued gear works the deadwood jobs, and every queued or automated crossing tops the sap cells up and fills deadwood to full carry before the seedling moves on. <b>Automated gear gathers its own deadwood</b> during the life: the next automated design that is found, not built and fits in storage; it gathers only what that design costs and does not top the store up to full (except while filling up before a crossing). Automated <b>crossings</b> are the exception: they wait until your queue is done. A task you tap runs before everything. The <b>Auto</b> tab lists everything unlocked and has extra options: charging when needed, the death screen and starting paused. Each section\u2019s header names its <b>next automation</b>: the task closest to it, its completions, and whether this seedling gets there (from the forecast) or about how many more seedlings it takes. The death screen sums up each life: familiarity gained, records found, tasks that became automatable and the closest ones; the Mastery tab shows the in-game time spent on each task by this seedling and by all of them (counted from build \u201cqueue summaries\u201d).'],
+  ['How does automation work?', 'Every completion counts: finish an action 10 times (a multi-rep action 10 times its reps), or a training session 40 times, or build a design in 10 lives, and its automation <b>switches on by itself</b>. For Act I tasks these counts shrink along with the familiarity threshold (Echo legacy), never below one; tap <b>AUTO</b> (or its switch in the Auto tab) to turn it off, and it stays off. Automated tasks run by themselves <b>ahead of your queue</b>, in chain order (each after the tasks it needs). Automated tasks <b>link into chains</b> when one requires the other and both are at least ×2 familiar. When every action and crossing of a section is automated and ×5 familiar, and all its gear designs are automated, the whole section becomes <b>one chain</b>: press <b>▶ Run section</b> (above the queue in the Tasks tab) and the seedling works through everything, builds the gear, fills its stores and crosses. The run is pinned at the top of the queue and the queue\u2019s leftovers for its sections are cleared. Pressing it also turns on <b>Always run sections once ready</b> (Auto tab): from then on a run starts by itself whenever the section you are in is ready. Stop turns that off again. Ready sections next to each other link across their crossings into one run (<b>▶ Run 3 sections</b>), up to the end of the act; a run that dies starts again with the next seedling. The option <b>Pause when a section run ends instead</b> keeps a run going through its crossings and pauses once it is over. A chain picks its next step itself each time: gear first, then charger upgrades, then the actions and drills in the order they depend on each other, and the crossing last. When a chain forms or grows, it <b>queues itself</b>, including the chains of sections still ahead, and chain entries are kept in the order they will run: section by section, and within a section the chain that starts earliest first, with the crossing\u2019s chain last, and anything of it you had queued separately is dropped from the queue. If you remove a chain from the queue, it stays out for the rest of that seedling\u2019s life. Work done as part of a chain (a queued chain or a section run) builds <b>chain flow</b>, which makes chained steps up to five times as fast; it is kept for good. Jobs are never automated: auto-forage keeps the charge up, queued gear works the deadwood jobs, and every queued or automated crossing tops the sap cells up and fills deadwood to full carry before the seedling moves on. <b>Automated gear gathers its own deadwood</b> during the life: the next automated design that is found, not built and fits in storage; it gathers only what that design costs and does not top the store up to full (except while filling up before a crossing). Automated <b>crossings</b> are the exception: they wait until your queue is done. A task you tap runs before everything. The <b>Auto</b> tab lists everything unlocked and has extra options: charging when needed, the death screen and starting paused. Each section\u2019s header names its <b>next automation</b>: the task closest to it, its completions, and whether this seedling gets there (from the forecast) or about how many more seedlings it takes. The death screen sums up each life: familiarity gained, records found, tasks that became automatable and the closest ones; the Mastery tab shows the in-game time spent on each task by this seedling and by all of them (counted from build \u201cqueue summaries\u201d). The <b>gears switch</b> next to Pause (shown once something is automated) pauses all automation at once: automated tasks, auto-built gear and section runs wait, while the queue, tapped tasks and auto-charge keep working. Tap it again to resume.'],
   ['What happens at a crossing with automation?', 'A queued or automated crossing stops just before it finishes and waits while the seedling finishes automated actions and training, builds affordable automated gear and tops sap cells up and fills deadwood (grafts in Act II) to full carry, unless the seedling is out of cells and low on energy. Tap a crossing yourself to go at once.'],
-  ['Pause, saving and speed', 'Progress is saved on this device only (this browser or the app); use <b>Save files</b> in the main menu (\u2630) to back it up or move it, and <b>Restart</b> next to the slot there to start this slot over. Pause with the button at the top or the space bar. The game only runs while it is on screen: in another app, a background tab or closed, the clock stops and carries on where it left off. Each <b>Stasis watch</b> record (one for leaving each section the first time) tunes the seedlings\u2019 stasis: energy drains a little slower, more with each one, up to \u221250% in all. The <b>speed menu</b> (\u00bb) at the top appears once Act I has been cleared: \u00d72 then, and \u00d75 once Act II has been cleared. It is a flat speed-up of real time, kept on this device for every save.'],
+  ['Pause, saving and speed', 'Progress is saved on this device only (this browser or the app); use <b>Save files</b> in the main menu (\u2630) to back it up or move it, and <b>Restart</b> next to the slot there to start this slot over. Pause with the button at the top or the space bar. The game only runs while it is on screen: in another app, a background tab or closed, the clock stops and carries on where it left off. Each <b>Stasis watch</b> record (one for leaving each section the first time) tunes the seedlings\u2019 stasis: energy drains a little slower, more with each one, up to \u221250% in all. The <b>speed menu</b> (\u00bb) at the top appears once Act I has been cleared: \u00d72 then, and \u00d75 once Act II has been cleared. It is a flat speed-up of real time, kept on this device for every save. Opening a save you haven\u2019t played for more than a day shows a short <b>Welcome back</b> recap. The <b>Log</b> tab has filters (Deaths, Records, Automation, Story); records and automation are listed there as they happen. Messages are also read out by screen readers.'],
   ['Save management', 'The game saves itself every few seconds on this device. <b>Save Management</b> in the \u2630 menu holds: the five <b>save slots</b> (give each a name when you start a new game or save into it, or with <b>Rename</b>; load one, copy your current game into another as a save state with \u201cSave here\u201d, or delete one); under each used slot, its <b>death save</b>, written automatically at every death in that slot (load it to go back to that death; playing it never changes the regular slot. If it is too far gone, load the regular slot again from there, which deletes that death save. Deleting or starting over a slot removes its death save too); <b>Backups</b> under each slot, kept by themselves after 5 minutes, 30 minutes and 2 hours of play and just before a slot is replaced or deleted (tap Restore to bring one back; what the slot held is backed up first; \u201cExport all saves\u201d takes them along); <b>Restart</b>, next to the slot you are playing, which starts that slot over; and <b>Save files and transfer</b>: export a save file, import one, copy the save as text to move it between devices, or share it to the game\u2019s GitHub folder and load shared saves from there. A game that holds a broken number is never saved over your last good save: a message says so instead.'],
   ['Settings', '<b>Settings</b> (the ⚙ button, or Settings in the ☰ menu) holds the clock and pause options (death screen, starting paused, after a new section, when a section run ends or when a task finishes), sound (music and effects), layout (vertical or horizontal) and, in the Android app, app updates. Energy and automation options (auto-recharge, auto-charge, the charge threshold, charging when needed) are in the Auto tab.'],
 ];
@@ -4667,7 +4721,11 @@ document.addEventListener('toggle', e => { const d = e.target; if (d && d.datase
 
 /* ----- modals ----- */
 // While a pop-up is open the page behind it is locked in place (only the pop-up itself scrolls)
-function showModal(h){ $('#mbox').innerHTML = h; $('#modal').hidden = false; document.documentElement.classList.add('mopen'); $('#mbox').scrollTop = 0; }
+function showModal(h){
+  $('#mbox').innerHTML = h; $('#modal').hidden = false; document.documentElement.classList.add('mopen'); $('#mbox').scrollTop = 0;
+  const t = $('#mbox h2'); $('#mbox').setAttribute('aria-label', t ? t.textContent : 'Pop-up');
+  const f = $('#mbox .btn.pri') || $('#mbox button'); if (f) try { f.focus({preventScroll:true}); } catch(e) {}   // keyboard and screen readers start inside the pop-up
+}
 function hideModal(){ $('#modal').hidden = true; document.documentElement.classList.remove('mopen'); }
 function showIntro(){
   paused = true;
@@ -4724,6 +4782,7 @@ document.addEventListener('click', e => {
   if ('pause' in d) { togglePause(); return; }
 
   if ('skiphold' in d) { skipHold(); taskKey = ''; toast('Crossing now.'); renderView(); return; }
+  if (d.logf) { logShow[d.logf] = logShow[d.logf] ? 0 : 1; logKey = ''; renderView(); return; }
   if ('histall' in d) { histAll = !histAll; logKey = ''; renderView(); return; }
   if ('storyok' in d) { hideModal(); paused = false; showStory(); return; }
   if ('close' in d) { hideModal(); paused = false; S.intro = true; save(); return; }
@@ -4753,6 +4812,11 @@ document.addEventListener('click', e => {
   }
   if (d.ow) { const f = owActs[d.ow]; owActs = {}; if (f) f(); return; }
   if (d.reset) return askReset(d.reset);
+  if ('autopause' in d) {
+    S.set.autoPaused = !S.set.autoPaused; HOOK.change(); taskKey = ''; autoKey = ''; renderSpeed(); save();
+    toast(S.set.autoPaused ? 'Automation paused: automated tasks, auto-built gear and section runs wait. The queue keeps working.' : 'Automation running again.', true);
+    renderView(); return;
+  }
   if (d.bkslot) return bkPanel(/^d[1-5]$/.test(d.bkslot) ? d.bkslot : +d.bkslot);
   if (d.newin) {
     const i = +d.newin, r = readSlot(i);
@@ -4771,6 +4835,7 @@ document.addEventListener('click', e => {
   if (d.loadslot) {
     const i = /^d[1-5]$/.test(d.loadslot) ? d.loadslot : +d.loadslot, r = readSlot(i); if (!r) return;
     const load = drop => {
+      awayMs = r.saved ? Date.now() - r.saved : 0;
       save(); if (drop) bkBefore('d' + i, 'before it was overwritten'); slot = i; S = mergeState(r); M = mods(); resetViews(); save();
       if (drop) try { localStorage.removeItem(slotKey('d' + i)); } catch(e) {}
       toast(drop ? 'Back in slot ' + i + '; its death save was overwritten' : 'Loaded ' + slotLabel(i));
@@ -5149,6 +5214,7 @@ function boot(data){
   applyLayout();
   if (UPD.auto) setTimeout(() => checkAppUpdate(false), 2500);
   const raw = (data && data.S) || loadSaved();
+  awayMs = raw && raw.saved ? Date.now() - raw.saved : 0;
   S = mergeState(raw);
   M = mods();
   if (!raw) S.life.hp = M.maxHp;
