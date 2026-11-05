@@ -1,6 +1,6 @@
 # Handover: Selene: Tidelocked
 
-Last updated: 2026-11-05 16:35 (build "ui tightened": cleanup chunk 6 of 6, cleanup done; next: the mechanics consolidation analysis the owner asked for at 14:13, owner 14:01 "go with your suggestions for all"). Next: the owner's replay saves (the Shattered Bark next). Seedling Vaults retuned (freeze again when the owner says), Taproot Galleries FROZEN. Fallback build on branch `fallback/2026-11-05-embedded-fonts`. Update this file in every push.
+Last updated: 2026-11-05 15:30 (build "one food store": mechanics chunk 1 of 5, owner 15:00 picks G1 A, G2 A, G3 A, G4 A, G5 keep, G6 keep, G7 keep, G8 A and both finds; go 15:07. **Hard reset point before the mechanics changes: branch `fallback/2026-11-05-before-mechanics` (`e26d83d`), never delete.** owner 14:01 "go with your suggestions for all"). Next: the owner's replay saves (the Shattered Bark next). Seedling Vaults retuned (freeze again when the owner says), Taproot Galleries FROZEN. Fallback build on branch `fallback/2026-11-05-embedded-fonts`. Update this file in every push.
 
 ## 1. What the game is
 An incremental "clone-loop" game in one HTML file (like Increlution/Incremortal). You are K-7, a **seedling** (disposable drone of WARDEN and the Hearth Tree) aboard **Selene**, a living-wood colony ship of the Root-Kin of Earth. Each seedling works tasks until its energy runs out; familiarity, records and automation carry over to the next one.
@@ -33,7 +33,7 @@ Play: https://hufle-beep.github.io/Long-patience/ · Android APK: release `andro
   - The game stops when the tab or app is hidden. There is no away time.
   - Speed menu x1/x2/x5: `SPEEDS`. Unlocks are kept in localStorage and in the save (`S.spdUnl`). **Test version:** `TEST_ALL_SPEEDS = true` opens every speed from the start without recording an unlock (`speedOpen` vs `earnedSpeed`); it goes off before release.
 - **Energy:**
-  - `drainNow(haz, wear, z)` = min((HUNGER + haz) x danger, MAX_DRAIN x danger) x DRAIN_X(3.2) x (1 - stasis) / drainDiv() / vitDiv().
+  - `drainNow(haz, z)` = min((HUNGER + haz) x danger, MAX_DRAIN x danger) x DRAIN_X(3.2) x (1 - stasis) / drainDiv() / vitDiv().
   - `danger(z)` comes from `DANGER`.
   - `vitDiv` is the death award ("efficiency patch from run and memory analysis"): it grows with `S.vit`.
   - Stasis is the sum of the Stasis watch records: -10% across Act I, -50% in total.
@@ -44,7 +44,7 @@ Play: https://hufle-beep.github.io/Long-patience/ · Android APK: release `andro
   - Crossings take `t.to` or `nextZone(t.z)`; gear opened by a crossing belongs to the section it leads into (`gearZone`).
   - Seedling tables: `fin` arrays (hist, `bestSec`, `bestAll`) have one entry per Act I route position, each the time the next section (or the kindling) was reached; hist `sec` is the Act I position, 7 = kindled. Saves from before the Shattered Bark are migrated once (`S.hullv`): an empty 'reached the Shattered Bark' entry is inserted at position 2 and positions 3+ move up one.
 - **Sap cells and stations:**
-  - Cells are stored in `L.food.ration` (store id `ration`, display name "Sap cells"); storage is `STORE_CAP` per section.
+  - Cells are stored in `L.food.ration` (store id `ration`, display name "Sap cells"); storage is `STORE_CAP` per section. Since build "one food store" there is no food table: the helpers (`jobFood`, `foodQ`, `mealCd`, `mealHp`, `readyFoods`, `nextFood`, `eatRate`, `nextMealIn`) work on the one store and ignore their food argument.
   - Charging stations are `kind:'job'` tasks with `prod.rations`. Each holds `stationMax(z)` (RESERVE_K 0.15, Act II x0.5).
   - Recharges have a cooldown `MEAL_CD`; charger upgrades (`MEAL_UP`) shorten it.
   - Crossings cost `crossCost(z)` of the cells carried: an explicit table `CROSS_COST` by section id (Shattered Bark 9.5%).

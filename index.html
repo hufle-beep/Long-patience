@@ -125,7 +125,7 @@ html[data-rv="0"] .qinsbar,html[data-rv="0"] .qrow .qo,html[data-rv="0"] .qpre,h
 .pinbar{display:grid;gap:4px;margin:4px 0;flex-basis:100%;width:100%}.pin{display:flex;align-items:center;gap:6px;border:1px solid var(--line2);border-left:3px solid var(--amber);border-radius:4px;padding:4px 6px;font-size:12px}
 .pin.ok{border-left-color:var(--green)}.pin small{color:var(--dim);flex:1}.pin.ok small{color:var(--green)}.pin button{background:none;border:0;color:var(--dim);cursor:pointer}
 .psv{color:var(--green)}.fstep{color:var(--amber)}.tpn.on{color:var(--amber);border-color:var(--amber)}
-.nowrow{display:flex;gap:6px;align-items:stretch}.nowrow .now{flex:1;min-width:0}
+.nowrow{display:flex;gap:6px;align-items:stretch;min-width:0}.nowrow .now{flex:1;min-width:0}
 .rtr{flex:none;min-width:34px;border:1px solid var(--line2);border-radius:4px;background:var(--panel2);color:var(--dim);font-size:15px;padding:0 8px;cursor:pointer}
 .rtr:hover{color:var(--fg)}
 .qinsbar{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:12px;color:var(--dim);margin:0 0 4px}.qinsbar .btn{padding:2px 9px;font-size:12px}.qrow .qn.ins{color:var(--amber);text-decoration:underline}
@@ -550,7 +550,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
 // Renamed from Long Patience: move this device's old storage keys to the new 'selene.' names once
 try { const old = []; for (let n = 0; n < localStorage.length; n++) old.push(localStorage.key(n)); old.forEach(k => { if (k && k.indexOf('long-patience.') === 0) { const nk = 'selene.' + k.slice(14); if (localStorage.getItem(nk) == null) localStorage.setItem(nk, localStorage.getItem(k)); localStorage.removeItem(k); } }); } catch(e) {}
 /* ===== Game data and rules (no DOM) ===== */
-const BUILD = '2026-11-05 · ui tightened';   // shown in the main menu, to tell which version is loaded
+const BUILD = '2026-11-05 · one food store';   // shown in the main menu, to tell which version is loaded
 const DPS = 8;             // simulation ticks per real second at 1x (doubled for the test version: same balance, half the real time)
 // Time is simulated in ticks. 80 ticks make one day unit (18 minutes each), so a day lasts
 // 20 real seconds at 1x and Players only ever see in-game time and real time, never days.
@@ -562,7 +562,7 @@ const MAX_DRAIN = 1.2;     // most energy a seedling can lose per tick before da
 // Difficulty: each section is a little more dangerous than the one before (hunger and hazards x DANGER), with a step up at the start of Act II.
 const DANGER = {1:1.0, 2:1.05, 15:1.075, 3:1.1, 4:1.15, 5:1.2, 9:2.12, 10:2.18, 11:2.24, 12:2.3, 6:2.36, 7:2.42, 8:2.48, 16:2.51, 13:2.54, 14:2.6};   // Act II by route: the long watch, the Boarders (The Mending slotted in), Arrival
 const danger = z => DANGER[z] || 1;
-function drainNow(haz, wear, z){ const k = danger(z); return Math.min((HUNGER + (haz || 0)) * k, MAX_DRAIN * k) * DRAIN_X * (1 - Math.min(0.9, (M && M.stasis) || 0)) / drainDiv() / vitDiv(); }   // stasis tuning (watch records) cuts the drain
+function drainNow(haz, z){ const k = danger(z); return Math.min((HUNGER + (haz || 0)) * k, MAX_DRAIN * k) * DRAIN_X * (1 - Math.min(0.9, (M && M.stasis) || 0)) / drainDiv() / vitDiv(); }   // stasis tuning (watch records) cuts the drain
 const DRAIN_X = 3.2;   // overall energy drain
 // Efficiency optimization: every seedling's survival makes later seedlings drain more slowly (at the cap: drain / (1 + VIT_K))
 const VIT_K = 0.6;
@@ -572,13 +572,9 @@ const vitDiv = () => 1 + VIT_K * Math.min(BASE_HP_MAX - 100, (S && S.vit) || 0) 
 // Food: one ration store until the long watch. Every charging station fills it. How much a ration heals
 // depends on the best kitchen this seedling has fixed: each section has one upgrade action (see MEAL_UP),
 // done again every life. The store grows as the seedling gets deeper into the ship (STORE_CAP), plus gear.
-// One food: cells. (The long watch's beds, seed stores and protein tanks are grown for the waking crew;
-// seedlings only eat the thinnings, culls and skim, as cells.)
-const FOODS = [
-  {id:'ration',  z:1,  name:'Sap cells',           q:1,   cap:5,  job:null},
-];
-const FD = {}; FOODS.forEach(f => FD[f.id] = f);
-const FOOD_OF = {}; for (let z = 1; z <= 16; z++) FOOD_OF[z] = 'ration';
+// One food: sap cells, kept in L.food.ration (the long watch's beds, seed stores and protein tanks are grown
+// for the waking crew; seedlings only eat the thinnings, culls and skim, as cells). The helpers below still
+// take a food id for their callers, but there is only 'ration'.
 // Energy pressure: each crossing costs a share of the cells carried (Supply manifests halve it), and each
 // section's charging station holds a limited reserve per seedling life (its charger upgrade adds half again).
 // Share of the cells carried that a crossing into section z costs (by section id: the Shattered Bark, id 15, sits after the Taproot Galleries)
@@ -598,38 +594,33 @@ const MEAL_UP = {heatpaste:1.27, strains:1.54, barkcharger:1.7, packer:1.85, ove
 const REPAIR_UP = {ws9:1.15, ws10:1.3, ws11:1.45, ws12:1.6, ws6:1.75, ws7:1.9, ws8:2.05, ws16:2.2, ws13:2.35, ws14:2.5};   // workshops in route order
 function repairTier(){ const L = S && S.life; let q = 1; if (L) for (const id in REPAIR_UP) if (L.done && L.done[id]) q = Math.max(q, REPAIR_UP[id]); return q; }
 function mealTier(){ const L = S && S.life; let q = 1; if (L) for (const id in MEAL_UP) if (L.done && L.done[id]) q = Math.max(q, MEAL_UP[id]); return q; }
-const jobFood = t => !(t && t.prod && t.prod.rations) ? null : (FOODS.find(f => f.job === t.id) || FD.ration).id;
+const jobFood = t => t && t.prod && t.prod.rations ? 'ration' : null;
 // Meal pace: every recharge heals the same; better food and kitchens make the recharge timer shorter (12 h / pace)
-function foodQ(f){ f = f || 'ration'; return (f === 'ration' ? mealTier() : FD[f].q) * ((M && M.fq && M.fq[f]) || 1) * ((M && M.pace) || 1); }
-function syncFood(){ const L = S.life; L.rations = FOODS.reduce((a, f) => a + Math.max(0, L.food[f.id] || 0), 0); }
+function foodQ(){ return mealTier() * ((M && M.fq && M.fq.ration) || 1) * ((M && M.pace) || 1); }
+function syncFood(){ const L = S.life; L.rations = 0 + Math.max(0, L.food.ration || 0); }
 function addFood(f, a){
-  const L = S.life; if (a <= 0) return; f = f || 'ration';
-  L.food[f] = (L.food[f] || 0) + a; syncFood();
+  const L = S.life; if (a <= 0) return;
+  L.food.ration = (L.food.ration || 0) + a; syncFood();
 }
 // Any food left at all (a whole portion)? Without it the seedling starves.
 const FOOD_MIN = 0.01;   // a crumb: any food at all left
 const EAT_GAP = 0.5;     // health missing before the seedling bothers to eat
-function nextFood(){ const L = S.life; const f = FOODS.slice().reverse().find(f => (L.food[f.id] || 0) >= 1); return f ? f.id : null; }
-// One recharge of each kind per its own timer: 12 h, shortened by the food's pace
-function mealCd(f){ return MEAL_CD / foodQ(f); }
-// Foods ready to eat now (stocked and off their own cooldown), best first
-function readyFoods(){ const L = S.life; return FOODS.filter(f => (L.food[f.id] || 0) >= 1 && ((L.mcd || {})[f.id] || 0) <= 0).sort((a, b) => foodQ(b.id) - foodQ(a.id)).map(f => f.id); }
-// Food eaten per tick, for estimates: recharges only cover what health needs, best food first, each kind
-// at most one recharge per cooldown
+function nextFood(){ return (S.life.food.ration || 0) >= 1 ? 'ration' : null; }
+// One recharge per cooldown, shortened by the charger upgrades (and records, gear)
+function mealCd(){ return MEAL_CD / foodQ(); }
+// ['ration'] when a cell can be used now (one in stock, cooldown over), else []
+function readyFoods(){ const L = S.life; return (L.food.ration || 0) >= 1 && ((L.mcd || {}).ration || 0) <= 0 ? ['ration'] : []; }
+// Cells used per tick, for estimates: recharges only cover what energy needs, at most one per cooldown
 function eatRate(){
   const L = S.life, cur = L.cur ? T[L.cur] : null;
-  let need = drainNow(cur && cur.haz ? hazDmg(cur) : 0, L.wear, L.sec || 1), units = 0;
-  FOODS.slice().sort((a, b) => foodQ(b.id) - foodQ(a.id)).forEach(f => {
-    if ((L.food[f.id] || 0) < FOOD_MIN || need <= 0) return;
-    const mh = mealHp(f.id), take = Math.min(need, mh / mealCd(f.id)); units += take / mh; need -= take;
-  });
-  return units;
+  const need = drainNow(cur && cur.haz ? hazDmg(cur) : 0, L.sec || 1);
+  if ((L.food.ration || 0) < FOOD_MIN || need <= 0) return 0;
+  const mh = mealHp(); return Math.min(need, mh / mealCd()) / mh;
 }
 // Time until the next recharge is possible
-function nextMealIn(){ const L = S.life; let m = Infinity; FOODS.forEach(f => { if ((L.food[f.id] || 0) >= 1) m = Math.min(m, (L.mcd || {})[f.id] || 0); }); return m; }
-const foodsInPlay = () => FOODS.filter(f => f.z === 1 || isWatch(S.life.sec || 1) || (S.life.food[f.id] || 0) > 0.005);
+function nextMealIn(){ const L = S.life; return (L.food.ration || 0) >= 1 ? (L.mcd || {}).ration || 0 : Infinity; }
 const MEAL_MULT = 1.58;   // recharges restore more than one recharge-gap of hunger, so recharging can outpace the drain
-function mealHp(f){ return (HUNGER + MEAL_REGEN) * MEAL_CD * MEAL_MULT; }   // the same for every recharge
+function mealHp(){ return (HUNGER + MEAL_REGEN) * MEAL_CD * MEAL_MULT; }   // the same for every recharge
 const MEAL_REGEN = 0.05;
 
 
@@ -658,7 +649,8 @@ const ZONES = [
 ];
 const ZBY = {}; ZONES.forEach(z => ZBY[z.id] = z);
 const ZN = id => ZBY[id];
-const zoneThe = z => /^The /.test(ZN(z).name) ? 'the ' + ZN(z).name.slice(4) : 'the ' + ZN(z).name;   // 'the Seedling Vaults', 'The Long Current'
+const NO_THE = [12, 14];   // Turnover, Tessaly Orbit read better without an article
+const zoneThe = z => NO_THE.includes(+z) ? ZN(z).name : /^The /.test(ZN(z).name) ? 'the ' + ZN(z).name.slice(4) : 'the ' + ZN(z).name;   // 'the Seedling Vaults', 'the Long Current'
 const isA2 = z => !!(ZBY[z] && ZBY[z].act === 2);
 // The route through the ship: Act I, then Act II in order (the long watch, the Boarders, Arrival)
 const ACT1 = [1, 2, 15, 3, 4, 5];   // Act I in route order (by section id)
@@ -1333,7 +1325,7 @@ const ngpSpeed = () => speedAt(ngpLv('speed'));    // Act I reward: overclock, f
 function mods(){
   const L = S.life, P = S.perks;
   const m = {stasis:0, zsp:{}, zxp:{}, spd:1, xp:1, haz:1, maxHp:100, /* the Energy bar starts at 100; only storage optimization (legacy), records and gear add cells */ pSal:0, crossCost:1, stationRes:1, ratCap:5, salCap:5, fcap:{}, fq:{}, foodSpd:1, a2haz:1, a2fam:1, wear:1};
-  FOODS.forEach(f => { m.fcap[f.id] = f.cap; m.fq[f.id] = 1; }); m.fcap.ration = STORE_CAP[L.sec || 1] || 5; m.fspd = {};
+  m.fq.ration = 1; m.fcap.ration = STORE_CAP[L.sec || 1] || 5; m.fspd = {};
   const ap = e => {
     if (!e) return;
     if (e.zsp) for (const k in e.zsp) m.zsp[k] = (m.zsp[k] || 1) * e.zsp[k];   // work in section k faster
@@ -1757,7 +1749,7 @@ function feedJob(){
   if (!job) { L.feeding = false; return null; }
   const f = jobFood(job), cap = M.fcap[f], have = L.food[f] || 0;
   const low = cap * (S.set.foodPct || 40) / 100;
-  const drain = drainNow(0, L.wear, L.sec || 1);
+  const drain = drainNow(0, L.sec || 1);
   const mh = mealHp(f), recoverable = mh / MEAL_CD > drain;
   const hpNeed = recoverable && L.hp < M.maxHp * 0.6 ? Math.ceil((M.maxHp - L.hp) / mh) : 0;
   const target = Math.min(cap - 0.01, Math.max(low * 2, hpNeed));
@@ -1788,7 +1780,7 @@ function finish(t){
   }
   const r = t.reward || {};
   if (r.salvage) L.salvage += r.salvage;
-  if (r.rations) addFood(FOOD_OF[t.z], r.rations);
+  if (r.rations) addFood('ration', r.rations);
   if (!L.order.includes(t.id)) L.order.push(t.id);
   if (complete(t)) qConsumeAll(t.id); else qConsumeRep(t.id);
   M = mods();
@@ -1936,7 +1928,7 @@ function die(cause){
   S.engramT = dt0 && dt0.kind !== 'job' && !complete(dt0) && (L.prog[dt0.id] || 0) > 0 ? {id:dt0.id, p:L.prog[dt0.id]} : null;   // for the Engram recorder
   L.dead = true; L.cause = cause; L.cur = null;
   const age = L.day / TPD;
-  // Hardened genome: every full day a seedling survives adds 0.8 max health to all later seedlings (base caps at 500).
+  // Efficiency patch: every full day unit a seedling survives adds 0.8 to S.vit, which slows later seedlings' drain (vitDiv, full at 400).
   L.vitGain = Math.floor(L.day / TPD) * 0.8;
   S.vit = (S.vit || 0) + L.vitGain;
   S.stats.deaths++; S.stats.daysLived += L.day;
@@ -1964,15 +1956,14 @@ function step(dt){
   autoBuy();
   // Energy drains all the time; hazards add to it. Recharges put some back. (Legacy levels can damp it.)
   const h1 = t.haz ? hazDmg(t) : 0;
-  L.wear = (L.wear || 0) + dt;
   // Act II: the ship slowly wears out; wear adds to the drain until grafts repair it
   if (wearsHere(L.sec)) L.shipWear = (L.shipWear || 0) + dt / TPD * wearRate(L.sec || 1);
   if (L.rcd) L.rcd = Math.max(0, L.rcd - dt);
   if (S.set.autoRepair && (L.shipWear || 0) >= REPAIR_AMT - 1e-9) repair();
-  const drain = drainNow(h1, L.wear, L.sec || 1) * wearMul();
+  const drain = drainNow(h1, L.sec || 1) * wearMul();
   L.hp -= drain * dt;
   if (!L.mcd) L.mcd = {};
-  FOODS.forEach(f => { if (L.mcd[f.id]) L.mcd[f.id] = Math.max(0, L.mcd[f.id] - dt); });
+  if (L.mcd.ration) L.mcd.ration = Math.max(0, L.mcd.ration - dt);
   if (S.set.autoEat) readyFoods().forEach(f => { if (wantsMeal(f)) eat(f); });
   if (L.hp <= 0) {
     L.hp = 0;
@@ -1983,7 +1974,7 @@ function step(dt){
   return true;
 }
 // Chain flow: a save-wide knack for working through chains. Steps run as part of a chain (a queued
-// chain entry or a one-click section run) get faster, by up to x2, as chained work piles up
+// chain entry or a one-click section run) get faster, by up to x5 (1 + FLOW_MAX), as chained work piles up
 // (half of the bonus after 20 day units (10 s in-game each) of chained work). Kept through legacy levels.
 const FLOW_MAX = 4, FLOW_HALF = 20 * TPD;
 const flowMul = () => 1 + FLOW_MAX * (S.flow || 0) / ((S.flow || 0) + FLOW_HALF);
@@ -2067,7 +2058,7 @@ function eat(f){
 }
 function clampRes(){
   const L = S.life;
-  FOODS.forEach(f => { if ((L.food[f.id] || 0) > M.fcap[f.id]) L.food[f.id] = M.fcap[f.id]; });
+  if ((L.food.ration || 0) > M.fcap.ration) L.food.ration = M.fcap.ration;
   syncFood();
   if (L.salvage > M.salCap) L.salvage = M.salCap;
 }
@@ -2790,7 +2781,7 @@ function setT(el, t){ t = String(t); if (el && el.textContent !== t) { el.textCo
 function setW(el, w){ w = String(w); if (el && el._w !== w) { el._w = w; const f = Math.max(0, Math.min(1, (parseFloat(w) || 0) / 100)); el.style.transform = 'scaleX(' + f + ')';
   const pb = el.parentElement; if (pb && pb.getAttribute('role') === 'progressbar') { const v = String(Math.round(f * 100)); if (pb.getAttribute('aria-valuenow') !== v) pb.setAttribute('aria-valuenow', v); } } }   // live bars (#b-hp, .nf, .tf): w is a width like '42.5%'   // live bars (#b-hp, .nf, .tf): w is a width like '42.5%'
 function setTi(el, t){ if (!el || (el.dataset.tip || '') === t) return; if (t) el.dataset.tip = t; else delete el.dataset.tip; }   // the game's own tooltip (see Tooltips)
-// In-game time this seedling has left, as shown last (the forecast's, or survival()'s before it is ready)
+// In-game time this seedling has left, as the last finished forecast says (Infinity until one is ready)
 let lastSvT = Infinity;
 const tooLong = days => isFinite(lastSvT) && days > lastSvT + 1e-6;
 const OVER_TIP = 'More than this seedling has left at the current energy use';
@@ -2808,33 +2799,6 @@ function storeEta(val, cap, rate){
   if (rate > 1e-9) return val >= cap - 0.01 ? {txt:'full', days:0} : {txt:'full in', days:(cap - val) / rate};
   if (rate < -1e-9) return val <= 0.01 ? {txt:'empty', days:0} : {txt:'empty in', days:val / -rate};
   return {txt:'steady', days:Infinity};
-}
-// Quick fallback until the queue forecast is ready: how long the seedling lives if the current task keeps going
-function survival(){
-  const L = S.life, cur = L.cur ? T[L.cur] : null;
-  const lifeLeft = 300 * TPD;   // look ahead at most 300 days
-  // Step forward assuming the current task keeps running.
-  const haz = cur && cur.haz ? hazDmg(cur) : 0;
-  // each cell type: stock, gain per tick (jobs running + passive), cooldown, heal per recharge
-  const fs = FOODS.map(f => {
-    let gain = 0;
-    if (cur && cur.prod && cur.prod.rations && jobFood(cur) === f.id) gain += cur.prod.rations * speedOf(cur);
-    return {stock:L.food[f.id] || 0, cap:M.fcap[f.id], gain, cd:(L.mcd || {})[f.id] || 0, full:mealCd(f.id), hp:mealHp(f.id)};
-  }).reverse();
-  let hp = L.hp, t = 0, why = '';
-  const dt = 5, eatOn = S.set.autoEat;
-  while (t < lifeLeft) {
-    hp -= drainNow(haz, (L.wear || 0) + t, L.sec || 1) * dt;
-    fs.forEach(f => {
-      f.stock = Math.min(f.cap, f.stock + f.gain * dt); f.cd -= dt;
-      if (eatOn && f.cd <= 0 && f.stock >= 1 && (M.maxHp - hp >= f.hp || hp <= M.maxHp * 0.5)) { f.stock -= 1; hp = Math.min(M.maxHp, hp + f.hp); f.cd = f.full; }
-    });
-    t += dt;
-    if (hp <= 0) { why = haz ? 'injuries' : fs.every(f => f.stock < 1) ? 'running out of cells' : 'drain outpacing recharges'; break; }
-  }
-  if (!why) t = Infinity;
-  if (t >= lifeLeft) { t = Infinity; why = 'nothing soon'; }
-  return {t, why};
 }
 const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
 
@@ -3326,7 +3290,7 @@ function mergeState(raw){
   s.rv = 4;
   if (s.life && !s.life.food) {   // v5: separate food stores; old cells become this section's food
     s.life.food = {}; s.life.mcd = {};
-    const f = FOOD_OF[Math.min(5, s.life.sec || 1)];
+    const f = 'ration';
     s.life.food[f] = Math.max(0, s.life.rations || 0);
   }
   s.sv = 2;
@@ -3501,7 +3465,7 @@ function logEvt(k, t){ const L = S.life; (S.evlog = S.evlog || []).push({k, g:S.
 HOOK.perk = p => { logEvt('rec', p.name); sfx('perk'); toast('Archive record: ' + p.name, true); if (tab !== 'archive') newPerk = true; archKey = ''; };
 HOOK.change = () => { taskKey = ''; gearKey = ''; if (S && S.life) pinChains(); };
 HOOK.practiced = t => { logEvt('auto', t.name); sfx('perk'); taskKey = ''; autoKey = ''; toast('Automated: \u201c' + t.name + '\u201d' + (S.auto[t.id] ? ' now runs by itself (tap AUTO to switch it off).' : ' can run by itself (tap AUTO).'), true); };
-HOOK.stopped = j => { sfx('error'); taskKey = ''; toast((j.prod.rations ? FD[jobFood(j)].name : 'Deadwood') + ' storage full. Stopped \u201c' + j.name + '\u201d; time is stopped.'); };
+HOOK.stopped = j => { sfx('error'); taskKey = ''; toast((j.prod.rations ? 'Sap cells' : 'Deadwood') + ' storage full. Stopped \u201c' + j.name + '\u201d; time is stopped.'); };
 // Death screen (on by default): the game waits on it until you sprout. Once AUTO_LIVES seedlings have died
 // it can be switched off, and the next seedling is sprouted straight away and keeps running.
 const decantUnlocked = () => (S.stats.deaths || 0) >= AUTO_LIVES;
@@ -3565,7 +3529,7 @@ function rewardBits(t){
   const b = [], kept = [], rest = [];   // b: lasts this seedling's life; kept: for good
   const r = t.reward || {};
   if (r.salvage) b.push('+' + r.salvage + ' ' + salW(t.z));
-  if (r.rations) b.push('+' + r.rations + ' ' + FD[FOOD_OF[t.z]].name.toLowerCase());
+  if (r.rations) b.push('+' + r.rations + ' sap cells');
   if (r.heal) b.push('full heal');
   if (MEAL_UP[t.id]) b.push('a recharge every ' + fmtDays(MEAL_CD / MEAL_UP[t.id]) + (mealTier() >= MEAL_UP[t.id] && isDone(t.id) ? '' : ' (now ' + fmtDays(mealCd('ration')) + ')'));
   if (t.lifeEff && t.lifeEff.pSal) b.push('+' + fmt(perDay(t.lifeEff.pSal)) + ' ' + salW(t.z) + '/min');
@@ -3754,6 +3718,7 @@ const BUILD_NOTES = [
   ['settings merged', 'Fewer, clearer settings: Auto-charge now also covers charging when energy runs low (the separate Charge when needed is gone); Settings has one choice for what happens at a death, one for pausing at crossings, and a row of Pause when… chips.'],
   ['pop-ups merged', 'One pop-up when you open a save after a while: the welcome-back recap now lists what\u2019s new too. The Log keeps only the first-death and first-crossing hints (the next-step line covers the rest), and the Journal view is gone: the Ship log already reads in order by section.'],
   ['tooltips trimmed', 'Task card tooltips show only what the card doesn\u2019t: familiarity steps, automation progress, time saved and the full list of what a task opens. Tapping a route node shows the same bubble as holding it. Section headers are two lines shorter.'],
+  ['one food store', 'Long task names on the Now line no longer push the status panel past a phone screen. The Outlook waits a moment for the forecast instead of showing a rough guess first.'],
 ];
 const buildKey = () => BUILD.split('\u00b7').pop().trim();
 function newNotes(){   // the notes since this save last opened (records the current build)
@@ -4317,7 +4282,7 @@ function updateTasks(){
           // a food store fills at the job's rate (plus passive), minus what is eaten of that food
           const fr = isR ? t.prod.rations * sp - ((L.food[f] || 0) >= 1 ? 1 / mealCd(f) : 0) : 0;
           const e = isR ? storeEta(L.food[f] || 0, M.fcap[f], fr) : storeEta(L.salvage, M.salCap, rt.sr);
-          setT(r.tt, (isR ? FD[f].name.toLowerCase() + ' \u00d7' + fmt(foodQ(f)) + ' \u00b7 every ' + fmtDays(mealCd(f)) + ' \u00b7 ' : '') + (e.txt === 'full' ? 'storage full' : e.txt === 'steady' ? 'storage steady' : 'storage ' + e.txt + ' ' + both(e.days)));
+          setT(r.tt, (isR ? 'sap cells \u00d7' + fmt(foodQ(f)) + ' \u00b7 every ' + fmtDays(mealCd(f)) + ' \u00b7 ' : '') + (e.txt === 'full' ? 'storage full' : e.txt === 'steady' ? 'storage steady' : 'storage ' + e.txt + ' ' + both(e.days)));
         }
       } else {
         setT(r.e, '×' + fmt(sp) + ' speed');
@@ -4485,8 +4450,8 @@ function updateHud(){
   setT($('#t-hp'), Math.ceil(L.hp) + ' / ' + M.maxHp);
   let cur = L.cur ? T[L.cur] : null;
   const {rr, sr} = rates(cur);
-  const sv = survival(), surv = $('#surv');
-  // the forecast replaces the rough estimate once it is ready: it plays out the queue, automation, recharges and crossings
+  const sv = {t:Infinity, why:''}, surv = $('#surv');
+  // the forecast plays out the queue, automation, recharges and crossings (a few frames after any change)
   const fc = fcOk() ? fcShow : null;
   if (fc && fc.end === 'dead') { sv.t = Math.max(0, fc.endDay - L.day); sv.why = fcCause(fc.cause); sv.fc = true; }
   else if (fc && fc.end === 'cap') { sv.t = Infinity; sv.why = 'nothing soon'; sv.fc = true; }
@@ -4494,9 +4459,9 @@ function updateHud(){
   const hl = $('#h-left');
   if (L.dead) { setT(hl, '0 left'); setT($('#s-why'), 'dead'); }
   else {
-    const lt = (isFinite(sv.t) ? fmtDays(sv.t) + ' \u00b7 ' + fmtReal(realSecs(sv.t)) : '\u221e') + ' left';   // in-game and real time left
+    const lt = !fc ? '\u2026 left' : (isFinite(sv.t) ? fmtDays(sv.t) + ' \u00b7 ' + fmtReal(realSecs(sv.t)) : '\u221e') + ' left';   // in-game and real time left
     if (hl.textContent !== lt) setT(hl, lt);
-    setT($('#s-why'), sv.fc ? (isFinite(sv.t) ? 'forecast: ' + sv.why + (fc && fc.end === 'dead' && fcHint ? ' \u00b7 ' + fcHint.x.txt + ' (Auto tab) adds about ' + fmtDays(fcHint.g) : '') : 'forecast: lives past 2 hours') : fc && fc.end === 'idle' ? 'forecast: nothing left to work on ' + (fc.endDay - L.day > 0.5 ? 'in ' + fmtDays(fc.endDay - L.day) : 'now') + ', then time stops' : (isFinite(sv.t) ? 'ends by ' + sv.why : 'nothing ends it soon') + (cur ? '' : ' (time left counts once working)'));
+    setT($('#s-why'), sv.fc ? (isFinite(sv.t) ? 'forecast: ' + sv.why + (fc && fc.end === 'dead' && fcHint ? ' \u00b7 ' + fcHint.x.txt + ' (Auto tab) adds about ' + fmtDays(fcHint.g) : '') : 'forecast: lives past 2 hours') : fc && fc.end === 'idle' ? 'forecast: nothing left to work on ' + (fc.endDay - L.day > 0.5 ? 'in ' + fmtDays(fc.endDay - L.day) : 'now') + ', then time stops' : 'forecasting\u2026');
     if (performance.now() - planT > 400) {   // planned work, refreshed a few times a second
       planT = performance.now();
       const pe = $('#s-plan'), qe = $('#q-eta');
@@ -4517,7 +4482,7 @@ function updateHud(){
       }
     }
   }
-  surv.classList.toggle('warn', !L.dead && sv.why !== 'nothing soon');
+  surv.classList.toggle('warn', !L.dead && !!sv.fc && sv.why !== 'nothing soon');
   const re = storeEta(L.rations, M.ratCap, rr), se = storeEta(L.salvage, M.salCap, sr);
   // only a warning about running out altogether; the stores themselves are listed per food
   { const z = L.sec || 1, st = TASKS.find(t => t.z === z && t.kind === 'job' && t.prod && t.prod.rations), end = sectionEnd(z), nz = end && (end.to || nextZone(end.z));
@@ -4528,7 +4493,7 @@ function updateHud(){
     setT($('#t-ratt'), parts.filter(Boolean).join('\n')); }   // one short line each (cells, station, crossing)
   $('#t-ratt').classList.toggle('neg', true);
   setH($('#t-salt'), se.txt === 'full' ? 'storage full' : se.txt === 'steady' ? '' : se.txt + ' ' + (se.txt === 'empty in' ? '<span class="neg">' + both(se.days) + '</span>' : bothH(se.days)));
-  const fl = foodsInPlay().map(f => {   // what you carry, plus this section's food
+  const fl = [{id:'ration', name:'Sap cells'}].map(f => {   // what you carry, plus this section's food
 
     const v = L.food[f.id] || 0, cd = (L.mcd || {})[f.id] || 0;
     return `<span class="${v >= M.fcap[f.id] - 0.01 ? 'full' : ''}" title="${f.name}: heals ${fmt(mealHp(f.id))}, one every ${fmtDays(mealCd(f.id))}"><em>storage capacity</em> ${fmt(v)}/${M.fcap[f.id]}${v >= FOOD_MIN && cd > 0 ? ' <i>' + fmtDays(cd) + '</i>' : ''}</span>`;

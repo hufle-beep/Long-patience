@@ -4,6 +4,7 @@
 
 ## Fallback branches (kept until the owner says otherwise)
 Named branches that point at a known-good build, kept on purpose (unlike the rolling tags below):
+- **`fallback/2026-11-05-before-mechanics` → `e26d83d` (HARD RESET POINT, owner 2026-11-05 15:00: never delete).** Build "ui tightened": the last version before the internal mechanics changes (automation at Practiced, no crossing cell cost, one Act II upgrade per section, gear built when paid, single-store food code). To go back: check out that branch's `index.html` and push it (with the owner's go-ahead), or rebuild the APK from it; the rolling `restore/` tags and newest-5 Android backups will rotate past it, the branch does not.
 - `fallback/2026-11-05-embedded-fonts` → `9c61ac5`, the last build before the queue forecast and queue tools. To play it again: check out that branch's `index.html` (see "How to roll back" below) or install the matching Android backup build. Saves stay compatible both ways (new fields like preset names are simply ignored by the older build).
 
 ## Game versions (git tags, kept automatically)
@@ -12,7 +13,8 @@ The **Restore points** workflow (`.github/workflows/restore-points.yml`) runs on
 What the recent commits are (newest first):
 | Commit | What it is |
 |---|---|
-| (next) | UI tightened: merged CSS rules, toggle-row helper, near(), chips() gone (cleanup chunk 6) |
+| (next) | One food store (code), Now-line fix, article fix (mechanics chunk 1) |
+| `e26d83d` | UI tightened (**hard reset point**, branch `fallback/2026-11-05-before-mechanics`): merged CSS rules, toggle-row helper, near(), chips() gone (cleanup chunk 6) |
 | `05721a1` | Logic tightened: no-op functions, constant modifiers, stale comments (cleanup chunk 5) |
 | `1306f0e` | Orphans swept: dead code, settings, handlers, CSS, data fields (cleanup chunk 4) |
 | `d00cfee` | Tooltips trimmed: card tooltips without card text, route tap tooltip, compact headers (cleanup chunk 3) |
