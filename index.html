@@ -533,7 +533,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
 // Renamed from Long Patience: move this device's old storage keys to the new 'selene.' names once
 try { const old = []; for (let n = 0; n < localStorage.length; n++) old.push(localStorage.key(n)); old.forEach(k => { if (k && k.indexOf('long-patience.') === 0) { const nk = 'selene.' + k.slice(14); if (localStorage.getItem(nk) == null) localStorage.setItem(nk, localStorage.getItem(k)); localStorage.removeItem(k); } }); } catch(e) {}
 /* ===== Game data and rules (no DOM) ===== */
-const BUILD = '2026-11-05 · save safety';   // shown in the main menu, to tell which version is loaded
+const BUILD = '2026-11-05 · event sounds';   // shown in the main menu, to tell which version is loaded
 const DPS = 8;             // simulation ticks per real second at 1x (doubled for the test version: same balance, half the real time)
 // Time is simulated in ticks. 80 ticks make one day unit (18 minutes each), so a day lasts
 // 20 real seconds at 1x and Players only ever see in-game time and real time, never days.
@@ -2439,6 +2439,7 @@ function audioStart(){
   // danger drone: a beating, dissonant low cluster that swells when health is low
   A.drone = ctx.createGain(); A.drone.gain.value = 0; A.drone.connect(A.music); A.drone.connect(A.verbIn);
   [55, 58.4, 77.8].forEach(f => { const o = ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.value = f; const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 260; o.connect(lp); lp.connect(A.drone); o.start(); });
+  try { zzBuild(); } catch(e) { A.zz = null; }
   audioVolumes();
   A.nextT = ctx.currentTime + 0.15; A.step = 0;
   A.timer = setInterval(schedule, 25);
@@ -2538,6 +2539,7 @@ function blip(type, f0, f1, dur, peak, t, verb){
 function sfx(kind){
   if (!A.ctx || !ASET.sfxOn || A.ctx.state !== 'running') return;
   const t = A.ctx.currentTime + 0.005;
+  if (ZZ[kind]) return zzPlay(kind);
   if (kind === 'click') blip('square', 1500, 900, 0.04, 0.05, t);
   else if (kind === 'toggle') { blip('square', 900, 900, 0.03, 0.05, t); blip('square', 1350, 1350, 0.04, 0.05, t + 0.05); }
   else if (kind === 'complete') { blip('triangle', mtof(76), mtof(76), 0.25, 0.16, t, 1); blip('triangle', mtof(81), mtof(81), 0.45, 0.16, t + 0.09, 1); }
@@ -2552,6 +2554,58 @@ function sfx(kind){
     [220, 233].forEach(fr => { const o = voice('sawtooth', fr, t); o.frequency.exponentialRampToValueAtTime(38, t + 2.6); o.connect(f); o.start(t); o.stop(t + 2.9); });
     f.connect(g); g.connect(A.sfx); g.connect(A.sverb);
   }
+}
+/* ----- ZzFX sound generator (samples only; played through this game's own audio context and volume) -----
+   From ZzFXMicro v1.4.0: MIT License, Copyright 2019 Frank Force, https://github.com/KilledByAPixel/ZzFX
+   (Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
+   documentation files, to deal in the Software without restriction, subject to including this notice; the
+   software is provided "as is", without warranty of any kind.) Changed: returns the samples instead of playing
+   them, no own AudioContext, no built-in volume. */
+function zzfxG(volume = 1, randomness = .05, frequency = 220, attack = 0, sustain = 0, release = .1, shape = 0, shapeCurve = 1, slide = 0, deltaSlide = 0, pitchJump = 0, pitchJumpTime = 0, repeatTime = 0, noise = 0, modulation = 0, bitCrush = 0, delay = 0, sustainVolume = 1, decay = 0, tremolo = 0, filter = 0){
+  const sampleRate = 44100, PI2 = Math.PI * 2, abs = Math.abs, sign = v => v < 0 ? -1 : 1;
+  let startSlide = slide *= 500 * PI2 / sampleRate / sampleRate,
+    startFrequency = frequency *= (1 + randomness * 2 * Math.random() - randomness) * PI2 / sampleRate,
+    modOffset = 0, repeat = 0, crush = 0, jump = 1, length, b = [], t = 0, i = 0, s = 0, f;
+  const quality = 2, w = PI2 * abs(filter) * 2 / sampleRate, cos = Math.cos(w), alpha = Math.sin(w) / 2 / quality,
+    a0 = 1 + alpha, a1 = -2 * cos / a0, a2 = (1 - alpha) / a0, b0 = (1 + sign(filter) * cos) / 2 / a0, b1 = -(sign(filter) + cos) / a0, b2 = b0;
+  let x2 = 0, x1 = 0, y2 = 0, y1 = 0;
+  attack = attack * sampleRate || 9; decay *= sampleRate; sustain *= sampleRate; release *= sampleRate; delay *= sampleRate;
+  deltaSlide *= 500 * PI2 / sampleRate ** 3; modulation *= PI2 / sampleRate; pitchJump *= PI2 / sampleRate; pitchJumpTime *= sampleRate;
+  repeatTime = repeatTime * sampleRate | 0;
+  for (length = attack + decay + sustain + release + delay | 0; i < length; b[i++] = s * volume) {
+    if (!(++crush % (bitCrush * 100 | 0))) {
+      s = shape ? shape > 1 ? shape > 2 ? shape > 3 ? shape > 4 ? (t / PI2 % 1 < shapeCurve / 2) * 2 - 1 : Math.sin(t ** 3) : Math.max(Math.min(Math.tan(t), 1), -1) : 1 - (2 * t / PI2 % 2 + 2) % 2 : 1 - 4 * abs(Math.round(t / PI2) - t / PI2) : Math.sin(t);
+      s = (repeatTime ? 1 - tremolo + tremolo * Math.sin(PI2 * i / repeatTime) : 1) * (shape > 4 ? s : sign(s) * abs(s) ** shapeCurve) *
+        (i < attack ? i / attack : i < attack + decay ? 1 - ((i - attack) / decay) * (1 - sustainVolume) : i < attack + decay + sustain ? sustainVolume : i < length - delay ? (length - i - delay) / release * sustainVolume : 0);
+      s = delay ? s / 2 + (delay > i ? 0 : (i < length - delay ? 1 : (length - i) / delay) * b[i - delay | 0] / 2 / volume) : s;
+      if (filter) s = y1 = b2 * x2 + b1 * (x2 = x1) + b0 * (x1 = s) - a2 * y2 - a1 * (y2 = y1);
+    }
+    f = (frequency += slide += deltaSlide) * Math.cos(modulation * modOffset++);
+    t += f + f * noise * (i * i * PI2 % 2 - 1);
+    if (jump && ++jump > pitchJumpTime) { frequency += pitchJump; startFrequency += pitchJump; jump = 0; }
+    if (repeatTime && !(++repeat % repeatTime)) { frequency = startFrequency; slide = startSlide; jump ||= 1; }
+  }
+  return b;
+}
+// Event sounds built once with zzfxG when audio starts: [ZzFX parameters, loudness, reverb send]
+const ZZ = {
+  cross:[[1, 0, 320, .12, .22, .55, 0, 1, -1.2, 0, 0, 0, 0, 2.2, 0, 0, 0, .8, .08, 0, 1400], 1.4, 1],   // a soft whoosh, falling
+  sprout:[[1, 0, 240, .04, .16, .32, 0, 1, 2.2, 0, 0, 0, 0, 0, 0, 0, .09, .7, .04, 0, 0], .35, 1],     // a rising tone with a short echo
+  gear:[[1, 0, 170, 0, .02, .16, 1, 1, 0, 0, 140, .025, 0, .35, 0, 0, 0, 1, .02, 0, 2200], 1.6, 0],     // a woody clank
+  low:[[1, 0, 210, .01, .45, .15, 0, 1, 0, 0, 0, 0, .14, 0, 0, 0, 0, .8, 0, .85, 0], .3, 0]};           // a slow pulse
+function zzBuild(){   // one sound per timer tick, so the first tap doesn't stall on a slow phone
+  A.zz = {}; const ks = Object.keys(ZZ);
+  const next = () => { const k = ks.shift(); if (!k || !A.zz) return;
+    try { const smp = zzfxG(...ZZ[k][0]), buf = A.ctx.createBuffer(1, smp.length, 44100); buf.getChannelData(0).set(smp); A.zz[k] = buf; } catch(e) {}
+    setTimeout(next, 30); };
+  setTimeout(next, 30);
+}
+function zzPlay(k){
+  const z = ZZ[k], buf = A.zz && A.zz[k]; if (!z || !buf) return;
+  const src = A.ctx.createBufferSource(), g = A.ctx.createGain();
+  src.buffer = buf; src.playbackRate.value = 0.97 + Math.random() * 0.06;   // a slightly different pitch each time
+  g.gain.value = z[1]; src.connect(g); g.connect(A.sfx); if (z[2]) g.connect(A.sverb);
+  src.start(A.ctx.currentTime + 0.005);
 }
 document.addEventListener('pointerdown', audioStart, {passive:true});
 document.addEventListener('keydown', audioStart);
@@ -3159,11 +3213,11 @@ HOOK.legacyAvail = ts => { taskKey = ''; legKey = ''; sfx('perk');
   if (parts.length) toast('Legacy tasks open in ' + where + ': ' + parts.map(t => t.name).join(', ') + '. Queue them: the crossing needs them.', true); };
 HOOK.assembling = (it, auto) => { gearKey = ''; taskKey = ''; toast((auto ? 'Auto-build: assembling ' : 'Assembling ') + it.name + ' (' + fmtDays(BT[it.id].days / speedOf(BT[it.id])) + ')'); };
 HOOK.bought = (it, auto, unlocked) => {
-  sfx('buy'); gearKey = ''; taskKey = ''; autoKey = '';
+  sfx('gear'); gearKey = ''; taskKey = ''; autoKey = '';
   toast((auto ? 'Auto-built: ' : 'Built: ') + it.name);
   if (unlocked) toast('Automated: ' + it.name + (S.gauto[it.id] ? ' is now built automatically (switch it off with AUTO).' : ' can now be built automatically.'), true);
 };
-HOOK.crossed = z => { sfx('perk'); taskKey = ''; mapKey = ''; toast('You enter ' + zoneThe(z) + '. The way back is sealed.', true);
+HOOK.crossed = z => { sfx('cross'); taskKey = ''; mapKey = ''; toast('You enter ' + zoneThe(z) + '. The way back is sealed.', true);
   if (S.set.pauseRunEnd && S.life.chainRun) return;   // a section run is going on: pause when it ends instead
   if (S.set.pauseCross) { S.set.paused = true; toast('Paused on entering ' + zoneThe(z) + '. Press Resume to carry on.'); } };
 HOOK.taskDone = t => { if (!S.set.pauseDone || S.life.dead) return;
@@ -3193,7 +3247,7 @@ function autoDecant(){
   pendingDecant = false;
   const L = S.life; if (!L.dead) return;
   const msg = 'Seedling ' + S.gen + ' died after ' + fmtDays(L.day) + ' (in-game) ('  + L.cause.toLowerCase() + '). Seedling ' + (S.gen + 1) + ' sprouted.';
-  decant(); taskKey = ''; mapKey = ''; autoKey = '';
+  decant(); sfx('sprout'); taskKey = ''; mapKey = ''; autoKey = '';
   save(); toast(msg);
 }
 HOOK.win = () => { save(); showWin(); };
@@ -3802,6 +3856,7 @@ function updateQueueFc(){
     if (row) { row.classList.toggle('fnr', nr); row.classList.toggle('fdie', die); }
   });
 }
+let lowWarn = 0;   // the seedling that already heard the low-energy warning
 function updateHud(){
   updateGearEta();
   fcTick();
@@ -3812,6 +3867,7 @@ function updateHud(){
   // time elapsed aboard (day units (10 s in-game each))
   setH($('#h-day'), clkG(L.day) + ' ' + clkR(L.real || 0));   // elapsed: in-game (blue), then real (amber)
   $('#b-hp').style.width = Math.max(0, L.hp / M.maxHp * 100) + '%';
+  if (!L.dead && L.hp < M.maxHp * 0.15) { if (lowWarn !== S.gen) { lowWarn = S.gen; sfx('low'); } }   // once per seedling
   $('#t-hp').textContent = Math.ceil(L.hp) + ' / ' + M.maxHp;
   let cur = L.cur ? T[L.cur] : null; const cur2 = L.cur2 ? T[L.cur2] : null;
   const {rr, sr} = rates(cur, cur2);
@@ -4508,7 +4564,7 @@ document.addEventListener('click', e => {
   if ('histall' in d) { histAll = !histAll; logKey = ''; renderView(); return; }
   if ('storyok' in d) { hideModal(); paused = false; showStory(); return; }
   if ('close' in d) { hideModal(); paused = false; S.intro = true; save(); return; }
-  if ('decant' in d) { decant(); if (S.set.deathPause !== false) S.set.paused = true; hideModal(); taskKey = ''; setTab('tasks'); save(); return; }
+  if ('decant' in d) { decant(); sfx('sprout'); if (S.set.deathPause !== false) S.set.paused = true; hideModal(); taskKey = ''; setTab('tasks'); save(); return; }
   if (d.settings) { save(); showSettings(d.settings); return; }
   if (d.saves) {
     save(); settingsFrom = d.saves; paused = true;

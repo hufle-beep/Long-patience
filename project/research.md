@@ -60,13 +60,13 @@ Sources: [Increlution on Steam](https://store.steampowered.com/app/1593350), [Yo
 ## Rounds 2 and 3 (2026-11-05): Antimatter Dimensions, Trimps; The Modding Tree, ZzFX/ZzFXM, game-icons.net
 Licences checked in the repos: Antimatter Dimensions MIT (IvarK/AntimatterDimensionsSourceCode); Trimps GPL v2 or later (Trimps/Trimps.github.io; ideas only); The Modding Tree MIT (Acamaeda/The-Modding-Tree; its `drawTreeBranch` says it was taken from Antimatter Dimensions, so don't copy it); ZzFX MIT (KilledByAPixel/ZzFX), ZzFXM MIT (keithclark/ZzFXM); game-icons.net CC BY 3.0 per author (credit "Icons made by {author}. Available on https://game-icons.net", reachable from a menu, with the licence link; a few authors are CC0).
 
-Owner's picks (2026-11-05 08:36): **all green and yellow except challenges**, built in five chunks: 1 save safety (BUILT, build "save safety"), 2 sound, 3 triggers and FAQ, 4 map and icons, 5 before-publishing set.
+Owner's picks (2026-11-05 08:36): **all green and yellow except challenges**, built in five chunks: 1 save safety (BUILT, build "save safety"), 2 sound (BUILT, build "event sounds"), 3 triggers and FAQ, 4 map and icons, 5 before-publishing set.
 
 Ranked (🟢 worth it now · 🟡 maybe later · 🔴 not worth it · ⚪ already in the game):
 - 🟢 **Rolling backups per slot** (AD `storage.js` `AutoBackupSlots`, `saveToReserveSlot`): 5 min / 30 min / 2 h of play, plus one just before a slot is replaced. BUILT (chunk 1).
 - 🟢 **Never save broken numbers** (AD `checkPlayerObject`, TMT `NaNcheck`). BUILT (chunk 1).
 - 🟢 **Fix tips when pasting a queue** (AD automator errors with a tip, unlock-aware): "did you mean", "locked: opens after". BUILT (chunk 1).
-- 🟢 **Sounds for crossing, sprout, gear built, low energy** (ZzFX generator only, on the game's own audio context; prebuilt; about 1.3 KB). Chunk 2.
+- 🟢 **Sounds for crossing, sprout, gear built, low energy** (ZzFX generator only, on the game's own audio context; prebuilt; about 1.3 KB). BUILT (chunk 2, build "event sounds").
 - 🟢 **Average row on the run history** (AD past-runs `averageRun`). BUILT (chunk 1).
 - 🟡 **Fuller trigger table** (Trimps Map at Zone: on/off, from/through, every N, priority). Chunk 3.
 - 🟡 **FAQ search, open on the current tab, a hotkey table listed in the FAQ** (AD h2p, `hotkeys.js`; TMT hotkeys as data). Chunk 3.

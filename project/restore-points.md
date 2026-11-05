@@ -12,7 +12,8 @@ The **Restore points** workflow (`.github/workflows/restore-points.yml`) runs on
 What the recent commits are (newest first):
 | Commit | What it is |
 |---|---|
-| (next) | Save safety: rolling backups, broken-number guard, paste tips, average row |
+| (next) | Event sounds: crossing, sprout, gear built, low energy (ZzFX generator) |
+| `2ebbab7` | Save safety: rolling backups, broken-number guard, paste tips, average row |
 | `ed251e6` | One drill per section, twice as strong |
 | `75bb243` | Queue row that loads a preset, favourite and hide filters |
 | `6d9a8d5` | Forecast hints, Clear queue keeps the current row, task icons, This seedling / Kept effects |
