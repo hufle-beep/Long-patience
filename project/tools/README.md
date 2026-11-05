@@ -8,6 +8,7 @@ Test bots, checks and screenshot scripts used to work on Selene: Tidelocked. The
 | `simcomp2.js` | Completionist bot (all actions, drills 4/4, all gear). Stops when a seedling reaches section `UPTO` (a section id, default 2; route order 1, 2, 15, 3, 4, 5), or at seedling `MAXG` (default 60) | first `sec 2` seedling = 10 |
 | `sim16c.js AB` | Whole game; Act II hours (long watch, Boarders, Arrival) and death causes | Act II about 7.08 h |
 | `simsnap.js AB` | Save snapshot once section `STOPZ` (an id, compared by route) is reached (`STOPT`, `OUT`) | writes JSON |
+| `checkall.sh` | The full pre-push check in parallel: syntax, then sanity, regression tests and all pw tests (6 at a time) at once; one summary | `time: ~110 s · ALL OK` |
 | `sanity.py` | Data (incl. duplicate ids), long runs on six saves (incl. old Act II saves checked for kept legacy reveals) (incl. an old-build save past the Taproot: ward-lock and table migration), every tab and pop-up, leftover old words | `page errors: none`, `text problems: none` |
 | `stylesnap.py` | Computed-style snapshot of every visible element on every tab (fresh game and three fixtures); `diff a b` compares two | `style differences: 0` or 1 (a border mid-transition) |
 | `fontpack.py` | Rebuilds the embedded font block (`<style id="fonts">`) in index.html from google/fonts: trims, renames (OFL Reserved Font Names), WOFF2. Needs fonttools and brotli (see handover §5) | `fonts: 7 faces, ~104 KB woff2` |

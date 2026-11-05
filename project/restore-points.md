@@ -13,7 +13,8 @@ The **Restore points** workflow (`.github/workflows/restore-points.yml`) runs on
 What the recent commits are (newest first):
 | Commit | What it is |
 |---|---|
-| (next) | Gear fixes: test-version descriptions, no card jump |
+| (next) | Tools: parallel check suite (game unchanged) |
+| `b9a308d` | Gear fixes: test-version descriptions, no card jump |
 | `8cf82a1` | Act choices: replay Act I, move on, restart the whole game; coloured saves |
 | `481ca4b` | Fix: no idle charging |
 | `208d15c` | Runs, step 1: the voyage can begin again |

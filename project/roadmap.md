@@ -1,6 +1,6 @@
 # Roadmap: Selene: Tidelocked
 
-Last updated: 2026-11-05 14:20 (build "gear fixes"). Update in every push.
+Last updated: 2026-11-05 19:00 14:20 (build "gear fixes"). Update in every push.
 
 ## Order of work (owner, 2026-11-04)
 1. **Section-by-section playtesting and tuning** (now). Sections 1 and 2 frozen; next the Shattered Bark, then sections 3-14 one by one: the owner plays and uploads a save after each crossing, Claude proposes options for that section's knobs only, the owner freezes it.
