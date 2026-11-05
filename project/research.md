@@ -24,6 +24,20 @@ Ideas only unless the licence allows reuse. Nothing here is approved until the o
 | Kittens Game | github.com/nuclear-unicorn/kittensgame | "WET PAWS" (no derivative works, no commercial use) | ideas only, copy nothing |
 | A Dark Room | github.com/doublespeakgames/adarkroom | MPL-2.0 | ideas only |
 | Prestige Tree | github.com/Jacorb90/Prestige-Tree | MIT | ideas; code with the notice |
+| Cavernous II | github.com/Nucaranlaeg/Nucaranlaeg.github.io (incremental/CavernousII) | BSD 2-clause (c) 2022 Sam Benner | ideas; code with the notice (none used) |
+| Idle Loops Reworked | github.com/Mopatissier/IdleLoopsReworked | none | ideas only |
+| Chrono Transcendence | github.com/XanKeeTee/chrono-transcendence.github.io | none | ideas only |
+| Timestream Chronicles | github.com/achappell/timestream-chronicles | none | ideas only |
+| Incremental Chronicles | github.com/snipercup/Incremental-Chronicles | MIT | ideas; code with the notice |
+| Idle Fishing | github.com/Landon345/Idle-Fishing | none | ideas only |
+| Level 13 | github.com/nroutasuo/level13 | Apache-2.0 | ideas; code with the notice and NOTICE |
+| Distance Incremental | github.com/Jacorb90/DistInc.github.io | MIT | ideas; code with the notice |
+| Swarm Simulator | github.com/swarmsim/swarm | GPL-3.0 | ideas only |
+| Candy Box 2 | github.com/candybox2/candybox2.github.io | GPL-3.0 | ideas only |
+| Sandcastle Builder | github.com/eternaldensity/Sandcastle-Builder | joke licence | ideas only |
+| Space Company | github.com/sparticle999/SpaceCompany | MIT | ideas; code with the notice |
+| CivClicker | github.com/deathraygames/civ-clicker | GPL-3.0 | ideas only |
+| itch.io and galaxy.click games (Terraformental, Loop For A While, Chrono Bot, Space Loop Protocol, BIOTOMATA, Journey to Ascension...) | closed source | - | ideas only; **Terraformental** is credited in the Inspired by line (owner 13:09) |
 
 ## Round 1 (Idle Loops, wrtsc), best value first
 1. **Queue preview / forecast**: BUILT (build "queue forecast", 2026-11-05).
@@ -134,3 +148,28 @@ Owner's picks (2026-11-05 10:23): **all** (C1-C3, P1-P9, U1-U8, D1), built in si
 Huge flat stat lists, hover-only tooltips, two parallel layouts, many reset layers and currencies, pacing-changing modes (hyper mode), cloud sync tied to one provider.
 
 Sources: [Idle Loops fork](https://github.com/dmchurch/omsi-loops), [wrtsc](https://github.com/deifactor/wrtsc), [Synergism](https://github.com/Pseudo-Corp/SynergismOfficial), [Evolve](https://github.com/pmotschmann/Evolve), [Bitburner](https://github.com/bitburner-official/bitburner-src), [Gooboo](https://github.com/Tendsty/gooboo), [Shark Game](https://github.com/Toby222/SharkGame), [Kittens Game](https://github.com/nuclear-unicorn/kittensgame), [A Dark Room](https://github.com/doublespeakgames/adarkroom), [ZzFX](https://github.com/KilledByAPixel/ZzFX), [game-icons.net about](https://game-icons.net/about.html), [OFL FAQ mirror](https://www.github.com/theleagueof/licenses/blob/master/OFL-FAQ.md), [WebView onPause vs pauseTimers](https://plateaukao.github.io/blog/posts/differences-between-onpause-and-pausetimers-for-android-webview/).
+
+## Round 5 (2026-11-05): recheck, new repos, itch.io and galaxy.click
+Owner's picks (2026-11-05 12:55): **build all of R1-R39**, in eight chunks; owner 13:09: the Inspired by line gains **only Terraformental**; owner 13:11: a Made with AI note (Credits and README).
+
+### Recheck of rounds 1-4
+- No change: Trimps, The Modding Tree, Prestige Tree, Gooboo, A Dark Room, wrtsc, Progress Knight. Small only: Antimatter Dimensions (buy-10 toggle, iOS), Shark Game (content).
+- Synergism: mobile clock clamp, stat breakdowns, rule toggles. Kittens Game: no save over a save that failed to load, save-failure messages, stuck tooltips. Bitburner: backup reminder, save tests. Evolve (DeadSpace branch): one-time update notice. Idle Loops (3P.1.3): accessibility labels; its predictor prefix cache. Immortality Idle: mobile rework, close X on dialogs, batch crafting. Progress Knight Quest 2.7: ETAs in real and game time, file save/load. ZzFX 1.4.0 is current.
+- **Warning:** Progress Knight Quest 2.7 ships obfuscated code that decodes data hidden in its logo image (an easter egg by its strings); copy nothing from it.
+
+### New repos and games
+- Loop games: **Cavernous II** (clone loop; best routes per zone kept on a Pareto front, timeline strip, pause on entering a zone), Idle Loops Reworked, Chrono Transcendence (balance simulator), Timestream Chronicles, Incremental Chronicles (pinned requirement list), Idle Fishing.
+- Other incrementals: **Level 13** (data tests, trigger-driven tutorial hints, error wrapper), Distance Incremental (user refresh rate, balance-mode labels), Swarm Simulator (tutorial ladder, save-failure export), Candy Box 2 (save-key registry), Sandcastle Builder (parity tests), Space Company. CivClicker: nothing new.
+- itch.io (tag pages blocked; game pages, devlogs and comments loaded): **Loop For A While** (queue follows the running row, one-shot rows, insert point, familiarity savings in tooltips, named familiarity tiers), Terraformental, Echo Station, BIOTOMATA (scroll kept per tab, show formulas), LoopForge, The Aetherium Loop, Loopbound.
+- galaxy.click (tag browsing blocked; game, comment, update and top-rated pages loaded): **Terraformental** (UI scale, map tooltips, first-time highlights, bulk queue edits), Chrono Bot, Journey to Ascension, Space Loop Protocol, Infinite Loop, BIOTOMATA, Universe Reconstruction, The Loop Tree.
+
+### What was built (all in-house code; ideas need no credit)
+1 robustness (R1 save failures reported with the export, R2 export reminder, R3 clock clamp, R5 error catcher, R26 tap guard); 2 test tooling (R6 data tests, R7 milestone table, R18 old-save test, R38 static softlock check and bot outlier flags); 3 phone comfort (R4 tooltips hide with their element, R17 screen-reader labels, R19 close X, R23 text size and red contrast, R24 queue follows the running row, R25 scroll per tab); 4 queue tools (R8 pause on first reaching a section, R29 one-shot rows, R30 insert point and Next, R36 hold to remove every copy, R37 keys 1-5, R39 Return to the roots on the Now line); 5 information (R9 pins, R10 timeline strip, R11 ETA tooltips, R16 drain breakdown, R27 what a route section still holds, R28 time saved, R34 Practiced / Skilled / Mastered, R35 Show formulas); 6 guidance (R15 next-step line and Log hints, R20 What's new, R22 tuned-up-to note, R31 new-entry marks, R32 journal, R33 controls revealed with progress); 7 runs (R12 best section runs, R13 splits against other games on the device, R21 Auto all on / off). **R14 (forecast prefix cache): not built** - re-simulating only the edited tail is not exact here (the simulation reads the whole queue every step: salvage needs for queued gear, planned work, preset rows), so options went to the owner first.
+
+### Not worth it (round 5)
+Battery-saver refresh setting (10 Hz / 2 Hz already), backward route chaining, upkeep per active task, auto-picked farming runs (too close to priority tiers), a save repair tool (the recovery screen covers it), queue shorthand like @full (scripting creep), real-time-only speed past x10 (round 1c, not picked), speeding up waits, partial rewards mid-task (breaks every forecast), familiarity bonuses past x10, grouping tasks by type across sections, a ghost of the previous seedling (maybe Act III), per-section route slots (presets and best runs cover it).
+
+### Avoid (round 5)
+Banked time and offline progress, stacked prestige layers, forgetting progress with age, random bursts (they break the forecast), compounding decay, timed events, reloading the page on a new version, several save copies in different stores, Shift/Ctrl-only controls, frameworks; from player comments: automation that skips new content, badges with nothing to do, effects without an off switch, updates that break saves, dead ends without a "content ends here" note.
+
+Sources: [Cavernous II](https://github.com/Nucaranlaeg/Nucaranlaeg.github.io), [Level 13](https://github.com/nroutasuo/level13), [Distance Incremental](https://github.com/Jacorb90/DistInc.github.io), [Swarm Simulator](https://github.com/swarmsim/swarm), [Loop For A While](https://luk2048.itch.io/loop-for-a-while), [Terraformental on galaxy.click](https://galaxy.click/play/490), [Terraformental updates](https://galaxy.click/updates/490), [Terraformental on itch.io](https://sh4dowsand.itch.io/terraformental), [Chrono Bot](https://galaxy.click/play/734), [Space Loop Protocol](https://galaxy.click/play/683), [BIOTOMATA](https://talos0248.itch.io/biotomata), [Journey to Ascension](https://galaxy.click/play/738).

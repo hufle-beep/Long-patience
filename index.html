@@ -596,7 +596,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
 // Renamed from Long Patience: move this device's old storage keys to the new 'selene.' names once
 try { const old = []; for (let n = 0; n < localStorage.length; n++) old.push(localStorage.key(n)); old.forEach(k => { if (k && k.indexOf('long-patience.') === 0) { const nk = 'selene.' + k.slice(14); if (localStorage.getItem(nk) == null) localStorage.setItem(nk, localStorage.getItem(k)); localStorage.removeItem(k); } }); } catch(e) {}
 /* ===== Game data and rules (no DOM) ===== */
-const BUILD = '2026-11-05 · runs';   // shown in the main menu, to tell which version is loaded
+const BUILD = '2026-11-05 · round 5 credits';   // shown in the main menu, to tell which version is loaded
 const DPS = 8;             // simulation ticks per real second at 1x (doubled for the test version: same balance, half the real time)
 // Time is simulated in ticks. 80 ticks make one day unit (18 minutes each), so a day lasts
 // 20 real seconds at 1x and Players only ever see in-game time and real time, never days.
@@ -5912,7 +5912,7 @@ function creditsPanel(){
     <p class="note"><b>Icons</b> made by Lorc, Delapouite and Skoll. Available on <a href="https://game-icons.net" target="_blank" rel="noopener">game-icons.net</a>. Licensed under <a href="https://creativecommons.org/licenses/by/3.0/" target="_blank" rel="noopener">CC BY 3.0</a>; recoloured and simplified. The authors and game-icons.net do not endorse this game.</p>
     <p class="note"><b>Fonts</b>: Selene Display is a trimmed copy of Saira Condensed (\u00a9 2016 The Saira Project Authors); Selene Text and Selene Mono are trimmed copies of IBM Plex Sans (\u00a9 2017\u20132019 IBM Corp.) and IBM Plex Mono (\u00a9 2017 IBM Corp.). All under the <a href="https://openfontlicense.org" target="_blank" rel="noopener">SIL Open Font License 1.1</a>, renamed as it requires.</p>
     <p class="note"><b>Sound effects</b> partly made with ZzFX by Frank Force (MIT License, \u00a9 2019 Frank Force, <a href="https://github.com/KilledByAPixel/ZzFX" target="_blank" rel="noopener">github.com/KilledByAPixel/ZzFX</a>).</p>
-    <p class="note"><b>Inspired by</b> Increlution (Gniller), Idle Loops, Immortality Idle and Progress Knight.</p>
+    <p class="note"><b>Inspired by</b> Increlution (Gniller), Idle Loops, Immortality Idle, Progress Knight and Terraformental (Shadowsand).</p>
     <p class="note"><b>Made with AI:</b> the game was programmed with the help of AI (Claude by Anthropic). The story and other texts are placeholders for now and will be rewritten.</p></div>`;
 }
 function resetPanel(){

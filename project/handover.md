@@ -1,6 +1,6 @@
 # Handover: Selene: Tidelocked
 
-Last updated: 2026-11-05 15:25 (build "runs": round 5 chunk 7: best section runs, splits against other games on the device, All on / All off per section). Next: the round 5 chunks (see roadmap), then the owner's replay saves (the Shattered Bark next). Seedling Vaults retuned (freeze again when the owner says), Taproot Galleries FROZEN. Fallback build on branch `fallback/2026-11-05-embedded-fonts`. Update this file in every push.
+Last updated: 2026-11-05 15:45 (build "round 5 credits": round 5 done except R14 (forecast cache: options to the owner); Inspired by adds Terraformental). Next: the round 5 chunks (see roadmap), then the owner's replay saves (the Shattered Bark next). Seedling Vaults retuned (freeze again when the owner says), Taproot Galleries FROZEN. Fallback build on branch `fallback/2026-11-05-embedded-fonts`. Update this file in every push.
 
 ## 1. What the game is
 An incremental "clone-loop" game in one HTML file (like Increlution/Incremortal). You are K-7, a **seedling** (disposable drone of WARDEN and the Hearth Tree) aboard **Selene**, a living-wood colony ship of the Root-Kin of Earth. Each seedling works tasks until its energy runs out; familiarity, records and automation carry over to the next one.

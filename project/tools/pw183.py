@@ -28,9 +28,10 @@ with sync_playwright() as p:
     if r!=['true,false,false,false',True,True]: errs.append('one-shot rows: %s' % r)
     # long-press remove: every copy
     pg.evaluate("()=>{ const [a,b2]=A5, L=S.life; L.queue=[a,b2,a,a]; S.set.paused=true; taskKey=''; setTab('tasks'); renderTasks(); }")
-    pg.wait_for_timeout(400)   # let the redraw settle (controls revealed by progress can shift rows)
-    bx=pg.locator('[data-unqi="0"]'); box=bx.bounding_box()
-    pg.mouse.move(box['x']+box['width']/2, box['y']+box['height']/2); pg.mouse.down(); pg.wait_for_timeout(750); pg.mouse.up(); pg.wait_for_timeout(150)
+    # pointer events sent to the button itself (rows can move under a fixed mouse position while the header redraws)
+    pg.evaluate("()=>{ const bx=$('[data-unqi=\"0\"]'); bx.dispatchEvent(new PointerEvent('pointerdown', {bubbles:true, pointerId:7})); window._bx=bx; }")
+    pg.wait_for_timeout(750)
+    pg.evaluate("()=>{ const bx=window._bx; bx.dispatchEvent(new PointerEvent('pointerup', {bubbles:true, pointerId:7})); bx.click(); }"); pg.wait_for_timeout(150)
     r=pg.evaluate("()=>S.life.queue.join()===A5[1]")
     print('long-press remove', r)
     if not r: errs.append('long-press remove: %s' % pg.evaluate("()=>S.life.queue"))
