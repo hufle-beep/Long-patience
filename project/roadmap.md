@@ -1,6 +1,6 @@
 # Roadmap: Selene: Tidelocked
 
-Last updated: 2026-11-05 14:20 (build "act choices"). Update in every push.
+Last updated: 2026-11-05 14:20 (build "gear fixes"). Update in every push.
 
 ## Order of work (owner, 2026-11-04)
 1. **Section-by-section playtesting and tuning** (now). Sections 1 and 2 frozen; next the Shattered Bark, then sections 3-14 one by one: the owner plays and uploads a save after each crossing, Claude proposes options for that section's knobs only, the owner freezes it.
@@ -12,6 +12,7 @@ Last updated: 2026-11-05 14:20 (build "act choices"). Update in every push.
 **Owner decision (2026-11-05):** polishing can come before tuning when its gains are immediate.
 
 ## Next up
+- **Playtest fixes (owner 18:06-18:11):** gear effects in the test version and the gear card flicker BUILT. **Charging (owner 18:09: charging ran ahead of the queued task and killed the seedling): waiting on the owner.** "Work first" (charge only when the next task can't be covered and charging pays) doubled the Vaults (completionist 9 -> 18) and was not pushed; alternatives trialled: charge early as now but stop while the next task's energy is still left (Vaults 11, Taproot 11, Shattered Bark 8; Act I 5.73 h).
 - **Act choices (owner 17:34, go 17:36; parked 17:44, resumed 17:55): BUILT** (choices at the end of Act I and Act II, Act I replay, prestige restart, coloured saves with a run counter). Run bot: run 1 Act I 5.60 h / Act II 11.17 h (103 seedlings), run 2 0.94 / 5.39 h (8), run 3 0.79 / 3.50 h (6). Next: run history in the Log, then the sealed record (16 beats on section ends, from the replays).
 - **Fix (owner playtest 17:44, go 17:46): no idle charging BUILT.** A seedling with nothing to do no longer charges or scavenges on its own. **Parked (owner 17:44):** the act-choices work (stash), to be resumed when the owner says.
 - **Runs (owner 17:04 "the sections should be infinitely repeatable", go 17:08 with Claude's picks): step 1 BUILT** (run loop: ending pop-up, Begin the voyage again, main-menu New run, carry-over rules, run bonus x0.75 with floor, legacy in Act I from run 2, targets on run 1). **Finding:** the run bot plays run 2 and 3 in one seedling and about 13 in-game minutes each; options to the owner before step 2 (run history in the Log) and step 3 (the sealed record).
@@ -61,6 +62,7 @@ Last updated: 2026-11-05 14:20 (build "act choices"). Update in every push.
 See design.md: colony content held back from Act II, the Act II legacy themes from the old Honours, and four open questions.
 
 ## Done recently (see changelog.md for all)
+- 2026-11-05: gear fixes: descriptions in the test version, no jump while gathering for a design.
 - 2026-11-05: act choices: replay Act I, move on, restart the whole game; coloured saves with a run counter.
 - 2026-11-05: fix: an idle seedling no longer burns its life at a charging station.
 - 2026-11-05: runs: the voyage can begin again from the Seedling Vaults after the safe orbit.

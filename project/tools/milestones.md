@@ -1,6 +1,6 @@
 # Bot milestones
 
-Build: 2026-11-05 · two-part legacy. Written by `node milestones.js` (lean bot: sim16c.js AB, whole game; completionist bot: simcomp2.js, Act I up to the Heartwood). Seedlings used = first seedling in the next section minus the first in this one; time = in-game h:mm spent in the section.
+Build: 2026-11-05 · gear fixes. Written by `node milestones.js` (lean bot: sim16c.js AB, whole game; completionist bot: simcomp2.js, Act I up to the Heartwood). Seedlings used = first seedling in the next section minus the first in this one; time = in-game h:mm spent in the section.
 
 | id | Section | Target | Lean seedlings | Lean time | Completionist seedlings | Completionist time |
 |---|---|---|---|---|---|---|

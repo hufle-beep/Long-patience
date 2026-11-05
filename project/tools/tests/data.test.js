@@ -105,3 +105,11 @@ test('every legacy set is a step, a final that needs it, and one drill', () => {
   assert.deepStrictEqual(bad, []);
   assert.strictEqual(Object.keys(sets).length, 30, 'five themes in each of the six Act I sections');
 });
+
+test('build notes are well formed, in order, and the current build has one', () => {
+  const src = html.match(/const BUILD_NOTES = \[([\s\S]*?)\n\];/)[1];
+  const notes = new Function('return [' + src + '];')();
+  assert.ok(notes.every(n => Array.isArray(n) && n.length === 2 && typeof n[0] === 'string' && typeof n[1] === 'string'), 'every note is [key, text]');
+  const build = html.match(/const BUILD = '[^']*· ([^']+)'/)[1].trim();
+  assert.strictEqual(notes[notes.length - 1][0], build, 'the newest note is for the current build');
+});

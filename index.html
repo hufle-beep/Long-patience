@@ -551,7 +551,7 @@ tr.pttot td{font-weight:600;color:var(--amber)}
 // Renamed from Long Patience: move this device's old storage keys to the new 'selene.' names once
 try { const old = []; for (let n = 0; n < localStorage.length; n++) old.push(localStorage.key(n)); old.forEach(k => { if (k && k.indexOf('long-patience.') === 0) { const nk = 'selene.' + k.slice(14); if (localStorage.getItem(nk) == null) localStorage.setItem(nk, localStorage.getItem(k)); localStorage.removeItem(k); } }); } catch(e) {}
 /* ===== Game data and rules (no DOM) ===== */
-const BUILD = '2026-11-05 · act choices';   // shown in the main menu, to tell which version is loaded
+const BUILD = '2026-11-05 · gear fixes';   // shown in the main menu, to tell which version is loaded
 const DPS = 8;             // simulation ticks per real second at 1x (doubled for the test version: same balance, half the real time)
 // Time is simulated in ticks. 80 ticks make one day unit (18 minutes each), so a day lasts
 // 20 real seconds at 1x and Players only ever see in-game time and real time, never days.
@@ -3661,7 +3661,8 @@ const BUILD_NOTES = [
   ['two-part legacy', 'Legacy sets are now a step and a final (plus the optional drill) instead of five parts; the step takes as long as the four old parts together, so each bonus costs the same time in fewer tasks.'],
   ['runs', 'Once Selene is in orbit over Tessaly, the voyage can begin again from the Seedling Vaults, as often as you like (also from the main menu). Familiarity, automation, records and legacy carry over; legacy themes revealed in Act II appear in Act I from the next run, and each run needs a little less familiarity.'],
   ['no idle charging', 'Auto-charge and Auto-scavenge only top a seedling up while it has other work to come back to: with an empty queue and nothing automated to do, time stops instead of burning its life at a charging station.'],
-  ['act choices', 'At the end of Act I: move on to Act II, replay Act I (everything kept), or go to the main menu. At the end of Act II: restart the whole game (regular familiarity and automation start over; records, legacy and the death award stay) or the main menu. Saves past their first run are coloured and show their run.']
+  ['act choices', 'At the end of Act I: move on to Act II, replay Act I (everything kept), or go to the main menu. At the end of Act II: restart the whole game (regular familiarity and automation start over; records, legacy and the death award stay) or the main menu. Saves past their first run are coloured and show their run.'],
+  ['gear fixes', 'Gear descriptions show from the start in this test version, and gear cards no longer jump while you gather for them.'],
 ];
 const buildKey = () => BUILD.split('\u00b7').pop().trim();
 function newNotes(){   // the notes since this save last opened (records the current build)
@@ -4262,16 +4263,14 @@ let getaT = 0;
 function updateGearEta(){
   if (performance.now() - getaT < 400) return; getaT = performance.now();
   const L = S.life;
-  document.querySelectorAll('.geta[data-g]').forEach(el => { const it = IT[el.dataset.g]; if (!it) return;
-    let h = '';
-    if (!L.owned[it.id] && !L.dead) {
-      const need = Math.max(0, it.cost - L.salvage), w = salW(gearZone(it));
-      if (!isDone(it.req)) h = '';
-      else if (it.cost > M.salCap) h = 'needs bigger ' + w + ' storage';
-      else if (need > 0 && !bestSalvageJob()) h = 'needs ' + fmt(need) + ' more ' + w + ' \u00b7 no ' + w + ' job here';
-      else h = need > 0 ? 'built in \u2248 ' + bothH(gearLeft(it)) + ' <small>(gathering ' + fmt(need) + ' ' + w + ')</small>' : 'can be built now';
-    }
-    setH(el, h); });
+  document.querySelectorAll('.geta[data-g]').forEach(el => { const it = IT[el.dataset.g]; if (it) setH(el, gearEtaHtml(it)); });
+}
+function gearEtaHtml(it){   // also written straight into the card markup, so a list redraw never blanks it (flicker)
+  const L = S.life; if (L.owned[it.id] || L.dead || !isDone(it.req)) return '';
+  const need = Math.max(0, it.cost - L.salvage), w = salW(gearZone(it));
+  if (it.cost > M.salCap) return 'needs bigger ' + w + ' storage';
+  if (need > 0 && !bestSalvageJob()) return 'needs ' + fmt(need) + ' more ' + w + ' \u00b7 no ' + w + ' job here';
+  return need > 0 ? 'built in \u2248 ' + bothH(gearLeft(it)) + ' <small>(gathering ' + fmt(need) + ' ' + w + ')</small>' : 'can be built now';
 }
 // Next automation in a section: the unautomated task closest to it, how many completions are missing, and
 // whether this seedling gets there (from the forecast's end state) or about how many more seedlings it takes
@@ -4574,12 +4573,12 @@ function qBtn(id, extra){
 // A gear's effect is a mystery until it has been built once in this save
 const gearKnown = i => !!((S.ever || {})['b:' + i.id] || (S.gprac || {})[i.id]);   // 'b:' ids: built in an older build (assembly tasks)
 const gearProgHtml = i => gearPracticed(i) ? '' : '<span class="paut">auto ' + pctTxt(gearAutoFrac(i)) + '</span>';
-const gearDesc = i => gearKnown(i) ? esc(i.desc) : '<span class="eff">?</span>';
+const gearDesc = i => TEST_SHOW_EFFECTS || gearKnown(i) ? esc(i.desc) : '<span class="eff">?</span>';   // the test version shows them from the start, like task effects
 const gearReady = i => { const L = S.life; return isDone(i.req) && !L.owned[i.id] && i.cost <= M.salCap; };
 function gearRow(i){
   const L = S.life, pr = gearPracticed(i), on = !!(S.gauto && S.gauto[i.id]);
   const st = '<span class="pp">' + gearProgHtml(i) + '</span>' + (pr ? ' \u00b7 ' + (on ? 'built automatically when affordable' : 'can be automated') : '');
-  return `<div class="item gitem"><button class="gtm" data-gdo="${i.id}" ${gearTap(i) ? '' : 'disabled'}><h3${gearReady(i) ? ' class="gready"' : ''}>${esc(i.name)}</h3><p>${gearDesc(i)}</p><p class="num">${st}</p><p class="num geta" data-g="${i.id}"></p></button>` +
+  return `<div class="item gitem"><button class="gtm" data-gdo="${i.id}" ${gearTap(i) ? '' : 'disabled'}><h3${gearReady(i) ? ' class="gready"' : ''}>${esc(i.name)}</h3><p>${gearDesc(i)}</p><p class="num">${st}</p><p class="num geta" data-g="${i.id}">${gearEtaHtml(i)}</p></button>` +
     (L.owned[i.id] ? '<span class="owned">Built</span>' : `<span class="gcost num">${fmt(i.cost)} ${salW(gearZone(i))}${i.cost > M.salCap ? '<br><small>needs storage</small>' : ''}</span>${gqBtn(i)}`) +
     (pr ? `<button class="ta${on ? ' on' : ''}" data-gauto="${i.id}" aria-pressed="${on}" aria-label="Build ${esc(i.name)} automatically">AUTO</button>` : '') +
     (editList ? `<button class="tpn${(S.pins || []).includes('g:' + i.id) ? ' on' : ''}" data-tpin="g:${i.id}" aria-pressed="${(S.pins || []).includes('g:' + i.id)}" aria-label="Pin ${esc(i.name)}">Pin</button>` : '') + '</div>';
@@ -4596,7 +4595,7 @@ function renderGear(){
   av.slice().sort((a, b) => gearZone(a) - gearZone(b)).forEach(i => {
     const z = gearZone(i);
     if (z !== lastZ) { lastZ = z; h += `<div class="sub" style="margin-top:12px">${ZN(z).name}</div>`; }
-    h += `<div class="item"><button class="gtm" data-gdo="${i.id}" ${gearTap(i) ? '' : 'disabled'}><h3${gearReady(i) ? ' class="gready"' : ''}>${esc(i.name)}</h3><p>${esc(i.desc)}</p><p class="num geta" data-g="${i.id}"></p><p class="num">${gearPracticed(i) ? (S.gauto && S.gauto[i.id] ? 'Built automatically' : 'Automation available in the Auto tab') : 'Built in ' + ((S.gprac || {})[i.id] || 0) + '/' + AUTO_LIVES + ' lives'}</p></button>` +
+    h += `<div class="item"><button class="gtm" data-gdo="${i.id}" ${gearTap(i) ? '' : 'disabled'}><h3${gearReady(i) ? ' class="gready"' : ''}>${esc(i.name)}</h3><p>${esc(i.desc)}</p><p class="num geta" data-g="${i.id}">${gearEtaHtml(i)}</p><p class="num">${gearPracticed(i) ? (S.gauto && S.gauto[i.id] ? 'Built automatically' : 'Automation available in the Auto tab') : 'Built in ' + ((S.gprac || {})[i.id] || 0) + '/' + AUTO_LIVES + ' lives'}</p></button>` +
       (L.owned[i.id] ? '<span class="owned">Built</span>' : `<span class="gcost num">${fmt(i.cost)} ${salW(gearZone(i))}${i.cost > M.salCap ? '<br><small>needs storage</small>' : ''}</span>${gqBtn(i)}`) + '</div>';
   });
   if (known.length) {
